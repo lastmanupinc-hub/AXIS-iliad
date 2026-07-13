@@ -297,9 +297,11 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
       <div className="card mb-4">
         <h3 className="mb-2">1. Choose a program</h3>
         {catalogLoading ? (
-          <Skeleton lines={4} />
+          <div role="status" aria-live="polite">
+            <Skeleton lines={4} />
+          </div>
         ) : catalogError ? (
-          <Callout tone="warning" title="Couldn't load the live program list" details={catalogError.details}>
+          <Callout tone="danger" title="Couldn't load the live program list" details={catalogError.details}>
             {catalogError.message} <button type="button" className="btn" onClick={() => void loadCatalog()}>Retry</button>
           </Callout>
         ) : (
@@ -334,7 +336,9 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
       <div className="card mb-4">
         <h3 className="mb-2">2. Choose a project</h3>
         {loggedIn && projectsLoading ? (
-          <Skeleton lines={2} />
+          <div role="status" aria-live="polite">
+            <Skeleton lines={2} />
+          </div>
         ) : projectsError ? (
           <Callout tone="danger" title={projectsError.message} details={projectsError.details}>
             <button type="button" className="btn" onClick={() => void loadProjects()}>Retry</button>
@@ -421,7 +425,9 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
               below for a narrower, query-driven capability.
             </p>
           ) : (
-            <Skeleton lines={2} />
+            <div role="status" aria-live="polite">
+              <Skeleton lines={2} />
+            </div>
           )}
         </div>
       )}
@@ -446,9 +452,11 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
             {running ? (
               <>
                 <span className="spinner" />{" "}
-                {runStage === "sending"
-                  ? "Request sent — waiting for the server…"
-                  : "Server processing — this is a synchronous call, may take up to 15s for large projects…"}
+                <span role="status" aria-live="polite">
+                  {runStage === "sending"
+                    ? "Request sent — waiting for the server…"
+                    : "Server processing — this is a synchronous call, may take up to 15s for large projects…"}
+                </span>
               </>
             ) : (
               `Run ${programMeta?.label ?? selectedProgram}`
@@ -594,7 +602,7 @@ function SearchIndexPanel({ snapshotId }: { snapshotId: string }) {
           </span>
         )}
       </div>
-      {indexError && <p className="text-sm mt-2" style={{ color: "var(--red)" }}>{indexError}</p>}
+      {indexError && <div className="mt-2"><Callout tone="danger">{indexError}</Callout></div>}
 
       {stats && (
         <div className="flex gap-2 mt-3" style={{ alignItems: "center" }}>
@@ -612,10 +620,10 @@ function SearchIndexPanel({ snapshotId }: { snapshotId: string }) {
           </button>
         </div>
       )}
-      {searchError && <p className="text-sm mt-2" style={{ color: "var(--red)" }}>{searchError}</p>}
+      {searchError && <div className="mt-2"><Callout tone="danger">{searchError}</Callout></div>}
       {results && (
         results.length === 0 ? (
-          <p className="text-muted text-sm mt-2">No results for &ldquo;{query}&rdquo;.</p>
+          <EmptyState title={`No results for "${query}"`} message="Try a different search term." />
         ) : (
           <div className="mt-2" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {results.map((r, i) => (

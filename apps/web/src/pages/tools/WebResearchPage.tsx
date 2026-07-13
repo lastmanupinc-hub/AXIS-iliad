@@ -125,7 +125,7 @@ export function WebResearchPage({ onBack }: Props) {
       error={error}
       result={
         result?.success && result.data ? (
-          <div>
+          <div role="status" aria-live="polite">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
               <h3 style={{ margin: 0 }}>Result</h3>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

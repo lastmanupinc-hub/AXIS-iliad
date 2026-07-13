@@ -137,7 +137,9 @@ export function UsagePage() {
     return (
       <div>
         <SectionHeader title="Usage & Billing" />
-        <Skeleton lines={6} height={60} />
+        <div role="status" aria-busy="true">
+          <Skeleton lines={6} height={60} />
+        </div>
       </div>
     );
   }

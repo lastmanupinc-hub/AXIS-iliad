@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { healthCheck, healthLive, healthReady, getStats, type ReadinessResponse, type ApiStats } from "../api.ts";
+import { healthCheck, healthLive, healthReady, getStats, apiErrorDetails, type ReadinessResponse, type ApiStats } from "../api.ts";
 import { SectionHeader, StatTile, Callout, Skeleton, Pill } from "../components/primitives/index.ts";
 
 // ─── StatusPage (WO-P17) ──────────────────────────────────────────────────
@@ -44,6 +44,11 @@ function useSessionTicker(): string {
   return `${m}m ${s}s`;
 }
 
+interface AsyncError {
+  message: string;
+  details: string | null;
+}
+
 export function StatusPage() {
   const [health, setHealth] = useState<Probe>({ label: "API", state: "checking", latencyMs: null });
   const [live, setLive] = useState<Probe>({ label: "Liveness", state: "checking", latencyMs: null });
@@ -51,7 +56,7 @@ export function StatusPage() {
   const [version, setVersion] = useState<string | null>(null);
   const [checks, setChecks] = useState<ReadinessResponse["checks"] | null>(null);
   const [stats, setStats] = useState<ApiStats | null>(null);
-  const [statsError, setStatsError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<AsyncError | null>(null);
   const sessionElapsed = useSessionTicker();
 
   const runProbes = useCallback(() => {
@@ -74,7 +79,7 @@ export function StatusPage() {
 
     getStats()
       .then((s) => { setStats(s); setStatsError(null); })
-      .catch((err) => setStatsError(err instanceof Error ? err.message : "Failed to load call stats"));
+      .catch((err) => setStatsError({ message: err instanceof Error ? err.message : "Failed to load call stats", details: apiErrorDetails(err) }));
   }, []);
 
   useEffect(() => {
@@ -95,7 +100,7 @@ export function StatusPage() {
         sub="Live system health — every number below is a real, timed probe result, never an estimate."
       />
 
-      <div className="card mb-4">
+      <div className="card mb-4" role="status" aria-live="polite">
         <div className="flex-between mb-3" style={{ flexWrap: "wrap", gap: 8 }}>
           <div className="flex gap-2" style={{ alignItems: "center" }}>
             <StatusDot state={overall} />
@@ -137,14 +142,16 @@ export function StatusPage() {
       <div className="card mb-4">
         <h3 className="mb-3">Activity</h3>
         {statsError ? (
-          <Callout tone="warning" title="Couldn't load call stats">{statsError}</Callout>
+          <Callout tone="warning" title="Couldn't load call stats" details={statsError.details}>{statsError.message}</Callout>
         ) : stats ? (
           <div className="grid grid-2">
             <StatTile label="MCP calls today" value={stats.mcp_calls_today} />
             <StatTile label="MCP calls (all time)" value={stats.mcp_calls_total} />
           </div>
         ) : (
-          <Skeleton lines={2} />
+          <div role="status" aria-live="polite">
+            <Skeleton lines={2} />
+          </div>
         )}
       </div>
 

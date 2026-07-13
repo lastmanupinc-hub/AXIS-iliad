@@ -716,9 +716,11 @@ function TroubleshootingSection() {
               padding: "12px 0",
             }}
           >
-            <div
+            <button
+              type="button"
               className="flex-between"
-              style={{ cursor: "pointer" }}
+              style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit", padding: 0, textAlign: "left" }}
+              aria-expanded={expanded === i}
               onClick={() => setExpanded(expanded === i ? null : i)}
             >
               <div className="flex" style={{ gap: 8 }}>
@@ -728,7 +730,7 @@ function TroubleshootingSection() {
               <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
                 {expanded === i ? "▲" : "▼"}
               </span>
-            </div>
+            </button>
             {expanded === i && (
               <div
                 className="animate-fade-in"

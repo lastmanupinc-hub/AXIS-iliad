@@ -6,6 +6,7 @@ import {
   searchMcpTools,
   getInstallConfig,
   apiErrorDetails,
+  ApiError,
   type McpManifest,
   type McpToolDefinition,
   type McpToolSchemaProperty,
@@ -68,12 +69,12 @@ interface AsyncError {
 }
 
 function toAsyncError(err: unknown, fallback: string): AsyncError {
-  return { message: err instanceof Error ? err.message : fallback, details: apiErrorDetails(err) };
+  return { message: err instanceof ApiError ? err.message : fallback, details: apiErrorDetails(err) };
 }
 
 function ErrorRetry({ error, onRetry }: { error: AsyncError; onRetry: () => void }) {
   return (
-    <Callout tone="warning" title="Couldn't load this from the API" details={error.details}>
+    <Callout tone="danger" title="Couldn't load this from the API" details={error.details}>
       {error.message} <button type="button" className="btn" onClick={onRetry}>Retry</button>
     </Callout>
   );
@@ -122,7 +123,7 @@ function ManifestPanel() {
         <span className="badge badge-green">Live · GET /v1/mcp/server.json</span>
       </div>
       {loading ? (
-        <Skeleton lines={4} />
+        <div role="status" aria-live="polite"><Skeleton lines={4} /></div>
       ) : error ? (
         <ErrorRetry error={error} onRetry={() => void load()} />
       ) : manifest ? (
@@ -292,7 +293,7 @@ function ToolRegistry({ onOpenConsole }: { onOpenConsole?: (page: PageId) => voi
         {!loading && !error && <span className="badge badge-accent">{pluralTools(tools.length)} · live · POST /mcp tools/list</span>}
       </div>
       {loading ? (
-        <Skeleton lines={5} />
+        <div role="status" aria-live="polite"><Skeleton lines={5} /></div>
       ) : error ? (
         <ErrorRetry error={error} onRetry={() => void load()} />
       ) : (
@@ -341,7 +342,7 @@ function ProgramCapabilitySearch() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<McpToolSearchResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AsyncError | null>(null);
 
   async function handleSearch() {
     const q = query.trim();
@@ -351,7 +352,7 @@ function ProgramCapabilitySearch() {
     try {
       setResult(await searchMcpTools(q));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Search failed");
+      setError(toAsyncError(err, "Search failed"));
     } finally {
       setSearching(false);
     }
@@ -378,10 +379,16 @@ function ProgramCapabilitySearch() {
           {searching ? "Searching…" : "Search"}
         </button>
       </div>
-      {error && <p className="text-sm mt-2" style={{ color: "var(--red)" }}>{error}</p>}
+      {error && (
+        <div className="mt-2">
+          <Callout tone="danger" details={error.details}>{error.message}</Callout>
+        </div>
+      )}
       {result && (
         result.results.length === 0 ? (
-          <p className="text-muted text-sm mt-3">No programs match &ldquo;{result.query}&rdquo;.</p>
+          <div className="mt-3">
+            <EmptyState title="No programs match your search" message={`No programs match "${result.query}".`} />
+          </div>
         ) : (
           <div className="stack mt-3">
             {result.results.slice(0, 8).map((m) => (
@@ -475,7 +482,7 @@ function PlatformTabs() {
       </div>
 
       {loading[active] && !current ? (
-        <Skeleton lines={4} />
+        <div role="status" aria-live="polite"><Skeleton lines={4} /></div>
       ) : error && !current ? (
         <ErrorRetry error={error} onRetry={() => load(active)} />
       ) : current ? (

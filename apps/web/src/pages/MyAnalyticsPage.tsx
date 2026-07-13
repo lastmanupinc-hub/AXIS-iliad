@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { getMyAnalyticsSummary, type MyAnalyticsSummary } from "../api.ts";
+import { getMyAnalyticsSummary, ApiError, type MyAnalyticsSummary } from "../api.ts";
+import { Callout, Skeleton } from "../components/primitives/index.ts";
 
 interface StrategyItem {
   title: string;
@@ -82,7 +83,7 @@ export function MyAnalyticsPage() {
       const data = await getMyAnalyticsSummary(days, 300);
       setSummary(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load analytics");
+      setError(err instanceof ApiError ? err.message : "Failed to load analytics");
     } finally {
       setLoading(false);
     }
@@ -94,16 +95,12 @@ export function MyAnalyticsPage() {
 
   const strategies = useMemo(() => buildStrategies(summary), [summary]);
 
-  if (loading) {
-    return (
-      <div className="empty-state">
-        <span className="spinner" /> Loading my analytics...
-      </div>
-    );
-  }
-
   return (
     <div>
+      {/* The Window select + Refresh button stay mounted through every load —
+          the page used to swap its ENTIRE tree (controls included) for a bare
+          spinner on mount, on every window change, and on every Refresh click,
+          silently dropping keyboard focus to <body> each time. */}
       <div className="card">
         <div className="flex-between">
           <div>
@@ -112,18 +109,24 @@ export function MyAnalyticsPage() {
           </div>
           <div className="flex">
             <label htmlFor="analytics-days">Window</label>
-            <select id="analytics-days" value={days} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
+            <select id="analytics-days" value={days} disabled={loading} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
               <option value={7}>7 days</option>
               <option value={30}>30 days</option>
               <option value={90}>90 days</option>
             </select>
-            <button className="btn" onClick={() => void load()}>Refresh</button>
+            <button className="btn" disabled={loading} onClick={() => void load()}>{loading ? "Refreshing…" : "Refresh"}</button>
           </div>
         </div>
-        {error && <div>{error}</div>}
+        {error && <Callout tone="danger">{error}</Callout>}
       </div>
 
-      {summary && (
+      {loading && (
+        <div className="card" role="status" aria-live="polite">
+          <Skeleton lines={6} />
+        </div>
+      )}
+
+      {!loading && summary && (
         <>
           <div className="grid grid-4">
             <div className="card">
@@ -199,6 +202,11 @@ export function MyAnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {summary.api_calls.by_status.length === 0 && (
+                    <tr>
+                      <td colSpan={2}>No API calls in this window.</td>
+                    </tr>
+                  )}
                   {summary.api_calls.by_status.map((row) => (
                     <tr key={row.status_bucket}>
                       <td>{row.status_bucket}</td>
@@ -222,6 +230,11 @@ export function MyAnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
+                {summary.api_calls.by_endpoint.length === 0 && (
+                  <tr>
+                    <td colSpan={4}>No API calls in this window.</td>
+                  </tr>
+                )}
                 {summary.api_calls.by_endpoint.map((ep) => (
                   <tr key={`${ep.method}:${ep.path}`}>
                     <td>{ep.method}</td>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { probeIntent, type ProbeIntentResponse } from "../api.ts";
+import { probeIntent, ApiError, type ProbeIntentResponse } from "../api.ts";
+import { Callout, EmptyState } from "./primitives/index.ts";
 
 // ─── ProbeIntentDemo ─────────────────────────────────────────────────────
 // Extracted from McpPage.tsx (WO-P8) so WO-P15's Playground can reuse it
@@ -24,7 +25,7 @@ export function ProbeIntentDemo() {
     try {
       setResult(await probeIntent(trimmed));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't reach the intent probe");
+      setError(err instanceof ApiError ? err.message : "Couldn't reach the intent probe");
     } finally {
       setLoading(false);
     }
@@ -51,10 +52,13 @@ export function ProbeIntentDemo() {
           {loading ? "Routing…" : "Get a recommendation"}
         </button>
       </form>
-      {error && <p className="text-sm mt-2" style={{ color: "var(--red)" }}>{error}</p>}
+      {error && <Callout tone="danger">{error}</Callout>}
       {result && (
         result.recommendations.length === 0 ? (
-          <p className="text-muted text-sm mt-3">No specific match — try <code className="mono">search_and_discover_tools</code>.</p>
+          <EmptyState
+            title="No specific match"
+            message="Try search_and_discover_tools for a broader look at what's available."
+          />
         ) : (
           <div className="stack mt-3">
             {result.recommendations.map((r) => (

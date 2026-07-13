@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ProjectSnapshotSummary,
   GenerationVersionSummary,
@@ -59,9 +59,23 @@ function gradeBadgeClass(letter: string | null): string {
  *  second action before an irreversible delete fires. */
 function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string; confirmLabel: string; busy: boolean; onConfirm: () => void }) {
   const [armed, setArmed] = useState(false);
+  const labelRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const wasArmed = useRef(false);
+
+  // The confirm step replaces this control's whole subtree, which unmounts
+  // whatever was just clicked and silently drops keyboard focus to <body>.
+  // Move focus to the safer default (Cancel, not the destructive action)
+  // on arm, and back to the label button when disarmed.
+  useEffect(() => {
+    if (armed && !wasArmed.current) cancelRef.current?.focus();
+    if (!armed && wasArmed.current) labelRef.current?.focus();
+    wasArmed.current = armed;
+  }, [armed]);
+
   if (!armed) {
     return (
-      <button type="button" className="btn" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => setArmed(true)}>
+      <button ref={labelRef} type="button" className="btn" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => setArmed(true)}>
         {label}
       </button>
     );
@@ -72,7 +86,7 @@ function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string;
       <button type="button" className="btn btn-primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={onConfirm}>
         {busy ? "Deleting..." : "Yes, delete"}
       </button>
-      <button type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Cancel</button>
+      <button ref={cancelRef} type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Cancel</button>
     </span>
   );
 }

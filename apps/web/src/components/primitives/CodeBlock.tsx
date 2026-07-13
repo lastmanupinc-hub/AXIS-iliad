@@ -41,7 +41,7 @@ export function CodeBlock({ code, label, wrap = false, maxHeight, copyLabel = "C
         >
           <code>{code}</code>
         </pre>
-        <button type="button" className={`code-copy${copied ? " code-copy-done" : ""}`} onClick={handleCopy} aria-label={copyLabel}>
+        <button type="button" className={`code-copy${copied ? " code-copy-done" : ""}`} onClick={handleCopy} aria-label={copied ? "Copied" : copyLabel}>
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>

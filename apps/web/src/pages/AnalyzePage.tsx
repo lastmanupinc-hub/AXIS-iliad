@@ -604,7 +604,7 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
           />
         </div>
 
-        <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card" style={{ marginBottom: 16 }} role="status" aria-live="polite">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <label style={{ margin: 0 }}>Requested Outputs <span style={{ color: "var(--text-muted)", fontWeight: "normal", fontSize: "0.8rem" }}>({selectedOutputs.length} selected)</span></label>
             {!catalogLoading && !catalogError && (
@@ -619,7 +619,7 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
           {catalogLoading ? (
             <Skeleton lines={4} />
           ) : catalogError ? (
-            <Callout tone="warning" title="Couldn't load the live program list" details={catalogError.details}>
+            <Callout tone="danger" title="Couldn't load the live program list" details={catalogError.details}>
               {catalogError.message}{" "}
               <button type="button" className="btn" onClick={() => void loadCatalog()}>Retry</button>
             </Callout>
@@ -680,8 +680,8 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
             </button>
           </div>
         ) : error ? (
-          <div className="card" style={{ borderColor: "var(--red)", marginBottom: 16 }}>
-            <p style={{ color: "var(--red)" }}>{error}</p>
+          <div style={{ marginBottom: 16 }}>
+            <Callout tone="danger">{error}</Callout>
           </div>
         ) : null}
 
@@ -701,7 +701,7 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", justifyContent: "center", padding: 12 }}>
           {loading ? (
             <>
-              <span className="spinner" /> {loadingStep || (mode === "github" ? "Fetching & Analyzing..." : "Processing...")}
+              <span className="spinner" /> <span role="status" aria-live="polite">{loadingStep || (mode === "github" ? "Fetching & Analyzing..." : "Processing...")}</span>
             </>
           ) : mode === "github" ? (
             "Analyze GitHub Repo"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   getAccount,
   getAccountEntitlements,
@@ -48,9 +48,23 @@ import { SectionHeader, Callout, Skeleton, TableWrap } from "../components/primi
  *  copy; not shared, see either for the "why not a native confirm()"). */
 function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string; confirmLabel: string; busy: boolean; onConfirm: () => void }) {
   const [armed, setArmed] = useState(false);
+  const labelRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const wasArmed = useRef(false);
+
+  // The confirm step replaces this control's whole subtree, which unmounts
+  // whatever was just clicked and silently drops keyboard focus to <body>.
+  // Move focus to the safer default (Cancel, not the destructive action)
+  // on arm, and back to the label button when disarmed.
+  useEffect(() => {
+    if (armed && !wasArmed.current) cancelRef.current?.focus();
+    if (!armed && wasArmed.current) labelRef.current?.focus();
+    wasArmed.current = armed;
+  }, [armed]);
+
   if (!armed) {
     return (
-      <button type="button" className="btn" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => setArmed(true)}>
+      <button ref={labelRef} type="button" className="btn" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => setArmed(true)}>
         {label}
       </button>
     );
@@ -61,7 +75,7 @@ function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string;
       <button type="button" className="btn btn-primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={onConfirm}>
         {busy ? "Working..." : "Yes, confirm"}
       </button>
-      <button type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Cancel</button>
+      <button ref={cancelRef} type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Cancel</button>
     </span>
   );
 }
@@ -292,7 +306,9 @@ export function SettingsPage({ onAuthChange }: Props) {
     return (
       <div>
         <SectionHeader title="Settings" />
-        <Skeleton lines={8} height={60} />
+        <div role="status" aria-busy="true">
+          <Skeleton lines={8} height={60} />
+        </div>
       </div>
     );
   }
@@ -355,7 +371,7 @@ export function SettingsPage({ onAuthChange }: Props) {
         <div className="flex-between mb-2">
           <h3>API Keys</h3>
           <form onSubmit={handleCreateKey} className="flex gap-2">
-            <input value={newKeyLabel} onChange={(e) => setNewKeyLabel(e.target.value)} placeholder="Key label (optional)" style={{ width: 200 }} />
+            <input value={newKeyLabel} onChange={(e) => setNewKeyLabel(e.target.value)} placeholder="Key label (optional)" aria-label="API key label" style={{ width: 200 }} />
             <button type="submit" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>+ New Key</button>
           </form>
         </div>
@@ -386,8 +402,8 @@ export function SettingsPage({ onAuthChange }: Props) {
         <h3 className="mb-2">GitHub Tokens</h3>
         <p className="text-muted text-sm mb-2">Stored tokens are used automatically for private-repo analysis. Only a prefix is ever shown again.</p>
         <form onSubmit={handleSaveToken} className="flex gap-2 mb-4" style={{ flexWrap: "wrap" }}>
-          <input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="ghp_..." type="password" style={{ width: 240 }} required minLength={10} />
-          <input value={newTokenLabel} onChange={(e) => setNewTokenLabel(e.target.value)} placeholder="Label (optional)" style={{ width: 160 }} />
+          <input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="ghp_..." type="password" aria-label="GitHub token value" style={{ width: 240 }} required minLength={10} />
+          <input value={newTokenLabel} onChange={(e) => setNewTokenLabel(e.target.value)} placeholder="Label (optional)" aria-label="GitHub token label" style={{ width: 160 }} />
           <button type="submit" className="btn btn-primary">+ Add Token</button>
         </form>
         {tokens.length === 0 ? (
@@ -416,7 +432,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       <div className="card">
         <h3 className="mb-2">Webhooks</h3>
         <form onSubmit={handleCreateWebhook} className="stack gap-2 mb-4" style={{ maxWidth: 480 }}>
-          <input value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} placeholder="https://example.com/hook" type="url" required />
+          <input value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} placeholder="https://example.com/hook" type="url" aria-label="Webhook URL" required />
           <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
             {VALID_WEBHOOK_EVENTS.map((evt) => (
               <label key={evt} className="text-sm flex gap-1" style={{ alignItems: "center" }}>
@@ -503,7 +519,7 @@ export function SettingsPage({ onAuthChange }: Props) {
               }}
               className="flex gap-2 mb-2"
             >
-              <input name="email" placeholder="teammate@example.com" type="email" style={{ width: 220 }} required />
+              <input name="email" placeholder="teammate@example.com" type="email" aria-label="Invite teammate email" style={{ width: 220 }} required />
               <button type="submit" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>+ Invite</button>
             </form>
             {!seats || seats.seats.length === 0 ? (

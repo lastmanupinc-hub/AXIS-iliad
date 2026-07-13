@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, Fragment, Component, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -507,6 +507,21 @@ export function App() {
   const activeDef = routeForPage(route.page);
   const isLanding = route.page === "home" || route.page === "analyze";
 
+  // H5.1: move focus to the main content region on every route change, so
+  // keyboard/screen-reader users get the new page announced instead of
+  // silently staying on whatever nav button they clicked (the classic SPA
+  // soft-navigation a11y gap). Skipped on the very first render — the
+  // browser already places focus sensibly on initial load.
+  const mainRef = useRef<HTMLElement>(null);
+  const isFirstRouteRef = useRef(true);
+  useEffect(() => {
+    if (isFirstRouteRef.current) {
+      isFirstRouteRef.current = false;
+      return;
+    }
+    mainRef.current?.focus();
+  }, [route.key]);
+
   /** A nav item is active for its own page and for its child pages
    *  (e.g. MCP stays lit on #tools/web-research). */
   const isActive = useCallback(
@@ -544,6 +559,10 @@ export function App() {
   return (
     <ToastProvider>
       <div className={`ide-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isLanding ? "is-landing" : ""}`} data-shell-page={route.page}>
+
+        {/* H5.1: first focusable element — jumps keyboard users past the rail
+            and sidebar nav straight to page content (WCAG 2.4.1 Bypass Blocks). */}
+        <a href="#main-content" className="skip-link">Skip to main content</a>
 
         {/* COLUMN 1 — activity rail (route-table derived) */}
         <nav className="ide-rail" aria-label="Primary">
@@ -605,7 +624,7 @@ export function App() {
         </div>
 
         {/* COLUMN 3 / ROW 2 — main editor panel (only scroll region) */}
-        <main className="ide-main">
+        <main className="ide-main" id="main-content" tabIndex={-1} ref={mainRef}>
           {isLanding && (
             <div className="trust-banner" role="note" aria-label="Privacy and IP protection statement">
               <span className="trust-item"><strong>Snapshots are stored</strong> — they power re-runs and exports; delete anytime via the API (DELETE /v1/snapshots/:id)</span>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { SnapshotResponse, GeneratedFile } from "../api.ts";
 import { getGeneratedFiles, runProgram, downloadExport, ApiError } from "../api.ts";
 import { OverviewTab } from "../components/OverviewTab.tsx";
@@ -51,7 +51,17 @@ export type ProjectTab = (typeof TABS)[number];
 
 function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: number; onDownload: () => void; downloading: boolean }) {
   const [dismissed, setDismissed] = useState(false);
-  if (dismissed || fileCount === 0) return null;
+  const anchorRef = useRef<HTMLDivElement>(null);
+
+  // Dismissing unmounts the whole card, including the button that was just
+  // clicked, which silently drops keyboard focus to <body>. Keep a
+  // focusable anchor where the card was and move focus there instead.
+  useEffect(() => {
+    if (dismissed) anchorRef.current?.focus();
+  }, [dismissed]);
+
+  if (fileCount === 0) return null;
+  if (dismissed) return <div ref={anchorRef} tabIndex={-1} style={{ outline: "none" }} />;
 
   return (
     <div className="card" style={{ marginBottom: 16, borderLeft: "3px solid var(--accent)", padding: "16px 20px" }}>

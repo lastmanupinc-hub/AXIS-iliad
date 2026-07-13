@@ -14,6 +14,7 @@ import {
   type McpUsageResponse,
   type AdminRevenue,
 } from "../api.ts";
+import { Skeleton, Callout } from "../components/primitives/index.ts";
 
 export function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -62,8 +63,8 @@ export function AdminPage() {
 
   if (loading) {
     return (
-      <div className="empty-state">
-        <span className="spinner" /> Loading admin analytics...
+      <div className="empty-state" role="status" aria-live="polite">
+        <Skeleton lines={6} height={60} />
       </div>
     );
   }
@@ -81,7 +82,7 @@ export function AdminPage() {
           <button className="btn" onClick={() => void loadAdminData()}>Refresh</button>
         </div>
         {error && (
-          <div>{error}</div>
+          <Callout tone="danger">{error}</Callout>
         )}
       </div>
 

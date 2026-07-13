@@ -208,7 +208,7 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
         </div>
       )}
 
-      {loggedIn && projects === null && !listError && <div className="mt-4"><Skeleton lines={2} height={40} /></div>}
+      {loggedIn && projects === null && !listError && <div className="mt-4" role="status" aria-busy="true"><Skeleton lines={2} height={40} /></div>}
 
       {loggedIn && projects !== null && projects.length === 0 && !listError && (
         <div className="card mt-4">
@@ -257,14 +257,15 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
             </div>
           )}
 
-          {checkingExisting && <div className="mt-4"><Skeleton lines={3} height={40} /></div>}
+          {checkingExisting && <div className="mt-4" role="status" aria-busy="true"><Skeleton lines={3} height={40} /></div>}
 
           {!checkingExisting && !files && (
-            <div className="card mt-4" style={{ textAlign: "center" }}>
-              <p className="text-muted mb-2">No purchasing kit generated yet for this project.</p>
-              <button type="button" className="btn btn-primary" disabled={generating || !target.snapshot_id} onClick={() => void handleGenerate()}>
-                {generating ? "Generating..." : "Generate Purchasing Kit"}
-              </button>
+            <div className="card mt-4">
+              <EmptyState icon="scan" title="No purchasing kit yet" message="No purchasing kit generated yet for this project.">
+                <button type="button" className="btn btn-primary" disabled={generating || !target.snapshot_id} onClick={() => void handleGenerate()}>
+                  {generating ? "Generating..." : "Generate Purchasing Kit"}
+                </button>
+              </EmptyState>
             </div>
           )}
 

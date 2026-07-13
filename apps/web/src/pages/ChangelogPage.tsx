@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { getChangelog, apiErrorDetails } from "../api.ts";
-import { SectionHeader, Callout, Skeleton, MarkdownLite, Pill } from "../components/primitives/index.ts";
+import { getChangelog, apiErrorDetails, ApiError } from "../api.ts";
+import { SectionHeader, Callout, EmptyState, Skeleton, MarkdownLite, Pill } from "../components/primitives/index.ts";
 import { APP_VERSION } from "../version.ts";
 
 // ─── ChangelogPage (WO-P16) ───────────────────────────────────────────────
@@ -65,7 +65,7 @@ export function ChangelogPage() {
     setError(null);
     getChangelog()
       .then(setRaw)
-      .catch((err) => setError({ message: err instanceof Error ? err.message : "Failed to load the changelog", details: apiErrorDetails(err) }))
+      .catch((err) => setError({ message: err instanceof ApiError ? err.message : "Failed to load the changelog", details: apiErrorDetails(err) }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -75,11 +75,15 @@ export function ChangelogPage() {
     <div>
       <SectionHeader title="Changelog" sub="What's shipped, straight from the repo's CHANGELOG.md." />
 
-      {loading && <div className="card"><Skeleton lines={10} /></div>}
+      {loading && (
+        <div className="card" role="status" aria-live="polite">
+          <Skeleton lines={10} />
+        </div>
+      )}
 
       {!loading && (error || raw === null) && (
         <div className="card">
-          <Callout tone="warning" title="Couldn't load the changelog" details={error?.details ?? null}>
+          <Callout tone="danger" title="Couldn't load the changelog" details={error?.details ?? null}>
             {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={load}>Retry</button>
           </Callout>
         </div>
@@ -98,7 +102,7 @@ function ChangelogBody({ raw }: { raw: string }) {
   if (sections.length === 0) {
     return (
       <div className="card">
-        <p className="text-muted">The changelog file has no version entries yet.</p>
+        <EmptyState title="No changelog entries yet" message="The changelog file has no version entries yet." />
       </div>
     );
   }

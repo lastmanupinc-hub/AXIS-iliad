@@ -926,6 +926,35 @@ kbd {
 }
 .ide-shell.sidebar-collapsed { --sidebar-w: 0px; }
 
+/* H5.1: skip-link — absolutely positioned, so it sits outside the shell's grid
+   flow regardless of DOM order; hidden off-screen until keyboard-focused. */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 8px;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 8px;
+  outline: none;
+  box-shadow: var(--glow);
+}
+
+/* #main-content gets a programmatic-focus target (H5.1 route-change focus
+   shift + this skip-link) — suppress the default ring since ide-main is a
+   large scroll region, not a discrete control; the page's own content still
+   gets normal focus-visible styling. */
+.ide-main:focus { outline: none; }
+.ide-main:focus-visible { outline: none; }
+
 /* COLUMN 1 — activity rail (instrument bezel) */
 .ide-rail {
   grid-area: rail;

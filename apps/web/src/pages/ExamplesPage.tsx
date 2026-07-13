@@ -452,6 +452,7 @@ function ExampleCard({ ex, expanded, onToggle }: { ex: Example; expanded: boolea
       {/* Header row */}
       <button
         onClick={onToggle}
+        aria-expanded={expanded}
         style={{
           width: "100%", background: "none", border: "none", cursor: "pointer",
           padding: "16px 20px", display: "grid",

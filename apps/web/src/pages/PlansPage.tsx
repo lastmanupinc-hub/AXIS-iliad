@@ -105,8 +105,8 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
   return (
     <div>
       {checkoutError && (
-        <div className="card" style={{ borderColor: "var(--red)", marginBottom: 16 }}>
-          <p style={{ color: "var(--red)", fontSize: "0.875rem", margin: 0 }}>{checkoutError}</p>
+        <div style={{ marginBottom: 16 }}>
+          <Callout tone="danger">{checkoutError}</Callout>
         </div>
       )}
       {fallbackPricing && (
@@ -129,6 +129,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
           <button
             className={`btn ${!annual ? "btn-primary" : ""}`}
             onClick={() => setAnnual(false)}
+            aria-pressed={!annual}
             style={{ fontSize: "0.8125rem" }}
           >
             Monthly
@@ -136,6 +137,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
           <button
             className={`btn ${annual ? "btn-primary" : ""}`}
             onClick={() => setAnnual(true)}
+            aria-pressed={annual}
             style={{ fontSize: "0.8125rem" }}
           >
             Annual <span className="badge badge-green" style={{ marginLeft: 4 }}>Save 20%</span>

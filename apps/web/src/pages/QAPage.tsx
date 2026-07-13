@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "../components/AxisIcons";
+import { EmptyState } from "../components/primitives/index.ts";
 // Single-source counts + canonical API origin (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, ENDPOINT_COUNT, PROD_API_BASE, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
@@ -329,10 +330,11 @@ export function QAPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="empty-state">
-          <span style={{ fontSize: "2rem", display: "block", marginBottom: 8 }}><Icon name="search" /></span>
-          No questions match your search.
-        </div>
+        <EmptyState
+          icon="search"
+          title="No questions match your search"
+          message="Try a different search term or browse by category instead."
+        />
       ) : (
         <div className="card stagger">
           {filtered.map((item, i) => {

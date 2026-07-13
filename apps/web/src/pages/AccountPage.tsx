@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { AuthButtons } from "../components/AuthButtons.tsx";
+import { Callout } from "../components/primitives/index.ts";
 import { exchangeOAuthCode, logoutSession, markAuthed, consumeReturnTo } from "../api.ts";
 import type { PageId } from "../routes.tsx";
 
@@ -69,7 +70,7 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
 
   if (isLoggedIn && !exchanging) {
     return (
-      <div className="empty-state">
+      <div className="empty-state" role="status" aria-live="polite">
         <span className="spinner" /> Redirecting to Settings...
       </div>
     );
@@ -84,10 +85,12 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
           {signingIn ? "Signing you in…" : "Continue with GitHub or Google to view your account and results."}
         </p>
         {error && (
-          <div style={{ color: "var(--red)", fontSize: "0.875rem", marginBottom: 12 }}>{error}</div>
+          <div style={{ marginBottom: 12 }}>
+            <Callout tone="danger">{error}</Callout>
+          </div>
         )}
         {signingIn ? (
-          <div className="empty-state"><span className="spinner" /> Completing sign-in…</div>
+          <div className="empty-state" role="status" aria-live="polite"><span className="spinner" /> Completing sign-in…</div>
         ) : (
           <AuthButtons onEmailSuccess={() => { onAuthChange?.(); finishAuthAndReload(); }} />
         )}

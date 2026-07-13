@@ -914,3 +914,41 @@ describe("Sign-up return-to (WO-P2)", () => {
     expect(shellPage(container)).toBe("project");
   });
 });
+
+describe("Skip-link + route-change focus management (H5.1)", () => {
+  it("renders a skip-link as the first focusable shell element, pointing at #main-content", () => {
+    const { container } = render(<App />);
+    const shell = container.querySelector(".ide-shell") as HTMLElement;
+
+    const skipLink = screen.getByRole("link", { name: "Skip to main content" });
+    expect(skipLink.getAttribute("href")).toBe("#main-content");
+
+    // It must precede the rail/sidebar nav in DOM order — that's the whole point:
+    // Tab from page load lands on it before any nav control.
+    const rail = shell.querySelector(".ide-rail") as HTMLElement;
+    expect(skipLink.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("#main-content is the ide-main landmark and is only programmatically focusable (tabindex=-1)", () => {
+    const { container } = render(<App />);
+    const main = container.querySelector("#main-content") as HTMLElement;
+    expect(main).toBeTruthy();
+    expect(main.classList.contains("ide-main")).toBe(true);
+    expect(main.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("does not steal focus to main on initial page load", () => {
+    render(<App />);
+    expect(document.activeElement).not.toBe(document.querySelector("#main-content"));
+  });
+
+  it("moves focus to #main-content on route change, so screen readers announce the new page", async () => {
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+
+    fireEvent.click(sidebar.getByRole("button", { name: "Docs" }));
+
+    await waitFor(() => expect(shellPage(container)).toBe("docs"));
+    expect(document.activeElement).toBe(container.querySelector("#main-content"));
+  });
+});

@@ -8,6 +8,7 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { getPaidConfig, paidSubscribe, getAccount, ApiError } from "../api.ts";
+import { Callout } from "../components/primitives/index.ts";
 
 type Step =
   | "loading"      // fetching /portal/api/paid/config
@@ -120,31 +121,35 @@ export function PaidCheckoutPage() {
       </p>
 
       {error && (
-        <div style={{ padding: "8px 12px", marginBottom: 16, borderRadius: "var(--radius)", background: "color-mix(in srgb, var(--red) 12%, transparent)", color: "var(--red)", fontSize: "0.875rem" }}>
-          {error}
+        <div style={{ marginBottom: 16 }}>
+          <Callout tone="danger">{error}</Callout>
         </div>
       )}
 
       <form onSubmit={(e) => { void handleSubscribe(e); }}>
-        <label style={{ display: "block", marginBottom: 6 }}>Billing cycle</label>
-        <div className="flex" style={{ gap: 8, marginBottom: 16 }}>
-          <button
-            type="button"
-            className={`btn ${plan === "monthly" ? "btn-primary" : ""}`}
-            onClick={() => setPlan("monthly")}
-            style={{ fontSize: "0.8125rem" }}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            className={`btn ${plan === "annual" ? "btn-primary" : ""}`}
-            onClick={() => setPlan("annual")}
-            style={{ fontSize: "0.8125rem" }}
-          >
-            Annual
-          </button>
-        </div>
+        <fieldset style={{ border: "none", padding: 0, margin: "0 0 16px" }}>
+          <legend style={{ padding: 0, marginBottom: 6, fontSize: "inherit", fontWeight: "inherit" }}>Billing cycle</legend>
+          <div className="flex" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className={`btn ${plan === "monthly" ? "btn-primary" : ""}`}
+              onClick={() => setPlan("monthly")}
+              aria-pressed={plan === "monthly"}
+              style={{ fontSize: "0.8125rem" }}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              className={`btn ${plan === "annual" ? "btn-primary" : ""}`}
+              onClick={() => setPlan("annual")}
+              aria-pressed={plan === "annual"}
+              style={{ fontSize: "0.8125rem" }}
+            >
+              Annual
+            </button>
+          </div>
+        </fieldset>
 
         <label htmlFor="paid-email">Email</label>
         <input

@@ -825,12 +825,12 @@ function ApiSection() {
 
   useEffect(() => { void load(); }, [load]);
 
-  if (loading) return <div className="card"><Skeleton lines={8} /></div>;
+  if (loading) return <div className="card" role="status" aria-live="polite"><Skeleton lines={8} /></div>;
 
   if (error || !spec) {
     return (
       <div className="card">
-        <Callout tone="warning" title="Couldn't load the live API spec" details={error?.details ?? null}>
+        <Callout tone="danger" title="Couldn't load the live API spec" details={error?.details ?? null}>
           {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={() => void load()}>Retry</button>
         </Callout>
       </div>
@@ -1037,9 +1037,9 @@ function McpProtocolSection({ onNavigate }: { onNavigate: (page: PageId) => void
         </p>
 
         {loading ? (
-          <Skeleton lines={4} />
+          <div role="status" aria-live="polite"><Skeleton lines={4} /></div>
         ) : error || !manifest ? (
-          <Callout tone="warning" title="Couldn't load the live MCP manifest" details={error?.details ?? null}>
+          <Callout tone="danger" title="Couldn't load the live MCP manifest" details={error?.details ?? null}>
             {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={() => void load()}>Retry</button>
           </Callout>
         ) : (
@@ -1117,9 +1117,9 @@ function ErrorCodesSection() {
         </p>
 
         {loading ? (
-          <Skeleton lines={6} />
+          <div role="status" aria-live="polite"><Skeleton lines={6} /></div>
         ) : error || !catalog ? (
-          <Callout tone="warning" title="Couldn't load the live error-code catalog" details={error?.details ?? null}>
+          <Callout tone="danger" title="Couldn't load the live error-code catalog" details={error?.details ?? null}>
             {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={() => void load()}>Retry</button>
           </Callout>
         ) : (

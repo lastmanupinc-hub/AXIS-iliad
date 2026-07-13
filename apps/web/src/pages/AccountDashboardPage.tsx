@@ -104,12 +104,12 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
     return (
       <div>
         <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." />
-        <div className="grid grid-4 mb-4">
+        <div className="grid grid-4 mb-4" role="status" aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
             <div className="card" key={i}><Skeleton lines={3} /></div>
           ))}
         </div>
-        <div className="card"><Skeleton lines={5} /></div>
+        <div className="card" role="status" aria-busy="true"><Skeleton lines={5} /></div>
       </div>
     );
   }
