@@ -14,7 +14,7 @@ import {
   type McpUsageResponse,
   type AdminRevenue,
 } from "../api.ts";
-import { Skeleton, Callout } from "../components/primitives/index.ts";
+import { Skeleton, Callout, TableWrap } from "../components/primitives/index.ts";
 
 export function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -215,41 +215,55 @@ export function AdminPage() {
           <div className="grid grid-2">
             <div className="card">
               <h3>Calls by Source</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Source</th>
-                    <th>Calls</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(mcpUsage.summary.by_source).map(([source, count]) => (
-                    <tr key={source}>
-                      <td>{source}</td>
-                      <td>{count.toLocaleString()}</td>
+              <TableWrap label="Calls by source">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Calls</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {Object.keys(mcpUsage.summary.by_source).length === 0 && (
+                      <tr>
+                        <td colSpan={2}>No MCP calls in this window.</td>
+                      </tr>
+                    )}
+                    {Object.entries(mcpUsage.summary.by_source).map(([source, count]) => (
+                      <tr key={source}>
+                        <td>{source}</td>
+                        <td>{count.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
             </div>
             <div className="card">
               <h3>Calls by Tool</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tool</th>
-                    <th>Calls</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(mcpUsage.summary.by_tool).map(([tool, count]) => (
-                    <tr key={tool}>
-                      <td>{tool}</td>
-                      <td>{count.toLocaleString()}</td>
+              <TableWrap label="Calls by tool">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tool</th>
+                      <th>Calls</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {Object.keys(mcpUsage.summary.by_tool).length === 0 && (
+                      <tr>
+                        <td colSpan={2}>No MCP calls in this window.</td>
+                      </tr>
+                    )}
+                    {Object.entries(mcpUsage.summary.by_tool).map(([tool, count]) => (
+                      <tr key={tool}>
+                        <td>{tool}</td>
+                        <td>{count.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
             </div>
           </div>
         </>
@@ -258,91 +272,119 @@ export function AdminPage() {
       <div className="grid grid-2">
         <div className="card">
           <h3>Accounts by Tier</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Tier</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(stats?.accounts_by_tier ?? {}).map(([tier, count]) => (
-                <tr key={tier}>
-                  <td>{tier}</td>
-                  <td>{count.toLocaleString()}</td>
+          <TableWrap label="Accounts by tier">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tier</th>
+                  <th>Count</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {Object.keys(stats?.accounts_by_tier ?? {}).length === 0 && (
+                  <tr>
+                    <td colSpan={2}>No accounts yet.</td>
+                  </tr>
+                )}
+                {Object.entries(stats?.accounts_by_tier ?? {}).map(([tier, count]) => (
+                  <tr key={tier}>
+                    <td>{tier}</td>
+                    <td>{count.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
         </div>
 
         <div className="card">
           <h3>Funnel by Stage</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Stage</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(funnelMetrics?.by_stage ?? {}).map(([stage, count]) => (
-                <tr key={stage}>
-                  <td>{stage}</td>
-                  <td>{count.toLocaleString()}</td>
+          <TableWrap label="Funnel by stage">
+            <table>
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>Count</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {Object.keys(funnelMetrics?.by_stage ?? {}).length === 0 && (
+                  <tr>
+                    <td colSpan={2}>No funnel events yet.</td>
+                  </tr>
+                )}
+                {Object.entries(funnelMetrics?.by_stage ?? {}).map(([stage, count]) => (
+                  <tr key={stage}>
+                    <td>{stage}</td>
+                    <td>{count.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
         </div>
       </div>
 
       <div className="card">
         <h3>Recent Accounts</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Tier</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(accounts?.accounts ?? []).slice(0, 10).map((account) => (
-              <tr key={account.account_id}>
-                <td>{account.name}</td>
-                <td>{account.email}</td>
-                <td>{account.tier}</td>
-                <td>{new Date(account.created_at).toLocaleString()}</td>
+        <TableWrap label="Recent accounts">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Tier</th>
+                <th>Created</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(accounts?.accounts ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={4}>No accounts yet.</td>
+                </tr>
+              )}
+              {(accounts?.accounts ?? []).slice(0, 10).map((account) => (
+                <tr key={account.account_id}>
+                  <td>{account.name}</td>
+                  <td>{account.email}</td>
+                  <td>{account.tier}</td>
+                  <td>{new Date(account.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableWrap>
       </div>
 
       <div className="card">
         <h3>Recent Activity</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Stage</th>
-              <th>Account</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(activity?.events ?? []).slice(0, 15).map((evt) => (
-              <tr key={evt.event_id}>
-                <td>{evt.event_type}</td>
-                <td>{evt.stage}</td>
-                <td>{evt.account_id.slice(0, 8)}...</td>
-                <td>{new Date(evt.created_at).toLocaleString()}</td>
+        <TableWrap label="Recent activity">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Stage</th>
+                <th>Account</th>
+                <th>Time</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(activity?.events ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={4}>No activity yet.</td>
+                </tr>
+              )}
+              {(activity?.events ?? []).slice(0, 15).map((evt) => (
+                <tr key={evt.event_id}>
+                  <td>{evt.event_type}</td>
+                  <td>{evt.stage}</td>
+                  <td>{evt.account_id.slice(0, 8)}...</td>
+                  <td>{new Date(evt.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableWrap>
       </div>
     </div>
   );
