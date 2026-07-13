@@ -16,11 +16,16 @@ export interface CalloutProps {
   /** Raw/technical detail (server body, stack) behind a collapsed disclosure. */
   details?: string | null;
   detailsLabel?: string;
+  /** H5.1b(g): lets a form input reference this Callout via its own
+   *  `aria-describedby`, so a screen-reader user tabbing to the field that
+   *  caused a validation/submit error hears the error text, not just its
+   *  own label. Optional — every existing call site is unaffected. */
+  id?: string;
 }
 
-export function Callout({ tone = "info", title, children, details, detailsLabel = "Technical details" }: CalloutProps) {
+export function Callout({ tone = "info", title, children, details, detailsLabel = "Technical details", id }: CalloutProps) {
   return (
-    <div className={`callout callout-${tone}`} role={tone === "danger" ? "alert" : undefined}>
+    <div id={id} className={`callout callout-${tone}`} role={tone === "danger" ? "alert" : undefined}>
       {title && <div className="callout-title">{title}</div>}
       {children !== undefined && <div className="callout-body">{children}</div>}
       {details && (

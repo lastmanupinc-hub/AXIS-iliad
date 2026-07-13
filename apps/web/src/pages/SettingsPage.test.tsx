@@ -168,7 +168,7 @@ describe("SettingsPage — GitHub tokens", () => {
 });
 
 describe("SettingsPage — webhooks", () => {
-  it("requires at least one event before creating a webhook", async () => {
+  it("requires at least one event before creating a webhook, and wires the error to the checkbox group via aria-describedby (H5.1b(g))", async () => {
     stubFetch(baseHandlers());
     render(<SettingsPage onAuthChange={onAuthChange} />);
     await screen.findByText("Webhooks");
@@ -176,7 +176,13 @@ describe("SettingsPage — webhooks", () => {
     fireEvent.change(screen.getByPlaceholderText("https://example.com/hook"), { target: { value: "https://example.com/hook" } });
     fireEvent.click(screen.getByRole("button", { name: "+ New Webhook" }));
 
-    expect(await screen.findByText("Select at least one event to subscribe to")).toBeTruthy();
+    const errorText = await screen.findByText("Select at least one event to subscribe to");
+    expect(errorText).toBeTruthy();
+
+    const errorCallout = errorText.closest(".callout") as HTMLElement;
+    expect(errorCallout.id).toBe("settings-error");
+    const eventsGroup = screen.getByRole("group", { name: "Webhook events" });
+    expect(eventsGroup.getAttribute("aria-describedby")).toBe("settings-error");
   });
 
   it("lists an existing webhook and toggles it paused/active", async () => {

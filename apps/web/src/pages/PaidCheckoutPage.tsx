@@ -124,7 +124,7 @@ export function PaidCheckoutPage() {
 
       {error && (
         <div style={{ marginBottom: 16 }}>
-          <Callout tone="danger">{error}</Callout>
+          <Callout id="paid-checkout-error" tone="danger">{error}</Callout>
         </div>
       )}
 
@@ -161,6 +161,8 @@ export function PaidCheckoutPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           style={{ marginBottom: 16 }}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "paid-checkout-error" : undefined}
         />
 
         <button

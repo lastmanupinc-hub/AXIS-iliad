@@ -119,6 +119,16 @@ describe("Callout", () => {
     expect(screen.getByText("Technical details")).toBeTruthy();
     expect(details!.querySelector("pre")!.textContent).toBe(raw);
   });
+
+  it("takes an optional id so a form field can reference it via aria-describedby (H5.1b(g))", () => {
+    const { container } = render(<Callout id="my-error" tone="danger">Something failed</Callout>);
+    expect(container.querySelector("#my-error")).toBeTruthy();
+  });
+
+  it("renders no id attribute at all when none is given (every pre-existing call site)", () => {
+    const { container } = render(<Callout tone="info">just a note</Callout>);
+    expect(container.querySelector(".callout")!.hasAttribute("id")).toBe(false);
+  });
 });
 
 describe("Pill", () => {

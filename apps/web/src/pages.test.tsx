@@ -507,6 +507,25 @@ describe("PaidCheckoutPage", () => {
 
     await screen.findByText(/No AXIS account exists for that email/i);
   });
+
+  it("wires a failed subscribe attempt to the email field via aria-invalid/aria-describedby (H5.1b(g))", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/portal/api/paid/config": { body: PAID_CONFIG_OK },
+      "/portal/api/subscribe": { status: 404, body: { error: "No account found for that email" } },
+    }));
+
+    render(<PaidCheckoutPage />);
+
+    const emailInput = await screen.findByLabelText("Email") as HTMLInputElement;
+    expect(emailInput.getAttribute("aria-invalid")).toBeNull();
+
+    fireEvent.change(emailInput, { target: { value: "nobody@b.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue to checkout" }));
+
+    await screen.findByText(/No AXIS account exists for that email/i);
+    expect(emailInput.getAttribute("aria-invalid")).toBe("true");
+    expect(emailInput.getAttribute("aria-describedby")).toBe("paid-checkout-error");
+  });
 });
 
 describe("PlansPage honest pricing fallback (H0.9)", () => {

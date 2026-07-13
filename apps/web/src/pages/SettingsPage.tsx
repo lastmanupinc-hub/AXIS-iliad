@@ -370,7 +370,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
       {error && (
         <div className="mb-4">
-          <Callout tone="danger" title="Something went wrong" details={error.details}>{error.message}</Callout>
+          <Callout id="settings-error" tone="danger" title="Something went wrong" details={error.details}>{error.message}</Callout>
         </div>
       )}
 
@@ -486,7 +486,13 @@ export function SettingsPage({ onAuthChange }: Props) {
         <h3 className="mb-2">Webhooks</h3>
         <form onSubmit={handleCreateWebhook} className="stack gap-2 mb-4" style={{ maxWidth: 480 }}>
           <input value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} placeholder="https://example.com/hook" type="url" aria-label="Webhook URL" required />
-          <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
+          <div
+            className="flex gap-2"
+            style={{ flexWrap: "wrap" }}
+            role="group"
+            aria-label="Webhook events"
+            {...(error?.message === "Select at least one event to subscribe to" ? { "aria-describedby": "settings-error" } : {})}
+          >
             {VALID_WEBHOOK_EVENTS.map((evt) => (
               <label key={evt} className="text-sm flex gap-1" style={{ alignItems: "center" }}>
                 <input
