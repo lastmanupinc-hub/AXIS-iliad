@@ -32,6 +32,7 @@
     "test": "pnpm -r test",
     "test:coverage": "npx vitest run --coverage",
     "test:ci-mirror": "node scripts/test-ci-mirror.mjs",
+    "live-probe": "node scripts/live-probe.mjs",
     "bench": "vitest bench",
     "bench:compliance": "vitest bench packages/generator-core/src/perf.bench.ts",
     "lint": "pnpm -r lint",

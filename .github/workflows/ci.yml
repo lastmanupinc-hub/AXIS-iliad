@@ -224,3 +224,22 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
         continue-on-error: true
+
+  # H6.3 — live-probe battery: a repeatable version of the manual "July systems
+  # check" (health/ready, MCP tools count, PAI'D config, anon 413 gate, web
+  # bundle marker). Non-gating by design: axis-api's real deploy path is
+  # Render's own independent Blueprint sync (not this workflow), so "just
+  # pushed" doesn't mean "already live" on any fixed timeline this job could
+  # wait for — this reports current production state, it never blocks a merge.
+  # No dependencies (pure native fetch), so no pnpm install needed.
+  live-probe:
+    runs-on: ubuntu-latest
+    needs: deploy-web
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Run live-probe battery
+        run: node scripts/live-probe.mjs
