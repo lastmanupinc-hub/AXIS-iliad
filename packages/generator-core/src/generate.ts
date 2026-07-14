@@ -2,7 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 import { GENERATOR_PROGRAMS } from "./program-manifest.js";
 import { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateSymbolIndex, generateRepoRunStats } from "./generators-search.js";
-import { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
+import { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack, generateModelCascade } from "./generators-skills.js";
 import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
 import { generateFrontendRules, generateComponentGuidelines, generateLayoutPatterns, generateUiAudit } from "./generators-frontend.js";
 import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit, generateMetaTagAudit } from "./generators-seo.js";
@@ -146,6 +146,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "root-cause-checklist.md": (ctx, _p, files) => generateRootCauseChecklist(ctx, files),
   "workflow-pack.md": (ctx, _p, files) => generateWorkflowPack(ctx, files),
   "policy-pack.md": (ctx, _p, files) => generatePolicyPack(ctx, files),
+  "model-cascade.md": (ctx, _p, files) => generateModelCascade(ctx, files),
   "layout-patterns.md": (ctx, _p, files) => generateLayoutPatterns(ctx, files),
   "ui-audit.md": (ctx, _p, files) => generateUiAudit(ctx, files),
   "meta-tag-audit.json": (ctx, _p, files) => generateMetaTagAudit(ctx, files),

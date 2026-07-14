@@ -245,9 +245,9 @@ describe("verify-gate generators", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 141 registered generators", () => {
+  it("returns all 142 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(141); // +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07)
+    expect(generators.length).toBe(142); // +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1)
   });
 
   it("returns objects with path and program fields", () => {

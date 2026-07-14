@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
-import { generateAgentsMD, generateClaudeMD, generatePolicyPack, displayRoutes } from "./generators-skills.js";
+import { generateAgentsMD, generateClaudeMD, generatePolicyPack, generateModelCascade, displayRoutes } from "./generators-skills.js";
 
 // Functional/quality coverage for the skills generators (POLISH, Program 2).
 // Grounded in dogfooding the generators against the Iliad repo itself.
@@ -228,5 +228,81 @@ describe("generateAgentsMD — language honesty consistent with CLAUDE.md (HARDE
   it("still applies React framework rules to a JavaScript repo (framework rules are language-agnostic)", () => {
     const out = generateAgentsMD(jsCtx()).content; // default frameworks include React
     expect(out).toContain("functional components");
+  });
+});
+
+describe("generateModelCascade — tier map + delegation contract (H7.1)", () => {
+  it("always emits the capability-tier table, delegation contract, cost rule, and honest-limits sections", () => {
+    const out = generateModelCascade(mkCtx()).content;
+    expect(out).toContain("## Capability tiers");
+    expect(out).toContain("| Planner | frontier-class |");
+    expect(out).toContain("| Executor | mid-class |");
+    expect(out).toContain("| Mechanical | small-class |");
+    expect(out).toContain("## Delegation contract");
+    expect(out).toContain("## Cost rule");
+    expect(out).toContain("## Honest limits");
+  });
+
+  it("names no vendor SKU, model name, or price (capability classes only)", () => {
+    const out = generateModelCascade(mkCtx()).content.toLowerCase();
+    for (const bad of ["gpt", "claude", "gemini", "gpt-4", "sonnet", "opus", "$", "swe-bench"]) {
+      expect(out, bad).not.toContain(bad);
+    }
+  });
+
+  it("maps CI failure triage to Mechanical only when a CI platform is detected", () => {
+    const withCi = generateModelCascade(mkCtx({ detection: { ...mkCtx().detection, ci_platform: "github_actions" } })).content;
+    expect(withCi).toContain("CI failure triage | Mechanical");
+
+    const withoutCi = generateModelCascade(mkCtx()).content; // default ci_platform: null
+    expect(withoutCi).not.toContain("CI failure triage");
+  });
+
+  it("maps test-backed implementation to Executor only when test frameworks are detected", () => {
+    const withTests = generateModelCascade(mkCtx()).content; // default test_frameworks: ["vitest"]
+    expect(withTests).toContain("Test-backed implementation | Executor");
+
+    const withoutTests = generateModelCascade(mkCtx({ detection: { ...mkCtx().detection, test_frameworks: [] } })).content;
+    expect(withoutTests).not.toContain("Test-backed implementation | Executor");
+  });
+
+  it("maps cross-cutting design + verification to Planner only when an infra architecture pattern is detected", () => {
+    const withInfra = generateModelCascade(mkCtx({ architecture_signals: { patterns_detected: ["monorepo"], layer_boundaries: [], separation_score: 0 } })).content;
+    expect(withInfra).toContain("Cross-cutting design + adversarial verification | Planner");
+
+    const withoutInfra = generateModelCascade(mkCtx()).content; // default patterns_detected: []
+    expect(withoutInfra).not.toContain("Cross-cutting design + adversarial verification");
+  });
+
+  it("maps framework/tooling migration to Planner only when more than one framework is detected", () => {
+    const multi = generateModelCascade(mkCtx({
+      detection: { ...mkCtx().detection, frameworks: [{ name: "React", version: "19.0.0" }, { name: "Vue", version: "3.0.0" }] as ContextMap["detection"]["frameworks"] },
+    })).content;
+    expect(multi).toContain("Framework/tooling migration | Planner");
+
+    const single = generateModelCascade(mkCtx()).content; // default frameworks: [React] (length 1)
+    expect(single).not.toContain("Framework/tooling migration");
+  });
+
+  it("maps layer-boundary refactoring to Planner only when the separation score is low (<0.5)", () => {
+    const low = generateModelCascade(mkCtx({ architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0.2 } })).content;
+    expect(low).toContain("Refactoring across layer boundaries | Planner");
+
+    const high = generateModelCascade(mkCtx({ architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0.9 } })).content;
+    expect(high).not.toContain("Refactoring across layer boundaries");
+  });
+
+  it("always emits the two signal-independent task-type rows even when every conditional signal is absent", () => {
+    const out = generateModelCascade(mkCtx({
+      detection: { languages: [], frameworks: [] as ContextMap["detection"]["frameworks"], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null },
+      architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 1 },
+    })).content;
+    expect(out).toContain("New feature implementation | Executor");
+    expect(out).toContain("Formatting, renames, boilerplate | Mechanical");
+  });
+
+  it("is deterministic", () => {
+    const ctx = mkCtx();
+    expect(generateModelCascade(ctx).content).toBe(generateModelCascade(ctx).content);
   });
 });

@@ -35,7 +35,7 @@ import {
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
  * drift fails CI.
  */
-const ARTIFACT_COUNT = 141; // +3 verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1 ap2-interop-samples.json (WO-07)
+const ARTIFACT_COUNT = 142; // +3 verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1 ap2-interop-samples.json (WO-07); +1 model-cascade.md (H7.1)
 const PROGRAM_COUNT = 20;
 
 /**
@@ -1484,7 +1484,7 @@ export function generateProductSchema(
     // catalog can never drift from what the API actually emits.
     programs: [
       { slug: "search",            tier: "free", description: "Context map, repo profile, architecture summary, dependency hotspots, symbol index, and repo run stats" },
-      { slug: "skills",            tier: "free", description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack" },
+      { slug: "skills",            tier: "free", description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack, model cascade" },
       { slug: "debug",             tier: "free", description: "Debug playbook, incident template, tracing rules, root cause checklist" },
       { slug: "frontend",          tier: "pro",  description: "Frontend rules, component guidelines, layout patterns, UI audit" },
       { slug: "seo",               tier: "pro",  description: "SEO rules, schema recommendations, route priority map, content audit, meta tag audit" },

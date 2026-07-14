@@ -7,6 +7,7 @@ import {
   generateCursorRules,
   generateWorkflowPack,
   generatePolicyPack,
+  generateModelCascade,
 } from "./generators-skills.js";
 import { excerpt } from "./file-excerpt-utils.js";
 
@@ -175,6 +176,7 @@ const GENERATORS: Array<[string, (ctx: ContextMap, files?: SourceFile[]) => { co
   [".cursorrules", generateCursorRules],
   ["workflow-pack.md", generateWorkflowPack],
   ["policy-pack.md", generatePolicyPack],
+  ["model-cascade.md", generateModelCascade],
 ];
 
 describe("skills generators — prompt-injection containment", () => {
@@ -276,7 +278,7 @@ describe("skills generators — prompt-injection containment", () => {
     expect(lines[lines.length - 1]).toBe(fence);
   });
 
-  it("all five generators are deterministic under hostile input", () => {
+  it("all six generators are deterministic under hostile input", () => {
     for (const [, gen] of GENERATORS) {
       const a = gen(hostileCtx(), hostileFiles).content;
       const b = gen(hostileCtx(), hostileFiles).content;

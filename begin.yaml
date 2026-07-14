@@ -7,7 +7,7 @@ project_begin:
     category: "AI-native codebase intelligence platform"
     boundary: >
       Axis' Iliad accepts any repository (GitHub URL, ZIP upload, CLI, API) and
-      generates 141 structured artifacts across 20 specialized programs — covering
+      generates 142 structured artifacts across 20 specialized programs — covering
       codebase understanding, debugging, skills governance, frontend rules, SEO,
       optimization, theme/brand/marketing systems, MCP connectors, Obsidian skill
       packs, agent superpowers, remotion scripts, canvas assets, algorithmic art,
@@ -18,7 +18,7 @@ project_begin:
       It is NOT a code generator, linter, framework, or SaaS dashboard. It is the
       meta-layer that produces structured context for AI agents and human developers.
     core_promise: >
-      One reliable analysis call that turns any codebase into 141 agent-ready
+      One reliable analysis call that turns any codebase into 142 agent-ready
       artifacts — replacing the need to chain 10+ generic MCP servers. Agents
       and merchants depend on AXIS as the first call they make when they need to
       understand, harden, or purchase-enable a codebase. Share-to-earn referral

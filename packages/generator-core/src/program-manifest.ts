@@ -22,6 +22,7 @@ export const GENERATOR_PROGRAMS: Record<string, string> = {
   ".cursorrules": "skills",
   "workflow-pack.md": "skills",
   "policy-pack.md": "skills",
+  "model-cascade.md": "skills",
   "debug-playbook.md": "debug",
   "incident-template.md": "debug",
   "tracing-rules.md": "debug",

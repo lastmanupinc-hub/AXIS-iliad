@@ -631,6 +631,11 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```");
   lines.push("");
 
+  lines.push("## Model Cascade");
+  lines.push("");
+  lines.push("These workflows describe WHAT each step does. `model-cascade.md` maps WHO should run it — which capability tier (planner / executor / mechanical) fits each task type, derived from this repo's own detected signals.");
+  lines.push("");
+
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
     const configs = findConfigs(files);
@@ -811,5 +816,105 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
     content_type: "text/markdown",
     program: "skills",
     description: "AI governance policies for code generation, boundaries, security, and testing",
+  };
+}
+
+// ─── model-cascade.md ───────────────────────────────────────────
+// H7.1: teaches the model-cascade delegation pattern this very loop embodies —
+// a higher-capability tier plans + verifies, a mid-capability tier executes,
+// a small/cheap tier does the mechanical remainder — as a deterministic map
+// from THIS repo's own detected task-type signals to the tier that should own
+// each one. No LLM calls at generation time: the artifact TEACHES the cascade,
+// it is not produced by one. Tier names are capability CLASSES, never vendor
+// SKUs — see the "Honest limits" section below, and keep it that way.
+
+const CASCADE_INFRA_PATTERNS = ["monorepo", "frontend_backend_split", "containerized", "serverless"];
+
+export function generateModelCascade(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
+  const id = ctx.project_identity;
+  const hasCi = ctx.detection.ci_platform !== null;
+  const hasTests = ctx.detection.test_frameworks.length > 0;
+  const patterns = ctx.architecture_signals.patterns_detected;
+  const infraPatterns = patterns.filter(p => CASCADE_INFRA_PATTERNS.includes(p));
+  const hasMultiPartArchitecture = infraPatterns.length > 0;
+  const hasMultipleFrameworks = ctx.detection.frameworks.length > 1;
+  const lowSeparation = ctx.architecture_signals.separation_score < 0.5;
+
+  const lines: string[] = [];
+  lines.push(`# Model Cascade — ${mdText(id.name)}`);
+  lines.push("");
+  lines.push(
+    "A higher-capability model plans and writes acceptance-criteria-complete work " +
+    "orders; a mid-capability model executes them; a small, cheap model does the " +
+    "mechanical remainder. Each tier only ever runs the cheapest model that clears " +
+    "its own quality bar. This file is the deterministic map from task types " +
+    "detected in this repo to the tier that should own them, plus the contract " +
+    "between tiers — derived from real repo signals, not invented.",
+  );
+  lines.push("");
+
+  lines.push("## Capability tiers");
+  lines.push("");
+  lines.push("| Tier | Class | Owns |");
+  lines.push("|---|---|---|");
+  lines.push("| Planner | frontier-class | Cross-cutting design, architecture decisions, adversarial verification |");
+  lines.push("| Executor | mid-class | Test-backed implementation, code review, most day-to-day changes |");
+  lines.push("| Mechanical | small-class | Repetitive edits, formatting, CI-failure triage, boilerplate |");
+  lines.push("");
+
+  lines.push("## Task types detected for this repo");
+  lines.push("");
+  lines.push("| Task type | Tier | Why |");
+  lines.push("|---|---|---|");
+  if (hasCi) {
+    lines.push(`| CI failure triage | Mechanical | ${mdInline(ctx.detection.ci_platform!)} pipeline detected — most failures are a known-shape error to interpret, not a design decision |`);
+  }
+  if (hasTests) {
+    lines.push(`| Test-backed implementation | Executor | ${mdInline(ctx.detection.test_frameworks.join(", "))} detected — a change and its test are one unit of work, no cross-cutting judgment needed |`);
+  }
+  if (hasMultiPartArchitecture) {
+    lines.push(`| Cross-cutting design + adversarial verification | Planner | ${mdInline(infraPatterns.join(", "))} detected — a change here can silently break a sibling package/service, so the tier that plans it should also verify it |`);
+  }
+  if (hasMultipleFrameworks) {
+    lines.push(`| Framework/tooling migration | Planner | ${ctx.detection.frameworks.length} frameworks detected — a migration decision affects every consumer, not a local edit |`);
+  }
+  if (lowSeparation) {
+    lines.push(`| Refactoring across layer boundaries | Planner | separation score ${ctx.architecture_signals.separation_score.toFixed(2)} (low) — layers are already coupled, an edit here risks an unreviewed cross-layer break |`);
+  }
+  lines.push("| New feature implementation | Executor | Follows existing patterns; escalate to Planner only if no existing pattern fits |");
+  lines.push("| Formatting, renames, boilerplate | Mechanical | No design judgment required |");
+  lines.push("");
+
+  lines.push("## Delegation contract");
+  lines.push("");
+  lines.push("- Each tier writes work orders **with acceptance criteria** for the tier below — not vague instructions.");
+  lines.push("- Verification of a unit of work runs **at or above** the tier that implemented it — a tier never grades its own homework alone.");
+  lines.push("- A tier that cannot meet its own acceptance criteria escalates one tier up, carrying the failure context (what was tried, what failed, why) forward — not a bare \"this didn't work.\"");
+  lines.push("");
+
+  lines.push("## Cost rule");
+  lines.push("");
+  lines.push(
+    "Run every unit of work on the lowest-token-cost tier that clears its quality bar. " +
+    "Escalate one tier after two failed attempts at the same tier, carrying the failure " +
+    "context forward so the escalation doesn't restart from zero.",
+  );
+  lines.push("");
+
+  lines.push("## Honest limits");
+  lines.push("");
+  lines.push(
+    "\"Planner\" / \"Executor\" / \"Mechanical\" are capability CLASSES, not vendor SKUs or " +
+    "specific model names — this file makes no pricing claims and no benchmark claims. " +
+    "Which actual model fills which tier is a choice made at run time, outside this " +
+    "document's scope.",
+  );
+
+  return {
+    path: "model-cascade.md",
+    content: lines.join("\n"),
+    content_type: "text/markdown",
+    program: "skills",
+    description: "Deterministic model-tier delegation map (planner/executor/mechanical) derived from this repo's own detected task-type signals",
   };
 }

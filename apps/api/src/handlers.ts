@@ -1636,7 +1636,7 @@ export async function handleAnalyze(
   const projectName = detectProjectName(files) ?? (githubMeta ? `${githubMeta.owner}/${githubMeta.repo}` : "unnamed-project");
 
   const skillsOutputs = !requestedPrograms || requestedPrograms.includes("skills")
-    ? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"]
+    ? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md", "model-cascade.md"]
     : [];
   const allOutputs = [
     ...skillsOutputs,

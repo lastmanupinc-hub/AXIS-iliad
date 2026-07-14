@@ -1322,7 +1322,7 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(141); // +3: verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1: ap2-interop-samples.json (WO-07)
+    expect(generators.length).toBe(142); // +3: verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1)
     const paths = generators.map(g => g.path);
     expect(paths).toContain("symbol-index.json");
     expect(paths).toContain("context-map.json");

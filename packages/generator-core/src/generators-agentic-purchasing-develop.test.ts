@@ -34,7 +34,7 @@ describe("DEVELOP: program-manifest derives program counts from the registry", (
     expect(PROGRAM_OUTPUT_COUNTS.superpowers).toBe(8);
   });
   it("bundleOutputs sums per-program counts and ignores unknown slugs", () => {
-    expect(bundleOutputs(["search", "skills", "debug"])).toBe(15);
+    expect(bundleOutputs(["search", "skills", "debug"])).toBe(16);
     expect(bundleOutputs(["nope"])).toBe(0);
   });
 });
@@ -71,9 +71,9 @@ describe("DEVELOP: commerce-registry catalog derives every output count", () => 
     expect(proAll.programs).toHaveLength(TOTAL_PROGRAMS);
     expect(proAll.outputs).toBe(TOTAL_GENERATORS);
   });
-  it("bundle counts are the corrected values (free 15, dev 31, brand 20)", () => {
-    expect(byId("free-bundle").outputs).toBe(15);
-    expect(byId("dev-essentials").outputs).toBe(31);
+  it("bundle counts are the corrected values (free 16, dev 32, brand 20)", () => {
+    expect(byId("free-bundle").outputs).toBe(16);
+    expect(byId("dev-essentials").outputs).toBe(32);
     expect(byId("brand-marketing").outputs).toBe(20);
   });
 });
