@@ -402,18 +402,6 @@ pre {
 
 /* ─── Responsive breakpoints ───────────────────────────────────── */
 
-@media (max-width: 900px) {
-  .nav-desktop {
-    display: none;
-  }
-  .nav-mobile-controls {
-    display: flex;
-  }
-  .header {
-    padding: 10px 0;
-  }
-}
-
 @media (max-width: 600px) {
   #root {
     padding: 12px;
@@ -430,9 +418,6 @@ pre {
     white-space: normal;
     text-align: center;
     width: 100%;
-  }
-  .header-brand h1 {
-    font-size: 1.1rem;
   }
   h1 { font-size: 1.4rem; }
   h2 { font-size: 1.1rem; }
