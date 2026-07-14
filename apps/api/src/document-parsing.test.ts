@@ -1,4 +1,25 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Handler-level lite-cap tests (bottom of this file) follow the
+// mcp-embeddings.test.ts harness: resolveAuth + the usage-credit fns are
+// mocked; the module under test (document-parsing.js) stays fully real.
+vi.mock("./billing.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./billing.js")>();
+  return {
+    ...actual,
+    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-doc", tier: "paid" as const } })),
+  };
+});
+
+vi.mock("@axis/snapshots", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@axis/snapshots")>();
+  return {
+    ...actual,
+    previewUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
+    consumeUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
+  };
+});
+
 import {
   runDocumentParsing,
   validateParseOptions,
@@ -6,6 +27,9 @@ import {
   type NotConfiguredResult,
   type ParseResult,
 } from "./document-parsing.js";
+import { runDocumentParsingDispatch } from "./mcp-tool-impls.js";
+import * as snapshots from "@axis/snapshots";
+import type { IncomingMessage } from "node:http";
 
 function isNotConfigured(r: unknown): r is NotConfiguredResult {
   return Boolean(r && typeof r === "object" && (r as { _not_configured?: unknown })._not_configured === true);
@@ -209,6 +233,102 @@ describe("document-parsing — output cap", () => {
       expect(r.truncated).toBe(true);
       expect(r.markdown).toMatch(/truncated/);
     }
+  });
+});
+
+// ─── Cap overrides (lite-mode plumbing) ─────────────────────────
+//
+// max_doc_bytes / max_markdown_chars are internal, handler-supplied overrides
+// that may only TIGHTEN the standard 50 MiB / 1 MiB ceilings. Defaults leave
+// standard behavior byte-identical (proven by every other test in this file).
+
+describe("document-parsing — cap overrides (lite plumbing)", () => {
+  it("max_markdown_chars tightens the output cap and mirrors the standard truncation marker", async () => {
+    const text = "b".repeat(5_000);
+    const r = await runDocumentParsing({
+      document_base64: Buffer.from(text, "utf8").toString("base64"),
+      max_markdown_chars: 1_000,
+    });
+    expect(isParsed(r)).toBe(true);
+    if (isParsed(r)) {
+      expect(r.truncated).toBe(true);
+      expect(r.markdown).toContain("[...truncated at 1000 chars...]");
+      expect(r.markdown.startsWith("b".repeat(1_000))).toBe(true);
+    }
+  });
+
+  it("max_doc_bytes tightens the input cap → clean document_decode_failed envelope", async () => {
+    const payload = Buffer.alloc(2_048, 0x61); // 'a' × 2048 — over a 1024-byte cap
+    const r = await runDocumentParsing({
+      document_base64: payload.toString("base64"),
+      max_doc_bytes: 1_024,
+    });
+    expect(isNotConfigured(r)).toBe(true);
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("document_decode_failed");
+      expect(r.detail).toMatch(/exceeds 1024/);
+    }
+  });
+
+  it("an override LARGER than the standard cap is ignored (can only tighten)", async () => {
+    const big = "c".repeat(1_200_000); // over the standard 1 MiB output cap
+    const r = await runDocumentParsing({
+      document_base64: Buffer.from(big, "utf8").toString("base64"),
+      max_markdown_chars: 99_999_999,
+    });
+    expect(isParsed(r)).toBe(true);
+    if (isParsed(r)) {
+      expect(r.truncated).toBe(true);
+      expect(r.markdown).toContain("[...truncated at 1048576 chars...]");
+    }
+  });
+});
+
+// ─── Lite mode (runDocumentParsingDispatch handler) ─────────────
+//
+// Direct handler-level tests (mcp-embeddings.test.ts style): lite input over
+// 5 MiB is rejected BEFORE any parsing or metering; lite markdown output is
+// truncated at 256 KiB (charged — the work was delivered); standard keeps the
+// 50 MiB / 1 MiB ceilings untouched.
+
+describe("runDocumentParsingDispatch — lite caps", () => {
+  const liteReq = { headers: { "x-agent-mode": "lite" }, socket: {} } as unknown as IncomingMessage;
+  const stdReq = { headers: {}, socket: {} } as unknown as IncomingMessage;
+
+  beforeEach(() => {
+    vi.mocked(snapshots.previewUsageCredits).mockClear();
+    vi.mocked(snapshots.consumeUsageCredits).mockClear();
+  });
+
+  it("rejects a >5 MiB base64 input in lite mode BEFORE the charge", async () => {
+    const oversized = Buffer.alloc(5 * 1024 * 1024 + 1, 0x61).toString("base64");
+    await expect(
+      runDocumentParsingDispatch({ document_base64: oversized }, liteReq),
+    ).rejects.toThrow(/lite mode caps document input at 5 MiB.*X-Agent-Mode: standard/);
+    // Charge-not-taken proof: neither authorize (preview) nor capture (consume) ran.
+    expect(snapshots.previewUsageCredits).not.toHaveBeenCalled();
+    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
+  });
+
+  it("truncates lite markdown output at 256 KiB with the standard marker (charged once)", async () => {
+    const text = "d".repeat(300_000); // > 262,144 chars out, well under 5 MiB in
+    const out = JSON.parse(
+      await runDocumentParsingDispatch({ document_base64: Buffer.from(text, "utf8").toString("base64") }, liteReq),
+    );
+    expect(out.truncated).toBe(true);
+    expect(out.markdown).toContain(`[...truncated at ${256 * 1024} chars...]`);
+    expect(out.markdown.startsWith("d".repeat(256 * 1024))).toBe(true);
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it("standard mode keeps the standard caps (same input passes through untruncated)", async () => {
+    const text = "d".repeat(300_000); // over the lite cap, under the standard 1 MiB cap
+    const out = JSON.parse(
+      await runDocumentParsingDispatch({ document_base64: Buffer.from(text, "utf8").toString("base64") }, stdReq),
+    );
+    expect(out.truncated).toBe(false);
+    expect(out.markdown.length).toBe(300_000);
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
   });
 });
 

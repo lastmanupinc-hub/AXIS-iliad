@@ -3965,6 +3965,9 @@ export async function handleFirecrawlScrape(
     }
 }
 
+/** Lite-mode page cap for POST /v1/research/crawl (lite_description promise: 5 pages; standard allows 100). */
+const LITE_CRAWL_MAX_PAGES = 5;
+
 /**
  * POST /v1/research/crawl â€” Proxy to Firecrawl /crawl endpoint
  * Crawls a domain and scrapes multiple pages
@@ -3984,7 +3987,7 @@ export async function handleFirecrawlCrawl(
   }
 
   const url = body.url as string | undefined;
-  const limit = typeof body.limit === "number" ? body.limit : 10;
+  let limit = typeof body.limit === "number" ? body.limit : 10;
 
   if (!url || typeof url !== "string") {
     sendError(res, 400, ErrorCode.MISSING_FIELD, "url is required (string)");
@@ -4004,6 +4007,11 @@ export async function handleFirecrawlCrawl(
 
   const budget = parseAgentBudget(req);
   const mode = resolveAgentMode(req);
+  // Lite crawl cap (lite_description promise: up to 5 pages; standard allows
+  // 100). Clamp BEFORE the free-pool estimate and the Firecrawl payload so a
+  // lite caller is never billed for — and Firecrawl never crawls — more than 5.
+  const requestedLimit = limit;
+  if (mode === "lite" && limit > LITE_CRAWL_MAX_PAGES) limit = LITE_CRAWL_MAX_PAGES;
   const pricing = getPricingTier("iliad_web_research_crawl");
   const perPageCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
   // Estimate the PAID portion: pages beyond the 100/month free pool. A crawl
@@ -4112,6 +4120,11 @@ export async function handleFirecrawlCrawl(
 
     sendJSON(res, 200, {
       success: true,
+      // Only present when the lite clamp actually reduced the request —
+      // standard/engineer responses stay byte-identical.
+      ...(requestedLimit !== limit
+        ? { lite_note: `Lite mode caps crawls at ${LITE_CRAWL_MAX_PAGES} pages (requested ${requestedLimit}). Send X-Agent-Mode: standard for up to 100 pages.` }
+        : {}),
       free_pages_used: poolDraw.consumed,
       free_pages_remaining: poolDraw.remaining,
       paid_pages: poolDraw.unfunded,

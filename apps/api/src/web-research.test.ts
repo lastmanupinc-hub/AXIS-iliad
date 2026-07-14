@@ -221,10 +221,10 @@ describe("POST /v1/research/crawl — billing, free pool & two-phase charge", ()
     vi.unstubAllGlobals();
   });
 
-  function postCrawl(body: unknown, key?: string): Promise<{ status: number; data: any }> {
+  function postCrawl(body: unknown, key?: string, extraHeaders?: Record<string, string>): Promise<{ status: number; data: any }> {
     return new Promise((resolve, reject) => {
       const payload = JSON.stringify(body);
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = { "Content-Type": "application/json", ...(extraHeaders ?? {}) };
       if (key) headers.Authorization = `Bearer ${key}`;
       const r = require("node:http").request(
         { hostname: "127.0.0.1", port: testPort, path: "/v1/research/crawl", method: "POST", headers },
@@ -310,6 +310,43 @@ describe("POST /v1/research/crawl — billing, free pool & two-phase charge", ()
       expect(r.data.paid_pages).toBeGreaterThan(0);
       expect(r.data.free_pages_used).toBe(0);
     }
+  });
+
+  it("lite mode clamps the crawl limit to 5 before the Firecrawl call (requested 50)", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    const fetchSpy = vi.fn(async (_input: unknown, _init?: RequestInit) =>
+      new Response(
+        JSON.stringify({ data: { scrapeResults: [{ url: "https://a", markdown: "A" }] } }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+    const r = await postCrawl({ url: "https://example.com", limit: 50 }, apiKey, { "X-Agent-Mode": "lite" });
+    expect(r.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    // The lite_description promises "crawl up to 5 pages" — Firecrawl must
+    // receive the CLAMPED limit, not the requested 50.
+    const sentBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    expect(sentBody.limit).toBe(5);
+    expect(String(r.data.lite_note)).toMatch(/5 pages/);
+    expect(String(r.data.lite_note)).toMatch(/X-Agent-Mode: standard/);
+  });
+
+  it("standard mode keeps the requested limit of 50 (no clamp, no lite_note)", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    const fetchSpy = vi.fn(async (_input: unknown, _init?: RequestInit) =>
+      new Response(
+        JSON.stringify({ data: { scrapeResults: [{ url: "https://a", markdown: "A" }] } }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+    const r = await postCrawl({ url: "https://example.com", limit: 50 }, apiKey);
+    expect(r.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const sentBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    expect(sentBody.limit).toBe(50);
+    expect(r.data.lite_note).toBeUndefined();
   });
 });
 

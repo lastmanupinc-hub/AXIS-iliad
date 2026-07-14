@@ -1,5 +1,29 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Handler-level lite-shape tests (bottom of this file) follow the
+// mcp-embeddings.test.ts harness: resolveAuth + the usage-credit fns are
+// mocked; the rest of @axis/snapshots (TIER_LIMITS, …) stays real.
+vi.mock("./billing.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./billing.js")>();
+  return {
+    ...actual,
+    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-hyg", tier: "paid" as const } })),
+  };
+});
+
+vi.mock("@axis/snapshots", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@axis/snapshots")>();
+  return {
+    ...actual,
+    previewUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
+    consumeUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
+  };
+});
+
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
+import { runHygiene } from "./mcp-tool-impls.js";
+import * as snapshots from "@axis/snapshots";
+import type { IncomingMessage } from "node:http";
 
 const f = (path: string, content: string): HygieneFile => ({ path, content, size: Buffer.byteLength(content, "utf-8") });
 
@@ -222,5 +246,59 @@ describe("iliad_hygiene — engineer tier (patch + SARIF)", () => {
     expect(secret.level).toBe("error"); // high → error
     const loc = (secret.locations as Array<Record<string, Record<string, Record<string, string>>>>)[0];
     expect(loc.physicalLocation.artifactLocation.uri).toBe("config.ts");
+  });
+});
+
+// ─── Lite-mode fix output shape (runHygiene handler) ────────────
+//
+// Direct handler-level tests (mcp-embeddings.test.ts style). The lite fix
+// keeps the remediation plan + grade/summary counts but OMITS the per-finding
+// findings[] detail (the lite_description promise); standard fix keeps it.
+// Scan mode is FREE and shape-unchanged in every mode.
+
+describe("runHygiene — lite fix output shape", () => {
+  const liteReq = { headers: { "x-agent-mode": "lite" }, socket: {} } as unknown as IncomingMessage;
+  const stdReq = { headers: {}, socket: {} } as unknown as IncomingMessage;
+  // Known-dirty workspace: a committed .env with a .gitignore gap → a high
+  // finding + a '.env' gitignore addition in the remediation plan.
+  const files = [f(".env", "TOKEN=plainvalue\n"), f(".gitignore", "dist/\n")];
+
+  beforeEach(() => {
+    vi.mocked(snapshots.previewUsageCredits).mockClear();
+    vi.mocked(snapshots.consumeUsageCredits).mockClear();
+  });
+
+  it("lite fix returns plan + grade/counts and OMITS findings[] (still charged once)", async () => {
+    const out = JSON.parse(await runHygiene({ files, mode: "fix" }, liteReq));
+    expect(out.mode).toBe("fix");
+    expect(out._mode).toBe("lite");
+    expect(out.findings).toBeUndefined();
+    expect(out.grade).toBeDefined();
+    expect(out.counts.high).toBeGreaterThan(0);
+    expect(out.scanned.files).toBe(2);
+    expect(out.remediation_plan.ordered_steps.length).toBeGreaterThan(0);
+    expect(out.remediation_plan.gitignore_additions).toContain(".env");
+    expect(String(out.lite_note)).toMatch(/X-Agent-Mode: standard/);
+    // The lite fix IS paid work — charged exactly once (at the lite price).
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it("standard fix still includes the full per-finding findings[] detail", async () => {
+    const out = JSON.parse(await runHygiene({ files, mode: "fix" }, stdReq));
+    expect(out.mode).toBe("fix");
+    expect(Array.isArray(out.findings)).toBe(true);
+    expect(out.findings.length).toBeGreaterThan(0);
+    expect(out.remediation_plan.ordered_steps.length).toBeGreaterThan(0);
+    expect(out._mode).toBeUndefined();
+    expect(out.lite_note).toBeUndefined();
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it("scan mode stays FREE and shape-unchanged in lite (findings included, never charged)", async () => {
+    const out = JSON.parse(await runHygiene({ files }, liteReq));
+    expect(out.mode).toBe("scan");
+    expect(Array.isArray(out.findings)).toBe(true);
+    expect(snapshots.previewUsageCredits).not.toHaveBeenCalled();
+    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
   });
 });

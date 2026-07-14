@@ -444,6 +444,8 @@ export async function runEmbeddings(args: Record<string, unknown>, req: Incoming
 
 /** Hard cap on a single upsert batch to keep request size bounded. */
 const VECTOR_UPSERT_MAX_BATCH = 256;
+/** Lite-mode cap on TOTAL vectors per namespace (lite_description promise: 1k; standard allows 10k). */
+const LITE_VECTOR_NAMESPACE_MAX_VECTORS = 1000;
 /** Hard cap on top_k so a single query can't read an entire namespace. */
 const VECTOR_QUERY_MAX_TOP_K = 100;
 /** Hard cap on engineer hybrid-fusion sparse_ids to bound RRF allocation. */
@@ -508,6 +510,21 @@ export async function runVectorDatabase(args: Record<string, unknown>, req: Inco
       const keep = new Set(dd.kept);
       toWrite = cleaned.filter((c) => keep.has(c.id));
       dedupDropped = dd.dropped;
+    }
+    // Lite namespace cap (lite_description promise: 1k vectors per namespace).
+    // Checked BEFORE authorize so a rejected batch is never billed, and the
+    // whole batch is rejected — never silently partially written. The extra
+    // pre-upsert countVectors read happens ONLY in lite mode; standard and
+    // engineer keep their single post-upsert count.
+    if (resolveAgentMode(req) === "lite") {
+      const existing = await countVectors(scopedNs);
+      if (existing + toWrite.length > LITE_VECTOR_NAMESPACE_MAX_VECTORS) {
+        throw new Error(
+          `iliad_vector_database: lite mode caps a namespace at ${LITE_VECTOR_NAMESPACE_MAX_VECTORS} vectors ` +
+            `(namespace holds ${existing}; this batch adds ${toWrite.length}). ` +
+            `Send X-Agent-Mode: standard for up to 10k vectors per namespace.`,
+        );
+      }
     }
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
     await upsertVectors(scopedNs, toWrite);
@@ -912,6 +929,11 @@ export async function runNetworkTokenization(args: Record<string, unknown>, req:
   throw new Error("iliad_network_tokenization: `operation` must be one of read | provision | lifecycle | capabilities.");
 }
 
+/** Lite-mode input cap for iliad_document_parsing (lite_description promise: 5 MiB; standard allows 50 MiB). */
+const LITE_DOC_INPUT_MAX_BYTES = 5 * 1024 * 1024;
+/** Lite-mode markdown output cap for iliad_document_parsing (lite_description promise: 256 KiB; standard caps at 1 MiB). */
+const LITE_DOC_MARKDOWN_MAX_CHARS = 256 * 1024;
+
 export async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
   const auth = await resolveAuth(req);
   if (!auth.account) {
@@ -951,10 +973,28 @@ export async function runDocumentParsingDispatch(args: Record<string, unknown>, 
     return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: imageBlock }, null, 2);
   }
 
+  const lite = resolveAgentMode(req) === "lite";
+  // Lite input gate (lite_description promise: 5 MiB in / 256 KiB markdown out).
+  // The base64 size check runs BEFORE any parsing or metering so an oversized
+  // payload is cleanly rejected without charge. URL inputs (size unknowable
+  // up front) are capped during download via max_doc_bytes below — download
+  // failures return a _not_configured envelope, which is never metered.
+  if (lite && typeof args.document_base64 === "string") {
+    const decodedBytes = Buffer.from(args.document_base64, "base64").byteLength;
+    if (decodedBytes > LITE_DOC_INPUT_MAX_BYTES) {
+      throw new Error(
+        `iliad_document_parsing: lite mode caps document input at 5 MiB (decoded input is ${decodedBytes} bytes). ` +
+          `Send X-Agent-Mode: standard for up to 50 MiB.`,
+      );
+    }
+  }
   const opts: ParseOptions = {
     document_url: args.document_url as string | undefined,
     document_base64: args.document_base64 as string | undefined,
     mime_type: args.mime_type as string | undefined,
+    // Lite output/input ceilings; omitted entirely in standard/engineer mode so
+    // runDocumentParsing keeps its byte-identical standard behavior.
+    ...(lite ? { max_doc_bytes: LITE_DOC_INPUT_MAX_BYTES, max_markdown_chars: LITE_DOC_MARKDOWN_MAX_CHARS } : {}),
   };
   const result = await runDocumentParsing(opts);
   // Skip metering when the call returned a _not_configured envelope —
@@ -1562,6 +1602,25 @@ export async function runHygiene(args: Record<string, unknown>, req: IncomingMes
         remediation_plan: plan,
         patch: buildHygienePatch(report, files),
         sarif: buildHygieneSarif(report),
+      },
+      null,
+      2,
+    );
+  }
+  if (resolveAgentMode(req) === "lite") {
+    // Lite output shape (lite_description promise): the remediation plan's
+    // ordered steps + .gitignore additions plus the top-level grade/summary
+    // counts — the per-finding findings[] detail is standard-only. Charged
+    // above at the lite price; only the response shape differs.
+    return JSON.stringify(
+      {
+        mode: "fix",
+        _mode: "lite",
+        grade: report.grade,
+        counts: report.counts,
+        scanned: report.scanned,
+        remediation_plan: plan,
+        lite_note: "Lite mode — ordered steps + .gitignore additions only. Send X-Agent-Mode: standard for full per-finding detail.",
       },
       null,
       2,

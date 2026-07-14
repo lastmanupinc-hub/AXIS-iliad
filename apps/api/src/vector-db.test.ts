@@ -1,5 +1,30 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from "vitest";
+
+// Handler-level lite-cap tests (bottom of this file) follow the
+// mcp-embeddings.test.ts harness: resolveAuth + the usage-credit fns are
+// mocked; everything else in @axis/snapshots (resetTestDb, sql, …) stays REAL
+// so the vectors table below is the genuine article.
+vi.mock("./billing.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./billing.js")>();
+  return {
+    ...actual,
+    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-vec", tier: "paid" as const } })),
+  };
+});
+
+vi.mock("@axis/snapshots", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@axis/snapshots")>();
+  return {
+    ...actual,
+    previewUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
+    consumeUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
+  };
+});
+
 import { resetTestDb } from "@axis/snapshots";
+import * as snapshots from "@axis/snapshots";
+import type { IncomingMessage } from "node:http";
+import { runVectorDatabase } from "./mcp-tool-impls.js";
 import {
   cosineSimilarity,
   upsertVectors,
@@ -199,5 +224,56 @@ describe("scopeNamespace", () => {
 
   it("rejects empty account ids", async () => {
     expect(() => scopeNamespace("", "ns")).toThrow(/account_id is required/i);
+  });
+});
+
+// ─── Lite-mode namespace cap (runVectorDatabase handler) ────────
+//
+// Direct handler-level tests (mcp-embeddings.test.ts style): the lite
+// 1k-vectors-per-namespace cap must reject the WHOLE batch BEFORE the charge
+// is authorized, while standard mode crosses 1,000 freely. The vectors table
+// is real, so the pre-upsert countVectors interplay is genuinely proven.
+
+describe("runVectorDatabase — lite namespace cap (1k vectors)", () => {
+  const liteReq = { headers: { "x-agent-mode": "lite" }, socket: {} } as unknown as IncomingMessage;
+  const stdReq = { headers: {}, socket: {} } as unknown as IncomingMessage;
+  const rows = (n: number, prefix: string) =>
+    Array.from({ length: n }, (_, i) => ({ id: `${prefix}-${i}`, vector: [1, 0, 0] }));
+
+  beforeEach(() => {
+    vi.mocked(snapshots.previewUsageCredits).mockClear();
+    vi.mocked(snapshots.consumeUsageCredits).mockClear();
+  });
+
+  it("rejects a lite upsert that would push the namespace past 1,000 — nothing written, never charged", async () => {
+    await upsertVectors("acct:acc-vec:cap", rows(998, "seed"));
+    await expect(
+      runVectorDatabase({ operation: "upsert", namespace: "cap", vectors: rows(3, "new") }, liteReq),
+    ).rejects.toThrow(/lite mode caps a namespace at 1000 vectors.*X-Agent-Mode: standard/);
+    // Charge-not-taken proof: neither authorize (preview) nor capture (consume) ran.
+    expect(snapshots.previewUsageCredits).not.toHaveBeenCalled();
+    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
+    // The batch is rejected whole — never silently partially applied.
+    expect(await countVectors("acct:acc-vec:cap")).toBe(998);
+  });
+
+  it("allows a lite upsert that lands exactly on the 1,000 cap (charged once)", async () => {
+    await upsertVectors("acct:acc-vec:ok", rows(995, "seed"));
+    const out = JSON.parse(
+      await runVectorDatabase({ operation: "upsert", namespace: "ok", vectors: rows(5, "new") }, liteReq),
+    );
+    expect(out.upserted).toBe(5);
+    expect(out.total_in_namespace).toBe(1000);
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it("standard mode is unaffected by the lite cap (crosses 1,000 freely)", async () => {
+    await upsertVectors("acct:acc-vec:std", rows(998, "seed"));
+    const out = JSON.parse(
+      await runVectorDatabase({ operation: "upsert", namespace: "std", vectors: rows(3, "new") }, stdReq),
+    );
+    expect(out.upserted).toBe(3);
+    expect(out.total_in_namespace).toBe(1001);
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
   });
 });

@@ -25,6 +25,18 @@ export interface ParseOptions {
   document_base64?: string;
   /** Optional MIME type hint (e.g. "application/pdf"). When omitted we sniff from magic bytes + url extension. */
   mime_type?: string;
+  /**
+   * Internal (handler-supplied, NOT caller-facing) input-size override in bytes.
+   * May only TIGHTEN the standard 50 MiB cap — larger/invalid values fall back
+   * to it. Used by lite mode (5 MiB).
+   */
+  max_doc_bytes?: number;
+  /**
+   * Internal (handler-supplied, NOT caller-facing) markdown output cap override
+   * in chars. May only TIGHTEN the standard 1 MiB cap — larger/invalid values
+   * fall back to it. Used by lite mode (256 KiB).
+   */
+  max_markdown_chars?: number;
 }
 
 export type DetectedFormat = "pdf" | "docx" | "html" | "markdown" | "text" | "unknown";
@@ -55,6 +67,16 @@ export interface NotConfiguredResult {
 const MAX_DOC_BYTES = 52_428_800; // 50 MiB
 const MAX_DOWNLOAD_TIMEOUT_MS = 60_000;
 const MAX_MARKDOWN_CHARS = 1_048_576; // 1 MiB output cap with truncation marker
+
+/**
+ * Resolve a per-call cap override against the standard ceiling. Overrides may
+ * only TIGHTEN the cap (a mode can never buy past the standard limit here);
+ * non-finite / non-positive / larger values fall back to the standard.
+ */
+function effectiveCap(override: number | undefined, standard: number): number {
+  if (typeof override !== "number" || !Number.isFinite(override) || override <= 0) return standard;
+  return Math.min(Math.floor(override), standard);
+}
 const MAX_PDF_PAGES = 500; // page-bomb guard — cap pages extracted from one PDF
 const PARSE_TIME_BUDGET_MS = 20_000; // wall-clock budget for PDF page extraction
 const DOCX_PARSE_TIMEOUT_MS = 20_000; // mammoth runs uninterrupted; bound the wait
@@ -102,7 +124,7 @@ export function validateParseOptions(opts: ParseOptions): void {
 
 // ─── Acquisition ────────────────────────────────────────────────
 
-async function downloadDocument(url: string): Promise<Buffer> {
+async function downloadDocument(url: string, maxDocBytes: number): Promise<Buffer> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MAX_DOWNLOAD_TIMEOUT_MS);
   try {
@@ -111,13 +133,13 @@ async function downloadDocument(url: string): Promise<Buffer> {
     const lenHeader = res.headers.get("content-length");
     if (lenHeader) {
       const declared = Number(lenHeader);
-      if (Number.isFinite(declared) && declared > MAX_DOC_BYTES) {
-        throw new Error(`Content-Length ${declared} exceeds ${MAX_DOC_BYTES} bytes`);
+      if (Number.isFinite(declared) && declared > maxDocBytes) {
+        throw new Error(`Content-Length ${declared} exceeds ${maxDocBytes} bytes`);
       }
     }
     const arrBuf = await res.arrayBuffer();
-    if (arrBuf.byteLength > MAX_DOC_BYTES) {
-      throw new Error(`Downloaded ${arrBuf.byteLength} bytes exceeds ${MAX_DOC_BYTES}`);
+    if (arrBuf.byteLength > maxDocBytes) {
+      throw new Error(`Downloaded ${arrBuf.byteLength} bytes exceeds ${maxDocBytes}`);
     }
     return Buffer.from(arrBuf);
   } finally {
@@ -125,11 +147,11 @@ async function downloadDocument(url: string): Promise<Buffer> {
   }
 }
 
-function decodeBase64Document(b64: string): Buffer {
+function decodeBase64Document(b64: string, maxDocBytes: number): Buffer {
   const buf = Buffer.from(b64, "base64");
   if (buf.byteLength === 0) throw new Error("decoded document is empty");
-  if (buf.byteLength > MAX_DOC_BYTES) {
-    throw new Error(`decoded document ${buf.byteLength} bytes exceeds ${MAX_DOC_BYTES}`);
+  if (buf.byteLength > maxDocBytes) {
+    throw new Error(`decoded document ${buf.byteLength} bytes exceeds ${maxDocBytes}`);
   }
   return buf;
 }
@@ -344,10 +366,10 @@ function parseHtml(text: string): { markdown: string } {
 
 // ─── Public entrypoint ──────────────────────────────────────────
 
-function capMarkdown(md: string): { md: string; truncated: boolean } {
-  if (md.length <= MAX_MARKDOWN_CHARS) return { md, truncated: false };
+function capMarkdown(md: string, maxMarkdownChars: number): { md: string; truncated: boolean } {
+  if (md.length <= maxMarkdownChars) return { md, truncated: false };
   return {
-    md: md.slice(0, MAX_MARKDOWN_CHARS) + `\n\n[...truncated at ${MAX_MARKDOWN_CHARS} chars...]`,
+    md: md.slice(0, maxMarkdownChars) + `\n\n[...truncated at ${maxMarkdownChars} chars...]`,
     truncated: true,
   };
 }
@@ -356,29 +378,33 @@ export async function runDocumentParsing(
   opts: ParseOptions,
 ): Promise<ParseResult | NotConfiguredResult> {
   validateParseOptions(opts);
+  // Per-call cap overrides (lite mode). Defaults are the standard ceilings, so
+  // callers that don't pass overrides get byte-identical behavior.
+  const maxDocBytes = effectiveCap(opts.max_doc_bytes, MAX_DOC_BYTES);
+  const maxMarkdownChars = effectiveCap(opts.max_markdown_chars, MAX_MARKDOWN_CHARS);
 
   let buf: Buffer;
   if (opts.document_url) {
     try {
-      buf = await downloadDocument(opts.document_url);
+      buf = await downloadDocument(opts.document_url, maxDocBytes);
     } catch (err) {
       return {
         _not_configured: true,
         reason: "document_download_failed",
         detail: err instanceof Error ? err.message : String(err),
         remediation:
-          "document_url must return a 200 response with document bytes under 50 MiB within 60 seconds.",
+          `document_url must return a 200 response with document bytes under ${maxDocBytes / 1_048_576} MiB within 60 seconds.`,
       };
     }
   } else {
     try {
-      buf = decodeBase64Document(opts.document_base64!);
+      buf = decodeBase64Document(opts.document_base64!, maxDocBytes);
     } catch (err) {
       return {
         _not_configured: true,
         reason: "document_decode_failed",
         detail: err instanceof Error ? err.message : String(err),
-        remediation: "document_base64 must be a valid base64-encoded payload under 50 MiB decoded.",
+        remediation: `document_base64 must be a valid base64-encoded payload under ${maxDocBytes / 1_048_576} MiB decoded.`,
       };
     }
   }
@@ -398,7 +424,7 @@ export async function runDocumentParsing(
   try {
     if (format === "pdf") {
       const r = await parsePdf(buf);
-      const { md, truncated } = capMarkdown(r.markdown);
+      const { md, truncated } = capMarkdown(r.markdown, maxMarkdownChars);
       return {
         markdown: md,
         format_detected: "pdf",
@@ -410,7 +436,7 @@ export async function runDocumentParsing(
     }
     if (format === "docx") {
       const r = await parseDocx(buf);
-      const { md, truncated } = capMarkdown(r.markdown);
+      const { md, truncated } = capMarkdown(r.markdown, maxMarkdownChars);
       return {
         markdown: md,
         format_detected: "docx",
@@ -422,7 +448,7 @@ export async function runDocumentParsing(
     }
     if (format === "html") {
       const r = parseHtml(buf.toString("utf8"));
-      const { md, truncated } = capMarkdown(r.markdown);
+      const { md, truncated } = capMarkdown(r.markdown, maxMarkdownChars);
       return {
         markdown: md,
         format_detected: "html",
@@ -433,7 +459,7 @@ export async function runDocumentParsing(
       };
     }
     // markdown + text — passthrough
-    const { md, truncated } = capMarkdown(buf.toString("utf8"));
+    const { md, truncated } = capMarkdown(buf.toString("utf8"), maxMarkdownChars);
     return {
       markdown: md,
       format_detected: format,

@@ -143,7 +143,7 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     tool: "iliad_web_research",
     standard_cents: 10,
     lite_cents: 5,
-    lite_description: "Lite mode: markdown only (no structured data extraction)",
+    lite_description: "Lite mode: same markdown output as standard, at the lower price.",
   },
   iliad_web_research_crawl: {
     tool: "iliad_web_research_crawl",
@@ -211,7 +211,7 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     tool: "iliad_analytics",
     standard_cents: 1,
     lite_cents: 0,
-    lite_description: "Free tier: capture batch capped at 50 + query limit capped at 25 (standard allows batch 500 + limit 1000).",
+    lite_description: "Free tier: capture batches above 50 are rejected + query limit capped at 25 (standard allows batch 500 + limit 1000).",
   },
   // AXIS-hosted LLM: in-process inference via node-llama-cpp + a
   // small GGUF model. Real marginal cost is CPU seconds (2-15s per

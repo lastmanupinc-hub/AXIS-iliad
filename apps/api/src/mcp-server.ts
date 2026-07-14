@@ -84,6 +84,7 @@ import {
 } from "./mcp-tool-impls.js";
 import { runAssembleRepresentment } from "./disputes.js";
 import { resolveAgentMode } from "./mpp.js";
+import { applyLiteCaps } from "./lite-caps.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
 
@@ -220,7 +221,7 @@ export async function dispatch(
     case "tools/call": {
       const p = params as Record<string, unknown> | null;
       const toolName = p?.name;
-      const toolArgs = (p?.arguments as Record<string, unknown>) ?? {};
+      const rawToolArgs = (p?.arguments as Record<string, unknown>) ?? {};
       /* v8 ignore next â€” both arms tested; v8 misses the || short-circuit arm for empty-string toolName */
       if (typeof toolName !== "string" || !toolName) {
         return rpcErr(id, RPC_INVALID_PARAMS, "tools/call requires 'name' as string");
@@ -229,6 +230,27 @@ export async function dispatch(
       const auth = await resolveAuth(req);
       const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
       await logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>);
+
+      // Lite-mode cap enforcement (revenue-leak fix): a caller paying the lite
+      // price must GET lite behavior. Applied BEFORE the idempotency hash so a
+      // stored/replayed result is keyed by — and reflects — the args that
+      // actually ran, and BEFORE any possible charge: every charge on this
+      // path happens inside the tool impls in the switch below, and the
+      // in-band settlement gate (settleMcpCallInband) applies these same caps
+      // and never settles a call this table rejects.
+      const liteCapped = applyLiteCaps(canonicalToolName, resolveAgentMode(req), rawToolArgs);
+      if (liteCapped.rejection) {
+        // Mirror the pre-dispatch tool-error shape used by the idempotency
+        // in-progress return below: an isError:true tool result inside a
+        // JSON-RPC success envelope, never a thrown exception. Nothing has
+        // been charged or claimed yet, and the Idempotency-Key (if any) stays
+        // unused so a corrected retry can reuse it.
+        return rpcOk(id, {
+          ...toolErr(liteCapped.rejection),
+          _error: { code: "validation", retryable: false },
+        });
+      }
+      const toolArgs = liteCapped.args;
 
       // Idempotency: a retry carrying the same Idempotency-Key returns the
       // original result and never re-charges. Only successful results are stored
@@ -494,11 +516,23 @@ async function settleMcpCallInband(
   const p = msg.params as Record<string, unknown> | null;
   const rawName = p?.name;
   if (typeof rawName !== "string" || !rawName) return false;
-  const decision = await decideInbandGate(
-    normalizeToolName(rawName),
+  const canonicalToolName = normalizeToolName(rawName);
+  const agentMode = resolveAgentMode(req);
+  // Lite-mode caps mirror dispatch's enforcement (same module, same table):
+  //  - a call the table REJECTS must never settle cash here — dispatch is
+  //    about to return the rejection without running the tool, so collecting
+  //    now would manufacture a paid-for-nothing (settled_then_error) case;
+  //  - the idempotency hash below must cover the SAME capped args dispatch
+  //    hashes, or a legitimate lite retry would false-positive as an
+  //    Idempotency-Key hash mismatch.
+  const liteCapped = applyLiteCaps(
+    canonicalToolName,
+    agentMode,
     (p?.arguments as Record<string, unknown>) ?? {},
-    resolveAgentMode(req),
   );
+  if (liteCapped.rejection) return false; // dispatch rejects before any charge or claim
+  const toolArgs = liteCapped.args;
+  const decision = await decideInbandGate(canonicalToolName, toolArgs, agentMode);
   if (!decision.settle) return false;   // free / not_provisioned / runtime / out-of-scope -> dispatch handles normally
   const tool = decision.tool;
 
@@ -520,7 +554,7 @@ async function settleMcpCallInband(
   const idempotencyKey = readIdempotencyKey(req);
   let requestHash = "";
   if (idempotencyKey) {
-    requestHash = hashToolRequest(normalizeToolName(rawName), (p?.arguments as Record<string, unknown>) ?? {});
+    requestHash = hashToolRequest(canonicalToolName, toolArgs);
     const gate = await gateIdempotency(req, auth.account.account_id, idempotencyKey, requestHash);
     if (gate.outcome === "replay" || gate.outcome === "hash_mismatch") {
       return false;                             // dispatch replays (or rejects the hash mismatch) without charging
