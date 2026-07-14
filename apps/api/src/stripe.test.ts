@@ -329,6 +329,45 @@ describe("Stripe webhook", () => {
     }
   });
 
+  // ─── Malformed-2xx coverage (H8.1 audit): the transport-error paths above
+  // (throw, non-ok status) already retry-and-recover or retry-and-fall-back.
+  // This covers the remaining unhappy-path dimension: a response that
+  // resolves 200 OK but whose body doesn't have the expected `items` shape
+  // (valid JSON, wrong shape — not a parse failure).
+
+  it("falls back like a failed fetch — but in a SINGLE attempt — when the truth-fetch resolves 200 OK with a malformed body (no items)", async () => {
+    const { account } = await createTestAccount("malformed-ok", "malformed-ok@test.com");
+    const accountId = account.account_id as string;
+    process.env.STRIPE_SECRET_KEY = "sk_test_malformed";
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({}), // 200 OK, valid JSON, but no `items` at all
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const payload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_malformed_ok", "paid"));
+      const r = await req("POST", "/v1/webhooks/stripe", payload, { "stripe-signature": signStripePayload(payload) });
+      expect(r.status).toBe(200);
+
+      // sub.items?.data?.[0]?.price?.id ?? null → null. handleCheckoutCompleted
+      // then falls back exactly like a total truth-fetch failure would (no
+      // prior confirmed price for this new subscription → env is the only
+      // available signal).
+      const stored = await getSubscription("sub_malformed_ok");
+      expect(stored?.price_id).toBe("price_paid_123");
+
+      // Unlike a thrown/network error (which retries up to `attempts` times),
+      // `if (response.ok)` returns unconditionally on the first pass — a
+      // malformed-but-2xx response is NEVER retried, even though it is just
+      // as "wrong" as a transient network blip would have been.
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.stubGlobal("fetch", realFetch);
+      delete process.env.STRIPE_SECRET_KEY;
+    }
+  });
+
   // ─── H2.6 (red-team fix, WAVE-0 finding #7): webhook event-ordering ───────
   // Stripe does not guarantee webhook delivery order. A stale event (e.g. an
   // old cancellation, redelivered late) must not overwrite state a NEWER

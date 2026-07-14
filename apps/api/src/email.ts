@@ -115,6 +115,7 @@ export async function sendTransactionalEmail(
   const url = `${baseUrl}/emails`;
   let resp: Response;
   try {
+    // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
     resp = await fetchImpl(url, {
       method: "POST",
       headers: {

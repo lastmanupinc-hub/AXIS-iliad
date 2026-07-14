@@ -3884,6 +3884,8 @@ export async function handleFirecrawlScrape(
   };
 
   try {
+    // H8.1 WAIVER: no client-side AbortController/timeout — only a body-level
+    // `timeout` hint Firecrawl may or may not honor server-side. Tracked as H8.1b.
     const firecrawlRes = await fetch("https://api.firecrawl.dev/v0/scrape", {
       method: "POST",
       headers: {
@@ -4037,6 +4039,8 @@ export async function handleFirecrawlCrawl(
   };
 
   try {
+    // H8.1 WAIVER: no client-side AbortController/timeout — only a body-level
+    // `timeout` hint Firecrawl may or may not honor server-side. Tracked as H8.1b.
     const firecrawlRes = await fetch("https://api.firecrawl.dev/v0/crawl", {
       method: "POST",
       headers: {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import path from "node:path";
 import {
   computeEmbeddings,
@@ -218,6 +218,44 @@ describe("computeEmbeddings error handling", () => {
   it("maps fetch network errors to a clean message", async () => {
     const fetch = (async () => { throw new Error("ECONNREFUSED 127.0.0.1:443"); }) as unknown as typeof fetch;
     await expect(computeEmbeddings("x", config, fetch)).rejects.toThrow(/Embeddings provider unreachable/);
+  });
+
+  it("classifies a stalled provider that outlives the client-side timeout as unreachable, via the same AbortController the function sets up internally", async () => {
+    // computeEmbeddings has no dedicated AbortError branch — its single catch
+    // block normalizes DNS/connect/abort failures alike into "Embeddings
+    // provider unreachable: <message>". This exercises that path by letting
+    // the *real* internal AbortController (setTimeout(..., EMBEDDINGS_TIMEOUT_MS))
+    // fire, rather than waiting out a real 30s timer.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Never resolves on its own; only settles when the signal that
+      // computeEmbeddings passes in gets aborted — same as a real fetch would.
+      const hangingFetch = ((_url: string | URL, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const abortErr = new Error("This operation was aborted");
+            abortErr.name = "AbortError";
+            reject(abortErr);
+          });
+        });
+      }) as unknown as typeof fetch;
+
+      const pending = computeEmbeddings("x", config, hangingFetch);
+      // Attach the rejection handler synchronously, before advancing the fake
+      // clock — otherwise the internal promise can reject *during* the
+      // advance below with no handler attached yet, which Node reports as an
+      // (eventually-handled-but-still-flagged) unhandled rejection.
+      const assertion = expect(pending).rejects.toThrow(
+        /Embeddings provider unreachable: This operation was aborted/,
+      );
+      // EMBEDDINGS_TIMEOUT_MS (30_000) isn't exported; mirrored here. Fake
+      // timers fast-forward the internal setTimeout instead of real-waiting.
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rejects empty input arrays", async () => {

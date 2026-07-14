@@ -269,6 +269,8 @@ async function fetchSubscriptionPriceId(subscriptionId: string, attempts = 3): P
   if (!stripeKey) return null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
+      // H8.1 WAIVER: no client-side AbortController/timeout on any attempt (the
+      // retry loop bounds attempt COUNT, not per-attempt wall time). Tracked as H8.1b.
       const response = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
         method: "GET",
         headers: {
@@ -583,6 +585,7 @@ export async function handleCreateCheckout(
     // SAME checkout session instead of creating a second charge surface —
     // exactly checkoutIdempotencyKey's designed purpose (human checkout dedupe).
     const idempotencyKey = checkoutIdempotencyKey(ctx.account!.account_id, `stripe-checkout:${planId}:${billingCycle}`);
+    // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
     const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {
@@ -718,6 +721,7 @@ export async function handleCancelSubscription(
     const params = new URLSearchParams();
     params.append("cancel_at_period_end", "true");
 
+    // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
     const response = await fetch(
       `https://api.stripe.com/v1/subscriptions/${active.subscription_id}`,
       {

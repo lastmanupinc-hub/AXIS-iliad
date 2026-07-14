@@ -8,6 +8,7 @@ import { putCachedScrape } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleFirecrawlScrape, handleFirecrawlCrawl } from "./handlers.js";
+import { ErrorCode } from "./logger.js";
 
 const ORIGINAL_KEY = process.env.FIRECRAWL_API_KEY;
 function restoreKey() {
@@ -46,6 +47,42 @@ describe("web-research core", () => {
     process.env.FIRECRAWL_API_KEY = "fc-test";
     vi.stubGlobal("fetch", vi.fn(async () => new Response("rate limited", { status: 429 })));
     await expect(firecrawlScrape("https://example.com")).rejects.toThrow(/Firecrawl scrape failed: 429/);
+  });
+
+  // firecrawlPost wraps fetch() in try/finally (only clearTimeout on the way
+  // out) — there is no catch block, so unlike sovereignFetch's SovereignFetchError
+  // classification, an aborted/failed fetch propagates RAW and unclassified.
+  it("propagates the raw AbortError when the client-side timeout controller fires", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw Object.assign(new Error("This operation was aborted"), { name: "AbortError" });
+      }),
+    );
+    await expect(firecrawlScrape("https://example.com")).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("propagates a transport error when fetch rejects with a network failure", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+    await expect(firecrawlScrape("https://example.com")).rejects.toThrow(/fetch failed/);
+  });
+
+  it("defaults markdown/metadata to empty rather than throwing when the 200 body is missing the expected data shape", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({}), { status: 200 })));
+    const r = await firecrawlScrape("https://example.com");
+    expect(isWebResearchNotConfigured(r)).toBe(false);
+    if (!isWebResearchNotConfigured(r)) {
+      expect(r.markdown).toBe("");
+      expect(r.metadata).toEqual({});
+    }
   });
 
   it("maps crawl scrapeResults to pages", async () => {
@@ -273,5 +310,168 @@ describe("POST /v1/research/crawl — billing, free pool & two-phase charge", ()
       expect(r.data.paid_pages).toBeGreaterThan(0);
       expect(r.data.free_pages_used).toBe(0);
     }
+  });
+});
+
+// ─── Unhappy-path coverage for the two Firecrawl call sites in handlers.ts ──
+//
+// Both handleFirecrawlScrape and handleFirecrawlCrawl wrap their fetch() in a
+// try/catch that produces a clean 500 INTERNAL_ERROR on any thrown error
+// (transport failure, or a non-JSON body that throws inside res.json()), and
+// both use optional chaining + `??` fallbacks when reading the parsed body,
+// so a 200 response with an unexpected shape does not throw — see the
+// per-test comments below for exactly what each handler falls back to.
+//
+// NOTE: neither handler has a client-side AbortController/timeout — the
+// `timeout` field they send is only a request to Firecrawl, not enforced on
+// the AXIS side. That gap is tracked separately (H8.1b) and deliberately has
+// no test here (there is no mechanism yet to exercise).
+
+describe("POST /v1/research/scrape — Firecrawl transport & malformed-response handling", () => {
+  let server: Server;
+  let testPort = 0;
+  let apiKey = "";
+
+  beforeEach(async () => {
+    await resetTestDb();
+    const acct = await createAccount("ScrapeErr", "scrape-err@test.com", "paid");
+    apiKey = (await createApiKey(acct.account_id)).rawKey;
+    const router = new Router();
+    router.post("/v1/research/scrape", handleFirecrawlScrape);
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    restoreKey();
+    vi.unstubAllGlobals();
+  });
+
+  async function post(url: string, key: string): Promise<{ status: number; data: any }> {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify({ url });
+      const r = require("node:http").request(
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/research/scrape", method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` } },
+        (res: IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            let data: unknown;
+            try { data = JSON.parse(Buffer.concat(chunks).toString("utf-8")); } catch { data = {}; }
+            resolve({ status: res.statusCode ?? 0, data });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(payload);
+      r.end();
+    });
+  }
+
+  it("returns a clean 500 (not a crash) when the Firecrawl fetch itself rejects — transport error", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed"); // mirrors Node/undici's real connection-failure error
+      }),
+    );
+    const r = await post("https://example.com/transport-error", apiKey);
+    expect(r.status).toBe(500);
+    expect(r.data.error_code).toBe(ErrorCode.INTERNAL_ERROR);
+    expect(r.data.error).toContain("Firecrawl request failed");
+  });
+
+  it("doesn't crash on a 200 response with a malformed body — falls back to empty markdown/metadata", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    // Well-formed JSON, ok:true, but no `data` field at all (e.g. Firecrawl
+    // changes its envelope, or a proxy strips it) — data.markdown is missing.
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
+    const r = await post("https://example.com/malformed-scrape", apiKey);
+    // The handler's `firecrawlData.data?.markdown ?? ""` / `?? {}` fallbacks mean
+    // this is NOT an error — it succeeds with empty content rather than throwing.
+    expect(r.status).toBe(200);
+    expect(r.data.success).toBe(true);
+    expect(r.data.data.markdown).toBe("");
+    expect(r.data.data.metadata).toEqual({});
+  });
+});
+
+describe("POST /v1/research/crawl — Firecrawl transport & malformed-response handling", () => {
+  let server: Server;
+  let testPort = 0;
+  let apiKey = "";
+
+  beforeEach(async () => {
+    await resetTestDb();
+    const acct = await createAccount("CrawlErr", "crawl-err@test.com", "paid");
+    apiKey = (await createApiKey(acct.account_id)).rawKey;
+    const router = new Router();
+    router.post("/v1/research/crawl", handleFirecrawlCrawl);
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    restoreKey();
+    vi.unstubAllGlobals();
+  });
+
+  function postCrawl(body: unknown, key?: string): Promise<{ status: number; data: any }> {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify(body);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (key) headers.Authorization = `Bearer ${key}`;
+      const r = require("node:http").request(
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/research/crawl", method: "POST", headers },
+        (res: IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            let data: unknown;
+            try { data = JSON.parse(Buffer.concat(chunks).toString("utf-8")); } catch { data = {}; }
+            resolve({ status: res.statusCode ?? 0, data });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(payload);
+      r.end();
+    });
+  }
+
+  it("returns a clean 500 (not a crash) when the Firecrawl fetch itself rejects — transport error", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed"); // mirrors Node/undici's real connection-failure error
+      }),
+    );
+    const r = await postCrawl({ url: "https://example.com", limit: 5 }, apiKey);
+    expect(r.status).toBe(500);
+    expect(r.data.error_code).toBe(ErrorCode.INTERNAL_ERROR);
+    expect(r.data.error).toContain("Firecrawl request failed");
+  });
+
+  it("doesn't crash on a 200 response with a malformed body — falls back to zero pages crawled", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    // Well-formed JSON, ok:true, but no `data.scrapeResults` — missing/empty shape.
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })));
+    const r = await postCrawl({ url: "https://example.com", limit: 5 }, apiKey);
+    // `firecrawlData.data?.scrapeResults?.length ?? 0` and `?.map(...) ?? []` mean
+    // this is NOT an error — it succeeds with 0 pages rather than throwing, and
+    // (since 0 pages were "crawled") draws nothing from the free pool and bills $0.
+    expect(r.status).toBe(200);
+    expect(r.data.success).toBe(true);
+    expect(r.data.data.pages_crawled).toBe(0);
+    expect(r.data.data.pages).toEqual([]);
+    expect(r.data.paid_pages).toBe(0);
+    expect(r.data.free_pages_used).toBe(0);
+    expect(r.data.cost).toBe("$0.00");
   });
 });

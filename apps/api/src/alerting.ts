@@ -74,7 +74,7 @@ let timer: ReturnType<typeof setInterval> | null = null;
 let prev: Counters = { requestCount: 0, errorCount: 0 };
 let state: DebounceState = { breaching: false, lastAlertAt: 0 };
 
-async function postAlert(url: string, body: Record<string, unknown>): Promise<void> {
+export async function postAlert(url: string, body: Record<string, unknown>): Promise<void> {
   try {
     const ctrl = new AbortController();
     const to = setTimeout(() => ctrl.abort(), 5000);

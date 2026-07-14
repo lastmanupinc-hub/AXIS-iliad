@@ -190,6 +190,7 @@ export async function readStripeNetworkToken(
   }
 
   const fetchImpl = deps?.fetchImpl ?? (fetch as FetchLike);
+  // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
   const res = await fetchImpl(`https://api.stripe.com/v1/payment_methods/${encodeURIComponent(paymentMethodId)}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${secretKey}`, "Stripe-Version": "2026-06-24.dahlia" }, // H0.4: pin the API version

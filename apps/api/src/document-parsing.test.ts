@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   runDocumentParsing,
   validateParseOptions,
@@ -210,6 +210,67 @@ describe("document-parsing — output cap", () => {
       expect(r.markdown).toMatch(/truncated/);
     }
   });
+});
+
+// ─── document_url ingestion — unhappy paths (safeFetch / url-guard) ──
+//
+// Every test above drives document_base64 only. downloadDocument() (the
+// document_url path, via safeFetch in url-guard.ts) had zero coverage.
+// These stub global fetch — matching the vi.spyOn(globalThis, "fetch")
+// convention used elsewhere for safeFetch-routed code (see
+// cashier-paid-wallet.test.ts) — and target a literal public IP host
+// (93.184.216.34, already vetted as non-blocked in url-guard.test.ts) so
+// assertPublicUrl's DNS-lookup branch is never hit and no real network
+// I/O occurs.
+
+describe("document-parsing — document_url download failures (safeFetch integration)", () => {
+  const DOC_URL = "http://93.184.216.34/report.pdf";
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+
+  afterEach(() => {
+    fetchSpy?.mockRestore();
+  });
+
+  it("returns a clean document_download_failed envelope when the guard's download timeout fires", async () => {
+    // downloadDocument races safeFetch against a 60s AbortController timer. Simulating the abort
+    // by rejecting fetch itself (rather than waiting out a real 60s timer) matches this codebase's
+    // existing convention for testing abort-driven timeouts (see cashier-paid-wallet.test.ts's
+    // `Object.assign(new Error(...), { name: "AbortError" })` fetch rejection).
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      Object.assign(new Error("The operation was aborted"), { name: "AbortError" }),
+    );
+    const r = await runDocumentParsing({ document_url: DOC_URL });
+    expect(isNotConfigured(r)).toBe(true);
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("document_download_failed");
+      expect(r.detail).toMatch(/abort/i);
+      expect(r.remediation).toMatch(/60 seconds/);
+    }
+  });
+
+  it("returns a clean document_download_failed envelope on a transport-level fetch rejection", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("ECONNRESET: connection reset by peer"));
+    const r = await runDocumentParsing({ document_url: DOC_URL });
+    expect(isNotConfigured(r)).toBe(true);
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("document_download_failed");
+      expect(r.detail).toMatch(/ECONNRESET/);
+    }
+  });
+
+  it("returns a clean parse_failed envelope for malformed bytes served at document_url (200 OK, ZIP magic, not a real docx)", async () => {
+    // Identical malformed payload to the document_base64 "ZIP magic bytes" test above — this proves
+    // mammoth's throw on a fake docx gets caught the same way regardless of ingestion path (base64
+    // vs safeFetch-downloaded bytes).
+    const fakeDocx = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0xff, 0xff, 0xff, 0xff]);
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(fakeDocx, { status: 200 }));
+    const r = await runDocumentParsing({ document_url: "http://93.184.216.34/report.docx" });
+    expect(isNotConfigured(r)).toBe(true);
+    if (isNotConfigured(r)) {
+      expect(r.format_detected).toBe("docx");
+      expect(["parse_failed", "docx_runtime_missing"]).toContain(r.reason);
+    }
+  }, 30_000);
 });
 
 // ─── Helper: build a minimal one-page PDF in memory ─────────────

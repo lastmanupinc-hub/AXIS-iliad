@@ -87,4 +87,29 @@ describe("openDriftPullRequest", () => {
     expect(r.opened).toBe(false);
     expect(r.reason).toMatch(/base ref lookup failed \(404\)/);
   });
+
+  it("a rejected fetch (transport error) propagates uncaught — openDriftPullRequest has no try/catch, so it does NOT resolve to a clean {opened:false} result", async () => {
+    // Neither ghCall nor openDriftPullRequest wraps the fetchImpl call in a
+    // try/catch, so a fetch rejection (network error) on any of the 5 GitHub
+    // calls is NOT translated into a clean {opened:false, reason} — the
+    // rejection propagates straight out of openDriftPullRequest. Callers
+    // (architecture-drift-webhook.ts) rely on their own outer .catch() to
+    // avoid crashing the process; this function itself does not soften it.
+    const fetchImpl = (async () => {
+      throw new Error("transport error: ECONNRESET");
+    }) as unknown as typeof fetch;
+    await expect(openDriftPullRequest(fetchImpl, params())).rejects.toThrow(/transport error/);
+  });
+
+  it("treats a 200 ref-lookup response with a missing object.sha as a clean failure, not a crash", async () => {
+    // Malformed/unexpected-shape response: status 200 (so the status check
+    // alone would pass) but the body lacks object.sha. asRecord(...).sha
+    // resolves to undefined, and the explicit `typeof baseSha !== "string"`
+    // guard catches it — proving the check validates shape, not just status.
+    const { fetch } = seqFetch([
+      { status: 200, json: { object: {} } }, // 200 OK but no `sha` on the object
+    ]);
+    const r = await openDriftPullRequest(fetch, params());
+    expect(r).toEqual({ opened: false, reason: "base ref lookup failed (200)" });
+  });
 });

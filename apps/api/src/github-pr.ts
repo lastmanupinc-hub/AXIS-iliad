@@ -44,6 +44,9 @@ function encodePath(path: string): string {
 }
 
 async function ghCall(fetchImpl: typeof fetch, token: string, method: string, path: string, body?: unknown): Promise<GhResponse> {
+  // H8.1 WAIVER: no client-side AbortController/timeout, and no try/catch — a
+  // rejected fetch propagates out of ghCall/openDriftPullRequest uncaught (caught
+  // one level up by the webhook handler's own .catch()). Tracked as H8.1b.
   const res = await fetchImpl(`${GH_API}${path}`, {
     method,
     headers: {

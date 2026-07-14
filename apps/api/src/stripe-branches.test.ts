@@ -262,6 +262,63 @@ describe("handleCreateCheckout branches", () => {
     expect(r.data.error).toContain("ECONNREFUSED");
   });
 
+  // ─── Malformed-2xx coverage (H8.1 audit): the transport-error tests above
+  // (non-ok status, fetch throws) are already covered. These two cover the
+  // remaining unhappy-path dimension — Stripe returns HTTP 200, but the body
+  // isn't the shape (or isn't even valid JSON) the handler expects.
+
+  it("returns 201 with checkout_url silently ABSENT when Stripe's 200 response is missing id/url (malformed 2xx shape)", async () => {
+    const account = await createAccount("Checkout Malformed", "checkout-malformed-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}), // 200 OK, valid JSON, but neither `id` nor `url` present
+    }));
+
+    const r = await req("POST", "/v1/checkout",
+      { tier: "paid" },
+      { Authorization: `Bearer ${rawKey}` },
+    );
+
+    // Current behavior: the handler never validates the parsed session shape
+    // before using it (`session.url` / `session.id` read unchecked). A
+    // malformed-but-2xx Stripe response still produces a 201 "success" —
+    // checkout_url/session_id come back `undefined`, and because sendJSON's
+    // JSON.stringify drops undefined-valued keys, the keys aren't even
+    // present (not even `null`) in the response body.
+    expect(r.status).toBe(201);
+    expect(r.data.checkout_url).toBeUndefined();
+    expect(r.data.session_id).toBeUndefined();
+    expect("checkout_url" in r.data).toBe(false);
+    expect("session_id" in r.data).toBe(false);
+    // Fields NOT sourced from the Stripe response body still populate normally.
+    expect(r.data.tier).toBe("paid");
+    expect(r.data.price_id).toBe("price_paid_171");
+  });
+
+  it("returns 502 when Stripe's 200 response body is not valid JSON (.json() throws)", async () => {
+    const account = await createAccount("Checkout Bad JSON 200", "checkout-badjson200-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => { throw new SyntaxError("Unexpected token < in JSON at position 0"); },
+    }));
+
+    const r = await req("POST", "/v1/checkout",
+      { tier: "paid" },
+      { Authorization: `Bearer ${rawKey}` },
+    );
+
+    // response.json() throwing is caught by the same outer try/catch as a
+    // network failure — unlike the missing-fields case above, THIS malformed
+    // shape does surface as a 502 rather than a false-success 201.
+    expect(r.status).toBe(502);
+    expect(r.data.error).toContain("Failed to create checkout");
+    expect(r.data.error).toContain("Unexpected token");
+  });
+
   it("returns 409 when account already has active subscription", async () => {
     const account = await createAccount("Conflict Sub", "conflict-sub-171@test.com", "paid");
     const { rawKey } = await createApiKey(account.account_id, "test");

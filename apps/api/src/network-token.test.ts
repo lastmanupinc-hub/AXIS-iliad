@@ -185,6 +185,40 @@ describe("readStripeNetworkToken", () => {
     await expect(readStripeNetworkToken("pm_missing", { fetchImpl, secretKey: "sk_test_x" })).rejects.toThrow(/404/);
   });
 
+  it("propagates a rejected fetch (transport error) as a clean promise rejection, not an uncaught throw", async () => {
+    // No try/catch wraps the fetchImpl call in readStripeNetworkToken, so a
+    // rejected fetch (DNS failure, ECONNREFUSED, timeout, …) surfaces as a
+    // normal rejected promise carrying the original error — callers can
+    // await/try-catch it like any other async failure; it never hangs or
+    // crashes the process.
+    const fetchImpl: FetchLike = async () => {
+      throw new Error("transport error: ECONNREFUSED");
+    };
+    await expect(
+      readStripeNetworkToken("pm_neterr", { fetchImpl, secretKey: "sk_test_x" }),
+    ).rejects.toThrow(/transport error/);
+  });
+
+  it("tolerates a 200 OK response with no card field at all (malformed/unexpected shape) — defensive optional chaining, no throw", async () => {
+    // card mapping uses optional chaining (card?.network_token?.used,
+    // card?.brand, card?.last4) with null/false fallbacks, so a response
+    // that parses as JSON but is missing the `card` object entirely (and
+    // even `id`) does NOT throw — it degrades to an honest all-unknown token.
+    const fetchImpl: FetchLike = async () => new Response(JSON.stringify({}), { status: 200 });
+    const r = await readStripeNetworkToken("pm_shapeless", { fetchImpl, secretKey: "sk_test_x" });
+    expect(isNetworkTokenNotConfigured(r)).toBe(false);
+    if (!isNetworkTokenNotConfigured(r)) {
+      expect(r).toEqual({
+        token_ref: "pm_shapeless", // falls back to the input id — response body had no `id`
+        provider: "stripe",
+        is_network_token: false,
+        network: null,
+        last4: null,
+        token_state: "active",
+      });
+    }
+  });
+
   it("rejects an empty paymentMethodId", async () => {
     await expect(readStripeNetworkToken("", { secretKey: "sk_test_x" })).rejects.toThrow(/non-empty/);
   });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import path from "node:path";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -178,6 +178,121 @@ describe("speech-to-text — runTranscription _not_configured envelopes", () => 
       expect(r.detail).toContain("missing.bin");
       expect(r.remediation).toContain("GGML");
     }
+  }, 15_000);
+});
+
+// ─── audio_url ingestion — unhappy paths (safeFetch / url-guard) ────
+//
+// downloadAudio() (the audio_url path, via safeFetch in url-guard.ts) had
+// no real coverage: the one test that would exercise it is gated behind
+// AXIS_RUN_WHISPER_TESTS=1 (off by default, never runs in CI).
+//
+// To reach downloadAudio at all, runTranscription must first clear three
+// operator-config gates (model file present, whisper-cli present, ffmpeg
+// present). We fake the first two the same way the block above already
+// does (existence-check-only env vars — isWhisperCliAvailable only calls
+// fs.access on an absolute AXIS_WHISPER_CLI_PATH, it never executes it
+// unless a real transcription is attempted, which none of these tests
+// reach). ffmpeg-static has no such env override, so we ensure a file
+// exists at the exact path getFfmpegPath() resolves to via `import
+// ("ffmpeg-static")` — this sandbox has no network access for that
+// package's postinstall binary download, so the real binary is absent;
+// we drop a placeholder there (only if nothing is already present, and
+// we remove only what we created) so the presence gate passes for real.
+describe("speech-to-text — audio_url download failures (safeFetch integration)", () => {
+  const AUDIO_URL = "http://93.184.216.34/clip.mp3";
+  const originalModel = process.env.AXIS_WHISPER_MODEL_PATH;
+  const originalCli = process.env.AXIS_WHISPER_CLI_PATH;
+  let tmpDir: string;
+  let ffmpegPath: string | null = null;
+  let createdFfmpegPlaceholder = false;
+  let fetchSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+  async function resolveFfmpegStaticPath(): Promise<string | null> {
+    const mod = (await import("ffmpeg-static")) as unknown as string | { default: string | null } | null;
+    if (typeof mod === "string") return mod;
+    if (mod && typeof (mod as { default?: unknown }).default === "string") {
+      return (mod as { default: string }).default;
+    }
+    return null;
+  }
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "axis-stt-dl-"));
+
+    const modelPath = path.join(tmpDir, "fake-model.bin");
+    await fs.writeFile(modelPath, "fake-ggml");
+    process.env.AXIS_WHISPER_MODEL_PATH = modelPath;
+
+    const cliPath = path.join(tmpDir, "fake-whisper-cli");
+    await fs.writeFile(cliPath, "fake-cli — never executed by these tests");
+    process.env.AXIS_WHISPER_CLI_PATH = cliPath;
+
+    ffmpegPath = await resolveFfmpegStaticPath();
+    if (!ffmpegPath) {
+      throw new Error("ffmpeg-static did not resolve to a path in this environment — cannot set up this test block");
+    }
+    try {
+      await fs.access(ffmpegPath);
+      createdFfmpegPlaceholder = false; // a real (or prior) binary is already there — don't touch it
+    } catch {
+      await fs.mkdir(path.dirname(ffmpegPath), { recursive: true });
+      await fs.writeFile(ffmpegPath, "test placeholder — not a real ffmpeg binary");
+      createdFfmpegPlaceholder = true;
+    }
+    resetSpeechToTextForTests();
+  });
+
+  afterEach(async () => {
+    if (originalModel === undefined) delete process.env.AXIS_WHISPER_MODEL_PATH;
+    else process.env.AXIS_WHISPER_MODEL_PATH = originalModel;
+    if (originalCli === undefined) delete process.env.AXIS_WHISPER_CLI_PATH;
+    else process.env.AXIS_WHISPER_CLI_PATH = originalCli;
+    if (createdFfmpegPlaceholder && ffmpegPath) {
+      await fs.rm(ffmpegPath, { force: true }).catch(() => {});
+    }
+    resetSpeechToTextForTests();
+    fetchSpy?.mockRestore();
+    fetchSpy = undefined;
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns a clean audio_download_failed envelope when the guard's download timeout fires", async () => {
+    // Simulating the abort by rejecting fetch itself (rather than waiting out a real 60s timer)
+    // matches this codebase's existing convention for testing abort-driven timeouts (see
+    // cashier-paid-wallet.test.ts's `Object.assign(new Error(...), { name: "AbortError" })`).
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      Object.assign(new Error("The operation was aborted"), { name: "AbortError" }),
+    );
+    const r = await runTranscription({ audio_url: AUDIO_URL });
+    expect(isNotConfigured(r)).toBe(true);
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("audio_download_failed");
+      expect(r.detail).toMatch(/abort/i);
+      expect(r.remediation).toMatch(/100 MiB/);
+    }
+  }, 15_000);
+
+  it("returns a clean audio_download_failed envelope on a transport-level fetch rejection", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("ECONNRESET: connection reset by peer"));
+    const r = await runTranscription({ audio_url: AUDIO_URL });
+    expect(isNotConfigured(r)).toBe(true);
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("audio_download_failed");
+      expect(r.detail).toMatch(/ECONNRESET/);
+    }
+  }, 15_000);
+
+  it("KNOWN GAP: a 200 response with non-audio bytes is not caught cleanly — runTranscription rejects instead of returning a _not_configured envelope", async () => {
+    // downloadAudio has zero content/audio validation — it accepts any 200 response body and
+    // writes it to disk verbatim. The failure only surfaces one step later, inside
+    // resampleToWav() (ffmpeg), which sits OUTSIDE the try/catch that wraps downloadAudio in
+    // runTranscription (only download-phase errors are caught and turned into a clean
+    // audio_download_failed envelope). So unlike the two tests above, this rejects the returned
+    // promise rather than resolving to a _not_configured result — see the test report for detail.
+    const garbage = Buffer.from("this is not an audio file, just plain text bytes");
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(garbage, { status: 200 }));
+    await expect(runTranscription({ audio_url: AUDIO_URL })).rejects.toThrow();
   }, 15_000);
 });
 
