@@ -1,32 +1,38 @@
+import { lazy } from "react";
 import type { ReactNode } from "react";
+// H5.3 — perf pass: only the true first-load/high-frequency pages (home, analyze,
+// the project workspace, the post-signup dashboard, 404) are eager imports; every
+// other page is `lazy()`-loaded on its own chunk so a visit to e.g. Docs (by far the
+// single biggest page) doesn't cost every other visitor a byte. See PROGRESS (H5.3).
 import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { ProjectsPage } from "./pages/ProjectsPage.tsx";
-import { UsagePage } from "./pages/UsagePage.tsx";
-import { CommercePage } from "./pages/CommercePage.tsx";
-import { PlaygroundPage } from "./pages/PlaygroundPage.tsx";
-import { ChangelogPage } from "./pages/ChangelogPage.tsx";
-import { StatusPage } from "./pages/StatusPage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
-import { RunnerPage } from "./pages/RunnerPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { SettingsPage } from "./pages/SettingsPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { McpPage } from "./pages/McpPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
-import { KitchenSinkPage } from "./pages/KitchenSinkPage.tsx";
 import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx";
+
+const UsagePage = lazy(() => import("./pages/UsagePage.tsx").then((m) => ({ default: m.UsagePage })));
+const CommercePage = lazy(() => import("./pages/CommercePage.tsx").then((m) => ({ default: m.CommercePage })));
+const PlaygroundPage = lazy(() => import("./pages/PlaygroundPage.tsx").then((m) => ({ default: m.PlaygroundPage })));
+const ChangelogPage = lazy(() => import("./pages/ChangelogPage.tsx").then((m) => ({ default: m.ChangelogPage })));
+const StatusPage = lazy(() => import("./pages/StatusPage.tsx").then((m) => ({ default: m.StatusPage })));
+const RunnerPage = lazy(() => import("./pages/RunnerPage.tsx").then((m) => ({ default: m.RunnerPage })));
+const PlansPage = lazy(() => import("./pages/PlansPage.tsx").then((m) => ({ default: m.PlansPage })));
+const AccountPage = lazy(() => import("./pages/AccountPage.tsx").then((m) => ({ default: m.AccountPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage.tsx").then((m) => ({ default: m.SettingsPage })));
+const DocsPage = lazy(() => import("./pages/DocsPage.tsx").then((m) => ({ default: m.DocsPage })));
+const HelpPage = lazy(() => import("./pages/HelpPage.tsx").then((m) => ({ default: m.HelpPage })));
+const QAPage = lazy(() => import("./pages/QAPage.tsx").then((m) => ({ default: m.QAPage })));
+const ProgramsPage = lazy(() => import("./pages/ProgramsPage.tsx").then((m) => ({ default: m.ProgramsPage })));
+const TermsPage = lazy(() => import("./pages/TermsPage.tsx").then((m) => ({ default: m.TermsPage })));
+const ForAgentsPage = lazy(() => import("./pages/ForAgentsPage.tsx").then((m) => ({ default: m.ForAgentsPage })));
+const ExamplesPage = lazy(() => import("./pages/ExamplesPage.tsx").then((m) => ({ default: m.ExamplesPage })));
+const McpPage = lazy(() => import("./pages/McpPage.tsx").then((m) => ({ default: m.McpPage })));
+const PaidCheckoutPage = lazy(() => import("./pages/PaidCheckoutPage.tsx").then((m) => ({ default: m.PaidCheckoutPage })));
+const AdminPage = lazy(() => import("./pages/AdminPage.tsx").then((m) => ({ default: m.AdminPage })));
+const MyAnalyticsPage = lazy(() => import("./pages/MyAnalyticsPage.tsx").then((m) => ({ default: m.MyAnalyticsPage })));
+const WebResearchPage = lazy(() => import("./pages/tools/WebResearchPage.tsx").then((m) => ({ default: m.WebResearchPage })));
+const KitchenSinkPage = lazy(() => import("./pages/KitchenSinkPage.tsx").then((m) => ({ default: m.KitchenSinkPage })));
 import { Callout, EmptyState } from "./components/primitives/index.ts";
 import { PRO_PROGRAM_COUNT } from "./config.ts";
 import type { SignUpTrigger } from "./components/SignUpModal.tsx";

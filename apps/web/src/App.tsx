@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -637,7 +637,9 @@ export function App() {
 
           <ErrorBoundary>
             <div key={route.key} className="page-enter">
-              {activeDef.render(routeCtx)}
+              <Suspense fallback={<div className="empty-state" role="status" aria-live="polite"><span className="spinner" /> Loading…</div>}>
+                {activeDef.render(routeCtx)}
+              </Suspense>
             </div>
           </ErrorBoundary>
 

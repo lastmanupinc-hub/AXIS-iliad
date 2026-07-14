@@ -204,12 +204,17 @@ describe("PageFooter in the shell (WO-F4)", () => {
 });
 
 describe("kitchen-sink route in the shell (WO-F4)", () => {
-  it("renders the hidden primitives gallery at #__kitchen-sink", () => {
+  it("renders the hidden primitives gallery at #__kitchen-sink", async () => {
     window.location.hash = "#__kitchen-sink";
     const { container } = render(<App />);
     expect(shellPage(container)).toBe("kitchen-sink");
-    expect(screen.getByRole("heading", { name: "Kitchen Sink" })).toBeTruthy();
-  });
+    // KitchenSinkPage is lazy-loaded (H5.3) — its heading isn't in the DOM until
+    // the dynamic import resolves, unlike the shell's own data-shell-page attribute.
+    // Test-environment transform time for a first-touch dynamic import can exceed
+    // the default 1000ms findBy budget (real latency, not app or test logic), so
+    // this gets explicit headroom the same way the PageFooter test below did.
+    expect(await screen.findByRole("heading", { name: "Kitchen Sink" }, { timeout: 10_000 })).toBeTruthy();
+  }, 15_000);
 
   it("never appears in the sidebar", () => {
     const { container } = render(<App />);
@@ -508,7 +513,9 @@ describe("Projects/History (WO-P11)", () => {
 
     await waitFor(() => expect(shellPage(container)).toBe("project"));
     expect(window.location.hash).toBe("#projects/proj_fx");
-  });
+  }, 15_000); // ProjectsPage's own render shares the file's per-run transform load
+  // from the other now-lazy routes this file exercises (H5.3) — real headroom,
+  // same rationale as the PageFooter test and the kitchen-sink test above.
 
   it("Re-analyze navigates to #analyze with the GitHub URL field pre-filled", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
@@ -735,7 +742,9 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
 
     const urls = fetchFn.mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.includes("/v1/github/analyze"))).toBe(true);
-  });
+  }, 15_000); // shares this file's per-run transform load from the other now-lazy
+  // routes exercised elsewhere in the file (H5.3) — real headroom, not a fix for
+  // app or test logic.
 
   it("the guest banner's CTA opens the sign-in popup (nudge, not gate)", async () => {
     localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));

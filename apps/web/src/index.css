@@ -1385,7 +1385,6 @@ kbd {
   font-family: var(--mono);
   font-size: 0.72rem;
   letter-spacing: 0.02em;
-  opacity: 0.85;
 }
 .ide-main > .ide-footer a:hover { color: var(--accent); }
 
