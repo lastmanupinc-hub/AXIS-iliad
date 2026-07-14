@@ -514,8 +514,14 @@ describe("build402NegotiationBody", () => {
 
       const stripeRail = rails.find(r => r.scheme === "mppx/stripe")!;
       expect(stripeRail.preferred).toBe(false);
-      // same all-in price on both rails — the economics block is factual, not promotional
+      // same all-in AGENT price on both rails — the economics block is factual, not promotional
       expect(stripeRail.price_usd).toBe(rails[0]!.price_usd);
+      // fee-handling asymmetry stated explicitly: card overhead is Stripe's
+      // PUBLISHED standard rate (attributed, not measured); USDC is gas-only.
+      expect(String(stripeRail.processing_overhead)).toContain("2.9% + $0.30");
+      expect(String(stripeRail.processing_overhead)).toContain("published");
+      expect(String(rails[0]!.processing_overhead)).toContain("network gas only");
+      expect(String(rails[0]!.why_preferred)).toContain("no card-processing fee overhead");
     } finally {
       if (prev === undefined) delete process.env.TEMPO_RECIPIENT_ADDRESS;
       else process.env.TEMPO_RECIPIENT_ADDRESS = prev;

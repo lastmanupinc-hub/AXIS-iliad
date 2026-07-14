@@ -102,7 +102,7 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
 | `currency` | Yes | ISO display currency (`USD`) |
 | `accepted_payment_schemes` | Yes | Ordered by SERVER PREFERENCE — token/USDC first when a recipient is configured; Stripe is the always-available fallback. A client `Accept-Payment` ranking overrides. |
 | `preferred_payment_scheme` | Yes | The single scheme the server prefers (`x402/usdc/<network>` when configured, else `mppx/stripe`) |
-| `payment_rails` | Yes | Per-rail economics an agent can evaluate autonomously: `scheme`, `asset`, `network`, `price_usd`, `lite_price_usd`, `summary`, `settlement`, `intermediaries`, `chargeback_exposure`, `surcharge`, `preferred`. Prices are identical on every rail (no per-rail surcharge); rails differ in settlement mechanics. |
+| `payment_rails` | Yes | Per-rail economics an agent can evaluate autonomously: `scheme`, `asset`, `network`, `price_usd`, `lite_price_usd`, `summary`, `settlement`, `intermediaries`, `chargeback_exposure`, `surcharge`, `processing_overhead`, `preferred` (+ `why_preferred` on the preferred rail). Agent-facing prices are identical on every rail (no per-rail surcharge); rails differ in settlement mechanics and processing overhead — the card rail carries Stripe's published standard fee (2.9% + $0.30), the USDC rail network gas only, which is why the token rail is preferred. See [`PAYMENTS_COMPLIANCE.md`](./PAYMENTS_COMPLIANCE.md) for the AML/sanctions posture and the discount-not-surcharge rule on any future price differential. |
 | `payment_url` | Yes | Human or agent checkout entry |
 | `x402` | Yes | Stablecoin block: `amount`, `asset`, `network`, `payTo` |
 | `pricing` | Recommended | Structured cents for programmatic parsers |

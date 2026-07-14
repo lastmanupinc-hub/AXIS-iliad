@@ -386,11 +386,18 @@ export function build402NegotiationBody(
   const standardUsd = (tier.standard_cents / 100).toFixed(2);
   const liteUsd = (tier.lite_cents / 100).toFixed(2);
   // Per-rail economics, stated explicitly so an agent can evaluate rails
-  // without human help. Prices are identical on every rail (the listed price
-  // is all-in — AXIS adds no per-rail surcharge); the rails differ in
-  // settlement mechanics, which is exactly what an autonomous caller should
-  // weigh. Every figure derives from the pricing registry above — nothing
-  // here is estimated or invented.
+  // without human help. The AGENT-FACING price is identical on every rail
+  // (the listed price is all-in — AXIS adds no per-rail surcharge, and per
+  // card-network steering rules any future differential must be framed as a
+  // token-rail DISCOUNT, never a card surcharge). The rails differ in
+  // settlement mechanics and processing overhead — card processing carries a
+  // percentage + fixed fee (Stripe's published standard card rate is
+  // 2.9% + $0.30, which at micro-transaction scale consumes the majority of
+  // a $0.50 payment), while an on-chain USDC transfer carries network gas
+  // only. That fee asymmetry is WHY the token rail is preferred and what
+  // keeps list prices at these levels. Prices derive from the pricing
+  // registry above; the card-fee figure is Stripe's published standard rate,
+  // attributed as such — nothing here is estimated or invented.
   const paymentRails = [
     ...(paymentRecipient
       ? [
@@ -405,6 +412,8 @@ export function build402NegotiationBody(
             intermediaries: "none — direct to recipient address",
             chargeback_exposure: "none (on-chain settlement is final)",
             surcharge: "none — listed price is the full cost",
+            processing_overhead: "network gas only — no percentage fee, no fixed fee",
+            why_preferred: "no card-processing fee overhead — at micro-transaction scale this is the economically efficient rail, and it is what keeps these list prices low",
             preferred: true,
           },
         ]
@@ -420,6 +429,7 @@ export function build402NegotiationBody(
       intermediaries: "card network + issuing bank",
       chargeback_exposure: "standard card-network dispute rules apply",
       surcharge: "none — listed price is the full cost",
+      processing_overhead: "percentage + fixed fee per card transaction (Stripe's published standard card rate: 2.9% + $0.30)",
       preferred: !paymentRecipient,
     },
   ];
