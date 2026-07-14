@@ -301,71 +301,6 @@ pre {
   box-shadow: var(--shadow);
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0;
-  padding: 12px 0 12px;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-}
-
-/* ─── Header brand (logo + badge) ─────────────────────────────── */
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.header-brand h1 {
-  font-size: 1.25rem;
-  margin: 0;
-  white-space: nowrap;
-}
-
-/* ─── Desktop nav (hidden on mobile) ──────────────────────────── */
-
-.nav-desktop {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-}
-
-/* ─── Mobile controls (theme + hamburger, hidden on desktop) ──── */
-
-.nav-mobile-controls {
-  display: none;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ─── Hamburger button ─────────────────────────────────────────── */
-
-.hamburger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text);
-  font-size: 1.125rem;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-
-.hamburger:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-}
-
 /* ─── Mobile nav drawer ────────────────────────────────────────── */
 
 .nav-mobile-drawer {
@@ -901,9 +836,6 @@ kbd {
 #root { max-width: none; margin: 0; padding: 0; padding-bottom: 0; }
 @media (max-width: 600px) { #root { padding: 0; } }
 
-/* Dead top-nav rules — hide defensively (fully removable later). */
-.header, .nav-desktop, .nav-mobile-controls { display: none; }
-
 /* The shell grid — fills the viewport minus the fixed 32px StatusBar. */
 .ide-shell {
   --rail-w: 52px;
@@ -1112,10 +1044,6 @@ kbd {
   .ide-sidebar { display: none; }
   .ide-rail-hamburger { display: flex; }
   .ide-locator { display: none; }
-}
-@media (max-width: 600px) {
-  .ide-main { padding: 12px; }
-  .is-landing .ide-main > .page-enter { padding: 12px; }
 }
 
 /* Mobile drawer — clear the fixed rail+tabstrip (legacy offset was 56px). */

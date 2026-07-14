@@ -70,10 +70,6 @@ Detected domain model contracts:
 | `ResendErrorResponse` | interface | 3 | apps/api/src/email.ts |
 | *… 265 more* | | | |
 
-## Warnings
-
-- No lockfile found — dependency versions may be inconsistent
-
 ## Key Source Files
 
 ### `apps/api/src/server.ts`
