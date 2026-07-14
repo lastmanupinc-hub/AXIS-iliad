@@ -63,6 +63,9 @@ function validateRecipients(to: string | string[]): string[] {
   return arr;
 }
 
+/** Upper bound on the Resend round-trip before we abort. */
+const EMAIL_TIMEOUT_MS = 15_000;
+
 /**
  * POST a transactional email through Resend. Pure function over `fetch` so
  * tests can pass a stub. Caller must supply at least one of body_html /
@@ -113,9 +116,13 @@ export async function sendTransactionalEmail(
   if (opts.reply_to) body.reply_to = opts.reply_to;
 
   const url = `${baseUrl}/emails`;
+  // Bound the Resend round-trip so a stalled upstream can't hang the caller
+  // forever; a timeout falls into the same catch below as any other
+  // fetch-layer failure, producing the identical "Email provider unreachable" shape.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), EMAIL_TIMEOUT_MS);
   let resp: Response;
   try {
-    // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
     resp = await fetchImpl(url, {
       method: "POST",
       headers: {
@@ -123,9 +130,12 @@ export async function sendTransactionalEmail(
         "Authorization": `Bearer ${config.api_key}`,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch (err) {
     throw new Error(`Email provider unreachable: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!resp.ok) {

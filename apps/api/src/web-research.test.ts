@@ -322,10 +322,12 @@ describe("POST /v1/research/crawl — billing, free pool & two-phase charge", ()
 // so a 200 response with an unexpected shape does not throw — see the
 // per-test comments below for exactly what each handler falls back to.
 //
-// NOTE: neither handler has a client-side AbortController/timeout — the
-// `timeout` field they send is only a request to Firecrawl, not enforced on
-// the AXIS side. That gap is tracked separately (H8.1b) and deliberately has
-// no test here (there is no mechanism yet to exercise).
+// H8.1b: both handlers now also wrap their fetch() in a client-side
+// AbortController/setTimeout (30s scrape / 60s crawl) that actually enforces
+// the same budget already sent to Firecrawl via the body-level `timeout`
+// field. The abort propagates into the same outer catch as any other
+// transport error, so it lands on the identical clean 500 — see the
+// dedicated timeout test at the end of each describe block below.
 
 describe("POST /v1/research/scrape — Firecrawl transport & malformed-response handling", () => {
   let server: Server;
@@ -396,6 +398,47 @@ describe("POST /v1/research/scrape — Firecrawl transport & malformed-response 
     expect(r.data.success).toBe(true);
     expect(r.data.data.markdown).toBe("");
     expect(r.data.data.metadata).toEqual({});
+  });
+
+  it("returns a clean 500 (not a crash) when the Firecrawl call outlives the 30s client-side timeout (H8.1b)", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    // Never resolves on its own; only settles once the handler's internal
+    // AbortController fires — same as a real stalled Firecrawl call would.
+    // Fake timers must NOT be active until the request's real I/O (auth, DB,
+    // cache lookup) has actually reached the fetch call — otherwise the fake
+    // clock is advanced before the handler's abort timer even exists, and the
+    // frozen setTimeout starves the pg driver + server teardown (this exact
+    // test previously hung for 2×300s hook timeouts). Same waitForFetchCall
+    // discipline as stripe-branches.test.ts's H8.1b tests.
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const err = new Error("This operation was aborted");
+          err.name = "AbortError";
+          reject(err);
+        });
+      });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const pending = post("https://example.com/timeout-scrape", apiKey);
+      // Let real I/O reach the fetch() call so its abort timer is registered.
+      for (let i = 0; i < 500 && fetchSpy.mock.calls.length < 1; i++) {
+        await vi.advanceTimersByTimeAsync(0);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      }
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(30000);
+      const r = await pending;
+      expect(r.status).toBe(500);
+      expect(r.data.error_code).toBe(ErrorCode.INTERNAL_ERROR);
+      expect(r.data.error).toContain("Firecrawl request failed");
+    } finally {
+      vi.useRealTimers();
+      vi.stubGlobal("fetch", realFetch);
+    }
   });
 });
 
@@ -473,5 +516,39 @@ describe("POST /v1/research/crawl — Firecrawl transport & malformed-response h
     expect(r.data.paid_pages).toBe(0);
     expect(r.data.free_pages_used).toBe(0);
     expect(r.data.cost).toBe("$0.00");
+  });
+
+  it("returns a clean 500 (not a crash) when the Firecrawl call outlives the 60s client-side timeout (H8.1b)", async () => {
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    // See the scrape-path H8.1b test above for why fake timers must not be
+    // advanced until the request's real I/O has reached the fetch call.
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const err = new Error("This operation was aborted");
+          err.name = "AbortError";
+          reject(err);
+        });
+      });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const pending = postCrawl({ url: "https://example.com", limit: 5 }, apiKey);
+      for (let i = 0; i < 500 && fetchSpy.mock.calls.length < 1; i++) {
+        await vi.advanceTimersByTimeAsync(0);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      }
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(60000);
+      const r = await pending;
+      expect(r.status).toBe(500);
+      expect(r.data.error_code).toBe(ErrorCode.INTERNAL_ERROR);
+      expect(r.data.error).toContain("Firecrawl request failed");
+    } finally {
+      vi.useRealTimers();
+      vi.stubGlobal("fetch", realFetch);
+    }
   });
 });

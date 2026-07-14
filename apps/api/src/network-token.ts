@@ -159,6 +159,9 @@ interface StripePaymentMethodJson {
   };
 }
 
+/** Upper bound on the Stripe payment_methods read before we abort. */
+const STRIPE_READ_TIMEOUT_MS = 15_000;
+
 /**
  * Read a Stripe PaymentMethod and map it to a provider-agnostic NetworkToken.
  * Live path: GET https://api.stripe.com/v1/payment_methods/{id} with the
@@ -190,11 +193,22 @@ export async function readStripeNetworkToken(
   }
 
   const fetchImpl = deps?.fetchImpl ?? (fetch as FetchLike);
-  // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
-  const res = await fetchImpl(`https://api.stripe.com/v1/payment_methods/${encodeURIComponent(paymentMethodId)}`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${secretKey}`, "Stripe-Version": "2026-06-24.dahlia" }, // H0.4: pin the API version
-  });
+  // Bound the Stripe round-trip so a stalled upstream can't hang the caller
+  // forever. No catch here (by design, matching the existing contract): a
+  // timeout propagates as a rejected promise the same way any other
+  // fetch-layer failure already does — only the timer needs cleanup.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STRIPE_READ_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetchImpl(`https://api.stripe.com/v1/payment_methods/${encodeURIComponent(paymentMethodId)}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${secretKey}`, "Stripe-Version": "2026-06-24.dahlia" }, // H0.4: pin the API version
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     throw new Error(`readStripeNetworkToken: Stripe payment_methods read failed (${res.status})`);
   }

@@ -3884,16 +3884,25 @@ export async function handleFirecrawlScrape(
   };
 
   try {
-    // H8.1 WAIVER: no client-side AbortController/timeout — only a body-level
-    // `timeout` hint Firecrawl may or may not honor server-side. Tracked as H8.1b.
-    const firecrawlRes = await fetch("https://api.firecrawl.dev/v0/scrape", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${firecrawlApiKey}`,
-      },
-      body: JSON.stringify(scrapePayload),
-    });
+    // Bound the Firecrawl call so a stalled upstream can't hang the request
+    // forever — client-side enforcement of the same budget already sent to
+    // Firecrawl via the body-level `timeout` field above.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    let firecrawlRes: Response;
+    try {
+      firecrawlRes = await fetch("https://api.firecrawl.dev/v0/scrape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${firecrawlApiKey}`,
+        },
+        body: JSON.stringify(scrapePayload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!firecrawlRes.ok) {
       const errorText = await firecrawlRes.text();
@@ -4039,16 +4048,25 @@ export async function handleFirecrawlCrawl(
   };
 
   try {
-    // H8.1 WAIVER: no client-side AbortController/timeout — only a body-level
-    // `timeout` hint Firecrawl may or may not honor server-side. Tracked as H8.1b.
-    const firecrawlRes = await fetch("https://api.firecrawl.dev/v0/crawl", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${firecrawlApiKey}`,
-      },
-      body: JSON.stringify(crawlPayload),
-    });
+    // Bound the Firecrawl call so a stalled upstream can't hang the request
+    // forever — client-side enforcement of the same budget already sent to
+    // Firecrawl via the body-level `timeout` field above.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    let firecrawlRes: Response;
+    try {
+      firecrawlRes = await fetch("https://api.firecrawl.dev/v0/crawl", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${firecrawlApiKey}`,
+        },
+        body: JSON.stringify(crawlPayload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!firecrawlRes.ok) {
       const errorText = await firecrawlRes.text();

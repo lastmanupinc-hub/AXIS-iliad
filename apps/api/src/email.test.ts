@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   sendTransactionalEmail,
   readEmailConfigFromEnv,
@@ -217,6 +217,38 @@ describe("sendTransactionalEmail error handling", () => {
     await expect(
       sendTransactionalEmail({ to: "a@a.com", subject: "s", body_text: "x" }, config, fetch),
     ).rejects.toThrow(/Email provider unreachable/);
+  });
+
+  it("maps a client-side timeout to the same 'Email provider unreachable' shape as a transport error", async () => {
+    // sendTransactionalEmail's catch block normalizes DNS/connect/abort
+    // failures alike into "Email provider unreachable: <message>" (see the
+    // transport-error test above) — a timeout must produce the identical
+    // shape. EMAIL_TIMEOUT_MS (15_000) isn't exported; mirrored here via
+    // fake timers so this test doesn't really wait 15s.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Never resolves on its own; only settles when the signal that
+      // sendTransactionalEmail passes in gets aborted — same as a real fetch would.
+      const fetch = ((_url: string | URL, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const abortErr = new Error("This operation was aborted");
+            abortErr.name = "AbortError";
+            reject(abortErr);
+          });
+        });
+      }) as unknown as typeof fetch;
+
+      const pending = sendTransactionalEmail({ to: "a@a.com", subject: "s", body_text: "x" }, config, fetch);
+      // Attach the rejection handler synchronously, before advancing the fake
+      // clock — otherwise the internal promise can reject *during* the
+      // advance below with no handler attached yet.
+      const assertion = expect(pending).rejects.toThrow(/Email provider unreachable: This operation was aborted/);
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rejects responses with no message id", async () => {

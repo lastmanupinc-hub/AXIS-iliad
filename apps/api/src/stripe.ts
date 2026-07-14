@@ -249,6 +249,9 @@ async function syncTierFromStripeSubscription(
 
 // ─── Handle checkout.session.completed ─────────────────────────
 
+/** H8.1b: per-attempt wall-clock cap inside fetchSubscriptionPriceId's retry loop below — the loop itself only bounds attempt COUNT, not per-attempt time. */
+const SUBSCRIPTION_FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * H0.5: the price the customer ACTUALLY bought lives on their Stripe
  * subscription — fetch it (pinned API version) instead of trusting what the
@@ -268,22 +271,30 @@ async function fetchSubscriptionPriceId(subscriptionId: string, attempts = 3): P
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    // H8.1b: fresh controller/timer per attempt — each attempt gets its own
+    // SUBSCRIPTION_FETCH_TIMEOUT_MS budget (the retry loop only bounds
+    // attempt COUNT, not per-attempt wall time).
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), SUBSCRIPTION_FETCH_TIMEOUT_MS);
     try {
-      // H8.1 WAIVER: no client-side AbortController/timeout on any attempt (the
-      // retry loop bounds attempt COUNT, not per-attempt wall time). Tracked as H8.1b.
       const response = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${stripeKey}`,
           "Stripe-Version": STRIPE_API_VERSION,
         },
+        signal: controller.signal,
       });
       if (response.ok) {
         const sub = (await response.json()) as { items?: { data?: Array<{ price?: { id?: string } }> } };
         return sub.items?.data?.[0]?.price?.id ?? null;
       }
     } catch {
-      // fall through to retry/give-up below
+      // fall through to retry/give-up below — also catches a per-attempt
+      // timeout abort (AbortError), which behaves identically to any other
+      // transport failure at this attempt.
+    } finally {
+      clearTimeout(timer);
     }
     if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
   }
@@ -504,6 +515,9 @@ export async function handleStripeWebhook(
 
 // ─── POST /v1/checkout ──────────────────────────────────────────
 
+/** H8.1b: bound the checkout-session-creation call — synchronous and user-facing, so it should fail fast rather than hang the request. */
+const CHECKOUT_SESSION_TIMEOUT_MS = 15_000;
+
 export async function handleCreateCheckout(
   req: IncomingMessage,
   res: ServerResponse,
@@ -585,17 +599,25 @@ export async function handleCreateCheckout(
     // SAME checkout session instead of creating a second charge surface —
     // exactly checkoutIdempotencyKey's designed purpose (human checkout dedupe).
     const idempotencyKey = checkoutIdempotencyKey(ctx.account!.account_id, `stripe-checkout:${planId}:${billingCycle}`);
-    // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
-    const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${stripeKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Stripe-Version": STRIPE_API_VERSION,
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: params.toString(),
-    });
+    // H8.1b: bound the call so a stalled Stripe response can't hang the request forever.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CHECKOUT_SESSION_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Stripe-Version": STRIPE_API_VERSION,
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: params.toString(),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       const errBody = await response.text();
@@ -698,6 +720,9 @@ export async function handleGetSubscription(
 
 // ─── POST /v1/account/subscription/cancel ──────────────────────
 
+/** H8.1b: bound the cancel-subscription call — synchronous and user-facing, so it should fail fast rather than hang the request. */
+const CANCEL_SUBSCRIPTION_TIMEOUT_MS = 15_000;
+
 export async function handleCancelSubscription(
   req: IncomingMessage,
   res: ServerResponse,
@@ -721,22 +746,30 @@ export async function handleCancelSubscription(
     const params = new URLSearchParams();
     params.append("cancel_at_period_end", "true");
 
-    // H8.1 WAIVER: no client-side AbortController/timeout. Tracked as H8.1b.
-    const response = await fetch(
-      `https://api.stripe.com/v1/subscriptions/${active.subscription_id}`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${stripeKey}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Stripe-Version": STRIPE_API_VERSION,
-          // H0.6: cancel is semantically idempotent (cancel_at_period_end=true);
-          // the key makes a transport retry provably so on Stripe's side too.
-          "Idempotency-Key": checkoutIdempotencyKey(ctx.account!.account_id, `stripe-cancel:${active.subscription_id}`),
+    // H8.1b: bound the call so a stalled Stripe response can't hang the request forever.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CANCEL_SUBSCRIPTION_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(
+        `https://api.stripe.com/v1/subscriptions/${active.subscription_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${stripeKey}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Stripe-Version": STRIPE_API_VERSION,
+            // H0.6: cancel is semantically idempotent (cancel_at_period_end=true);
+            // the key makes a transport retry provably so on Stripe's side too.
+            "Idempotency-Key": checkoutIdempotencyKey(ctx.account!.account_id, `stripe-cancel:${active.subscription_id}`),
+          },
+          body: params.toString(),
+          signal: controller.signal,
         },
-        body: params.toString(),
-      },
-    );
+      );
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       sendError(res, 502, ErrorCode.INTERNAL_ERROR, `Stripe API error: ${response.status}`);

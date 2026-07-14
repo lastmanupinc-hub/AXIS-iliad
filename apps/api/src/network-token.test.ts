@@ -199,6 +199,37 @@ describe("readStripeNetworkToken", () => {
     ).rejects.toThrow(/transport error/);
   });
 
+  it("classifies a stalled Stripe response that outlives the client-side timeout the same way as a transport error — a clean promise rejection, not an uncaught throw", async () => {
+    // readStripeNetworkToken has no catch around the fetchImpl call (see the
+    // transport-error test above) — a timeout must propagate the exact same
+    // way: a rejected promise carrying the AbortError, not a hang or a
+    // crash. STRIPE_READ_TIMEOUT_MS (15_000) isn't exported; mirrored here
+    // via fake timers so this test doesn't really wait 15s.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Never resolves on its own; only settles when the signal that
+      // readStripeNetworkToken passes in gets aborted — same as a real fetch would.
+      const fetchImpl: FetchLike = (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const abortErr = new Error("This operation was aborted");
+            abortErr.name = "AbortError";
+            reject(abortErr);
+          });
+        });
+
+      const pending = readStripeNetworkToken("pm_timeout", { fetchImpl, secretKey: "sk_test_x" });
+      // Attach the rejection handler synchronously, before advancing the fake
+      // clock — otherwise the internal promise can reject *during* the
+      // advance below with no handler attached yet.
+      const assertion = expect(pending).rejects.toThrow(/This operation was aborted/);
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("tolerates a 200 OK response with no card field at all (malformed/unexpected shape) — defensive optional chaining, no throw", async () => {
     // card mapping uses optional chaining (card?.network_token?.used,
     // card?.brand, card?.last4) with null/false fallbacks, so a response

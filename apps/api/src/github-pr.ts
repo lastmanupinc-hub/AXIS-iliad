@@ -8,6 +8,8 @@
 import { createHash } from "node:crypto";
 
 const GH_API = "https://api.github.com";
+/** Upper bound per GitHub REST call — ghCall is invoked up to 5× sequentially per PR, each with its own budget. */
+const GH_CALL_TIMEOUT_MS = 15_000;
 
 export interface OpenDriftPrParams {
   owner: string;
@@ -44,20 +46,30 @@ function encodePath(path: string): string {
 }
 
 async function ghCall(fetchImpl: typeof fetch, token: string, method: string, path: string, body?: unknown): Promise<GhResponse> {
-  // H8.1 WAIVER: no client-side AbortController/timeout, and no try/catch — a
-  // rejected fetch propagates out of ghCall/openDriftPullRequest uncaught (caught
-  // one level up by the webhook handler's own .catch()). Tracked as H8.1b.
-  const res = await fetchImpl(`${GH_API}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": "axis-iliad-architecture-drift",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-    },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  // Bound each GitHub REST call so a stalled upstream can't hang the caller
+  // forever. ghCall/openDriftPullRequest still have no try/catch (by design,
+  // matching the existing contract) — a timeout propagates out uncaught the
+  // same way any other rejected fetch already does; only the timer needs
+  // cleanup. Caught one level up by the webhook handler's own .catch().
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GH_CALL_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetchImpl(`${GH_API}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "axis-iliad-architecture-drift",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   const text = await res.text();
   let parsed: unknown = null;
   if (text) {

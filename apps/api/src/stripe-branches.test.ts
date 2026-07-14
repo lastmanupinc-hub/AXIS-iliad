@@ -171,6 +171,22 @@ async function seedSubscription(accountId: string, subscriptionId: string, price
   });
 }
 
+// H8.1b: fake timers freeze setTimeout, but the real DB/socket I/O that runs
+// BEFORE a timed fetch call (auth, readBody, DB lookups) still needs real
+// event-loop turns to complete. Poll via a REAL setImmediate (not faked —
+// only setTimeout/clearTimeout are) until the fetch stub has actually been
+// invoked, so its AbortController's setTimeout is guaranteed to already be
+// registered before the fake clock gets advanced past it.
+async function waitForFetchCall(spy: { mock: { calls: unknown[][] } }, calls: number, maxTicks = 500): Promise<void> {
+  for (let i = 0; i < maxTicks && spy.mock.calls.length < calls; i++) {
+    // Flush any already-due fake timer (e.g. a library's internal
+    // setTimeout(fn, 0)) without moving the clock past it, THEN yield to the
+    // real event loop so pending real I/O (DB/socket) can also progress.
+    await vi.advanceTimersByTimeAsync(0);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+}
+
 // ─── 1. handleCreateCheckout — all branches ─────────────────────
 
 describe("handleCreateCheckout branches", () => {
@@ -260,6 +276,51 @@ describe("handleCreateCheckout branches", () => {
     expect(r.status).toBe(502);
     expect(r.data.error).toContain("Failed to create checkout");
     expect(r.data.error).toContain("ECONNREFUSED");
+  });
+
+  it("returns 502 when the checkout-session call times out (H8.1b)", async () => {
+    const account = await createAccount("Checkout Timeout", "checkout-timeout-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
+
+    // Never resolves/rejects on its own — only reacts to the AbortController's
+    // signal, exactly like a real stalled connection would once fetch's
+    // internals observe the abort. Restored in the finally below — unlike the
+    // one-time mocks elsewhere in this file, a leftover never-resolving stub
+    // would hang every LATER test that doesn't stub fetch itself.
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const abortErr = new Error("This operation was aborted");
+          abortErr.name = "AbortError";
+          reject(abortErr);
+        });
+      });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const reqPromise = req("POST", "/v1/checkout",
+        { tier: "paid" },
+        { Authorization: `Bearer ${rawKey}` },
+      );
+
+      // Let real I/O (auth, readBody, DB lookups) reach the fetch() call
+      // before advancing the fake clock past its timeout.
+      await waitForFetchCall(fetchSpy, 1);
+      // Fire the 15s CHECKOUT_SESSION_TIMEOUT_MS.
+      await vi.advanceTimersByTimeAsync(15_000);
+      const r = await reqPromise;
+
+      // Same externally-visible result as any other fetch rejection at this site.
+      expect(r.status).toBe(502);
+      expect(r.data.error).toContain("Failed to create checkout");
+      expect(r.data.error).toContain("aborted");
+    } finally {
+      vi.useRealTimers();
+      vi.stubGlobal("fetch", realFetch);
+    }
   });
 
   // ─── Malformed-2xx coverage (H8.1 audit): the transport-error tests above
@@ -479,6 +540,65 @@ describe("handleCancelSubscription branches", () => {
     expect(r.status).toBe(502);
     expect(r.data.error).toContain("Failed to cancel subscription");
     expect(r.data.error).toContain("Connection timeout");
+  });
+
+  it("returns 502 when the cancel-subscription call times out (H8.1b)", async () => {
+    const account = await createAccount("Cancel Timeout", "cancel-timeout-171@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
+
+    await upsertSubscription({
+      subscription_id: "sub_cancel_timeout_171",
+      customer_id: "cust_timeout",
+      account_id: account.account_id,
+      price_id: "price_paid_171",
+      status: "active",
+      current_period_start: "2025-01-01T00:00:00Z",
+      current_period_end: "2025-02-01T00:00:00Z",
+      card_brand: null,
+      card_last_four: null,
+      cancel_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    // Never resolves/rejects on its own — only reacts to the AbortController's
+    // signal, exactly like a real stalled connection would once fetch's
+    // internals observe the abort. Restored in the finally below — unlike the
+    // one-time mocks elsewhere in this file, a leftover never-resolving stub
+    // would hang every LATER test that doesn't stub fetch itself.
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const abortErr = new Error("This operation was aborted");
+          abortErr.name = "AbortError";
+          reject(abortErr);
+        });
+      });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const reqPromise = req("POST", "/v1/account/subscription/cancel", undefined, {
+        Authorization: `Bearer ${rawKey}`,
+      });
+
+      // Let real I/O (auth, DB lookups) reach the fetch() call before
+      // advancing the fake clock past its timeout.
+      await waitForFetchCall(fetchSpy, 1);
+      // Fire the 15s CANCEL_SUBSCRIPTION_TIMEOUT_MS.
+      await vi.advanceTimersByTimeAsync(15_000);
+      const r = await reqPromise;
+
+      // Same externally-visible result as any other fetch rejection at this site.
+      expect(r.status).toBe(502);
+      expect(r.data.error).toContain("Failed to cancel subscription");
+      expect(r.data.error).toContain("aborted");
+    } finally {
+      vi.useRealTimers();
+      vi.stubGlobal("fetch", realFetch);
+    }
   });
 
   it("returns 503 when Stripe secret key not configured for cancel", async () => {

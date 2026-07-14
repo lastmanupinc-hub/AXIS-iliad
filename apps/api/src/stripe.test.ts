@@ -136,6 +136,22 @@ function buildSubscriptionPayload(
   };
 }
 
+// H8.1b: fake timers freeze setTimeout, but the real DB/socket I/O that runs
+// BEFORE a timed fetch call (auth, readBody, existing-subscription lookups)
+// still needs real event-loop turns to complete. Poll via a REAL setImmediate
+// (not faked — only setTimeout/clearTimeout are) until the fetch stub has
+// actually been invoked, so its AbortController's setTimeout is guaranteed to
+// already be registered before the fake clock gets advanced past it.
+async function waitForFetchCall(spy: { mock: { calls: unknown[][] } }, calls: number, maxTicks = 500): Promise<void> {
+  for (let i = 0; i < maxTicks && spy.mock.calls.length < calls; i++) {
+    // Flush any already-due fake timer (e.g. a library's internal
+    // setTimeout(fn, 0)) without moving the clock past it, THEN yield to the
+    // real event loop so pending real I/O (DB/socket) can also progress.
+    await vi.advanceTimersByTimeAsync(0);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+}
+
 // ─── Webhook tests ──────────────────────────────────────────────
 
 describe("Stripe webhook", () => {
@@ -324,6 +340,68 @@ describe("Stripe webhook", () => {
       const stored = await getSubscription("sub_no_history");
       expect(stored?.price_id).toBe("price_paid_123"); // env is the only available signal — unchanged pre-fix behavior for THIS case
     } finally {
+      vi.stubGlobal("fetch", realFetch);
+      delete process.env.STRIPE_SECRET_KEY;
+    }
+  });
+
+  // ─── H8.1b: client-side per-attempt timeout inside the retry loop ─────────
+  // A stalled Stripe response (never resolves, never rejects on its own) must
+  // not hang this call forever — each attempt now carries its own
+  // SUBSCRIPTION_FETCH_TIMEOUT_MS AbortController. A timeout is just another
+  // way an attempt can fail, and the existing catch-and-continue in the retry
+  // loop already handles it — this asserts recovery behaves IDENTICALLY to
+  // the rejected-fetch retry test above.
+
+  it("treats a per-attempt timeout exactly like a rejected fetch — retries and recovers the true price on the next attempt (H8.1b)", async () => {
+    const { account } = await createTestAccount("retry-timeout", "retry-timeout@test.com");
+    const accountId = account.account_id as string;
+    process.env.STRIPE_SECRET_KEY = "sk_test_retry_timeout";
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    const fetchSpy = vi.fn((_url: string, init?: RequestInit) => {
+      calls++;
+      if (calls === 1) {
+        // Never resolves/rejects on its own — only reacts to the per-attempt
+        // AbortController's signal, exactly like a real stalled connection
+        // would once fetch's internals observe the abort.
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const abortErr = new Error("This operation was aborted");
+            abortErr.name = "AbortError";
+            reject(abortErr);
+          });
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ items: { data: [{ price: { id: "price_true_after_timeout" } }] } }),
+      });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const payload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_retry_timeout", "paid"));
+      const reqPromise = req("POST", "/v1/webhooks/stripe", payload, { "stripe-signature": signStripePayload(payload) });
+
+      // Let real I/O (auth, readBody, DB lookups) reach attempt 1's fetch()
+      // call before advancing the fake clock past its timeout.
+      await waitForFetchCall(fetchSpy, 1);
+      // Fire attempt 1's 10s per-attempt timeout (SUBSCRIPTION_FETCH_TIMEOUT_MS).
+      await vi.advanceTimersByTimeAsync(10_000);
+      // Let the retry loop's post-attempt-1 backoff (250ms * 1) elapse too.
+      await vi.advanceTimersByTimeAsync(250);
+
+      const r = await reqPromise;
+      expect(r.status).toBe(200);
+
+      // Same recovery behavior as the rejected-fetch retry test: the SECOND
+      // attempt's true price is stored, not the env fallback.
+      const stored = await getSubscription("sub_retry_timeout");
+      expect(stored?.price_id).toBe("price_true_after_timeout");
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
       vi.stubGlobal("fetch", realFetch);
       delete process.env.STRIPE_SECRET_KEY;
     }

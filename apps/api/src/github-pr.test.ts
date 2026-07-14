@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { openDriftPullRequest, driftBranchName, type OpenDriftPrParams } from "./github-pr.js";
 
 // Fake fetch that returns staged responses in call order and records each call.
@@ -99,6 +99,40 @@ describe("openDriftPullRequest", () => {
       throw new Error("transport error: ECONNRESET");
     }) as unknown as typeof fetch;
     await expect(openDriftPullRequest(fetchImpl, params())).rejects.toThrow(/transport error/);
+  });
+
+  it("a stalled fetch that outlives the client-side timeout propagates uncaught the same way a transport error does — not a hang, not a crash", async () => {
+    // ghCall/openDriftPullRequest still have no try/catch (see the transport-
+    // error test above) — a timeout on any of the 5 sequential GitHub calls
+    // must propagate the exact same way: a rejected promise carrying the
+    // AbortError. GH_CALL_TIMEOUT_MS (15_000) isn't exported; mirrored here
+    // via fake timers so this test doesn't really wait 15s.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Never resolves on its own; only settles when the signal that ghCall
+      // passes in gets aborted — same as a real fetch would. The very first
+      // ghCall (base-ref lookup) hangs, so openDriftPullRequest never gets
+      // past step 1.
+      const fetchImpl = ((_url: string | URL, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const abortErr = new Error("This operation was aborted");
+            abortErr.name = "AbortError";
+            reject(abortErr);
+          });
+        });
+      }) as unknown as typeof fetch;
+
+      const pending = openDriftPullRequest(fetchImpl, params());
+      // Attach the rejection handler synchronously, before advancing the fake
+      // clock — otherwise the internal promise can reject *during* the
+      // advance below with no handler attached yet.
+      const assertion = expect(pending).rejects.toThrow(/This operation was aborted/);
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("treats a 200 ref-lookup response with a missing object.sha as a clean failure, not a crash", async () => {
