@@ -1,9 +1,10 @@
 /**
  * Machine Payments Protocol (MPP) — mppx integration.
  *
- * Supports two payment methods:
- *   - Stripe SPT (shared payment tokens — cards, wallets, Link)
+ * Supports two payment methods (token rail listed/offered first when
+ * configured — on-chain USDC is the server-preferred rail):
  *   - Tempo/crypto (USDC stablecoin on-chain settlement)
+ *   - Stripe SPT (shared payment tokens — cards, wallets, Link)
  *
  * Pure protocol utilities (types, negotiation, 402 body building) are
  * re-exported from the publishable `@axis/mpp` package. This file adds
@@ -103,9 +104,13 @@ function getMppx(): AnyMppx | null {
 
   const testnet = process.env.TEMPO_TESTNET === "true";
 
+  // Tempo/USDC registered first: mppx compose() appends WWW-Authenticate
+  // challenges in handler order, so this makes the token rail the first offer
+  // an agent sees (a client Accept-Payment header still overrides). Stripe
+  // remains the always-available fallback.
   const inst = tempoRecipient
     ? Mppx.create({
-        methods: [stripeMethod, tempo.charge({ testnet })] as const,
+        methods: [tempo.charge({ testnet }), stripeMethod] as const,
         secretKey,
       })
     : Mppx.create({ methods: [stripeMethod] as const, secretKey });
@@ -156,21 +161,25 @@ export async function chargeMpp(
   let handler: (req: globalThis.Request) => Promise<MppResult>;
 
   if (tempoRecipient && inst.tempo) {
-    // Both SPT and crypto methods — compose them so client can choose
+    // Both rails composed so the client can choose. USDC/Tempo listed FIRST —
+    // compose() emits WWW-Authenticate challenges in this order, making the
+    // token rail the server-preferred offer (faster, deterministic on-chain
+    // settlement, no card intermediaries). Same price on both rails; a client
+    // Accept-Payment ranking still overrides per protocol.
     handler = inst.compose(
-      [inst.stripe.charge, {
-        amount: options.amount,
-        currency: options.currency,
-        decimals: options.decimals,
-        description: safeDescription,
-        meta: safeMeta,
-      }],
       [inst.tempo.charge, {
         amount: options.amount,
         currency: tempoCurrency,
         decimals: 6,          // USDC uses 6 decimals
         recipient: tempoRecipient,
         description: safeDescription,
+      }],
+      [inst.stripe.charge, {
+        amount: options.amount,
+        currency: options.currency,
+        decimals: options.decimals,
+        description: safeDescription,
+        meta: safeMeta,
       }],
     ) as (req: globalThis.Request) => Promise<MppResult>;
   } else {

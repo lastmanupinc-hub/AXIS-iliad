@@ -373,20 +373,75 @@ export function build402NegotiationBody(
   const negotiation = budget ? negotiatePrice(budget, tool) : null;
   const paymentRecipient = process.env.TEMPO_RECIPIENT_ADDRESS ?? null;
   const paymentNetwork = process.env.TEMPO_TESTNET === "true" ? "base-sepolia" : "base";
-  const acceptedPaymentSchemes = [
-    "mppx/stripe",
-    ...(paymentRecipient ? ["mppx/tempo", `x402/usdc/${paymentNetwork}`] : []),
+  // Token rail leads when configured: on-chain USDC settles in seconds with no
+  // card-network intermediaries and no chargeback exposure, so it is the rail
+  // AXIS prefers agents to pick. Order here mirrors the wire-level challenge
+  // order chargeMpp emits (mppx compose lists tempo first); a client
+  // Accept-Payment header still overrides server preference per protocol.
+  const usdcScheme = `x402/usdc/${paymentNetwork}`;
+  const acceptedPaymentSchemes = paymentRecipient
+    ? [usdcScheme, "mppx/tempo", "mppx/stripe"]
+    : ["mppx/stripe"];
+  const preferredPaymentScheme = paymentRecipient ? usdcScheme : "mppx/stripe";
+  const standardUsd = (tier.standard_cents / 100).toFixed(2);
+  const liteUsd = (tier.lite_cents / 100).toFixed(2);
+  // Per-rail economics, stated explicitly so an agent can evaluate rails
+  // without human help. Prices are identical on every rail (the listed price
+  // is all-in — AXIS adds no per-rail surcharge); the rails differ in
+  // settlement mechanics, which is exactly what an autonomous caller should
+  // weigh. Every figure derives from the pricing registry above — nothing
+  // here is estimated or invented.
+  const paymentRails = [
+    ...(paymentRecipient
+      ? [
+          {
+            scheme: usdcScheme,
+            asset: "USDC",
+            network: paymentNetwork,
+            price_usd: standardUsd,
+            lite_price_usd: liteUsd,
+            summary: `USDC on ${paymentNetwork} @ $${standardUsd} per ${tool} call ($${liteUsd} lite)`,
+            settlement: "on-chain, deterministic finality in seconds",
+            intermediaries: "none — direct to recipient address",
+            chargeback_exposure: "none (on-chain settlement is final)",
+            surcharge: "none — listed price is the full cost",
+            preferred: true,
+          },
+        ]
+      : []),
+    {
+      scheme: "mppx/stripe",
+      asset: "USD",
+      network: "card",
+      price_usd: standardUsd,
+      lite_price_usd: liteUsd,
+      summary: `Card/Link via Stripe @ $${standardUsd} per ${tool} call ($${liteUsd} lite)`,
+      settlement: "card-network authorization + capture",
+      intermediaries: "card network + issuing bank",
+      chargeback_exposure: "standard card-network dispute rules apply",
+      surcharge: "none — listed price is the full cost",
+      preferred: !paymentRecipient,
+    },
   ];
-  const friendlyMessage = options.message ?? `${tool} requires $${(tier.standard_cents / 100).toFixed(2)} MPP credit (or Pro tier) to continue.`;
+  const friendlyMessage = options.message ?? `${tool} requires $${standardUsd} MPP credit (or Pro tier) to continue.`;
 
   return {
     error: "Payment Required",
     message: friendlyMessage,
-    price: (tier.standard_cents / 100).toFixed(2),
+    price: standardUsd,
     currency: "USD",
-    lite_price: (tier.lite_cents / 100).toFixed(2),
+    lite_price: liteUsd,
     action: "Upgrade or add credits to continue",
+    // Token/USDC first when configured — see paymentRails above for why.
     accepted_payment_schemes: acceptedPaymentSchemes,
+    preferred_payment_scheme: preferredPaymentScheme,
+    payment_rails: paymentRails,
+    x402: {
+      amount: String(tier.standard_cents * 10_000),
+      asset: "USDC",
+      network: paymentNetwork,
+      payTo: paymentRecipient,
+    },
     referral_token: options.referral_token ?? null,
     // Direct links for agents to surface to the user or use autonomously.
     // H2.5: `upgrade_url` is the CANONICAL pointer name — every payment/quota
@@ -397,12 +452,6 @@ export function build402NegotiationBody(
     go_pro_url: "https://iliad.trustfabric.ai/billing",
     upgrade_url: `${process.env.WEB_BASE_URL ?? "https://iliad.trustfabric.ai"}/billing`,
     retry_after_payment: "After payment completes, re-send the original request with your API key in Authorization: Bearer <key>. No additional steps required — the server processes it immediately.",
-    x402: {
-      amount: String(tier.standard_cents * 10_000),
-      asset: "USDC",
-      network: paymentNetwork,
-      payTo: paymentRecipient,
-    },
     agent_message: "AXIS can complete this request after payment. Retry with an MPP credential, switch to lite mode, or stay on the free discovery tools first.",
     pricing: {
       standard: { amount_cents: tier.standard_cents, currency: "usd", description: `Full ${tool} run with all artifacts` },

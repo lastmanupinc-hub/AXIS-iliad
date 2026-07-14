@@ -1,6 +1,6 @@
 # x402 / MPP Contract (AXIS Ecosystem)
 
-Version: 1.0 · Updated: 2026-07-08
+Version: 1.1 · Updated: 2026-07-14
 
 This document defines the **canonical HTTP 402 negotiation envelope** used across Trust Fabric / AXIS projects. The reference implementation is [`@axis/mpp`](../../packages/mpp/README.md) (TypeScript). PAI'D and Foundry implementations must produce byte-compatible JSON for the fields marked **required**.
 
@@ -43,14 +43,43 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
   "price": "0.50",
   "currency": "USD",
   "lite_price": "0.15",
-  "accepted_payment_schemes": ["mppx/stripe", "x402/usdc/base"],
-  "payment_url": "https://iliad.trustfabric.ai/billing",
+  "accepted_payment_schemes": ["x402/usdc/base", "mppx/tempo", "mppx/stripe"],
+  "preferred_payment_scheme": "x402/usdc/base",
+  "payment_rails": [
+    {
+      "scheme": "x402/usdc/base",
+      "asset": "USDC",
+      "network": "base",
+      "price_usd": "0.50",
+      "lite_price_usd": "0.15",
+      "summary": "USDC on base @ $0.50 per analyze_repo call ($0.15 lite)",
+      "settlement": "on-chain, deterministic finality in seconds",
+      "intermediaries": "none — direct to recipient address",
+      "chargeback_exposure": "none (on-chain settlement is final)",
+      "surcharge": "none — listed price is the full cost",
+      "preferred": true
+    },
+    {
+      "scheme": "mppx/stripe",
+      "asset": "USD",
+      "network": "card",
+      "price_usd": "0.50",
+      "lite_price_usd": "0.15",
+      "summary": "Card/Link via Stripe @ $0.50 per analyze_repo call ($0.15 lite)",
+      "settlement": "card-network authorization + capture",
+      "intermediaries": "card network + issuing bank",
+      "chargeback_exposure": "standard card-network dispute rules apply",
+      "surcharge": "none — listed price is the full cost",
+      "preferred": false
+    }
+  ],
   "x402": {
     "amount": "500000",
     "asset": "USDC",
     "network": "base",
     "payTo": "<recipient_address_or_null>"
   },
+  "payment_url": "https://iliad.trustfabric.ai/billing",
   "retry_after_payment": "Re-send the original request with Authorization after payment completes.",
   "pricing": {
     "standard": { "amount_cents": 50, "currency": "usd" },
@@ -71,7 +100,9 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
 | `price` | Yes | Standard tier, decimal USD string |
 | `lite_price` | Yes | Lite tier price string |
 | `currency` | Yes | ISO display currency (`USD`) |
-| `accepted_payment_schemes` | Yes | e.g. `mppx/stripe`, `x402/usdc/base` |
+| `accepted_payment_schemes` | Yes | Ordered by SERVER PREFERENCE — token/USDC first when a recipient is configured; Stripe is the always-available fallback. A client `Accept-Payment` ranking overrides. |
+| `preferred_payment_scheme` | Yes | The single scheme the server prefers (`x402/usdc/<network>` when configured, else `mppx/stripe`) |
+| `payment_rails` | Yes | Per-rail economics an agent can evaluate autonomously: `scheme`, `asset`, `network`, `price_usd`, `lite_price_usd`, `summary`, `settlement`, `intermediaries`, `chargeback_exposure`, `surcharge`, `preferred`. Prices are identical on every rail (no per-rail surcharge); rails differ in settlement mechanics. |
 | `payment_url` | Yes | Human or agent checkout entry |
 | `x402` | Yes | Stablecoin block: `amount`, `asset`, `network`, `payTo` |
 | `pricing` | Recommended | Structured cents for programmatic parsers |

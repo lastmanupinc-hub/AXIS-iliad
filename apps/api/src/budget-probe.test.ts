@@ -487,6 +487,79 @@ describe("build402NegotiationBody", () => {
     expect(actions.switch_lite).toContain("$0.25");
   });
 
+  // ─── Token-first rail ordering + explicit per-rail economics ─────
+  // The token/USDC rail leads when TEMPO_RECIPIENT_ADDRESS is configured:
+  // first in accepted_payment_schemes, named in preferred_payment_scheme,
+  // and first in the payment_rails economics block — so an agent evaluating
+  // rails autonomously lands on the on-chain option without human help.
+
+  it("leads with the USDC rail and states per-rail economics when a Tempo recipient is configured", async () => {
+    const prev = process.env.TEMPO_RECIPIENT_ADDRESS;
+    process.env.TEMPO_RECIPIENT_ADDRESS = "0x20c000000000000000000000b9537d11c60e8b50";
+    try {
+      const body = build402NegotiationBody("analyze_repo");
+      const schemes = body.accepted_payment_schemes as string[];
+      expect(schemes[0]).toBe("x402/usdc/base");
+      expect(schemes).toContain("mppx/tempo");
+      expect(schemes[schemes.length - 1]).toBe("mppx/stripe");
+      expect(body.preferred_payment_scheme).toBe("x402/usdc/base");
+
+      const rails = body.payment_rails as Array<Record<string, unknown>>;
+      expect(rails[0]!.asset).toBe("USDC");
+      expect(rails[0]!.preferred).toBe(true);
+      expect(rails[0]!.price_usd).toBe("0.50");
+      expect(rails[0]!.lite_price_usd).toBe("0.15");
+      expect(String(rails[0]!.summary)).toBe("USDC on base @ $0.50 per analyze_repo call ($0.15 lite)");
+      expect(String(rails[0]!.chargeback_exposure)).toContain("none");
+
+      const stripeRail = rails.find(r => r.scheme === "mppx/stripe")!;
+      expect(stripeRail.preferred).toBe(false);
+      // same all-in price on both rails — the economics block is factual, not promotional
+      expect(stripeRail.price_usd).toBe(rails[0]!.price_usd);
+    } finally {
+      if (prev === undefined) delete process.env.TEMPO_RECIPIENT_ADDRESS;
+      else process.env.TEMPO_RECIPIENT_ADDRESS = prev;
+    }
+  });
+
+  it("falls back to Stripe-preferred with a single rail when no Tempo recipient is configured", async () => {
+    const prev = process.env.TEMPO_RECIPIENT_ADDRESS;
+    delete process.env.TEMPO_RECIPIENT_ADDRESS;
+    try {
+      const body = build402NegotiationBody("analyze_repo");
+      expect(body.accepted_payment_schemes).toEqual(["mppx/stripe"]);
+      expect(body.preferred_payment_scheme).toBe("mppx/stripe");
+      const rails = body.payment_rails as Array<Record<string, unknown>>;
+      expect(rails).toHaveLength(1);
+      expect(rails[0]!.scheme).toBe("mppx/stripe");
+      expect(rails[0]!.preferred).toBe(true);
+    } finally {
+      if (prev !== undefined) process.env.TEMPO_RECIPIENT_ADDRESS = prev;
+    }
+  });
+
+  it("uses the testnet network name in scheme, rails, and x402 block when TEMPO_TESTNET is set", async () => {
+    const prevRecipient = process.env.TEMPO_RECIPIENT_ADDRESS;
+    const prevTestnet = process.env.TEMPO_TESTNET;
+    process.env.TEMPO_RECIPIENT_ADDRESS = "0x20c0000000000000000000000000000000000000";
+    process.env.TEMPO_TESTNET = "true";
+    try {
+      const body = build402NegotiationBody("analyze_repo");
+      const schemes = body.accepted_payment_schemes as string[];
+      expect(schemes[0]).toBe("x402/usdc/base-sepolia");
+      expect(body.preferred_payment_scheme).toBe("x402/usdc/base-sepolia");
+      const rails = body.payment_rails as Array<Record<string, unknown>>;
+      expect(rails[0]!.network).toBe("base-sepolia");
+      const x402 = body.x402 as Record<string, unknown>;
+      expect(x402.network).toBe("base-sepolia");
+    } finally {
+      if (prevRecipient === undefined) delete process.env.TEMPO_RECIPIENT_ADDRESS;
+      else process.env.TEMPO_RECIPIENT_ADDRESS = prevRecipient;
+      if (prevTestnet === undefined) delete process.env.TEMPO_TESTNET;
+      else process.env.TEMPO_TESTNET = prevTestnet;
+    }
+  });
+
   it("includes compliance_value with CE 3.0 evidence checklist and methodology note", async () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     const cv = body.compliance_value as Record<string, unknown>;
