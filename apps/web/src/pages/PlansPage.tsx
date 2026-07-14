@@ -174,7 +174,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
               </div>
             )}
             <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <h3 style={{ color: tierColors[plan.id], fontSize: "1.25rem" }}>{plan.name}</h3>
+              <h2 style={{ color: tierColors[plan.id], fontSize: "1.25rem", marginBottom: 4 }}>{plan.name}</h2>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: 12 }}>
                 {plan.tagline}
               </p>
@@ -238,7 +238,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
 
       {features.length > 0 && (
         <div className="card">
-          <h3 style={{ marginBottom: 16 }}>Feature Comparison</h3>
+          <h2 style={{ marginBottom: 16, fontSize: "1rem", fontWeight: 600 }}>Feature Comparison</h2>
           <table>
             <thead>
               <tr>

@@ -118,7 +118,7 @@ export function StatusPage() {
 
       {checks && (
         <div className="card mb-4">
-          <h3 className="mb-3">Subsystems</h3>
+          <h2 className="mb-3" style={{ fontSize: "1rem", fontWeight: 600 }}>Subsystems</h2>
           <div className="stack gap-2">
             <div className="flex-between">
               <span className="text-sm">Database</span>
@@ -141,7 +141,7 @@ export function StatusPage() {
       )}
 
       <div className="card mb-4">
-        <h3 className="mb-3">Activity</h3>
+        <h2 className="mb-3" style={{ fontSize: "1rem", fontWeight: 600 }}>Activity</h2>
         {statsError ? (
           <Callout tone="warning" title="Couldn't load call stats" details={statsError.details}>{statsError.message}</Callout>
         ) : stats ? (
@@ -157,7 +157,7 @@ export function StatusPage() {
       </div>
 
       <div className="card">
-        <h3 className="mb-2">This session</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>This session</h2>
         <p className="text-muted text-sm" style={{ margin: 0 }}>
           You've had this page open for <span className="mono">{sessionElapsed}</span>.
         </p>

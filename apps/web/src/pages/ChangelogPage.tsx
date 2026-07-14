@@ -119,7 +119,7 @@ function ChangelogBody({ raw }: { raw: string }) {
         <div key={`${s.version}-${i}`} className="card">
           <div className="flex-between mb-2" style={{ flexWrap: "wrap", gap: 8 }}>
             <div className="flex gap-2" style={{ alignItems: "baseline" }}>
-              <h3 style={{ margin: 0 }}>{s.version}</h3>
+              <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>{s.version}</h2>
               {s.version === APP_VERSION && <Pill tone="accent">Current</Pill>}
             </div>
             {s.date && <span className="text-muted text-sm">{s.date}</span>}

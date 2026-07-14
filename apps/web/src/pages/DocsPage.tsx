@@ -297,7 +297,7 @@ function OverviewSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>What is Axis' Iliad?</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>What is Axis' Iliad?</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
           Axis is the umbrella platform for AI-native development — a multi-program system
           that turns project snapshots into diagnostics, governed outputs, and build-integrated
@@ -314,25 +314,25 @@ function OverviewSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>How It Works</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>How It Works</h2>
         <div className="grid grid-3">
           <div style={{ textAlign: "center", padding: 16 }}>
             <div style={{ fontSize: "2rem", marginBottom: 8 }}><Icon name="upload" /></div>
-            <h4 style={{ marginBottom: 4 }}>1. Upload</h4>
+            <h3 style={{ marginBottom: 4, fontSize: "1em", fontWeight: 700 }}>1. Upload</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
               Drop a folder, upload a ZIP, or paste a GitHub URL. Axis scans all source files.
             </p>
           </div>
           <div style={{ textAlign: "center", padding: 16 }}>
             <div style={{ fontSize: "2rem", marginBottom: 8 }}><Icon name="analyze" /></div>
-            <h4 style={{ marginBottom: 4 }}>2. Analyze</h4>
+            <h3 style={{ marginBottom: 4, fontSize: "1em", fontWeight: 700 }}>2. Analyze</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
               The snapshot engine detects frameworks, languages, structure, dependencies, and patterns.
             </p>
           </div>
           <div style={{ textAlign: "center", padding: 16 }}>
             <div style={{ fontSize: "2rem", marginBottom: 8 }}><Icon name="programs" /></div>
-            <h4 style={{ marginBottom: 4 }}>3. Generate</h4>
+            <h3 style={{ marginBottom: 4, fontSize: "1em", fontWeight: 700 }}>3. Generate</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
               Run any of {PROGRAM_COUNT} programs to produce specialized output files — rules, configs, docs, and more.
             </p>
@@ -341,7 +341,7 @@ function OverviewSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Quick Stats</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Quick Stats</h2>
         <div className="grid grid-4">
           <div style={{ textAlign: "center" }}>
             <div className="stat-value">{PROGRAM_COUNT}</div>
@@ -363,7 +363,7 @@ function OverviewSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Snapshot Lifecycle</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Snapshot Lifecycle</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           Every analysis follows the same six-stage pipeline. Understanding this flow
           helps you get the most from each program run.
@@ -389,7 +389,7 @@ function OverviewSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Architecture &amp; Tech Stack</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Architecture &amp; Tech Stack</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           Axis' Iliad is a monorepo with three packages — a React frontend, a Node.js API
           server, and a shared types/utils package.
@@ -431,7 +431,7 @@ function OverviewSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Program Categories</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Program Categories</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           The {PROGRAM_COUNT} programs are organized into 8 functional categories. Each category addresses
           a different dimension of the development lifecycle.
@@ -464,7 +464,7 @@ function OverviewSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Authentication</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Authentication</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
           All authenticated endpoints require a Bearer token in the <code className="mono">Authorization</code> header.
           API keys use the <code className="mono">axis_</code> prefix. Create and rotate keys from the Settings page.
@@ -513,7 +513,7 @@ function ProgramsSection({
     <div className="stagger">
       <div className="card">
         <div className="flex-between" style={{ marginBottom: 12 }}>
-          <h3>Free Programs</h3>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Free Programs</h2>
           <span className="badge badge-green">{free.length} programs</span>
         </div>
         {free.map((p) => (
@@ -528,7 +528,7 @@ function ProgramsSection({
 
       <div className="card">
         <div className="flex-between" style={{ marginBottom: 12 }}>
-          <h3>Pro Programs</h3>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Pro Programs</h2>
           <span className="badge badge-accent">{pro.length} programs</span>
         </div>
         {pro.map((p) => (
@@ -864,7 +864,7 @@ function ApiSection() {
       <div className="card">
         <div className="flex-between" style={{ flexWrap: "wrap", gap: 8 }}>
           <div>
-            <h3 style={{ marginBottom: 4 }}>{spec.info.title}</h3>
+            <h2 style={{ marginBottom: 4, fontSize: "1rem", fontWeight: 600 }}>{spec.info.title}</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", margin: 0 }}>
               v{spec.info.version} · {totalEndpoints} endpoints · {tagNames.length} tags
             </p>
@@ -1033,7 +1033,7 @@ function McpProtocolSection({ onNavigate }: { onNavigate: (page: PageId) => void
     <div className="stagger">
       <div className="card">
         <div className="flex-between" style={{ flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-          <h3 style={{ margin: 0 }}>Model Context Protocol</h3>
+          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Model Context Protocol</h2>
           <span className="badge badge-green">Live · GET /v1/mcp/server.json</span>
         </div>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
@@ -1112,7 +1112,7 @@ function ErrorCodesSection() {
     <div className="stagger">
       <div className="card">
         <div className="flex-between" style={{ flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-          <h3 style={{ margin: 0 }}>Error Codes</h3>
+          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Error Codes</h2>
           <span className="badge badge-green">Live · GET /v1/error-codes</span>
         </div>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
@@ -1146,7 +1146,7 @@ function ErrorCodesSection() {
               </table>
             </TableWrap>
 
-            <h4 style={{ marginTop: 20, marginBottom: 8 }}>MCP tool-call error categories</h4>
+            <h3 style={{ marginTop: 20, marginBottom: 8, fontSize: "1em", fontWeight: 700 }}>MCP tool-call error categories</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
               {catalog.mcp_tool_error_categories.note}
             </p>
@@ -1199,7 +1199,7 @@ function ExampleArtifactsSection({ onNavigate }: { onNavigate: (page: PageId) =>
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 8 }}>What generated files look like</h3>
+        <h2 style={{ marginBottom: 8, fontSize: "1rem", fontWeight: 600 }}>What generated files look like</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
           The snippets below are illustrative samples, not live output from a real analysis —
           they show the shape and tone of what each program produces. For full, real case
@@ -1237,7 +1237,7 @@ function OutputsSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Output Structure</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Output Structure</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           Every program generates files organized by program name. Files are returned as part
           of the snapshot response and can be downloaded individually or exported as a ZIP archive.
@@ -1281,7 +1281,7 @@ function OutputsSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Output Files Per Program</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Output Files Per Program</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Output count varies by program (most produce 4–6 files; a few packaging-heavy programs produce more).
           Here is the full inventory across all {PROGRAM_COUNT} programs ({ARTIFACT_COUNT} generators total).
@@ -1321,7 +1321,7 @@ function OutputsSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>File Formats</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>File Formats</h2>
         <table>
           <thead>
             <tr>
@@ -1367,7 +1367,7 @@ function OutputsSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Export Options</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Export Options</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
           Download all generated files as a ZIP archive, or export a single program's output.
           The export endpoint supports query parameters to filter and format.
@@ -1435,7 +1435,7 @@ function CliSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>CLI Overview</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>CLI Overview</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
           Axis' Iliad includes a fully-offline CLI for running analysis directly from your
           terminal. Point it at any directory to generate a snapshot and run programs.
@@ -1463,7 +1463,7 @@ function CliSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Commands</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Commands</h2>
         <table>
           <thead>
             <tr>
@@ -1501,7 +1501,7 @@ function CliSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Usage Examples</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Usage Examples</h2>
         <div
           style={{
             background: "var(--bg)",
@@ -1534,7 +1534,7 @@ function CliSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>CLI Options</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>CLI Options</h2>
         <table>
           <thead>
             <tr>
@@ -1579,7 +1579,7 @@ function CliSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Environment Variables</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Environment Variables</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Set these in your shell profile or CI environment. CLI flags override env vars.
         </p>
@@ -1617,7 +1617,7 @@ function CliSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>CI/CD Integration</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>CI/CD Integration</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 16 }}>
           Run Axis in your CI pipeline to generate fresh artifacts on every push. Here's a GitHub Actions example:
           {!CLI_PUBLISHED && <> <strong>(requires the npm package — publish is pending, so this example only works once <code className="mono">axis-iliad</code> is on the registry)</strong></>}

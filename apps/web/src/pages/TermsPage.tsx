@@ -70,7 +70,7 @@ export function TermsPage() {
 
           {/* 1 */}
           <div className="card" id="terms-acceptance">
-            <h3 style={{ marginBottom: 12 }}>1. Acceptance of Terms</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>1. Acceptance of Terms</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               These Terms of Service ("Terms") govern your access to and use of Axis' Iliad (the
               "Service"), operated by Last Man Up Inc. ("we", "us", or "our"). By accessing or using
@@ -84,7 +84,7 @@ export function TermsPage() {
 
           {/* 2 */}
           <div className="card" id="terms-service">
-            <h3 style={{ marginBottom: 12 }}>2. Description of Service</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>2. Description of Service</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Axis' Iliad is a software analysis platform that accepts source-code repositories (via
               file upload, ZIP archive, GitHub URL, or API submission), performs automated analysis,
@@ -100,7 +100,7 @@ export function TermsPage() {
 
           {/* 3 */}
           <div className="card" id="terms-accounts">
-            <h3 style={{ marginBottom: 12 }}>3. Accounts & Registration</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>3. Accounts & Registration</h2>
             <ul style={{ color: "var(--text-muted)", lineHeight: 1.7, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>
               <li>You must provide accurate name and email information when registering.</li>
               <li>
@@ -116,9 +116,9 @@ export function TermsPage() {
 
           {/* 4 */}
           <div className="card" id="terms-subscriptions">
-            <h3 style={{ marginBottom: 12 }}>4. Subscriptions & Billing</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>4. Subscriptions & Billing</h2>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.1 Plans</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.1 Plans</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Axis' Iliad offers four tiers: Free ($0/month, 10,000 monthly credits), Starter
               ($29/month, 75,000 credits), Pro ($99/month, 300,000 credits), and Growth
@@ -127,20 +127,20 @@ export function TermsPage() {
               change with reasonable notice.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.1.1 Overage</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.1.1 Overage</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Usage above included monthly credits is billed as overage at $0.0018 per credit. In
               supported autonomous payment flows, overages may be handled through x402-compatible
               payment negotiation.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.1.2 Referral Rewards</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.1.2 Referral Rewards</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Referral rewards lower your effective dollars per call as successful referrals grow
               (up to 0.02% benefit per call). Referral reward state resets each billing cycle.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.2 Payment Processing</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.2 Payment Processing</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Payments are handled by <strong>PAI'D Payments Intelligence</strong>, which settles
               transactions via Stripe, Inc. We do not store your card details. By subscribing you
@@ -150,14 +150,14 @@ export function TermsPage() {
               </a>. All amounts are in USD.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.3 Auto-Renewal</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.3 Auto-Renewal</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Paid subscriptions automatically renew at the end of each billing period. You authorise
               us to charge your payment method on file for each renewal period unless you cancel
               before the renewal date.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.4 Cancellation</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.4 Cancellation</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               You may cancel your subscription at any time from the Usage page. Cancellation takes
               effect at the end of the current billing period; you retain access to paid features
@@ -165,7 +165,7 @@ export function TermsPage() {
               required by applicable law.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.5 Growth and Custom Terms</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.5 Growth and Custom Terms</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Growth plan seat counts, service-level commitments, and any custom payment terms may be
               negotiated individually. Contact{" "}
@@ -175,7 +175,7 @@ export function TermsPage() {
               for details.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.6 Taxes</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.6 Taxes</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Prices are exclusive of applicable taxes. Where required by law, applicable sales tax,
               VAT, or GST will be added at checkout and is your responsibility.
@@ -184,9 +184,9 @@ export function TermsPage() {
 
           {/* 5 */}
           <div className="card" id="terms-data">
-            <h3 style={{ marginBottom: 12 }}>5. Data Handling & Privacy</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>5. Data Handling & Privacy</h2>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.1 Source Code</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.1 Source Code</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               <strong>Your source code is never persistently stored.</strong> When you upload a
               repository or submit a GitHub URL, the files are processed in memory, analysis artifacts
@@ -194,28 +194,28 @@ export function TermsPage() {
               We do not retain copies of your code on disk after analysis.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.2 AI Training</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.2 AI Training</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               <strong>Your code is never used to train AI or machine-learning models</strong> — by us
               or any third party. Generated artifacts (context maps, governance files) are stored in
               your account only for the duration of your session or until you delete them.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.3 Account Data</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.3 Account Data</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               We store your account name, email address, API key hash, usage metrics, subscription
               status, and generated artifact metadata. This data is used solely to operate the
               Service, enforce quotas, and communicate with you about your account.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.4 Third-Party Services</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.4 Third-Party Services</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               We use PAI'D Payments Intelligence for payment processing (which settles transactions
               via Stripe) and GitHub (via public tarball API) for repository fetching. Their
               respective privacy policies apply to data they process on our behalf.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.5 Data Deletion</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.5 Data Deletion</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               You may request deletion of your account and all associated data by contacting{" "}
               <a href="mailto:support@jonathanarvay.com" style={{ color: "var(--accent)" }}>
@@ -226,22 +226,22 @@ export function TermsPage() {
 
           {/* 6 */}
           <div className="card" id="terms-ip">
-            <h3 style={{ marginBottom: 12 }}>6. Intellectual Property</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>6. Intellectual Property</h2>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>6.1 Your Code</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>6.1 Your Code</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               You retain full ownership of all source code, repositories, and other content you
               submit. You grant us a limited, non-exclusive, royalty-free licence to process your
               content solely for the purpose of providing the Service to you.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>6.2 Generated Artifacts</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>6.2 Generated Artifacts</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Governance artifacts and output files generated by the Service from your code are
               owned by you. You may use, modify, copy, and distribute them without restriction.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>6.3 Our Platform</h4>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>6.3 Our Platform</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Axis' Iliad — including the software, algorithms, UI, branding, and documentation —
               is proprietary to Last Man Up Inc. and protected by copyright and other intellectual
@@ -252,7 +252,7 @@ export function TermsPage() {
 
           {/* 7 */}
           <div className="card" id="terms-acceptable-use">
-            <h3 style={{ marginBottom: 12 }}>7. Acceptable Use</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>7. Acceptable Use</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
               You agree not to use the Service to:
             </p>
@@ -271,7 +271,7 @@ export function TermsPage() {
 
           {/* 8 */}
           <div className="card" id="terms-disclaimer">
-            <h3 style={{ marginBottom: 12 }}>8. Disclaimer of Warranties</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>8. Disclaimer of Warranties</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND,
               EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
@@ -288,7 +288,7 @@ export function TermsPage() {
 
           {/* 9 */}
           <div className="card" id="terms-liability">
-            <h3 style={{ marginBottom: 12 }}>9. Limitation of Liability</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>9. Limitation of Liability</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL LAST MAN UP INC.
               BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES,
@@ -304,7 +304,7 @@ export function TermsPage() {
 
           {/* 10 */}
           <div className="card" id="terms-termination">
-            <h3 style={{ marginBottom: 12 }}>10. Termination</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>10. Termination</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               You may terminate your account at any time by cancelling your subscription and
               contacting support to request account deletion.
@@ -320,7 +320,7 @@ export function TermsPage() {
 
           {/* 11 */}
           <div className="card" id="terms-changes">
-            <h3 style={{ marginBottom: 12 }}>11. Changes to These Terms</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>11. Changes to These Terms</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               We may update these Terms from time to time. If we make material changes we will
               notify you by email or by a prominent notice in the application at least 14 days before
@@ -331,7 +331,7 @@ export function TermsPage() {
 
           {/* 12 */}
           <div className="card" id="terms-governing-law">
-            <h3 style={{ marginBottom: 12 }}>12. Governing Law</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>12. Governing Law</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               These Terms are governed by and construed in accordance with the laws applicable in
               the jurisdiction where Last Man Up Inc. is incorporated. Any disputes arising under
@@ -343,7 +343,7 @@ export function TermsPage() {
 
           {/* 13 */}
           <div className="card" id="terms-contact">
-            <h3 style={{ marginBottom: 12 }}>13. Contact</h3>
+            <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>13. Contact</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
               If you have questions about these Terms, please contact us:
             </p>

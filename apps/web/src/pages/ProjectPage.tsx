@@ -66,7 +66,7 @@ function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: numb
   return (
     <div className="card" style={{ marginBottom: 16, borderLeft: "3px solid var(--accent)", padding: "16px 20px" }}>
       <div className="flex-between" style={{ marginBottom: 8 }}>
-        <h3 style={{ fontSize: "1rem", margin: 0 }}>Getting Started</h3>
+        <h2 style={{ fontSize: "1rem", margin: 0 }}>Getting Started</h2>
         <button className="btn" style={{ fontSize: "0.75rem", padding: "2px 8px" }} onClick={() => setDismissed(true)}>Dismiss</button>
       </div>
       <ol style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: "0.875rem", lineHeight: 1.8 }}>

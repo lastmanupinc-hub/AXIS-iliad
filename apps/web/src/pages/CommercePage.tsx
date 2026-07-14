@@ -285,7 +285,7 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
 
               {flowSteps && (
                 <div className="card">
-                  <h3 className="mb-2">Checkout Flow — Overview</h3>
+                  <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Checkout Flow — Overview</h2>
                   <p className="text-muted text-xs mb-2">A visualization of the generated flow specification below — not a live or executable checkout.</p>
                   <div className="flex gap-2" style={{ flexWrap: "wrap", alignItems: "center" }}>
                     {flowSteps.map((step, i) => (
@@ -300,7 +300,7 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
 
               {orderedFiles.map((f) => (
                 <div key={f.path} className="card">
-                  <h3 className="mb-2">{ARTIFACT_LABELS[f.path] ?? f.path}</h3>
+                  <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>{ARTIFACT_LABELS[f.path] ?? f.path}</h2>
                   {f.path.endsWith(".json")
                     ? <CodeBlock code={prettyJson(f.content)} label={f.path} maxHeight={400} />
                     : <MarkdownLite text={f.content} />}

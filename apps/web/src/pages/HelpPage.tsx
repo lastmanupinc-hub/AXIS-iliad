@@ -101,7 +101,7 @@ function GettingStartedSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 16 }}>Quick Start Guide</h3>
+        <h2 style={{ marginBottom: 16, fontSize: "1rem", fontWeight: 600 }}>Quick Start Guide</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 20 }}>
           Get up and running with Axis' Iliad in 5 steps.
         </p>
@@ -145,7 +145,7 @@ function GettingStartedSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Keyboard Shortcuts</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Keyboard Shortcuts</h2>
         <table>
           <thead>
             <tr>
@@ -168,7 +168,7 @@ function GettingStartedSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Navigation Overview</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Navigation Overview</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Axis' Iliad has 7 main pages, each accessible via the header navigation or keyboard shortcuts.
         </p>
@@ -209,7 +209,7 @@ function UploadGuideSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 16 }}>Upload Methods</h3>
+        <h2 style={{ marginBottom: 16, fontSize: "1rem", fontWeight: 600 }}>Upload Methods</h2>
         <div className="grid grid-2">
           {UPLOAD_TIPS.map((tip) => (
             <div
@@ -217,7 +217,7 @@ function UploadGuideSection() {
               className="card"
               style={{ padding: 16, marginBottom: 0 }}
             >
-              <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>{tip.title}</h4>
+              <h3 style={{ fontSize: "0.875rem", fontWeight: 700, marginBottom: 8 }}>{tip.title}</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
                 {tip.description}
               </p>
@@ -227,10 +227,10 @@ function UploadGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>What Gets Scanned</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>What Gets Scanned</h2>
         <div className="grid grid-2">
           <div>
-            <h4 style={{ fontSize: "0.875rem", color: "var(--green)", marginBottom: 8 }}>✓ Included</h4>
+            <h3 style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--green)", marginBottom: 8 }}>✓ Included</h3>
             <ul style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.8, paddingLeft: 20 }}>
               <li>Source files (.ts, .js, .py, .go, .rs, etc.)</li>
               <li>Config files (package.json, tsconfig, etc.)</li>
@@ -240,7 +240,7 @@ function UploadGuideSection() {
             </ul>
           </div>
           <div>
-            <h4 style={{ fontSize: "0.875rem", color: "var(--red)", marginBottom: 8 }}>✗ Excluded</h4>
+            <h3 style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--red)", marginBottom: 8 }}>✗ Excluded</h3>
             <ul style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.8, paddingLeft: 20 }}>
               <li>node_modules / vendor directories</li>
               <li>.git directory</li>
@@ -253,7 +253,7 @@ function UploadGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Supported Languages</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Supported Languages</h2>
         <div className="flex-wrap" style={{ gap: 8 }}>
           {["TypeScript", "JavaScript", "Python", "Go", "Rust", "Java", "C#", "C/C++", "Ruby", "PHP", "Swift", "Kotlin", "Svelte", "Vue", "HTML", "CSS", "SCSS", "YAML", "JSON", "Markdown"].map((lang) => (
             <span key={lang} className="badge badge-accent" style={{ fontSize: "0.75rem" }}>
@@ -270,7 +270,7 @@ function ProgramsGuideSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Running Programs</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Running Programs</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           After uploading and analyzing your project, switch to the <strong>Programs</strong> tab
           on the project page. Each card represents a program that generates specialized output files.
@@ -295,7 +295,7 @@ function ProgramsGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Program Tiers</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Program Tiers</h2>
         <table>
           <thead>
             <tr>
@@ -327,7 +327,7 @@ function ProgramsGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Program Categories</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Program Categories</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Programs are grouped into 7 categories. Each addresses a different part of the development lifecycle.
         </p>
@@ -353,7 +353,7 @@ function ProgramsGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Understanding Program Output</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Understanding Program Output</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Each program produces 4–5 files. Here's what to expect from each output format:
         </p>
@@ -386,7 +386,7 @@ function ProgramsGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Tips for Better Output</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Tips for Better Output</h2>
         <ul style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.8, paddingLeft: 20 }}>
           <li>Upload your <strong>source code</strong>, not just config files — more context means better output</li>
           <li>Include your <strong>package.json</strong> or equivalent — it helps detect frameworks and dependencies</li>
@@ -405,7 +405,7 @@ function DashboardGuideSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Project Page Overview</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Project Page Overview</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           After uploading and analyzing a project, its page (addressable at its own URL —
           open it again anytime from a project card on the Dashboard) shows your analysis
@@ -434,7 +434,7 @@ function DashboardGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Understanding Your Snapshot</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Understanding Your Snapshot</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           When you upload a project, Axis creates a <strong>snapshot</strong> — a frozen analysis
           of your codebase at that moment. Here's what the snapshot engine detects:
@@ -483,7 +483,7 @@ function DashboardGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Working with Artifacts</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Working with Artifacts</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           The Artifacts tab (Alt+4) shows all generated output organized by program. Here's how to use it:
         </p>
@@ -500,7 +500,7 @@ function DashboardGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Using Full-Text Search</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Using Full-Text Search</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           The Search tab (Alt+6) uses Postgres full-text search across your entire snapshot.
         </p>
@@ -535,21 +535,21 @@ function AccountGuideSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Account Management</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Account Management</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           You sign in to the web app with GitHub or Google — there are no passwords. API keys are
           a separate, optional credential for programmatic access (CLI, MCP, CI).
         </p>
         <div className="grid grid-2">
           <div className="card" style={{ padding: 16, marginBottom: 0 }}>
-            <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Signing In</h4>
+            <h3 style={{ fontSize: "0.875rem", fontWeight: 700, marginBottom: 8 }}>Signing In</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
               Click Sign In and continue with GitHub or Google — no separate signup step. Your
               session rides a secure HttpOnly cookie; there's nothing to store or lose.
             </p>
           </div>
           <div className="card" style={{ padding: 16, marginBottom: 0 }}>
-            <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Web login vs. API keys</h4>
+            <h3 style={{ fontSize: "0.875rem", fontWeight: 700, marginBottom: 8 }}>Web login vs. API keys</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
               Web login (GitHub/Google) is for using the app in a browser. API keys are for
               programmatic use: create one from the Settings page and pass it as a Bearer token
@@ -560,7 +560,7 @@ function AccountGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Team Management</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Team Management</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Starter, Pro, and Growth plans include team seats. Invite team members by email from the
           Settings page and assign roles (admin or member). Revoke access at any time.
@@ -586,7 +586,7 @@ function AccountGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Upgrading Your Plan</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Upgrading Your Plan</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7 }}>
           Visit the Plans page to compare tiers. The Free plan includes {FREE_PROGRAM_COUNT} core programs and 10
           snapshots per month. Starter unlocks all {PROGRAM_COUNT} programs with 75,000 monthly credits,
@@ -643,7 +643,7 @@ function AccountGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>API Key Lifecycle</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>API Key Lifecycle</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           API keys authenticate programmatic access. Manage them from the Settings page's API Keys section:
         </p>
@@ -663,7 +663,7 @@ function AccountGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Usage Meters</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Usage Meters</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Track your usage on the Usage page. Each meter resets at the start of your billing cycle.
         </p>
@@ -713,7 +713,7 @@ function TroubleshootingSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 16 }}>Common Issues</h3>
+        <h2 style={{ marginBottom: 16, fontSize: "1rem", fontWeight: 600 }}>Common Issues</h2>
         {TROUBLESHOOTING.map((item, i) => (
           <div
             key={i}
@@ -756,7 +756,7 @@ function TroubleshootingSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Still Need Help?</h3>
+        <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Still Need Help?</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 16 }}>
           If you can't find an answer here, try these resources:
         </p>

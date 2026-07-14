@@ -148,7 +148,7 @@ export function MyAnalyticsPage() {
           </div>
 
           <div className="card">
-            <h3>Development Strategy From Calls</h3>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Development Strategy From Calls</h2>
             {strategies.map((item) => (
               <div key={item.title} className="card">
                 <div className="flex">
@@ -164,7 +164,7 @@ export function MyAnalyticsPage() {
 
           <div className="grid grid-2">
             <div className="card">
-              <h3>Programs Used</h3>
+              <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Programs Used</h2>
               <TableWrap label="Programs used">
                 <table>
                   <thead>
@@ -195,7 +195,7 @@ export function MyAnalyticsPage() {
             </div>
 
             <div className="card">
-              <h3>API Status Mix</h3>
+              <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>API Status Mix</h2>
               <TableWrap label="API status mix">
                 <table>
                   <thead>
@@ -223,7 +223,7 @@ export function MyAnalyticsPage() {
           </div>
 
           <div className="card">
-            <h3>All API Calls By Endpoint</h3>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>All API Calls By Endpoint</h2>
             <TableWrap label="All API calls by endpoint">
               <table>
                 <thead>

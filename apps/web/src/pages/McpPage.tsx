@@ -121,7 +121,7 @@ function ManifestPanel() {
   return (
     <div className="card mb-4">
       <div className="flex-between mb-2" style={{ flexWrap: "wrap", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>Server manifest</h3>
+        <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Server manifest</h2>
         <span className="badge badge-green">Live · GET /v1/mcp/server.json</span>
       </div>
       {loading ? (
@@ -291,7 +291,7 @@ function ToolRegistry({ onOpenConsole }: { onOpenConsole?: (page: PageId) => voi
   return (
     <div className="card mb-4">
       <div className="flex-between mb-2" style={{ flexWrap: "wrap", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>Tool registry</h3>
+        <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Tool registry</h2>
         {!loading && !error && <span className="badge badge-accent">{pluralTools(tools.length)} · live · POST /mcp tools/list</span>}
       </div>
       {loading ? (
@@ -362,7 +362,7 @@ function ProgramCapabilitySearch() {
 
   return (
     <div className="card mb-4">
-      <h3 className="mb-2">Search programs &amp; generators</h3>
+      <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Search programs &amp; generators</h2>
       <p className="text-muted text-sm mb-3">
         A different catalog than the tool registry above — search AXIS's {PROGRAM_COUNT} <em>programs</em> (the
         generator bundles behind tools like <code className="mono">analyze_repo</code>) by capability keyword.
@@ -462,7 +462,7 @@ function PlatformTabs() {
 
   return (
     <div className="card mb-4">
-      <h3 className="mb-2">Connect your AI tool</h3>
+      <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Connect your AI tool</h2>
       <p className="text-muted text-sm mb-3">One config, live from the API — your assistant gets {TOOL_COUNT} tools across a single MCP connection.</p>
 
       <CodeBlock
@@ -511,7 +511,7 @@ function PlatformTabs() {
 function SelfHostingCard() {
   return (
     <div className="card mb-4">
-      <h3 className="mb-2">Self-hosting: sovereign embeddings + LLM</h3>
+      <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Self-hosting: sovereign embeddings + LLM</h2>
       <p className="text-muted text-sm mb-3">
         <code className="mono">iliad_embeddings</code> and <code className="mono">iliad_llm_inference</code> run
         AXIS-owned, in-process (node-llama-cpp) by default — no upstream provider call. Each returns a structured{" "}
@@ -532,7 +532,7 @@ function SelfHostingCard() {
 function ProgrammaticInstallCard() {
   return (
     <div className="card mb-4">
-      <h3 className="mb-2">Programmatic install</h3>
+      <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Programmatic install</h2>
       <p className="text-muted text-sm mb-3">Agents can fetch install configs directly from the API:</p>
       <CodeBlock
         label="bash"

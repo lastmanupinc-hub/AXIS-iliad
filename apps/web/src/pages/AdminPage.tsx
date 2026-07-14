@@ -88,12 +88,12 @@ export function AdminPage() {
 
       {revenue && (
         <div className="card">
-          <h3 style={{ marginBottom: 12 }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 12 }}>
             Growth &amp; Revenue{" "}
             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 400 }}>
               (ME-01 readiness source)
             </span>
-          </h3>
+          </h2>
           <div className="grid grid-3">
             <div>
               <div className="stat-label">Settled MRR (live)</div>
@@ -182,7 +182,7 @@ export function AdminPage() {
       {mcpUsage && (
         <>
           <div className="card">
-            <h3>MCP Usage (persistent — survives restarts)</h3>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>MCP Usage (persistent — survives restarts)</h2>
             <p>
               Live tool-call telemetry from the MCP server. Window: last{" "}
               {mcpUsage.summary.window_days} days.
@@ -214,7 +214,7 @@ export function AdminPage() {
           </div>
           <div className="grid grid-2">
             <div className="card">
-              <h3>Calls by Source</h3>
+              <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Calls by Source</h2>
               <TableWrap label="Calls by source">
                 <table>
                   <thead>
@@ -240,7 +240,7 @@ export function AdminPage() {
               </TableWrap>
             </div>
             <div className="card">
-              <h3>Calls by Tool</h3>
+              <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Calls by Tool</h2>
               <TableWrap label="Calls by tool">
                 <table>
                   <thead>
@@ -271,7 +271,7 @@ export function AdminPage() {
 
       <div className="grid grid-2">
         <div className="card">
-          <h3>Accounts by Tier</h3>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Accounts by Tier</h2>
           <TableWrap label="Accounts by tier">
             <table>
               <thead>
@@ -298,7 +298,7 @@ export function AdminPage() {
         </div>
 
         <div className="card">
-          <h3>Funnel by Stage</h3>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Funnel by Stage</h2>
           <TableWrap label="Funnel by stage">
             <table>
               <thead>
@@ -326,7 +326,7 @@ export function AdminPage() {
       </div>
 
       <div className="card">
-        <h3>Recent Accounts</h3>
+        <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Recent Accounts</h2>
         <TableWrap label="Recent accounts">
           <table>
             <thead>
@@ -357,7 +357,7 @@ export function AdminPage() {
       </div>
 
       <div className="card">
-        <h3>Recent Activity</h3>
+        <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Recent Activity</h2>
         <TableWrap label="Recent activity">
           <table>
             <thead>

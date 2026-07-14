@@ -217,7 +217,7 @@ export function UsagePage() {
       <div className="card">
         <div className="flex-between mb-2">
           <div>
-            <h3>Current plan</h3>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Current plan</h2>
             <p className="text-muted text-sm">You're on the <strong>{TIER_LABELS[account.tier]}</strong> tier.</p>
           </div>
           <span className={tierBadgeClass(account.tier)}>{TIER_LABELS[account.tier]}</span>
@@ -227,7 +227,7 @@ export function UsagePage() {
           <div className="card" style={{ borderColor: "var(--accent)" }}>
             <div className="flex-between">
               <div>
-                <h3 style={{ color: "var(--accent)" }}>Unlock all {PROGRAM_COUNT} programs</h3>
+                <h2 style={{ color: "var(--accent)", fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Unlock all {PROGRAM_COUNT} programs</h2>
                 <p className="text-muted text-sm mt-1">Upgrade to Starter for $29/month and 75,000 monthly credits.</p>
               </div>
               <button type="button" className="btn btn-primary" onClick={() => void handleUpgrade("starter")}>Upgrade to Starter</button>
@@ -238,7 +238,7 @@ export function UsagePage() {
           <div className="card" style={{ borderColor: "var(--yellow)" }}>
             <div className="flex-between">
               <div>
-                <h3 style={{ color: "var(--yellow)" }}>Need more?</h3>
+                <h2 style={{ color: "var(--yellow)", fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Need more?</h2>
                 <p className="text-muted text-sm mt-1">Move to Growth for $299/month and 1,200,000 monthly credits.</p>
               </div>
               <button type="button" className="btn" onClick={() => void handleUpgrade("growth")}>View Growth plan</button>
@@ -268,7 +268,7 @@ export function UsagePage() {
       {/* Subscription */}
       {subscription?.has_active_subscription && subscription.active_subscription && (
         <div className="card">
-          <h3 className="mb-2">Subscription</h3>
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Subscription</h2>
           <div className="grid grid-3 mb-2">
             <div>
               <div className="stat-label">Status</div>
@@ -322,7 +322,7 @@ export function UsagePage() {
 
       {buckets.length > 0 && (
         <div className="card">
-          <h3 className="mb-2">Runs per day ({TIMESERIES_DAYS}d)</h3>
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Runs per day ({TIMESERIES_DAYS}d)</h2>
           <BarChart
             data={buckets.map((b) => ({ label: new Date(b.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: b.runs }))}
             label={`Runs per day, last ${TIMESERIES_DAYS} days`}
@@ -333,7 +333,7 @@ export function UsagePage() {
       {/* Credits */}
       {credits && (
         <div className="card">
-          <h3 className="mb-2">Persistence Credits</h3>
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Persistence Credits</h2>
           <div className="grid grid-3">
             <StatTile label="Credits remaining" value={credits.balance} />
             <StatTile label="Transactions" value={credits.ledger.length} />
@@ -385,7 +385,7 @@ export function UsagePage() {
       {/* Per-program usage */}
       {usage.by_program.length > 0 && (
         <div className="card">
-          <h3 className="mb-2">Program Usage</h3>
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Program Usage</h2>
           <TableWrap label="Program usage">
             <table>
               <thead>

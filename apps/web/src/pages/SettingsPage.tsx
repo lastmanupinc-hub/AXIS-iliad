@@ -377,7 +377,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       {/* Profile */}
       <div className="card">
         <div className="flex-between mb-2">
-          <h3>Profile</h3>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Profile</h2>
           <button type="button" className="btn text-sm" onClick={handleLogout}>Log Out</button>
         </div>
         <form onSubmit={handleSaveProfile} className="stack gap-2" style={{ maxWidth: 420 }}>
@@ -397,7 +397,7 @@ export function SettingsPage({ onAuthChange }: Props) {
         <div className="card" style={{ borderColor: "var(--yellow)" }}>
           <div className="flex-between">
             <div>
-              <h3 style={{ color: "var(--yellow)" }}>Save your API key — it won&apos;t be shown again</h3>
+              <h2 style={{ color: "var(--yellow)", fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Save your API key — it won&apos;t be shown again</h2>
               <code className="mono text-sm" style={{ wordBreak: "break-all" }}>{revealedKey}</code>
             </div>
             <button type="button" className="btn" onClick={() => navigator.clipboard.writeText(revealedKey)}>Copy</button>
@@ -408,7 +408,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       {/* API Keys */}
       <div className="card">
         <div className="flex-between mb-2">
-          <h3>API Keys</h3>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>API Keys</h2>
           <form onSubmit={handleCreateKey} className="flex gap-2">
             <input value={newKeyLabel} onChange={(e) => setNewKeyLabel(e.target.value)} placeholder="Key label (optional)" aria-label="API key label" style={{ width: 200 }} />
             <button type="submit" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>+ New Key</button>
@@ -445,7 +445,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
       {/* GitHub Tokens */}
       <div className="card">
-        <h3 className="mb-2">GitHub Tokens</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>GitHub Tokens</h2>
         <p className="text-muted text-sm mb-2">Stored tokens are used automatically for private-repo analysis. Only a prefix is ever shown again.</p>
         <form onSubmit={handleSaveToken} className="flex gap-2 mb-4" style={{ flexWrap: "wrap" }}>
           <input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="ghp_..." type="password" aria-label="GitHub token value" style={{ width: 240 }} required minLength={10} />
@@ -483,7 +483,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
       {/* Webhooks */}
       <div className="card">
-        <h3 className="mb-2">Webhooks</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Webhooks</h2>
         <form onSubmit={handleCreateWebhook} className="stack gap-2 mb-4" style={{ maxWidth: 480 }}>
           <input value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} placeholder="https://example.com/hook" type="url" aria-label="Webhook URL" required />
           <div
@@ -562,7 +562,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
       {/* Team Seats */}
       <div className="card">
-        <h3 className="mb-2">Team Seats {seats && canUseSeats && <span className="text-muted text-sm">({seats.count}/{seats.limit})</span>}</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Team Seats {seats && canUseSeats && <span className="text-muted text-sm">({seats.count}/{seats.limit})</span>}</h2>
         {!canUseSeats ? (
           <p className="text-muted text-sm">Team seats are available on Paid or Suite tiers.</p>
         ) : (
@@ -621,7 +621,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
       {/* Programs */}
       <div className="card">
-        <h3 className="mb-2">Programs</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Programs</h2>
         {!canManagePrograms ? (
           <p className="text-muted text-sm">Program management is available on Paid or Suite tiers.</p>
         ) : (
@@ -657,7 +657,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
       {/* Danger Zone */}
       <div className="card" style={{ borderColor: "var(--red)" }}>
-        <h3 className="mb-2" style={{ color: "var(--red)" }}>Danger Zone</h3>
+        <h2 className="mb-2" style={{ color: "var(--red)", fontSize: "1rem", fontWeight: 600 }}>Danger Zone</h2>
         <p className="text-muted text-sm mb-2">
           Deletes your API keys, GitHub tokens, webhooks, seats, and every project/snapshot you own immediately —
           this cannot be undone. Billing and dispute records are retained as required for accounting purposes.

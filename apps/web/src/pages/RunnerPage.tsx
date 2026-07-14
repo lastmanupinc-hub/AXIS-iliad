@@ -296,7 +296,7 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
 
       {/* ── 1. Program picker ──────────────────────────────────────── */}
       <div className="card mb-4">
-        <h3 className="mb-2">1. Choose a program</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>1. Choose a program</h2>
         {catalogLoading ? (
           <div role="status" aria-live="polite">
             <Skeleton lines={4} />
@@ -335,7 +335,7 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
 
       {/* ── 2. Target project ──────────────────────────────────────── */}
       <div className="card mb-4">
-        <h3 className="mb-2">2. Choose a project</h3>
+        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>2. Choose a project</h2>
         {loggedIn && projectsLoading ? (
           <div role="status" aria-live="polite">
             <Skeleton lines={2} />
@@ -377,7 +377,7 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
       {/* ── 3. Options ──────────────────────────────────────────────── */}
       {selectedProgram && (
         <div className="card mb-4">
-          <h3 className="mb-2">3. Options</h3>
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>3. Options</h2>
           <label className="flex mb-3" style={{ gap: 8, cursor: "pointer", marginBottom: 12 }}>
             <input
               type="checkbox"
@@ -504,10 +504,10 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
       {runResult && (
         <div className="card">
           <div className="flex-between flex-wrap gap-2 mb-3">
-            <h3 style={{ margin: 0 }}>
+            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>
               Generated {runResult.files.length} file{runResult.files.length === 1 ? "" : "s"} from{" "}
               {PROGRAM_DEFS.find((p) => p.name === runResult.program)?.label ?? titleCaseProgram(runResult.program)}
-            </h3>
+            </h2>
             <button type="button" className="btn btn-primary" onClick={() => onNavigate("project-artifacts", { id: runResult.projectId })}>
               View in Artifact Explorer →
             </button>
@@ -587,7 +587,7 @@ function SearchIndexPanel({ snapshotId }: { snapshotId: string }) {
 
   return (
     <div className="card mb-4">
-      <h3 className="mb-2">Content search index</h3>
+      <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Content search index</h2>
       <p className="text-muted text-sm mb-3">
         Build a full-text / symbol index over this snapshot (<code>POST /v1/search/index</code>), then
         try a query (<code>POST /v1/search/query</code>) — the same index the project's Search tab uses.

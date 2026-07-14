@@ -137,7 +137,7 @@ export function PlaygroundPage({ loggedIn, onRequireLogin }: Props) {
       )}
 
       <div className="card mb-4">
-        <h3 className="mb-3">Try a sample repo</h3>
+        <h2 className="mb-3" style={{ fontSize: "1rem", fontWeight: 600 }}>Try a sample repo</h2>
         <div className="grid grid-3 mb-4">
           {SAMPLE_REPOS.map((r) => (
             <button
@@ -210,7 +210,7 @@ export function PlaygroundPage({ loggedIn, onRequireLogin }: Props) {
           </div>
 
           <div className="card">
-            <h3 className="mb-3">Generated files ({result.files.length})</h3>
+            <h2 className="mb-3" style={{ fontSize: "1rem", fontWeight: 600 }}>Generated files ({result.files.length})</h2>
             <div className="grid grid-2" style={{ gap: 16 }}>
               <div>
                 {result.files.map((f) => (
