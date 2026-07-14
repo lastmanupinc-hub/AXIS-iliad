@@ -65,6 +65,17 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      # ─── Tempo/USDC token rail (x402) ──────────────────────────
+      # The owner's own receiving wallet address (0x…) for on-chain USDC
+      # settlement. Dashboard-set on purpose — a payment address committed to
+      # the repo is a tamper target (a malicious PR could redirect revenue).
+      # While unset, the 402 envelope serves the Stripe-only fallback and the
+      # token rail is OFF (verified live 2026-07-14). Setting this value is
+      # what turns on token-first payments in production.
+      # TEMPO_TESTNET is intentionally NOT declared — absent means mainnet
+      # USDC; only ever set it (value "true") on a non-production service.
+      - key: TEMPO_RECIPIENT_ADDRESS
+        sync: false
       # ─── PAI'D Payment Processor (axis-pai-paid-api) ──────
       # Custom domain api.trustfabric.ai is a CNAME onto the same Render
       # service as axis-pai-paid-api-main.onrender.com (verified: identical
