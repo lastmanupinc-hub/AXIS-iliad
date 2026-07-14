@@ -34,8 +34,8 @@ describe("DocsPage CliSection ↔ cli.ts parity", () => {
 
   it("every documented subcommand is a real cli.ts dispatch branch", () => {
     const commandsTable = section.slice(
-      section.indexOf(">Commands</h3>"),
-      section.indexOf("</table>", section.indexOf(">Commands</h3>")),
+      section.indexOf(">Commands</h2>"),
+      section.indexOf("</table>", section.indexOf(">Commands</h2>")),
     );
     const documented = [...commandsTable.matchAll(/<td className="mono"[^>]*>([a-z][a-z-]*)/g)].map((m) => m[1]);
 
@@ -51,8 +51,8 @@ describe("DocsPage CliSection ↔ cli.ts parity", () => {
 
   it("every documented long flag has a parse branch in cli.ts", () => {
     const optionsTable = section.slice(
-      section.indexOf(">CLI Options</h3>"),
-      section.indexOf("</table>", section.indexOf(">CLI Options</h3>")),
+      section.indexOf(">CLI Options</h2>"),
+      section.indexOf("</table>", section.indexOf(">CLI Options</h2>")),
     );
     const flags = [...optionsTable.matchAll(/<td className="mono"[^>]*>(--[a-z-]+)</g)].map((m) => m[1]);
     expect(flags.length).toBeGreaterThanOrEqual(5);
