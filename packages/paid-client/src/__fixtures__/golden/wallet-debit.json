@@ -1,0 +1,60 @@
+{
+  "endpoint": "debitPaidWallet",
+  "description": "POST {base}/trust-fabric/billing/wallet/{developerId}/debit — successful debit.",
+  "input": {
+    "developerId": "golden-dev-debit-1",
+    "debit": {
+      "amountFc": 5,
+      "productCode": "analyze_repo",
+      "reason": "standard analyze_repo call",
+      "referenceType": "mcp_call",
+      "referenceId": "call_golden_1",
+      "idempotencyKey": "golden-debit-idem-1"
+    }
+  },
+  "expected_request": {
+    "method": "POST",
+    "path": "/trust-fabric/billing/wallet/golden-dev-debit-1/debit",
+    "headers": {
+      "Content-Type": "application/json",
+      "Idempotency-Key": "golden-debit-idem-1"
+    },
+    "body": {
+      "amount_fc": 5,
+      "product_code": "analyze_repo",
+      "reason": "standard analyze_repo call",
+      "reference_type": "mcp_call",
+      "reference_id": "call_golden_1"
+    }
+  },
+  "response_body": {
+    "wallet_id": "wal_golden_1",
+    "balance_fc": 55,
+    "transaction": {
+      "transaction_id": "txn_golden_1",
+      "wallet_id": "wal_golden_1",
+      "amount_fc": 5,
+      "direction": "debit",
+      "reason": "standard analyze_repo call",
+      "reference_type": "mcp_call",
+      "reference_id": "call_golden_1",
+      "balance_after": 55,
+      "created_at": "2026-07-14T00:00:00.000Z"
+    }
+  },
+  "expected_result": {
+    "wallet_id": "wal_golden_1",
+    "balance_fc": 55,
+    "transaction": {
+      "transaction_id": "txn_golden_1",
+      "wallet_id": "wal_golden_1",
+      "amount_fc": 5,
+      "direction": "debit",
+      "reason": "standard analyze_repo call",
+      "reference_type": "mcp_call",
+      "reference_id": "call_golden_1",
+      "balance_after": 55,
+      "created_at": "2026-07-14T00:00:00.000Z"
+    }
+  }
+}

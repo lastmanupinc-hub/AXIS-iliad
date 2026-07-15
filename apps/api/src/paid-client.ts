@@ -95,6 +95,13 @@ export function checkoutIdempotencyKey(accountSeed: string, scope: string, windo
  * this is per-logical-call identity, not H0.1's 120s-bucket mistake (which
  * collapsed genuinely distinct calls together). The account id is HMAC'd,
  * never sent to PAI'D raw.
+ *
+ * "lets PAI'D's own idempotency handling dedupe it" is this function's
+ * design ASSUMPTION, not yet a confirmed fact — see the H8.4 canary note on
+ * `@axis/paid-client`'s wallet section header (packages/paid-client/src/index.ts)
+ * for how to get a real answer; this key derivation is correct either way
+ * (it's what makes a real answer checkable), but PAID_WALLET_MODE=enforce
+ * should not see real traffic until that canary has actually been run.
  */
 export function walletDebitIdempotencyKey(accountSeed: string, tool: string, callerKey: string): string {
   return createHmac("sha256", accountSeed).update(`wallet-debit:${tool}:${callerKey}`).digest("hex").slice(0, 32);

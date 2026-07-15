@@ -154,6 +154,14 @@ async function paidGet<T>(path: string, config: PaidConfig): Promise<T> {
 // ⚠ The exact base path (`/trust-fabric/billing/...`) and whether PAI'D's HTTP
 // layer honors a caller Idempotency-Key MUST be verified against live PAI'D
 // before enabling debits — see the MCP paid-access design + dogfood template.
+// H8.4: a gated live contract canary now exists
+// (apps/api/src/paid-live-canary.e2e.test.ts) that exercises exactly this
+// question against real PAI'D — it has NOT yet been run (no PAI'D
+// credentials are available in the harden-polish loop's environment; running
+// it and updating this comment with the real answer is an explicit owner
+// action). Do not read this comment's continued presence as "still
+// unverified because it can't be verified" — it CAN be verified now, by
+// running that canary with real credentials.
 
 export interface CreditWallet {
   wallet_id: string;
@@ -206,7 +214,11 @@ export interface DebitWalletInput {
   reason: string;
   referenceType: string;
   referenceId: string;
-  /** Sent as Idempotency-Key; PAI'D's HTTP layer may not yet honor it — dedupe client-side too. */
+  /**
+   * Sent as Idempotency-Key; PAI'D's HTTP layer may not yet honor it — dedupe
+   * client-side too. See the H8.4 canary note on the section header above
+   * this interface for how to get a real answer.
+   */
   idempotencyKey: string;
 }
 

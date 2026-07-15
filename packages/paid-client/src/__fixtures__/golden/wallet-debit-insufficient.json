@@ -1,0 +1,46 @@
+{
+  "endpoint": "debitPaidWallet",
+  "description": "POST {base}/trust-fabric/billing/wallet/{developerId}/debit — 402 insufficient balance.",
+  "input": {
+    "developerId": "golden-dev-debit-short",
+    "debit": {
+      "amountFc": 500,
+      "productCode": "engineer_hygiene",
+      "reason": "engineer-mode hygiene fix",
+      "referenceType": "mcp_call",
+      "referenceId": "call_golden_short_1",
+      "idempotencyKey": "golden-debit-idem-short-1"
+    }
+  },
+  "expected_request": {
+    "method": "POST",
+    "path": "/trust-fabric/billing/wallet/golden-dev-debit-short/debit",
+    "headers": {
+      "Content-Type": "application/json",
+      "Idempotency-Key": "golden-debit-idem-short-1"
+    },
+    "body": {
+      "amount_fc": 500,
+      "product_code": "engineer_hygiene",
+      "reason": "engineer-mode hygiene fix",
+      "reference_type": "mcp_call",
+      "reference_id": "call_golden_short_1"
+    }
+  },
+  "response_status": 402,
+  "response_body": {
+    "error": "insufficient_credits",
+    "balance_fc": 55,
+    "required_fc": 500,
+    "shortfall_fc": 445
+  },
+  "expected_error": {
+    "status": 402,
+    "parsed_body": {
+      "error": "insufficient_credits",
+      "balance_fc": 55,
+      "required_fc": 500,
+      "shortfall_fc": 445
+    }
+  }
+}

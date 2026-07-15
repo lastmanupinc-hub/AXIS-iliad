@@ -1,0 +1,47 @@
+{
+  "endpoint": "createPaidCheckoutSession",
+  "description": "POST {base}/checkout/sessions — hosted checkout, one-time payment.",
+  "input": {
+    "amountCents": 2900,
+    "description": "AXIS Iliad starter (monthly)",
+    "successUrl": "https://app.test/?paid_checkout=success",
+    "cancelUrl": "https://app.test/?paid_checkout=cancel",
+    "metadata": { "tier": "starter", "plan_id": "starter-monthly", "kind": "subscription" },
+    "customerEmail": "buyer@example.com",
+    "idempotencyKey": "golden-checkout-idem-1"
+  },
+  "expected_request": {
+    "method": "POST",
+    "path": "/checkout/sessions",
+    "headers": {
+      "Content-Type": "application/json",
+      "Idempotency-Key": "golden-checkout-idem-1"
+    },
+    "body": {
+      "mode": "payment",
+      "line_items": [
+        {
+          "ad_hoc": { "amount": 2900, "currency": "USD", "description": "AXIS Iliad starter (monthly)" },
+          "quantity": 1
+        }
+      ],
+      "payment_method_types": ["card"],
+      "amount_total_minor": 2900,
+      "currency": "USD",
+      "success_url": "https://app.test/?paid_checkout=success",
+      "cancel_url": "https://app.test/?paid_checkout=cancel",
+      "customer_email": "buyer@example.com",
+      "metadata": { "tier": "starter", "plan_id": "starter-monthly", "kind": "subscription" }
+    }
+  },
+  "response_body": {
+    "id": "cs_golden_test_1",
+    "url": "https://pay.paid.example/cs_golden_test_1",
+    "status": "open"
+  },
+  "expected_result": {
+    "id": "cs_golden_test_1",
+    "url": "https://pay.paid.example/cs_golden_test_1",
+    "status": "open"
+  }
+}

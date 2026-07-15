@@ -1,0 +1,30 @@
+{
+  "endpoint": "getPaidWallet",
+  "description": "GET {base}/trust-fabric/billing/wallet/{developerId} — read-only FC balance.",
+  "input": {
+    "developerId": "golden-dev-read-1"
+  },
+  "expected_request": {
+    "method": "GET",
+    "path": "/trust-fabric/billing/wallet/golden-dev-read-1",
+    "headers": {
+      "Accept": "application/json"
+    }
+  },
+  "response_body": {
+    "wallet_id": "wal_golden_1",
+    "developer_id": "golden-dev-read-1",
+    "balance_fc": 60,
+    "lifetime_fc": 60,
+    "tier": "free",
+    "status": "active"
+  },
+  "expected_result": {
+    "wallet_id": "wal_golden_1",
+    "developer_id": "golden-dev-read-1",
+    "balance_fc": 60,
+    "lifetime_fc": 60,
+    "tier": "free",
+    "status": "active"
+  }
+}
