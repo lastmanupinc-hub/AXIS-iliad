@@ -78,6 +78,26 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/performance": {
+        get: {
+          summary: "Performance overview (uptime, MCP call volume, average latency)",
+          operationId: "getPerformance",
+          tags: ["Health"],
+          responses: {
+            200: { description: "Performance snapshot" },
+          },
+        },
+      },
+      "/performance/reputation": {
+        get: {
+          summary: "Reputation/trust signal summary for agents evaluating this service",
+          operationId: "getPerformanceReputation",
+          tags: ["Health"],
+          responses: {
+            200: { description: "Reputation score and component breakdown" },
+          },
+        },
+      },
 
       // â”€â”€ Snapshots â”€â”€
       "/v1/snapshots": {
@@ -579,6 +599,56 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/agents.json": {
+        get: {
+          summary: "Root-level alias for /.well-known/agent.json",
+          operationId: "getAgentsJsonAlias",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Same as /.well-known/agent.json — AgentSEO/MCP scanner manifest" },
+          },
+        },
+      },
+      "/.well-known/glama.json": {
+        get: {
+          summary: "Glama MCP directory listing manifest",
+          operationId: "getGlamaJson",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Glama-format server manifest" },
+          },
+        },
+      },
+      "/.well-known/ai-plugin.json": {
+        get: {
+          summary: "OpenAI/ChatGPT plugin manifest (legacy plugin discovery format)",
+          operationId: "getAiPluginJson",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "AI plugin manifest" },
+          },
+        },
+      },
+      "/.well-known/oauth-authorization-server": {
+        get: {
+          summary: "OAuth 2.0 Authorization Server Metadata (RFC 8414)",
+          operationId: "getOAuthAuthorizationServerMetadata",
+          tags: ["Discovery", "OAuth"],
+          responses: {
+            200: { description: "Authorization server metadata document" },
+          },
+        },
+      },
+      "/.well-known/oauth-protected-resource": {
+        get: {
+          summary: "OAuth 2.0 Protected Resource Metadata (RFC 9728)",
+          operationId: "getOAuthProtectedResourceMetadata",
+          tags: ["Discovery", "OAuth"],
+          responses: {
+            200: { description: "Protected resource metadata document" },
+          },
+        },
+      },
       "/robots.txt": {
         get: {
           summary: "Robots exclusion protocol with AI/MCP crawler directives",
@@ -626,6 +696,16 @@ export function buildOpenApiSpec(): OpenApiSpec {
           tags: ["Discovery"],
           responses: {
             200: { description: "Full OpenAPI specification" },
+          },
+        },
+      },
+      "/pricing": {
+        get: {
+          summary: "Pricing landing metadata for crawlers/agents",
+          operationId: "getPricingLanding",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Pricing summary with links to /v1/plans and the web pricing page" },
           },
         },
       },
@@ -791,7 +871,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           requestBody: jsonBody(ref("CreateAccountRequest")),
           responses: { 201: { description: "Account created" }, 400: { description: "Validation error" } },
         },
-        get: { summary: "Account discovery / signup guidance", operationId: "getAccountsInfo", tags: ["Account"], responses: { 200: { description: "Account info" } } },
+        get: { summary: "Method-not-allowed guidance (account creation is POST-only)", operationId: "getAccountsInfo", tags: ["Account"], responses: { 405: { description: "Method not allowed — use POST /v1/accounts" } } },
       },
       "/accounts": {
         post: {
@@ -801,6 +881,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           requestBody: jsonBody(ref("CreateAccountRequest")),
           responses: { 201: { description: "Account created" }, 400: { description: "Validation error" } },
         },
+        get: { summary: "Method-not-allowed guidance (account creation is POST-only)", operationId: "getAccountsAliasInfo", tags: ["Account"], responses: { 405: { description: "Method not allowed — use POST /accounts" } } },
       },
       "/v1/account": {
         get: {
@@ -1097,6 +1178,77 @@ export function buildOpenApiSpec(): OpenApiSpec {
             400: { description: "Missing code or state parameter" },
             502: { description: "Google API error during token exchange" },
             503: { description: "Google OAuth not configured" },
+          },
+        },
+      },
+
+      // -- OAuth 2.0 authorization server (MCP client auth -- RFC 6749/8414) --
+      "/oauth/authorize": {
+        get: {
+          summary: "OAuth 2.0 authorization endpoint (issues an auth code, redirects to redirect_uri)",
+          operationId: "oauthAuthorize",
+          tags: ["OAuth"],
+          parameters: [
+            queryParam("client_id", "Registered OAuth client id"),
+            queryParam("redirect_uri", "Must exactly match a URI registered for this client"),
+            queryParam("response_type", "Must be 'code'"),
+            queryParam("scope", "Requested scope (default mcp:read)"),
+            queryParam("state", "Opaque value echoed back to redirect_uri for CSRF protection"),
+          ],
+          responses: {
+            302: { description: "Redirect to redirect_uri with a code (and state, if provided)" },
+            400: { description: "Invalid request, unknown client_id, or unregistered redirect_uri" },
+          },
+        },
+      },
+      "/oauth/token": {
+        post: {
+          summary: "OAuth 2.0 token endpoint (exchanges an authorization code for an access token)",
+          operationId: "oauthToken",
+          tags: ["OAuth"],
+          requestBody: {
+            required: true,
+            content: {
+              "application/x-www-form-urlencoded": {
+                schema: {
+                  type: "object",
+                  required: ["grant_type", "code", "client_id", "client_secret"],
+                  properties: {
+                    grant_type: { type: "string", enum: ["authorization_code"] },
+                    code: { type: "string" },
+                    client_id: { type: "string" },
+                    client_secret: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "RS256-signed JWT access token (Bearer, 1h expiry)" },
+            400: { description: "Invalid grant_type or missing fields" },
+            401: { description: "Invalid client_id/client_secret" },
+          },
+        },
+      },
+      "/oauth/jwks": {
+        get: {
+          summary: "JSON Web Key Set for verifying tokens issued by /oauth/token",
+          operationId: "oauthJwks",
+          tags: ["OAuth"],
+          responses: {
+            200: { description: "JWKS document (RFC 7517)" },
+          },
+        },
+      },
+      "/oauth/introspect": {
+        post: {
+          summary: "OAuth 2.0 token introspection (RFC 7662)",
+          operationId: "oauthIntrospect",
+          tags: ["OAuth"],
+          requestBody: jsonBody({ type: "object", required: ["token"], properties: { token: { type: "string" } } }),
+          responses: {
+            200: { description: "{ active: true, sub, client_id, scope, ... } or { active: false }" },
+            400: { description: "Missing token" },
           },
         },
       },

@@ -14,6 +14,7 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
@@ -38,6 +39,11 @@ export class Router {
     this.addRoute("PATCH", path, handler);
   }
 
+  /** Introspection for fitness tests (e.g. the OpenAPI↔router bijection check) — never used in the request path. */
+  getRoutes(): Array<{ method: string; path: string }> {
+    return this.routes.map((r) => ({ method: r.method, path: r.rawPath }));
+  }
+
   private addRoute(method: string, path: string, handler: RouteHandler) {
     const paramNames: string[] = [];
     const pattern = path.replace(/:(\w+)(\*)?/g, (_, name, wildcard) => {
@@ -46,6 +52,7 @@ export class Router {
     });
     this.routes.push({
       method,
+      rawPath: path,
       pattern: new RegExp(`^${pattern}$`),
       paramNames,
       /* v8 ignore next — V8 quirk on object literal property */

@@ -136,7 +136,7 @@ if (!envResult.valid) {
 }
 /* v8 ignore stop */
 
-const router = new Router();
+export const router = new Router();
 
 // Root â€” API landing page for probes, crawlers, and humans
 router.get("/", async (_req, res) => {
