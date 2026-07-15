@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import { createAccount } from "./billing-store.js";
 import { consumeUsageCredits } from "./usage-credit-metering.js";
 import { recordSettledPayment } from "./payment-receipts-store.js";
@@ -144,6 +146,28 @@ describe("getGrowthSnapshot", () => {
     const s = await getGrowthSnapshot(future);
     expect(s.revenue.settled_revenue_cents_all_time).toBe(400);
     expect(s.revenue.settled_mrr_cents).toBe(0);
+  });
+
+  // H8.3 — mutation-lite kill: recordSettledPayment always stamps created_at with the
+  // real wall clock, so no other test in this file lands a receipt EXACTLY on the 30d
+  // cutoff instant (`now - 30d`) — insert directly so the boundary itself is pinned.
+  it("includes a settlement landing exactly ON the 30d trailing-window boundary (inclusive edge)", async () => {
+    const acct = await createAccount("Edge", "edge@x.com", "free");
+    const now = new Date("2026-03-01T00:00:00.000Z");
+    const since30d = new Date(now.getTime() - 30 * 86_400_000); // the exact cutoff instant getGrowthSnapshot computes
+    await sql.run(
+      `INSERT INTO payment_receipts
+        (id, account_id, tool, amount_cents, currency, provider, external_receipt, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [randomUUID(), acct.account_id, "analyze_repo", 275, "usd", "stripe", null, since30d.toISOString()],
+    );
+
+    const s = await getGrowthSnapshot(now);
+    // The trailing window is inclusive of the cutoff instant itself — a receipt
+    // created AT now-30d must still count toward settled_mrr_cents, not just
+    // strictly-after it.
+    expect(s.revenue.settled_mrr_cents).toBe(275);
+    expect(s.revenue.settled_revenue_cents_all_time).toBe(275);
   });
 
   it("is deterministic given a fixed now and fixed rows", async () => {

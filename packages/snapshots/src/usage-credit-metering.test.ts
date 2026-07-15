@@ -10,6 +10,52 @@ import {
   grantUsageCredits,
 } from "./usage-credit-metering.js";
 import { getReferralCredits, getReferralTokenUsageModifier } from "./referral-store.js";
+import { upsertSubscription } from "./stripe-store.js";
+
+// ─── H8.3 — mutation-lite kill: resolvePlanForAccount's price-derived branch ──
+//
+// resolvePlanForAccount reads the account's active Stripe subscription FIRST and,
+// when its price maps to a known plan, that plan wins over the tier fallback (a
+// "paid" tier account with a "pro" subscription must be metered as pro/300,000,
+// not the tier default of starter/75,000). None of the OTHER tests in this file
+// seed a subscription row, so without this test that branch (mcp-runtime H8.3
+// mutant: `if (planFromPrice) return planFromPrice;` negated to
+// `if (!planFromPrice) return planFromPrice;`) is never exercised by this suite.
+describe("resolvePlanForAccount — active subscription price overrides the tier fallback", () => {
+  beforeEach(async () => {
+    await resetTestDb();
+  });
+
+  it("a 'paid'-tier account with an active 'pro'-priced subscription is metered as pro, not starter", async () => {
+    const account = await createAccount("ProSub", "prosub@example.com", "paid");
+    process.env.STRIPE_PRICE_ID_PRO = "price_pro_test_h83";
+    try {
+      await upsertSubscription({
+        subscription_id: "sub_h83_1",
+        customer_id: "cust_h83_1",
+        account_id: account.account_id,
+        price_id: "price_pro_test_h83",
+        status: "active",
+        current_period_start: null,
+        current_period_end: null,
+        card_brand: null,
+        card_last_four: null,
+        cancel_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_event_created_at: null,
+      });
+
+      const summary = await getUsageCreditSummary(account.account_id, "paid");
+      // Tier "paid" alone (no subscription) resolves to "starter" (75,000 credits) —
+      // the active price-mapped subscription must win with "pro" (300,000 credits).
+      expect(summary.plan_id).toBe("pro");
+      expect(summary.monthly_allowance).toBe(300_000);
+    } finally {
+      delete process.env.STRIPE_PRICE_ID_PRO;
+    }
+  });
+});
 
 describe("usage credit metering + referral token rewards", () => {
   beforeEach(async () => {

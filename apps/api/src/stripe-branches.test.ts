@@ -221,6 +221,27 @@ describe("handleCreateCheckout branches", () => {
     expect((init.headers as Record<string, string>)["Idempotency-Key"]).toMatch(/\S/);
   });
 
+  it("accepts billing_cycle: 'monthly' passed explicitly (not just the undefined-default path) — covers the billingCycleRaw !== 'monthly' guard (H8.3 mutation-lite)", async () => {
+    const account = await createAccount("Explicit Monthly", "explicit-monthly-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "cs_test_monthly", url: "https://checkout.stripe.com/test-monthly" }),
+    }));
+
+    const r = await req("POST", "/v1/checkout",
+      { tier: "paid", billing_cycle: "monthly" },
+      { Authorization: `Bearer ${rawKey}` },
+    );
+
+    // Every existing checkout test omits billing_cycle (relying on the undefined ->
+    // "monthly" default), which never actually exercises this validation guard with a
+    // real value. "monthly" must be ACCEPTED (not rejected as invalid).
+    expect(r.status).toBe(201);
+    expect(r.data.billing_cycle).toBe("monthly");
+  });
+
   it("returns 201 for suite tier checkout", async () => {
     const account = await createAccount("Suite Checkout", "suite-checkout-171@test.com", "free");
     const { rawKey } = await createApiKey(account.account_id, "test");
@@ -887,6 +908,27 @@ describe("webhook edge cases", () => {
     expect(r.status).toBe(401);
   });
 
+  it("accepts a signature aged EXACTLY 300s — the boundary is age > 300, not age >= 300 (H8.3 mutation-lite)", async () => {
+    // Freeze only Date (not setTimeout/etc — the real HTTP roundtrip stays on real
+    // timers) at an exact whole-second boundary, so `age` computes to EXACTLY 300
+    // with no sub-millisecond flake. At age===300, `age > 300` is false (accept,
+    // falls through to a real HMAC check that succeeds) but a reintroduced
+    // `age >= 300` mutant would reject with 401 — the only point where the two
+    // operators diverge.
+    const fixedNowMs = Math.floor(Date.now() / 1000) * 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(fixedNowMs);
+    try {
+      const payload = JSON.stringify({ type: "payment_intent.created", data: { object: {} } });
+      const exactBoundaryTs = fixedNowMs / 1000 - 300;
+      const sig = signStripePayload(payload, exactBoundaryTs);
+      const r = await req("POST", "/v1/webhooks/stripe", payload, { "stripe-signature": sig });
+      expect(r.status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("returns handled:false for customer.subscription.created with no known account", async () => {
     const payload = JSON.stringify({
       type: "customer.subscription.created",
@@ -1122,6 +1164,24 @@ describe("additional branch coverage", () => {
     });
     // Signature is still valid (t= and v1= are correctly parsed around the garbage segment)
     expect(r.status).toBe(200);
+  });
+
+  it("rejects a v1 that only 'matches' when a missing timestamp is coerced to the literal string 'undefined' (H8.3 mutation-lite: proves !timestamp||!v1 needs OR, not AND)", async () => {
+    // Omit t= entirely. If the guard were `!timestamp && !v1` instead of the real
+    // `!timestamp || !v1`, a present-v1-but-missing-t request would NOT be rejected
+    // early: Number(undefined) -> NaN, and `NaN > 300` is false, so the age check
+    // never fires either. Execution would fall through to
+    // `payload = \`${timestamp}.${rawBody}\`` with timestamp===undefined, which
+    // template-literal-coerces to the literal string "undefined". Craft v1 as the
+    // HMAC of exactly that string so an &&-mutant would wrongly ACCEPT this
+    // signature (timingSafeEqual would see two equal buffers). The real `||` guard
+    // must reject this on the missing-timestamp check alone, before any HMAC math.
+    const payload = JSON.stringify({ type: "payment_intent.created", data: { object: {} } });
+    const forgedV1 = createHmac("sha256", WEBHOOK_SECRET).update(`undefined.${payload}`).digest("hex");
+    const r = await req("POST", "/v1/webhooks/stripe", payload, {
+      "stripe-signature": `v1=${forgedV1}`, // no t= at all
+    });
+    expect(r.status).toBe(401);
   });
 
   it("checkout webhook for non-existent accountId with priceId set — hits !account return in syncTier", async () => {

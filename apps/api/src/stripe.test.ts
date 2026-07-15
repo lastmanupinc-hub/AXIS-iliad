@@ -513,6 +513,33 @@ describe("Stripe webhook", () => {
     expect((await getSubscription(subId))?.status).toBe("canceled");
   });
 
+  it("an EXACT replay (same eventCreated, not older) of an already-applied event is also a no-op — the guard is <=, not < (H8.3 mutation-lite)", async () => {
+    const { account } = await createTestAccount("exact-replay", "exact-replay@test.com");
+    const accountId = account.account_id as string;
+    const subId = "sub_exact_replay";
+    const baseTime = Math.floor(Date.now() / 1000);
+
+    const firstPayload = JSON.stringify(subscriptionEventPayload("customer.subscription.updated", subId, accountId, baseTime));
+    await req("POST", "/v1/webhooks/stripe", firstPayload, { "stripe-signature": signStripePayload(firstPayload) });
+    const firstUpdatedAt = (await getSubscription(subId))?.updated_at;
+    expect(firstUpdatedAt).toBeTruthy();
+
+    // Short delay so an incorrect re-application would produce a measurably LATER updated_at.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // Redeliver the EXACT SAME event (identical eventCreated) — e.g. Stripe redelivering
+    // after a slow-but-successful ack, or a duplicate webhook delivery.
+    const replayPayload = JSON.stringify(subscriptionEventPayload("customer.subscription.updated", subId, accountId, baseTime));
+    const r = await req("POST", "/v1/webhooks/stripe", replayPayload, { "stripe-signature": signStripePayload(replayPayload) });
+    expect(r.status).toBe(200); // still acknowledged — Stripe must not retry it forever
+
+    const secondUpdatedAt = (await getSubscription(subId))?.updated_at;
+    // If the guard were `<` instead of `<=`, an exact-timestamp replay would NOT be
+    // caught as stale (eventCreated < existing.last_event_created_at is false when the
+    // two are EQUAL) and would incorrectly re-apply, bumping updated_at to a new "now".
+    expect(secondUpdatedAt).toBe(firstUpdatedAt);
+  });
+
   // ─── H0.4: Basil+ (2025-03-31 onward) payload shapes ──────────────────────
   // Stripe relocated two fields this handler reads: subscription period bounds
   // moved from the subscription's top level onto its ITEMS, and an invoice's

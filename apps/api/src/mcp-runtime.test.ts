@@ -1,7 +1,31 @@
 import { describe, it, expect } from "vitest";
-import { MCP_ERROR_CATEGORY_CATALOG, categorizeError, type ErrorCategory } from "./mcp-runtime.js";
+import type { IncomingMessage } from "node:http";
+import { MCP_ERROR_CATEGORY_CATALOG, categorizeError, readIdempotencyKey, type ErrorCategory } from "./mcp-runtime.js";
 
 const ALL_CATEGORIES: ErrorCategory[] = ["auth", "validation", "quota", "tier_limit", "external", "internal"];
+
+// H8.3 — mutation-lite kill: no other suite exercises the exact 255-char cap on
+// readIdempotencyKey, so a boundary flip (`length > 255` -> `length >= 255`)
+// would silently start rejecting legitimate max-length keys.
+function reqWithIdempotencyKey(key: string | undefined): IncomingMessage {
+  return { headers: key === undefined ? {} : { "idempotency-key": key } } as unknown as IncomingMessage;
+}
+
+describe("readIdempotencyKey — 255-char cap (H8.3)", () => {
+  it("accepts a key at exactly the 255-char cap (inclusive boundary)", () => {
+    const key255 = "a".repeat(255);
+    expect(readIdempotencyKey(reqWithIdempotencyKey(key255))).toBe(key255);
+  });
+
+  it("rejects a key one character past the cap (256 chars)", () => {
+    const key256 = "a".repeat(256);
+    expect(readIdempotencyKey(reqWithIdempotencyKey(key256))).toBeNull();
+  });
+
+  it("returns null when no header is present", () => {
+    expect(readIdempotencyKey(reqWithIdempotencyKey(undefined))).toBeNull();
+  });
+});
 
 describe("MCP_ERROR_CATEGORY_CATALOG (H4.2)", () => {
   it("documents exactly the 6 ErrorCategory union members, no more, no less", () => {
