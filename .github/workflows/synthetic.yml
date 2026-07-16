@@ -1,0 +1,78 @@
+name: Synthetic Monitor
+
+# H8.9 — dead-man's switch. Promotes scripts/live-probe.mjs (H6.3) from a
+# CI-only informational step into a standalone scheduled check: every 30
+# minutes, hit production directly and, on failure, open/update a single
+# tracking issue; close it automatically on recovery. Non-gating by design
+# (matches live-probe.mjs's own contract) — this workflow observes
+# production, it never blocks a merge or a deploy. Uses only the native
+# GITHUB_TOKEN Actions already injects; no new secret.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_failure:
+        description: "Force a failure to exercise the issue-open path (H8.9 acceptance test)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: synthetic-monitor
+  cancel-in-progress: false
+
+env:
+  ISSUE_TITLE: "🔴 Synthetic monitor: live-probe failing"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run live-probe battery
+        id: probe
+        run: node scripts/live-probe.mjs
+
+      - name: Compute effective result (supports the forced-failure test run)
+        id: result
+        run: |
+          if [ "${{ github.event.inputs.force_failure }}" = "true" ]; then
+            echo "failed_count=1" >> "$GITHUB_OUTPUT"
+            echo "failed_names=forced_test_failure (workflow_dispatch force_failure=true)" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed_count=${{ steps.probe.outputs.failed_count }}" >> "$GITHUB_OUTPUT"
+            echo "failed_names=${{ steps.probe.outputs.failed_names }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the tracking issue on failure
+        if: steps.result.outputs.failed_count != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY="live-probe failed ${{ steps.result.outputs.failed_count }}/${{ steps.probe.outputs.total_count }} checks: ${{ steps.result.outputs.failed_names }}
+
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          EXISTING=$(gh issue list --search "\"$ISSUE_TITLE\" in:title is:open" --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$ISSUE_TITLE" --body "$BODY"
+          fi
+
+      - name: Close the tracking issue on recovery
+        if: steps.result.outputs.failed_count == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --search "\"$ISSUE_TITLE\" in:title is:open" --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Recovered: all checks passing as of $(date -u +%Y-%m-%dT%H:%M:%SZ). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            gh issue close "$EXISTING"
+          fi

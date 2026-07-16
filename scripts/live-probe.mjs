@@ -10,7 +10,7 @@
 
 const API_BASE = "https://api.iliad.trustfabric.ai";
 const WEB_BASE = "https://iliad.trustfabric.ai";
-const EXPECTED_MCP_TOOL_COUNT = 36; // keep in sync with apps/api/src/counts.ts MCP_TOOL_COUNT
+const EXPECTED_MCP_TOOL_COUNT = 37; // keep in sync with apps/api/src/counts.ts MCP_TOOL_COUNT
 const TIMEOUT_MS = 10_000;
 
 const results = [];
@@ -113,6 +113,18 @@ async function main() {
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
   if (failed.length > 0) {
     console.log(`FAILED: ${failed.map((r) => r.name).join(", ")}`);
+  }
+
+  // H8.9: additive, machine-readable summary for GitHub Actions consumers —
+  // a harmless no-op when GITHUB_OUTPUT isn't set (e.g. running locally).
+  // The synthetic monitor workflow reads these to decide whether to
+  // open/update or close its dead-man's-switch issue; this script's own
+  // exit code stays 0 either way (non-gating contract unchanged).
+  if (process.env.GITHUB_OUTPUT) {
+    const { appendFileSync } = await import("node:fs");
+    appendFileSync(process.env.GITHUB_OUTPUT, `failed_count=${failed.length}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `total_count=${results.length}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `failed_names=${failed.map((r) => r.name).join(",")}\n`);
   }
 
   // Always exit 0 — non-gating by design, see the header comment above.

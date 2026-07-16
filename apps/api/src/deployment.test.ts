@@ -123,6 +123,43 @@ describe("CI workflow deploy jobs", () => {
   });
 });
 
+// ─── Synthetic monitor workflow (H8.9) ───────────────────────────
+
+describe("Synthetic monitor workflow (dead-man's switch)", () => {
+  const content = readRoot(".github/workflows/synthetic.yml");
+
+  it("exists", () => {
+    expect(existsSync(join(ROOT, ".github/workflows/synthetic.yml"))).toBe(true);
+  });
+
+  it("runs on a 30-minute schedule", () => {
+    expect(content).toMatch(/cron:\s*"?\*\/30 \* \* \* \*"?/);
+  });
+
+  it("supports a manual forced-failure test run", () => {
+    expect(content).toContain("workflow_dispatch");
+    expect(content).toContain("force_failure");
+  });
+
+  it("uses only the native GITHUB_TOKEN — no new secret", () => {
+    expect(content).toContain("secrets.GITHUB_TOKEN");
+    expect(content).not.toMatch(/secrets\.(?!GITHUB_TOKEN)[A-Z_]+/);
+  });
+
+  it("is non-gating: runs the same live-probe.mjs script CI's own live-probe job uses", () => {
+    expect(content).toContain("scripts/live-probe.mjs");
+  });
+
+  it("declares issues: write permission", () => {
+    expect(content).toMatch(/permissions:[\s\S]*?issues:\s*write/);
+  });
+
+  it("both opens/updates and closes the tracking issue", () => {
+    expect(content).toContain("gh issue create");
+    expect(content).toContain("gh issue close");
+  });
+});
+
 // ─── Cloudflare Pages — static assets ──────────────────────────
 
 describe("Cloudflare Pages static config", () => {
