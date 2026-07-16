@@ -1,0 +1,5 @@
+# H8.8 rollback rehearsal marker — inert, no runtime effect.
+# This file is created by one commit and reverted by the next, purely to
+# exercise the git-revert-and-push rollback path end-to-end (real CI, real
+# Render/Cloudflare deploy, real live-probe) without touching any real code.
+# See docs/RUNBOOK_ROLLBACK.md, Section 2.
