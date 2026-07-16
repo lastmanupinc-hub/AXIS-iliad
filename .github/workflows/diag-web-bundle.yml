@@ -1,0 +1,25 @@
+name: Diag Web Bundle
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl verbose
+        run: |
+          curl -v https://iliad.trustfabric.ai/ -o /tmp/body.html 2>&1 | head -60
+          echo "--- BODY (first 2000 chars) ---"
+          head -c 2000 /tmp/body.html
+      - name: Node fetch
+        run: |
+          node -e "
+          const res = await fetch('https://iliad.trustfabric.ai/', { signal: AbortSignal.timeout(10000) });
+          console.log('status', res.status, res.statusText);
+          console.log('headers', JSON.stringify([...res.headers.entries()]));
+          const html = await res.text();
+          console.log('length', html.length);
+          console.log('has marker:', /assets\/index-[A-Za-z0-9_-]+\.js/.test(html));
+          console.log(html.slice(0, 1000));
+          "
