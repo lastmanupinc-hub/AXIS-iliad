@@ -149,9 +149,25 @@ mechanism (both platforms retain deploy history and support a one-click
 prior-deploy redeploy) is standard, well-documented platform behavior, not
 something this repo's own code could misconfigure.
 
-*Rehearsal evidence: filled in immediately below by the commit that follows
-this one — a genuinely inert, isolated no-op change, reverted, both pushes
-confirmed via the same CI+Render+live-probe discipline as any other push.*
+**Rehearsal evidence (2026-07-16, real production `main`):**
+
+- Forward: `d0417de` (adds `docs/.rollback-rehearsal-marker`, an inert file
+  with zero runtime effect) pushed at `2026-07-16T22:31:10Z`. CI: `success`
+  (both the `CI` and `Compliance Check` workflows). Live health check
+  (`GET /v1/health`, `GET /v1/health/ready`) confirmed `ok`/`ready`
+  post-deploy.
+- Revert: `git revert d0417de --no-edit` → `e720eb1`, pushed at
+  `2026-07-16T22:44:57Z`. CI: `success` (both workflows). Live health check
+  confirmed `ok` again post-deploy.
+- Mid-rehearsal finding, not a code bug: the `gh` CLI's stored credential
+  went invalid partway through (`gh auth status` — "The token in keyring is
+  invalid," persisting across retries; not a GitHub outage, confirmed via
+  githubstatus.com showing all-green). Workaround used instead: this repo is
+  **public**, so `curl https://api.github.com/repos/.../actions/runs` needs
+  no auth at all — every status check above used that unauthenticated
+  endpoint. Worth knowing for a real incident: if `gh` is ever unusable,
+  the public REST API is a working fallback for a public repo without
+  waiting on re-authentication.
 
 **PENDING-OWNER**: rehearse rollback paths 2 (Render dashboard redeploy) and
 3 (Cloudflare Pages dashboard rollback) directly — both need owner-held
