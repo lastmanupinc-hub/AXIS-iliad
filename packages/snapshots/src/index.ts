@@ -93,6 +93,10 @@ export { getGrowthSnapshot } from "./growth-store.js";
 export type { PaymentReceipt, PaymentProvider, SettledRevenue } from "./payment-receipts-store.js";
 export { recordSettledPayment, getSettledRevenue } from "./payment-receipts-store.js";
 
+// Payment funnel — x402 onboarding program Phase 0 (challenges issued, $0 probe settlements)
+export type { PaymentFunnelEventKind, PaymentFunnelEventInput, PaymentFunnelStats } from "./payment-funnel-store.js";
+export { recordPaymentFunnelEvent, getPaymentFunnelStats } from "./payment-funnel-store.js";
+
 // Compensation ledger — WO-20 phase 3 (H2): money moved, work didn't.
 export type { CompensationEntry, CompensationReason, CompensationStatus, RecordCompensationInput } from "./compensation-store.js";
 export {

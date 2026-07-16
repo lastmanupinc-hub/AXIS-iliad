@@ -11,6 +11,7 @@ describe("payment-receipts-store", () => {
   it("reads a true $0 on an empty database", async () => {
     const revenue = await getSettledRevenue();
     expect(revenue.all_time_cents).toBe(0);
+    expect(revenue.all_time_count).toBe(0);
     expect(revenue.trailing_30d_cents).toBe(0);
     expect(revenue.by_tool).toEqual([]);
     expect(revenue.first_at).toBeNull();
@@ -29,6 +30,7 @@ describe("payment-receipts-store", () => {
 
     const revenue = await getSettledRevenue();
     expect(revenue.all_time_cents).toBe(150);
+    expect(revenue.all_time_count).toBe(1);
     expect(revenue.trailing_30d_cents).toBe(150);
     expect(revenue.by_tool).toEqual([{ tool: "analyze_repo", cents: 150 }]);
     expect(revenue.first_at).toEqual(expect.any(String));
@@ -62,6 +64,7 @@ describe("payment-receipts-store", () => {
 
     const revenue = await getSettledRevenue();
     expect(revenue.all_time_cents).toBe(50 + 10 + 25);
+    expect(revenue.all_time_count).toBe(3);
     const byTool = Object.fromEntries(revenue.by_tool.map((t) => [t.tool, t.cents]));
     expect(byTool.analyze_repo).toBe(75);
     expect(byTool.iliad_web_research).toBe(10);

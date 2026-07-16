@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Receipt } from "mppx";
 import { chargeMpp } from "./mpp.js";
-import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensationOwed } from "@axis/snapshots";
+import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensationOwed, recordPaymentFunnelEvent } from "@axis/snapshots";
 import type { PaymentProvider } from "@axis/snapshots";
 import { log, getRequestId, ErrorCode } from "./logger.js";
 import { randomUUID } from "node:crypto";
@@ -284,6 +284,8 @@ export async function settleOverageCash(
           provider: "paid_fc",
           external_receipt: undefined,
         });
+      } else if (w.status === 402) {
+        await recordFunnelChallenge(accountId, opts);
       }
       return w;
     }
@@ -302,6 +304,23 @@ export async function settleOverageCash(
       provider,
       external_receipt,
     });
+  } else if (result && result.status === 402) {
+    await recordFunnelChallenge(accountId, opts);
   }
   return result;
+}
+
+/**
+ * x402 onboarding program, Phase 0 (visibility): best-effort record of a real
+ * 402 challenge actually written to an agent on this rail (mppx or the PAI'D
+ * wallet's insufficient/ambiguous branches). Telemetry must never break or
+ * slow the request path that's already in flight, so failures are swallowed —
+ * mirrors how logMcpCall treats recordMcpUsage.
+ */
+async function recordFunnelChallenge(accountId: string, opts: SettleOptions): Promise<void> {
+  try {
+    await recordPaymentFunnelEvent({ account_id: accountId, tool: opts.meta?.tool ?? "default", kind: "challenge" });
+  } catch {
+    /* funnel telemetry is best-effort */
+  }
 }

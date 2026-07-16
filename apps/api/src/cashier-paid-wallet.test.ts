@@ -16,6 +16,7 @@ vi.mock("@axis/snapshots", () => ({
   consumeFreeCall: vi.fn(async () => false),
   recordPaidCall: vi.fn(async () => undefined),
   recordSettledPayment: vi.fn(async () => undefined),
+  recordPaymentFunnelEvent: vi.fn(async () => undefined),
   recordCompensationOwed: vi.fn(async (input: Record<string, unknown>) => ({
     entry_id: "comp-test-1",
     status: "owed",
@@ -289,6 +290,13 @@ describe("enforce mode — insufficient balance", () => {
     expect(mpp.chargeMpp).not.toHaveBeenCalled();
     expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
     expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
+    // x402 onboarding Phase 0: the insufficient-credits 402 is still a real
+    // challenge written to the agent — it must count toward the funnel.
+    expect(snapshots.recordPaymentFunnelEvent).toHaveBeenCalledWith({
+      account_id: "acc-1",
+      tool: "analyze_repo",
+      kind: "challenge",
+    });
   });
 });
 
@@ -320,6 +328,12 @@ describe("enforce mode — ambiguous PAI'D errors (H0.2/H2.3): never fall throug
     expect(body?.error).toBe("wallet_settlement_unconfirmed");
     expect(body?.compensation_entry_id).toBe("comp-test-1");
     expect(body?.topup_url).toBe("/v1/credits/topup");
+    // x402 onboarding Phase 0: still a real 402 written to the agent.
+    expect(snapshots.recordPaymentFunnelEvent).toHaveBeenCalledWith({
+      account_id: "acc-1",
+      tool: "analyze_repo",
+      kind: "challenge",
+    });
   });
 
   it("a timed-out debit (PaidError 504) is the same ambiguous case — zero mpp charges, one ledger row", async () => {

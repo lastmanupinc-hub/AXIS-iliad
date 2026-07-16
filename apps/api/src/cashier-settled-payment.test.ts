@@ -15,6 +15,7 @@ vi.mock("@axis/snapshots", () => ({
   consumeFreeCall: vi.fn(async () => false),
   recordPaidCall: vi.fn(async () => undefined),
   recordSettledPayment: vi.fn(async () => undefined),
+  recordPaymentFunnelEvent: vi.fn(async () => undefined),
 }));
 
 vi.mock("./mpp.js", () => ({
@@ -92,6 +93,7 @@ beforeEach(() => {
   vi.mocked(snapshots.consumeFreeCall).mockResolvedValue(false);
   vi.mocked(snapshots.recordPaidCall).mockResolvedValue(undefined as never);
   vi.mocked(snapshots.recordSettledPayment).mockResolvedValue(undefined as never);
+  vi.mocked(snapshots.recordPaymentFunnelEvent).mockResolvedValue(undefined as never);
 });
 
 describe("settleOverageCash -> recordSettledPayment (H1 cash settlement persistence)", () => {
@@ -150,7 +152,7 @@ describe("settleOverageCash -> recordSettledPayment (H1 cash settlement persiste
     });
   });
 
-  it("chargeMpp 402 does NOT record a settled payment", async () => {
+  it("chargeMpp 402 does NOT record a settled payment, but DOES record an x402 challenge event (x402 onboarding Phase 0)", async () => {
     const { res } = makeRes();
     vi.mocked(mpp.chargeMpp).mockResolvedValueOnce({ status: 402 });
 
@@ -159,6 +161,21 @@ describe("settleOverageCash -> recordSettledPayment (H1 cash settlement persiste
     expect(result).toEqual({ status: 402 });
     expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
     expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
+    expect(snapshots.recordPaymentFunnelEvent).toHaveBeenCalledWith({
+      account_id: "acc-5",
+      tool: "analyze_repo",
+      kind: "challenge",
+    });
+  });
+
+  it("a funnel-event recording failure never breaks the 402 response (best-effort telemetry)", async () => {
+    const { res } = makeRes();
+    vi.mocked(mpp.chargeMpp).mockResolvedValueOnce({ status: 402 });
+    vi.mocked(snapshots.recordPaymentFunnelEvent).mockRejectedValueOnce(new Error("db down"));
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-5b", 150, OPTS);
+
+    expect(result).toEqual({ status: 402 });
   });
 
   it("chargeMpp null (MPP not configured) does NOT record a settled payment", async () => {
@@ -237,5 +254,10 @@ describe("settleOverageCash: enforce-mode wallet success records a paid_fc recei
     expect(result).toEqual({ status: 402 });
     expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
     expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
+    expect(snapshots.recordPaymentFunnelEvent).toHaveBeenCalledWith({
+      account_id: "acc-10",
+      tool: "analyze_repo",
+      kind: "challenge",
+    });
   });
 });

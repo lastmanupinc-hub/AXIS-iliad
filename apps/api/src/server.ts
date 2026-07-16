@@ -106,6 +106,7 @@ import {
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
+import { getPaymentFunnelStats, getSettledRevenue } from "@axis/snapshots";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
@@ -384,9 +385,33 @@ router.delete("/mcp/mcp/*", async (_req, res) => {
 router.get("/v1/stats", async (_req, res) => {
   const { sendJSON } = await import("./router.js");
   const c = getMcpCallCounters();
+  // x402 onboarding program, Phase 0: the payment funnel, restart-durable.
+  // Real settled cash lives in payment_receipts (getSettledRevenue); the
+  // challenge count and the $0 ping_payment probe's settlements live in the
+  // dedicated payment_funnel_events table (neither was persisted before).
+  // Best-effort: a DB hiccup must never take down this public, no-auth endpoint.
+  let x402ChallengesIssued = 0;
+  let probeSettlements = 0;
+  let paidSettlementsCount = 0;
+  let paidSettlementsCents = 0;
+  try {
+    const [funnel, revenue] = await Promise.all([getPaymentFunnelStats(), getSettledRevenue()]);
+    x402ChallengesIssued = funnel.x402_challenges_issued;
+    probeSettlements = funnel.probe_settlements;
+    paidSettlementsCount = revenue.all_time_count;
+    paidSettlementsCents = revenue.all_time_cents;
+  } catch {
+    /* best-effort — stats stay at 0 rather than failing the endpoint */
+  }
   sendJSON(res, 200, {
     mcp_calls_today: c.today,
     mcp_calls_total: c.total,
+    protocol_calls: c.today,
+    x402_challenges_issued: x402ChallengesIssued,
+    // "including $0": the ping_payment probe's forced settlements count
+    // alongside real cash settlements, same as real money always has.
+    paid_settlements: paidSettlementsCount + probeSettlements,
+    paid_settlements_cents: paidSettlementsCents,
     top_tools: Object.entries(c.byTool)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)

@@ -700,6 +700,31 @@ ALTER TABLE idempotency_keys ADD CONSTRAINT idempotency_keys_status_check CHECK 
     name: "stripe_subscriptions_last_event",
     sql: `ALTER TABLE stripe_subscriptions ADD COLUMN IF NOT EXISTS last_event_created_at BIGINT;`,
   },
+  {
+    // x402 onboarding program, Phase 0 (visibility): every x402/MPP challenge
+    // actually issued to an agent, plus the $0 ping_payment probe's forced
+    // settlements — neither of these was persisted anywhere before, so
+    // GET /v1/stats could not show a real challenge->settlement funnel across
+    // restarts. account_id is nullable and has NO FK, same reasoning as
+    // mcp_usage/disputes: an anonymous caller can be challenged (and the
+    // free ping_payment probe explicitly supports anonymous callers), so
+    // ingestion must never bounce on referential timing or auth state. Real
+    // (non-zero) settled cash is already fully captured by payment_receipts —
+    // this table intentionally does NOT duplicate that; it only records the
+    // challenge side (never persisted before) and the probe's $0 settlements.
+    version: 38,
+    name: "payment_funnel_events",
+    sql: `CREATE TABLE IF NOT EXISTS payment_funnel_events (
+  event_id TEXT PRIMARY KEY,
+  account_id TEXT,
+  tool TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('challenge','settlement')),
+  amount_cents INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_kind ON payment_funnel_events(kind);
+CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_created ON payment_funnel_events(created_at);`,
+  },
 ];
 
 /**

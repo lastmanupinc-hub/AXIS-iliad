@@ -27,6 +27,7 @@ export interface PaymentReceipt {
 
 export interface SettledRevenue {
   all_time_cents: number;
+  all_time_count: number;
   trailing_30d_cents: number;
   by_tool: Array<{ tool: string; cents: number }>;
   first_at: string | null;
@@ -71,8 +72,8 @@ export async function getSettledRevenue(now: Date = new Date()): Promise<Settled
   const since30d = new Date(now.getTime() - 30 * DAY_MS).toISOString();
 
   // pg COUNT/SUM return strings/bigints — coerced with Number() at the read site.
-  const totals = await sql.one<{ total: string | number; first_at: string | null }>(
-    `SELECT COALESCE(SUM(amount_cents), 0) as total, MIN(created_at) as first_at FROM payment_receipts`,
+  const totals = await sql.one<{ total: string | number; cnt: string | number; first_at: string | null }>(
+    `SELECT COALESCE(SUM(amount_cents), 0) as total, COUNT(*) as cnt, MIN(created_at) as first_at FROM payment_receipts`,
   );
   const trailing = await sql.one<{ total: string | number }>(
     `SELECT COALESCE(SUM(amount_cents), 0) as total FROM payment_receipts WHERE created_at >= ?`,
@@ -84,6 +85,7 @@ export async function getSettledRevenue(now: Date = new Date()): Promise<Settled
 
   return {
     all_time_cents: Number(totals?.total ?? 0),
+    all_time_count: Number(totals?.cnt ?? 0),
     trailing_30d_cents: Number(trailing?.total ?? 0),
     by_tool: byTool.map((r) => ({ tool: r.tool, cents: Number(r.cents) })),
     first_at: totals?.first_at ?? null,

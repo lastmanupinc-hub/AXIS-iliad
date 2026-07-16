@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary, getPaymentFunnelStats, getSettledRevenue, recordPaymentFunnelEvent } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -97,9 +97,14 @@ beforeAll(async () => {
   router.post("/v1/account/keys", handleCreateApiKey);
   router.get("/v1/stats", async (_req, res) => {
     const c = getMcpCallCounters();
+    const [funnel, revenue] = await Promise.all([getPaymentFunnelStats(), getSettledRevenue()]);
     sendJSON(res, 200, {
       mcp_calls_today: c.today,
       mcp_calls_total: c.total,
+      protocol_calls: c.today,
+      x402_challenges_issued: funnel.x402_challenges_issued,
+      paid_settlements: revenue.all_time_count + funnel.probe_settlements,
+      paid_settlements_cents: revenue.all_time_cents,
       top_tools: Object.entries(c.byTool).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([tool, count]) => ({ tool, count })),
       process_started_at: c.startedAt,
       date: c.todayDate,
@@ -241,6 +246,33 @@ describe("GET /v1/stats — anonymous call counters", () => {
     await logMcpCall("list_programs", null, "127.0.0.1");
     expect(getMcpCallCounters().total).toBe(before + 1);
     expect(getMcpCallCounters().byTool["list_programs"]).toBeGreaterThan(0);
+  });
+
+  // x402 onboarding program, Phase 0 (visibility): the payment funnel must be
+  // visible on this public, no-auth endpoint and must be restart-durable
+  // (backed by real DB rows, not just the in-memory _counters).
+  it("exposes protocol_calls, x402_challenges_issued, paid_settlements, paid_settlements_cents", async () => {
+    const r = await get("/v1/stats");
+    expect(r.status).toBe(200);
+    const d = r.data as Record<string, unknown>;
+    expect(typeof d.protocol_calls).toBe("number");
+    expect(typeof d.x402_challenges_issued).toBe("number");
+    expect(typeof d.paid_settlements).toBe("number");
+    expect(typeof d.paid_settlements_cents).toBe("number");
+  });
+
+  it("x402_challenges_issued rises after a forced challenge is recorded", async () => {
+    const before = ((await get("/v1/stats")).data as Record<string, number>).x402_challenges_issued;
+    await recordPaymentFunnelEvent({ account_id: null, tool: "analyze_repo", kind: "challenge" });
+    const after = ((await get("/v1/stats")).data as Record<string, number>).x402_challenges_issued;
+    expect(after).toBe(before + 1);
+  });
+
+  it("paid_settlements rises after a $0 probe settlement is recorded (including $0)", async () => {
+    const before = ((await get("/v1/stats")).data as Record<string, number>).paid_settlements;
+    await recordPaymentFunnelEvent({ account_id: null, tool: "ping_payment", kind: "settlement", amount_cents: 0 });
+    const after = ((await get("/v1/stats")).data as Record<string, number>).paid_settlements;
+    expect(after).toBe(before + 1);
   });
 });
 
