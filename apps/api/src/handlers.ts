@@ -3001,11 +3001,11 @@ export async function handleForAgents(
           "Agents B-D call get_artifact with snapshot_id to read specific artifacts",
           "Agent E calls prepare_agentic_purchasing for commerce hardening",
         ],
-        manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: 11 },
+        manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: 12 },
       },
     },
     pricing_table: {
-      overview: "11 free tools (discovery + the WO-13 commerce decision engines), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.",
+      overview: "12 free tools (discovery + the WO-13 commerce decision engines + the ping_payment x402 probe), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.",
       tiers: [
         { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },

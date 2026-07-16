@@ -61,7 +61,7 @@ export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
 export const ARTIFACT_COUNT = 142;
 
 /** Public MCP tools (= MCP_TOOL_COUNT). */
-export const TOOL_COUNT = 36;
+export const TOOL_COUNT = 37;
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
 export const ENDPOINT_COUNT = 157;

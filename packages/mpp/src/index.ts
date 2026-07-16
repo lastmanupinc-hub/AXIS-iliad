@@ -302,6 +302,17 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     engineer_cents: 500,
     engineer_description: "Engineer mode (Security Engineer): the fix as a git-applyable unified-diff patch (.gitignore auto-fixes) + a SARIF 2.1.0 log of all findings for CI code-scanning gates.",
   },
+  // x402 onboarding program, Phase 1: a free, zero-risk payment-flow probe.
+  // Always $0 on both tiers — the point is to exercise the REAL 402 challenge
+  // -> retry-with-credential -> success loop with nothing of value at stake,
+  // so an agent (or a human with curl) can learn the exact vocabulary it will
+  // reuse for every real paid tool at real prices.
+  ping_payment: {
+    tool: "ping_payment",
+    standard_cents: 0,
+    lite_cents: 0,
+    lite_description: "Always free — this is a $0 payment-flow probe, not a metered tool.",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

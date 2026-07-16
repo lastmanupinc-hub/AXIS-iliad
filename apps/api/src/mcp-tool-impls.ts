@@ -98,6 +98,7 @@ import {
   getPersistenceBalance,
   extractSymbols,
   listMemoryEntries,
+  recordPaymentFunnelEvent,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -140,7 +141,7 @@ import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
-import { parseAgentBudget, resolveAgentMode, PRICING_TIERS, type AgentMode } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
@@ -1502,6 +1503,7 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
     top_3_gaps: top3,
     frameworks_detected: [...detectedFrameworks],
     what_axis_would_add: whatAxisWouldAdd,
+    first_paid_action: FIRST_PAID_ACTION_CTA,
     conversion: {
       tool: "prepare_agentic_purchasing",
       price_standard_usd: "0.50",
@@ -2025,7 +2027,18 @@ const FREE_TOOL_NAMES = new Set([
   "score_dispute_readiness",
   // Network tokenization (WO-14) — unmetered (auth-required, like the referral tools).
   "iliad_network_tokenization",
+  // x402 onboarding program, Phase 1 — always $0, no auth required.
+  "ping_payment",
 ]);
+
+// x402 onboarding program, Phase 2: the ONE standard CTA every free
+// discovery tool surfaces, so an agent that only ever calls free tools can
+// still discover how to pay — no free tool invents its own payment story.
+const FIRST_PAID_ACTION_CTA = {
+  tool: "ping_payment",
+  why: "Exercises the real x402 payment loop at $0. Learn once, then call any metered tool.",
+  then: "prepare_agentic_purchasing ($0.50) or analyze_repo",
+};
 
 const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
   search:               ["search", "discovery", "findability", "semantic", "agents-md", "cursorrules"],
@@ -2131,6 +2144,7 @@ export function runSearchTools(args: Record<string, unknown>): string {
       program_filter: programFilter || null,
       total_matches: results.length,
       results,
+      first_paid_action: FIRST_PAID_ACTION_CTA,
     },
     null,
     2,
@@ -2186,11 +2200,13 @@ export function runDiscoverAgenticCommerceTools(): string {
       first_paid_call: "prepare_agentic_purchasing returns a Purchasing Readiness Score (0-100) and the full commerce hardening bundle in one call.",
       first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.50, lite mode starts at $0.15, and Pro is $29/month.`,
     },
+    first_paid_action: FIRST_PAID_ACTION_CTA,
     tool_selection_guide: {
       list_programs: "Use for complete inventory of all programs and outputs.",
       search_and_discover_tools: "Use for keyword routing to the best program.",
       discover_commerce_tools: "Use for install and ecosystem onboarding metadata.",
       discover_agentic_purchasing_needs: "Use for commerce-specific intent to workflow mapping.",
+      ping_payment: "Use to learn the x402 payment loop at $0 before paying real money for a metered tool.",
     },
     install: {
       mcp_endpoint: AXIS_MCP_ENDPOINT,
@@ -2214,7 +2230,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },
-    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: discover_commerce_tools (no auth).`,
+    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: discover_commerce_tools (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop at $0, no risk.`,
     first_action: "Call search_and_discover_tools with q=<your keyword> â€” free, no auth needed.",
   }, null, 2);
 }
@@ -2554,6 +2570,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
       },
       rest_endpoint: `POST ${AXIS_API_BASE_MCP}/v1/prepare-for-agentic-purchasing`,
     },
+    first_paid_action: FIRST_PAID_ACTION_CTA,
     self_onboarding: {
       step_1: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"} â†’ get API key`,
       step_2: "Add AXIS as MCP server (see install section)",
@@ -2652,6 +2669,7 @@ export function runListPrograms(): string {
         step_2: "Run analyze_repo or analyze_files to generate codebase context and identify gaps.",
         step_3: `Call prepare_agentic_purchasing for the Purchasing Readiness Score and full ${ARTIFACT_COUNT}-artifact hardening bundle ($0.50/run or $29/mo).`,
       },
+      first_paid_action: FIRST_PAID_ACTION_CTA,
       programs,
       total_programs: programs.length,
       total_generators: generators.length,
@@ -3583,4 +3601,103 @@ export async function decideInbandGate(
     default:
       return { settle: false, reason: "not_in_scope" };
   }
+}
+
+// ─── x402 onboarding program, Phase 1 — ping_payment: a free, zero-risk payment-flow probe ──
+//
+// Always $0, on every call, for every caller (including anonymous). Never
+// touches a real payment rail (mppx/Stripe/Tempo, or the PAI'D wallet) — a
+// genuine $0 charge is meaningless to those rails (Stripe rejects zero-amount
+// PaymentIntents; a 0-FC wallet debit is a no-op) and the entire point of this
+// tool is to be safely retriable with nothing of value at stake. It reuses
+// the REAL wire vocabulary: the same Authorization-header convention mppx's
+// own retry protocol already uses on every metered tool — a payment
+// credential replaces the Bearer API key in Authorization, and the API key
+// itself moves to X-Axis-Key (see billing.ts's resolveAuth and mpp.ts's file
+// header) — so learning this loop transfers directly to a real paid call at
+// a real price, with no separate vocabulary to unlearn.
+
+/** True iff this request presents something in Authorization OTHER than the normal `Bearer <api_key>` scheme — the same signal a real MPP retry sends. */
+function hasPaymentCredential(req: IncomingMessage): boolean {
+  const auth = req.headers.authorization;
+  return typeof auth === "string" && auth.trim().length > 0 && !auth.startsWith("Bearer ");
+}
+
+/**
+ * Operator kill-switch (x402 onboarding program, Phase 3, docs/payment-gates.md):
+ * on by default — set AXIS_PAYMENT_PROBE_ENABLED to exactly "false" to disable
+ * the probe's dispatch (e.g. if it becomes an abuse vector, since it's the one
+ * tool callable by a fully anonymous caller with no rate-limit-relevant cost
+ * signal). Gates behavior only, not the tools/list catalog entry — catalog
+ * honesty is unaffected, a disabled call just returns a clear, non-error
+ * explanation instead of a silent no-op.
+ */
+function paymentProbeEnabled(): boolean {
+  return process.env.AXIS_PAYMENT_PROBE_ENABLED !== "false";
+}
+
+/** Tool: ping_payment — exercises the real x402 challenge/settle loop at $0. */
+export async function runPingPayment(_args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  if (!paymentProbeEnabled()) {
+    return JSON.stringify(
+      {
+        ok: false,
+        _disabled: true,
+        tool: "ping_payment",
+        message: "ping_payment is currently disabled by the operator (AXIS_PAYMENT_PROBE_ENABLED=false). Real metered tools are unaffected.",
+      },
+      null,
+      2,
+    );
+  }
+
+  const auth = await resolveAuth(req);
+  const accountId = auth.anonymous ? null : (auth.account?.account_id ?? null);
+
+  if (!hasPaymentCredential(req)) {
+    try {
+      await recordPaymentFunnelEvent({ account_id: accountId, tool: "ping_payment", kind: "challenge" });
+    } catch {
+      /* funnel telemetry is best-effort — must never block the challenge response */
+    }
+    const referralToken = accountId ? (await createReferralCode(accountId)).code : null;
+    return JSON.stringify(
+      {
+        ...build402NegotiationBody("ping_payment", parseAgentBudget(req), {
+          message: "This is a free payment-flow probe. Fulfil the x402 challenge and retry the same tools/call with the payment credential.",
+          referral_token: referralToken,
+        }),
+        _payment_required: true,
+        tool: "ping_payment",
+        amount_cents: 0,
+        retry: {
+          method: "tools/call",
+          name: "ping_payment",
+          headers_hint: [
+            "Authorization: <payment credential> — replaces the Bearer API key for this one retry",
+            "X-Axis-Key: <api_key> — your normal API key moves here on the retry",
+          ],
+        },
+      },
+      null,
+      2,
+    );
+  }
+
+  try {
+    await recordPaymentFunnelEvent({ account_id: accountId, tool: "ping_payment", kind: "settlement", amount_cents: 0 });
+  } catch {
+    /* funnel telemetry is best-effort — must never block the success response */
+  }
+  return JSON.stringify(
+    {
+      ok: true,
+      tool: "ping_payment",
+      settled_cents: 0,
+      message: "Payment flow exercised successfully. You now know how to pay for any metered AXIS tool.",
+      next: "Call prepare_agentic_purchasing or analyze_repo — same 402 vocabulary applies at real prices.",
+    },
+    null,
+    2,
+  );
 }

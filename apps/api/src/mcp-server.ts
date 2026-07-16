@@ -81,6 +81,7 @@ import {
   runScoreDisputeReadiness,
   runNetworkTokenization,
   decideInbandGate,
+  runPingPayment,
 } from "./mcp-tool-impls.js";
 import { runAssembleRepresentment } from "./disputes.js";
 import { resolveAgentMode } from "./mpp.js";
@@ -329,6 +330,9 @@ export async function dispatch(
             break;
           case "discover_commerce_tools":
             text = runDiscoverAgenticCommerceTools();
+            break;
+          case "ping_payment":
+            text = await runPingPayment(toolArgs, req);
             break;
           case "improve_my_agent_with_axis":
             text = await runImproveMyAgent(toolArgs, req);

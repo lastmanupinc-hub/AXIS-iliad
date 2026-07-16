@@ -533,7 +533,39 @@ export const MCP_TOOLS = [
       {
         name: "Discover all commerce tools",
         input: {},
-        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":36}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":37}}',
+      },
+    ],
+  },
+  {
+    name: "ping_payment",
+    description:
+      "Exercise the real x402 payment-flow loop at $0 — zero risk, no auth required. Call it once with no payment credential to receive a 402-style payment_required challenge (the exact same shape every real paid tool returns); retry the same tools/call carrying a payment credential in Authorization (with your API key moved to X-Axis-Key) to get a success envelope. Learn the vocabulary here before paying real money for prepare_agentic_purchasing or analyze_repo. No side effects on any other tool, no real payment rail is ever touched.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        _payment_required: { type: "boolean" },
+        tool: { type: "string" },
+        ok: { type: "boolean" },
+        settled_cents: { type: "number" },
+        message: { type: "string" },
+      },
+    },
+    annotations: toolAnnotations("Ping Payment (x402 Probe)", false, true),
+    examples: [
+      {
+        name: "First call, no payment credential — receives the challenge",
+        input: {},
+        output: '{"error":"Payment Required","message":"This is a free payment-flow probe. Fulfil the x402 challenge and retry the same tools/call with the payment credential.","price":"0.00","currency":"USD","_payment_required":true,"tool":"ping_payment","amount_cents":0,"retry":{"method":"tools/call","name":"ping_payment","headers_hint":["Authorization: <payment credential> — replaces the Bearer API key for this one retry","X-Axis-Key: <api_key> — your normal API key moves here on the retry"]}}',
+      },
+      {
+        name: "Retry with a payment credential in Authorization — succeeds at $0",
+        input: {},
+        output: '{"ok":true,"tool":"ping_payment","settled_cents":0,"message":"Payment flow exercised successfully. You now know how to pay for any metered AXIS tool.","next":"Call prepare_agentic_purchasing or analyze_repo — same 402 vocabulary applies at real prices."}',
       },
     ],
   },

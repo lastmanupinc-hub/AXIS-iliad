@@ -58,6 +58,44 @@ async function post(
   });
 }
 
+/** Like `post`, but lets a test set arbitrary raw headers — used by ping_payment's
+ * retry test, which needs a non-"Bearer" Authorization value (the real MPP retry
+ * convention) rather than the fixed `Bearer <key>` shape `post`'s authKey applies. */
+async function postWithHeaders(
+  path: string,
+  body: unknown,
+  extraHeaders: Record<string, string>,
+): Promise<Res> {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(body);
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(payload)),
+      ...extraHeaders,
+    };
+    const r = require("node:http").request(
+      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "POST", headers },
+      (res: import("node:http").IncomingMessage) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => {
+          const raw = Buffer.concat(chunks).toString("utf-8");
+          let data: unknown;
+          try { data = JSON.parse(raw); } catch { data = raw; }
+          const h: Record<string, string | string[]> = {};
+          for (const [k, v] of Object.entries(res.headers)) {
+            if (v !== undefined) h[k] = v;
+          }
+          resolve({ status: res.statusCode ?? 0, headers: h, data });
+        });
+      },
+    );
+    r.on("error", reject);
+    r.write(payload);
+    r.end();
+  });
+}
+
 async function get(path: string): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
@@ -277,13 +315,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns the full 36-tool catalog (build-not-redact catalog honesty)", async () => {
+  it("returns the full 37-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
-    expect(tools.length).toBe(36);
+    expect(tools.length).toBe(37);
     expect(tools.length).toBe(MCP_TOOLS.length);
     // No marketing payload injected into the result
     expect(result.incentives).toBeUndefined();
@@ -1497,9 +1535,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 36-tool catalog (build-not-redact)", async () => {
+  it("tools array exposes the full 37-tool catalog (build-not-redact)", async () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(36);
+    expect(tools).toHaveLength(37);
     expect(tools).toHaveLength(MCP_TOOLS.length);
     const allNames = new Set(MCP_TOOLS.map(t => t.name));
     for (const t of tools) {
@@ -1574,11 +1612,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 36 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+  it("body contains 37 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(36);
+    expect(tools).toHaveLength(37);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1614,7 +1652,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
     // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
-    expect(parsed.tools.length).toBe(36);
+    expect(parsed.tools.length).toBe(37);
   });
 
   it("includes free_tools array", async () => {
@@ -1659,7 +1697,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(36);
+    expect(parsed.shareable_manifest.tools).toBe(37);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });
@@ -1878,6 +1916,117 @@ describe("POST /mcp — tools/call get_referral_code", () => {
   it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("get_referral_code");
+  });
+});
+
+// ─── POST /mcp — tools/call ping_payment (x402 onboarding program, Phase 1) ──
+
+describe("POST /mcp — tools/call ping_payment", () => {
+  it("anonymous, no payment credential — receives a payment_required challenge, not an auth error", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 200,
+      method: "tools/call",
+      params: { name: "ping_payment", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    // Not an isError tool result — the challenge is a normal (non-error) payload,
+    // same as every other real x402 negotiation body on this server.
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed._payment_required).toBe(true);
+    expect(parsed.tool).toBe("ping_payment");
+    expect(parsed.amount_cents).toBe(0);
+    expect(parsed.retry.method).toBe("tools/call");
+    expect(parsed.retry.name).toBe("ping_payment");
+    expect(Array.isArray(parsed.retry.headers_hint)).toBe(true);
+    // Reuses the real x402 negotiation body — same fields every paid tool's 402 carries.
+    expect(parsed.accepted_payment_schemes).toBeDefined();
+    expect(parsed.x402).toBeDefined();
+  });
+
+  it("authenticated, no payment credential — still challenges (auth alone is not a payment credential)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 201,
+      method: "tools/call",
+      params: { name: "ping_payment", arguments: {} },
+    }, freeApiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed._payment_required).toBe(true);
+  });
+
+  it("retry with a payment credential in Authorization (API key moved to X-Axis-Key) — succeeds at $0", async () => {
+    const r = await postWithHeaders(
+      "/mcp",
+      { jsonrpc: "2.0", id: 202, method: "tools/call", params: { name: "ping_payment", arguments: {} } },
+      { Authorization: "Payment fake-mpp-credential-for-the-probe", "X-Axis-Key": freeApiKey },
+    );
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.ok).toBe(true);
+    expect(parsed.tool).toBe("ping_payment");
+    expect(parsed.settled_cents).toBe(0);
+    expect(typeof parsed.next).toBe("string");
+  });
+
+  it("retry with a payment credential succeeds even fully anonymous (no X-Axis-Key at all)", async () => {
+    const r = await postWithHeaders(
+      "/mcp",
+      { jsonrpc: "2.0", id: 203, method: "tools/call", params: { name: "ping_payment", arguments: {} } },
+      { Authorization: "Payment fake-mpp-credential-for-the-probe" },
+    );
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("never charges real money and never records a payment_receipts row", async () => {
+    const before = await getSettledRevenue();
+    await postWithHeaders(
+      "/mcp",
+      { jsonrpc: "2.0", id: 204, method: "tools/call", params: { name: "ping_payment", arguments: {} } },
+      { Authorization: "Payment fake-mpp-credential-for-the-probe", "X-Axis-Key": freeApiKey },
+    );
+    const after = await getSettledRevenue();
+    expect(after.all_time_count).toBe(before.all_time_count);
+    expect(after.all_time_cents).toBe(before.all_time_cents);
+  });
+
+  it("tool name appears in MCP_TOOLS and is marked free/no-auth", async () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("ping_payment");
+  });
+
+  it("AXIS_PAYMENT_PROBE_ENABLED=false disables dispatch without hiding the catalog entry (x402 onboarding Phase 3)", async () => {
+    process.env.AXIS_PAYMENT_PROBE_ENABLED = "false";
+    try {
+      const r = await post("/mcp", {
+        jsonrpc: "2.0",
+        id: 205,
+        method: "tools/call",
+        params: { name: "ping_payment", arguments: {} },
+      });
+      const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+      expect(result.isError).toBe(false);
+      const content = result.content as Array<{ type: string; text: string }>;
+      const parsed = JSON.parse(content[0].text);
+      expect(parsed.ok).toBe(false);
+      expect(parsed._disabled).toBe(true);
+      expect(parsed.message).toContain("AXIS_PAYMENT_PROBE_ENABLED");
+    } finally {
+      delete process.env.AXIS_PAYMENT_PROBE_ENABLED;
+    }
+    // Catalog listing is unaffected by the flag.
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("ping_payment");
   });
 });
 
