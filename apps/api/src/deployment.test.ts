@@ -158,6 +158,17 @@ describe("Synthetic monitor workflow (dead-man's switch)", () => {
     expect(content).toContain("gh issue create");
     expect(content).toContain("gh issue close");
   });
+
+  it("keys issue open/close off alert_failed_count, not the raw failed_count", () => {
+    // H8.9 live-rehearsal finding: Cloudflare's bot mitigation serves a JS
+    // challenge to GitHub Actions runner IPs on web_bundle_marker specifically
+    // (confirmed via a live diagnostic run — 403, cf-mitigated: challenge),
+    // a false positive from every scheduled run if left unfiltered. The
+    // monitor must read the alert_* outputs (which live-probe.mjs already
+    // excludes known CI-IP false positives from), not the raw ones.
+    expect(content).toContain("steps.probe.outputs.alert_failed_count");
+    expect(content).toContain("steps.probe.outputs.alert_failed_names");
+  });
 });
 
 // ─── Cloudflare Pages — static assets ──────────────────────────

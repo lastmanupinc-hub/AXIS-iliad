@@ -92,11 +92,38 @@ async function checkWebBundle() {
     const res = await fetch(`${WEB_BASE}/`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
     const html = await res.text();
     const match = html.match(/assets\/index-[A-Za-z0-9_-]+\.js/);
-    record("web_bundle_marker", res.status === 200 && !!match, `status=${res.status} bundle=${match?.[0] ?? "not found"}`);
+    // H8.9: known false-positive from datacenter/CI IPs, confirmed live during
+    // the synthetic-monitor rehearsal — Cloudflare's bot mitigation serves a
+    // "Just a moment..." JS challenge (403, cf-mitigated: challenge) to
+    // GitHub Actions runner IP ranges specifically; a real browser (and this
+    // exact same check run from a residential IP) gets 200 + the real bundle
+    // every time. Surfacing it here so the detail message is honest about
+    // WHAT happened instead of a bare "bundle not found" — see
+    // EXCLUDED_FROM_AUTO_ALERT below for how this stays visible without
+    // paging anyone on a false alarm.
+    const cfChallenged = res.headers.get("cf-mitigated") === "challenge";
+    record(
+      "web_bundle_marker",
+      res.status === 200 && !!match,
+      cfChallenged
+        ? `status=${res.status} — Cloudflare bot-mitigation challenge (cf-mitigated: challenge), known false-positive from datacenter/CI IPs, not a real deploy issue`
+        : `status=${res.status} bundle=${match?.[0] ?? "not found"}`,
+    );
   } catch (err) {
     record("web_bundle_marker", false, `fetch error: ${err.message}`);
   }
 }
+
+// H8.9: checks known to false-positive specifically from datacenter/CI IPs
+// (currently just web_bundle_marker — see its Cloudflare-challenge comment
+// above) never trigger the synthetic monitor's auto-opened issue. They stay
+// fully visible in the console/log output and in `failed_names` above — this
+// only narrows what the SCHEDULED MONITOR treats as alert-worthy, so a
+// real, human-facing web outage (a genuine 5xx, a broken build, DNS down)
+// still alerts via the other checks that exercise the same production stack
+// from the same IP range. Never grows silently: adding a name here requires
+// the same live-confirmed, IP-specific root cause this one has.
+const EXCLUDED_FROM_AUTO_ALERT = new Set(["web_bundle_marker"]);
 
 async function main() {
   console.log(`[live-probe] ${new Date().toISOString()}`);
@@ -114,17 +141,27 @@ async function main() {
   if (failed.length > 0) {
     console.log(`FAILED: ${failed.map((r) => r.name).join(", ")}`);
   }
+  const alertWorthy = failed.filter((r) => !EXCLUDED_FROM_AUTO_ALERT.has(r.name));
+  const suppressed = failed.filter((r) => EXCLUDED_FROM_AUTO_ALERT.has(r.name));
+  if (suppressed.length > 0) {
+    console.log(`SUPPRESSED (known CI-IP false positive, not alert-worthy): ${suppressed.map((r) => r.name).join(", ")}`);
+  }
 
   // H8.9: additive, machine-readable summary for GitHub Actions consumers —
   // a harmless no-op when GITHUB_OUTPUT isn't set (e.g. running locally).
   // The synthetic monitor workflow reads these to decide whether to
   // open/update or close its dead-man's-switch issue; this script's own
   // exit code stays 0 either way (non-gating contract unchanged).
+  // alert_failed_count/alert_failed_names exclude EXCLUDED_FROM_AUTO_ALERT
+  // (see its definition above) — failed_count/failed_names stay the raw,
+  // unfiltered totals for anyone who wants the full picture.
   if (process.env.GITHUB_OUTPUT) {
     const { appendFileSync } = await import("node:fs");
     appendFileSync(process.env.GITHUB_OUTPUT, `failed_count=${failed.length}\n`);
     appendFileSync(process.env.GITHUB_OUTPUT, `total_count=${results.length}\n`);
     appendFileSync(process.env.GITHUB_OUTPUT, `failed_names=${failed.map((r) => r.name).join(",")}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `alert_failed_count=${alertWorthy.length}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `alert_failed_names=${alertWorthy.map((r) => r.name).join(",")}\n`);
   }
 
   // Always exit 0 — non-gating by design, see the header comment above.

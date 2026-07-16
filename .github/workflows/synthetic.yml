@@ -46,8 +46,14 @@ jobs:
             echo "failed_count=1" >> "$GITHUB_OUTPUT"
             echo "failed_names=forced_test_failure (workflow_dispatch force_failure=true)" >> "$GITHUB_OUTPUT"
           else
-            echo "failed_count=${{ steps.probe.outputs.failed_count }}" >> "$GITHUB_OUTPUT"
-            echo "failed_names=${{ steps.probe.outputs.failed_names }}" >> "$GITHUB_OUTPUT"
+            # alert_failed_* (not the raw failed_*) drives issue open/close:
+            # live-probe.mjs excludes checks it has confirmed false-positive
+            # from CI/datacenter IPs (currently web_bundle_marker — Cloudflare
+            # bot-mitigation serves a JS challenge to GitHub Actions runner
+            # IPs specifically; a real browser always gets the real page).
+            # Those stay visible in the job log, they just don't page anyone.
+            echo "failed_count=${{ steps.probe.outputs.alert_failed_count }}" >> "$GITHUB_OUTPUT"
+            echo "failed_names=${{ steps.probe.outputs.alert_failed_names }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Open or update the tracking issue on failure
