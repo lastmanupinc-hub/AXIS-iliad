@@ -225,6 +225,38 @@ jobs:
         run: npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
         continue-on-error: true
 
+  # H8.11a — diff-scoped secret scan. Greps only the lines THIS push/PR adds
+  # (never the whole repo state, so existing reviewed fixtures never need
+  # retroactive allowlisting) for credential shapes: sk_live_, rk_live_,
+  # whsec_, a Resend key, a HuggingFace token, a Render token. Gating by
+  # design (unlike live-probe.mjs) — a real secret shape in an added line
+  # fails the job. fetch-depth: 0 so any two SHAs in the diff range can
+  # always be diffed regardless of how far back they are.
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve diff range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after || github.sha }}"
+            if [ -z "$BEFORE" ] || [[ "$BEFORE" =~ ^0+$ ]]; then
+              echo "range=HEAD^..HEAD" >> "$GITHUB_OUTPUT"
+            else
+              echo "range=$BEFORE..$AFTER" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Scan added lines for credential shapes
+        run: node scripts/scan-diff-secrets.mjs "${{ steps.range.outputs.range }}"
+
   # H6.3 — live-probe battery: a repeatable version of the manual "July systems
   # check" (health/ready, MCP tools count, PAI'D config, anon 413 gate, web
   # bundle marker). Non-gating by design: axis-api's real deploy path is
