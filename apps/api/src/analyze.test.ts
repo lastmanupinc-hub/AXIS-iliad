@@ -13,6 +13,7 @@ import {
   adoptionHint,
   buildNextSteps,
   detectProjectName,
+  PROGRAM_OUTPUTS,
 } from "./handlers.js";
 
 // â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -22,6 +23,7 @@ async function req(
   path: string,
   body?: unknown,
   authKey?: string,
+  extraHeaders?: Record<string, string>,
 ): Promise<{ status: number; data: unknown }> {
   return new Promise((resolve, reject) => {
     const payload = body !== undefined ? JSON.stringify(body) : undefined;
@@ -35,6 +37,7 @@ async function req(
           "Content-Type": "application/json",
           ...(payload ? { "Content-Length": Buffer.byteLength(payload) } : {}),
           ...(authKey ? { "Authorization": `Bearer ${authKey}` } : {}),
+          ...(extraHeaders ?? {}),
         },
       },
       (res: import("node:http").IncomingMessage) => {
@@ -467,6 +470,32 @@ describe("POST /v1/analyze â€” programs filter", () => {
     const data = r.data as Record<string, unknown>;
     expect((data.total_files as number)).toBeGreaterThan(20);
     expect((data.snapshot_summary as Record<string, unknown>).pro_unlock).toContain("15 more programs");
+  });
+
+  // ─── Lite mode restricts output to the 3 free programs (H-Phase-A cycle 2) ──
+  //
+  // lite_description promises "search/skills/debug programs only (3 of 20
+  // programs)". The MCP twin (analyze_repo/analyze_files) already enforces
+  // this (H-Phase-A cycle 1); this REST endpoint used X-Agent-Mode only to
+  // pick the CHARGE amount, never to restrict the actual output — a
+  // fully-entitled account paying the lite price still got the full bundle.
+  it("lite mode restricts output to search/skills/debug even for a fully-entitled account", async () => {
+    const r = await req(
+      "POST",
+      "/v1/analyze",
+      { files: minFiles },
+      suiteApiKey,
+      { "X-Agent-Mode": "lite" },
+    );
+    expect(r.status).toBe(201);
+    const data = r.data as Record<string, unknown>;
+    const files = data.files as Array<{ program: string }>;
+    const programs = new Set(files.map(f => f.program));
+    expect(programs.size).toBeGreaterThan(0);
+    const nonFreePrograms = Object.keys(PROGRAM_OUTPUTS).filter(p => p !== "debug");
+    for (const program of programs) {
+      expect(nonFreePrograms).not.toContain(program);
+    }
   });
 });
 

@@ -1638,10 +1638,19 @@ export async function handleAnalyze(
   const skillsOutputs = !requestedPrograms || requestedPrograms.includes("skills")
     ? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md", "model-cascade.md"]
     : [];
+  // lite_description promise (@axis/mpp PRICING_TIERS.analyze_repo/analyze_files):
+  // "search/skills/debug programs only (3 of 20 programs)". The MCP path
+  // (mcp-tool-impls.ts's restrictGeneratorsForLiteMode) already enforces this;
+  // this REST twin charges the lite price via `mode` below but never restricted
+  // the actual output set until now (H-Phase-A cycle 2). skillsOutputs above
+  // already covers the search+skills half of the free set unconditionally —
+  // only the PROGRAM_OUTPUTS side (which includes "debug", the third free
+  // program, alongside all 17 paid ones) needs the lite gate.
+  const lite = resolveAgentMode(req) === "lite";
   const allOutputs = [
     ...skillsOutputs,
     ...Object.entries(PROGRAM_OUTPUTS)
-      .filter(([prog]) => !requestedPrograms || requestedPrograms.includes(prog))
+      .filter(([prog]) => (!requestedPrograms || requestedPrograms.includes(prog)) && (!lite || FREE_PROGRAMS.has(prog)))
       .flatMap(([, outputs]) => outputs),
   ];
 
