@@ -41,6 +41,7 @@ import {
   type StoredDisputeRecord,
 } from "@axis/snapshots";
 import { resolveAuth } from "./billing.js";
+import { resolveAgentMode } from "./mpp.js";
 import { authorizeMcpToolCredits, captureMcpToolCredits } from "./mcp-runtime.js";
 import { log } from "./logger.js";
 
@@ -281,6 +282,13 @@ export interface AssembleRepresentmentDeps {
   /** Injectable dispute client (tests). Default: live Stripe client when STRIPE_SECRET_KEY is set. */
   client?: DisputeClient | null;
   now?: () => string;
+  /**
+   * Server-derived (never caller-supplied via args) — lite_description promise:
+   * "no auto-submit to the Stripe disputes API". Set by runAssembleRepresentment
+   * from resolveAgentMode(req); default false so existing callers/tests that
+   * construct deps without it keep today's behavior unchanged.
+   */
+  lite?: boolean;
 }
 
 /**
@@ -341,20 +349,24 @@ export async function handleAssembleRepresentment(
   working = { ...working, state: afterAssembly, updatedAt: nowIso };
 
   if (args.submit === true) {
-    const client =
-      deps.client !== undefined
-        ? deps.client
-        : process.env.STRIPE_SECRET_KEY
-          ? makeStripeDisputeClient({ apiKey: process.env.STRIPE_SECRET_KEY })
-          : null;
-    if (!client) {
-      submitNote = "submit skipped: no dispute client configured (STRIPE_SECRET_KEY unset)";
+    if (deps.lite) {
+      submitNote = "submit skipped: lite mode never auto-submits to the Stripe disputes API. Send X-Agent-Mode: standard to submit.";
     } else {
-      const res = await client.submitEvidence(disputeId, evidence, true);
-      if (res.ok) {
-        submitted = true;
-        const afterSubmit = await advanceDisputeState(working, "evidence_submitted", nowIso);
-        working = { ...working, state: afterSubmit, updatedAt: nowIso };
+      const client =
+        deps.client !== undefined
+          ? deps.client
+          : process.env.STRIPE_SECRET_KEY
+            ? makeStripeDisputeClient({ apiKey: process.env.STRIPE_SECRET_KEY })
+            : null;
+      if (!client) {
+        submitNote = "submit skipped: no dispute client configured (STRIPE_SECRET_KEY unset)";
+      } else {
+        const res = await client.submitEvidence(disputeId, evidence, true);
+        if (res.ok) {
+          submitted = true;
+          const afterSubmit = await advanceDisputeState(working, "evidence_submitted", nowIso);
+          working = { ...working, state: afterSubmit, updatedAt: nowIso };
+        }
       }
     }
   }
@@ -387,7 +399,7 @@ export async function runAssembleRepresentment(
   const result = await handleAssembleRepresentment(
     auth.account.account_id,
     args as unknown as AssembleRepresentmentArgs,
-    deps,
+    { ...deps, lite: resolveAgentMode(req) === "lite" },
   );
   await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);

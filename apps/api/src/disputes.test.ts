@@ -443,4 +443,69 @@ describe("runAssembleRepresentment (metered MCP tool)", () => {
     const after = await getUsageCreditSummary(acc.account_id, "free");
     expect(after.included_credits_used).toBe(before.included_credits_used);
   });
+
+  // ─── Lite mode never auto-submits (H-Phase-A cycle 1) ─────────────
+  //
+  // lite_description promises "CE 3.0 qualification + evidence hash only (no
+  // auto-submit to the Stripe disputes API)". Before this fix, submit:true
+  // reached the real dispute client regardless of X-Agent-Mode.
+  function reqWithKeyLite(rawKey: string): IncomingMessage {
+    return { headers: { authorization: `Bearer ${rawKey}`, "x-agent-mode": "lite" } } as IncomingMessage;
+  }
+
+  it("lite mode ignores submit:true — evidence is still assembled, but never reaches the dispute client", async () => {
+    const acc = await createAccount("Rep LiteNoSubmit", "rep-lite-nosubmit@test.com", "free");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    await upsertDispute(storedDispute({ id: "dp_rep_lite_1", accountId: acc.account_id }));
+    const { client, calls } = mockClient();
+
+    const text = await runAssembleRepresentment(
+      {
+        dispute_id: "dp_rep_lite_1",
+        transaction_history: CE3_HISTORY,
+        evidence_inputs: { customerEmail: "a@b.com" },
+        submit: true,
+      },
+      reqWithKeyLite(rawKey),
+      { client },
+    );
+    const parsed = JSON.parse(text);
+
+    // The real client was configured and would have accepted the call
+    // (proven by the standard-mode test below using the same helper) — lite
+    // mode must intercept BEFORE the client is ever invoked, not rely on the
+    // client being unconfigured.
+    expect(calls).toHaveLength(0);
+    expect(parsed.submitted).toBe(false);
+    expect(parsed.submit_note).toContain("lite mode");
+    expect(parsed.submit_note).toContain("never auto-submits");
+    // The lite promise's OTHER half ("CE 3.0 qualification + evidence hash
+    // only") still works — lite doesn't block assembly, only submission.
+    expect(typeof parsed.ce3_eligible).toBe("boolean");
+    expect(parsed.evidence).toBeDefined();
+    expect(parsed.dispute.state).toBe("evidence_assembling");
+  });
+
+  it("standard mode still submits for real when a client is configured (no regression)", async () => {
+    const acc = await createAccount("Rep StdSubmit", "rep-std-submit@test.com", "free");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    await upsertDispute(storedDispute({ id: "dp_rep_std_1", accountId: acc.account_id }));
+    const { client, calls } = mockClient();
+
+    const text = await runAssembleRepresentment(
+      {
+        dispute_id: "dp_rep_std_1",
+        transaction_history: CE3_HISTORY,
+        evidence_inputs: { customerEmail: "a@b.com" },
+        submit: true,
+      },
+      reqWithKey(rawKey),
+      { client },
+    );
+    const parsed = JSON.parse(text);
+
+    expect(calls).toHaveLength(1);
+    expect(parsed.submitted).toBe(true);
+    expect(parsed.dispute.state).toBe("evidence_submitted");
+  });
 });
