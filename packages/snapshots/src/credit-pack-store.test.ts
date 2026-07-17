@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import { createAccount } from "./billing-store.js";
-import { getPersistenceBalance } from "./persistence-metering.js";
+import { getPersistenceBalance, getPersistenceLedger } from "./persistence-metering.js";
 import {
   listCreditPackCatalog,
   getCreditPack,
@@ -10,6 +11,13 @@ import {
   getPurchaseBySession,
   listPurchasesByAccount,
 } from "./credit-pack-store.js";
+
+// A cold pool opens the 2nd connection slower than the 1st commits, which masks
+// a same-account race — pre-warming N idle connections makes the burst truly
+// overlap. Same technique as persistence-metering.test.ts's own concurrency suite.
+async function warmPool(n: number): Promise<void> {
+  await Promise.all(Array.from({ length: n }, () => sql.one("SELECT 1")));
+}
 
 describe("credit-pack purchases", () => {
   beforeEach(async () => {
@@ -90,5 +98,33 @@ describe("credit-pack purchases", () => {
     const history = await listPurchasesByAccount(acct.account_id);
     expect(history.length).toBe(2);
     expect(history.every((p) => p.account_id === acct.account_id)).toBe(true);
+  });
+
+  // H-Phase-A cycle 6: FOR UPDATE only locks the settling purchase's OWN row —
+  // two DIFFERENT pending purchases for the SAME account (distinct
+  // paid_session_id, so no row conflict) could still race on the shared
+  // balance_after SUM read, a lost-update on the ledger's denormalized
+  // column (the real spendable balance was never at risk — every consumer
+  // recomputes a live SUM).
+  it("settling two distinct purchases for the same account concurrently never stamps the same balance_after", async () => {
+    const acct = await createAccount("SettleRace", "settlerace@example.com", "paid");
+    await recordPendingPurchase({ account_id: acct.account_id, pack_id: "pack_100", credits: 100, price_cents: 500, paid_session_id: "race_a" });
+    await recordPendingPurchase({ account_id: acct.account_id, pack_id: "pack_100", credits: 100, price_cents: 500, paid_session_id: "race_b" });
+
+    await warmPool(2);
+    const [a, b] = await Promise.all([
+      markPurchaseSucceeded("race_a"),
+      markPurchaseSucceeded("race_b"),
+    ]);
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+
+    // Read the ledger's own denormalized balance_after column directly — the
+    // real spendable balance (a live SUM) would read 200 correctly either
+    // way, masking a lost-update on this column specifically.
+    const ledger = await getPersistenceLedger(acct.account_id);
+    const balancesAfter = ledger.map((r) => r.balance_after).sort((x, y) => x - y);
+    expect(balancesAfter).toEqual([100, 200]);
+    expect(await getPersistenceBalance(acct.account_id)).toBe(200);
   });
 });

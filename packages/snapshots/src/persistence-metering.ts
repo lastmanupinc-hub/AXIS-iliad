@@ -41,16 +41,37 @@ export async function addPersistenceCredits(
   credits: number,
   operation: "purchase" | "suite_monthly_grant" = "purchase",
 ): Promise<number> {
-  const balance_after = (await getPersistenceBalance(account_id)) + credits;
+  // H-Phase-A cycle 6: the same read-check-insert race meterPersistenceOp's
+  // comment already documents (SUM(credits_delta) has no single row to lock)
+  // applies to a grant's own balance_after snapshot too — two concurrent
+  // grants (e.g. two credit-pack webhook deliveries for the same account)
+  // could each read the same pre-grant SUM and write an inconsistent
+  // balance_after. The `credits_delta` on each row is always correct
+  // regardless (getPersistenceBalance/meterPersistenceOp always recompute a
+  // live SUM rather than trust this column), so this couldn't double-grant
+  // or double-spend — fixed for consistency with the same per-account
+  // advisory lock (namespace 1) meterPersistenceOp already uses, so a grant
+  // and a debit for the same account can no longer interleave either.
+  return await sql.tx<number>(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(1, hashtext($1))", [account_id]);
 
-  await sql.run(
-    `INSERT INTO persistence_credits
-       (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
-     VALUES (?, ?, ?, ?, NULL, ?, ?)`,
-    [randomUUID(), account_id, credits, operation, balance_after, new Date().toISOString()],
-  );
+    const balRow = await client.query<{ bal: string | number | null }>(
+      "SELECT COALESCE(SUM(credits_delta), 0) AS bal FROM persistence_credits WHERE account_id = $1",
+      [account_id],
+    );
+    const balance_after = Math.max(0, Number(balRow.rows[0]?.bal ?? 0)) + credits;
 
-  return balance_after;
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO persistence_credits
+             (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
+           VALUES (?, ?, ?, ?, NULL, ?, ?)`,
+      ),
+      [randomUUID(), account_id, credits, operation, balance_after, new Date().toISOString()],
+    );
+
+    return balance_after;
+  });
 }
 
 /** Apply the monthly suite credit grant. Idempotent within the same calendar month. */

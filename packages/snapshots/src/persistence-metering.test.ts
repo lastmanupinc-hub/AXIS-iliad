@@ -266,3 +266,23 @@ describe("meterPersistenceOp — concurrency", () => {
     expect(await getPersistenceBalance(acct.account_id)).toBe(0); // never negative
   });
 });
+
+// H-Phase-A cycle 6: addPersistenceCredits' balance_after used to be a plain
+// read-check-insert with no lock — a warm-pool burst of concurrent GRANTS
+// (not just debits) could have every call read the SAME pre-grant SUM and
+// each stamp an identical (wrong) balance_after, a lost-update. The real
+// spendable balance was never at risk (every consumer recomputes a live
+// SUM), but the ledger's own denormalized balance_after column would lie.
+describe("addPersistenceCredits — concurrency", () => {
+  it("a warm-pool burst of concurrent grants never stamps the same balance_after twice", async () => {
+    const acct = await createAccount("GrantRace", "grantrace@example.com", "paid");
+    const N = 10;
+    await warmPool(N);
+    const results = await Promise.all(
+      Array.from({ length: N }, () => addPersistenceCredits(acct.account_id, 1)),
+    );
+
+    expect(new Set(results).size).toBe(N); // every grant saw a DIFFERENT balance_after
+    expect(await getPersistenceBalance(acct.account_id)).toBe(N); // no lost update
+  });
+});

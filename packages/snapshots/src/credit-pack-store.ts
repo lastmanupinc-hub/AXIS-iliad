@@ -113,6 +113,13 @@ export async function markPurchaseSucceeded(
     // addPersistenceCredits via the pool, so the grant escaped this tx — a rollback
     // could flip status without granting (or grant without flipping). Inline the
     // ledger insert on the tx client so status-flip + grant are atomic.
+    // H-Phase-A cycle 6: FOR UPDATE above only locks THIS purchase's row —
+    // two DIFFERENT purchases for the SAME account (distinct paid_session_id,
+    // so no row conflict) could still race on the balance_after SUM read
+    // below. Same per-account advisory lock (namespace 1) addPersistenceCredits/
+    // meterPersistenceOp use, so every persistence_credits balance mutation
+    // for this account is now serialized regardless of which function issued it.
+    await client.query("SELECT pg_advisory_xact_lock(1, hashtext($1))", [row.account_id]);
     const balRow = await client.query<{ bal: string | number | null }>(
       "SELECT COALESCE(SUM(credits_delta), 0) AS bal FROM persistence_credits WHERE account_id = $1",
       [row.account_id],
