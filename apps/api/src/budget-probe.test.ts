@@ -463,6 +463,10 @@ describe("build402NegotiationBody", () => {
     const nextStep = body.next_step as Record<string, unknown>;
     expect(String(nextStep.immediate)).toContain("Pay $0.50");
     expect(String(nextStep.upgrade_path)).toContain("$99/month");
+    // H-Phase-A cycle 5: Pro grants a finite 300,000 monthly credit
+    // allowance, billed as metered overage beyond that — never "unlimited."
+    expect(String(nextStep.upgrade_path)).not.toContain("unlimited");
+    expect(String(nextStep.upgrade_path)).toContain("300,000");
   });
 
   it("includes x402-compatible top-level payment fields", async () => {

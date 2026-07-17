@@ -491,7 +491,13 @@ export function build402NegotiationBody(
         budget: 'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}',
         lite: "X-Agent-Mode: lite",
       },
-      upgrade_path: "Upgrade to Pro for unlimited full-bundle calls at $99/month.",
+      // H-Phase-A cycle 5: was "unlimited full-bundle calls" — Pro grants a
+      // finite 300,000 monthly credit allowance (packages/snapshots/src/
+      // pricing-constants.ts's MARKETED_TIERS), billed as metered overage via
+      // consumeUsageCredits once exhausted, not unlimited. An agent that
+      // upgraded expecting "unlimited" and burned past 300k credits/month
+      // would be billed overage it was told wouldn't happen.
+      upgrade_path: "Upgrade to Pro for 300,000 monthly credits covering full-bundle calls at $99/month (overage billed per-call beyond that).",
     },
     free_alternatives: [
       "list_programs — enumerate all 18 programs",
