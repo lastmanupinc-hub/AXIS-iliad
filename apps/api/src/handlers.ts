@@ -3275,7 +3275,7 @@ export async function handleProbeIntent(
   // precise match becomes recommendations[0] (= call_next) instead of being drowned out
   // by a wide catch-all. Every rule here closes a routing gap a 20-realistic-intent
   // probe run actually demonstrated (see HARDEN_POLISH_LOOP.md H4.5 ledger row) — this
-  // is not a speculative full 36-tool build-out.
+  // is not a speculative full 37-tool build-out.
 
   // Dispute-readiness is its own commerce sub-task, distinct from general purchasing
   // readiness — checked ahead of the broad commerce rule below so "Stripe chargeback
