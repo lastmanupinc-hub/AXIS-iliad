@@ -112,9 +112,30 @@ export interface UpgradePrompt {
 
 export const SEAT_LIMITS: Record<BillingTier, number> = {
   free: 1,        // solo only
-  paid: 5,        // small team
+  paid: 5,        // small team (Starter's advertised count — Pro's is higher, see resolveSeatLimit)
   suite: -1,      // unlimited (enterprise)
 };
+
+/**
+ * The actual seat cap for a "paid"-tier account, matching PLAN_FEATURES's
+ * publicly advertised "Team seats" row (starter:5, pro:10) instead of
+ * SEAT_LIMITS.paid's single coarse number. Starter and Pro both collapse
+ * into BillingTier "paid", so SEAT_LIMITS.paid alone caps every Pro
+ * subscriber at Starter's 5-seat count — a real Pro subscriber was capped at
+ * half their advertised 10 seats (H-Phase-A cycle 3). suite/free are NOT
+ * routed through PLAN_FEATURES here: suite is intentionally unlimited
+ * (SEAT_LIMITS.suite = -1, matching this codebase's existing "suite =
+ * enterprise" tested behavior) even though PLAN_FEATURES' "growth" column
+ * separately advertises a 25-seat figure for the (distinct, non-enterprise)
+ * Growth marketing plan — collapsing that into a hard suite-tier cap would
+ * be a real behavior regression, not a bug fix, so it's left alone.
+ */
+export function resolveSeatLimit(tier: BillingTier, paidPlanId: string | null | undefined): number {
+  if (tier !== "paid") return SEAT_LIMITS[tier];
+  const row = PLAN_FEATURES.find((f) => f.name === "Team seats");
+  const val = row?.[paidPlanId === "pro" ? "pro" : "starter"];
+  return typeof val === "number" ? val : SEAT_LIMITS.paid;
+}
 
 // ─── Plan Catalog ───────────────────────────────────────────────
 // Program totals in the copy below ("All N programs") are pinned — this package

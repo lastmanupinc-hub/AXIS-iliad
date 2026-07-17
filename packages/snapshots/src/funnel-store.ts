@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "./pg.js";
-import { getAccount, getMonthlySnapshotCount, getEntitlements } from "./billing-store.js";
+import { getAccount, getMonthlySnapshotCount, getEntitlements, getAccountPaidPlanId } from "./billing-store.js";
 import { TIER_LIMITS, ALL_PROGRAMS } from "./billing-types.js";
 import type { BillingTier } from "./billing-types.js";
 import type {
@@ -12,7 +12,7 @@ import type {
   UpgradePrompt,
 } from "./funnel-types.js";
 import {
-  SEAT_LIMITS,
+  resolveSeatLimit,
   PLAN_CATALOG,
   ACTIVATION_THRESHOLD,
   ENGAGEMENT_THRESHOLD,
@@ -30,8 +30,10 @@ export async function inviteSeat(
   const account = await getAccount(account_id);
   if (!account) throw new Error("Account not found");
 
-  // Check seat limit
-  const limit = SEAT_LIMITS[account.tier];
+  // Check seat limit — plan-aware (Starter/Pro/Growth), not just the coarse
+  // tier (H-Phase-A cycle 3: SEAT_LIMITS alone caps every Pro subscriber at
+  // Starter's 5-seat count).
+  const limit = resolveSeatLimit(account.tier, await getAccountPaidPlanId(account_id));
   if (limit !== -1) {
     const active = await getActiveSeats(account_id);
     if (active.length >= limit) {
@@ -243,16 +245,21 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
 
   // Paid → Suite upgrade
   if (account.tier === "paid") {
+    const paidPlanId = await getAccountPaidPlanId(account_id);
     const seatCount = await getSeatCount(account_id);
-    const seatLimit = SEAT_LIMITS.paid;
+    // Plan-aware (H-Phase-A cycle 3): Starter and Pro both collapse into
+    // "paid", so this used to always compare against Starter's 5-seat count
+    // even for a real Pro subscriber (whose advertised limit is 10).
+    const seatLimit = resolveSeatLimit(account.tier, paidPlanId);
+    const planName = paidPlanId === "pro" ? "Pro" : "Starter";
 
-    if (seatCount >= seatLimit) {
+    if (seatLimit !== -1 && seatCount >= seatLimit) {
       return {
         trigger: "seat_limit_reached",
         current_tier: "paid",
         recommended_tier: "suite",
         headline: "Your team is growing",
-        body: `You've filled all ${seatLimit} Pro seats. Upgrade to Enterprise Suite for unlimited seats and cross-program workflows.`,
+        body: `You've filled all ${seatLimit} ${planName} seats. Upgrade to Enterprise Suite for unlimited seats and cross-program workflows.`,
         cta_label: "Contact Sales",
         cta_url: "/enterprise",
         features_unlocked: [

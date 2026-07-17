@@ -19,7 +19,8 @@ import {
   type SeatRole,
   type FunnelEventType,
   type FunnelStage,
-  SEAT_LIMITS,
+  resolveSeatLimit,
+  getAccountPaidPlanId,
   PLAN_CATALOG,
   PLAN_FEATURES,
   sendSeatInvitation,
@@ -130,7 +131,7 @@ export async function handleInviteSeat(
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     if (message.includes("Seat limit")) {
-      const limit = SEAT_LIMITS[ctx.account!.tier];
+      const limit = resolveSeatLimit(ctx.account!.tier, await getAccountPaidPlanId(ctx.account!.account_id));
       sendError(res, 429, ErrorCode.SEAT_LIMIT, message, {
         limit,
         // H2.6 (red-team fix, WAVE-0 finding #4): every other H2.5 site
@@ -173,7 +174,7 @@ export async function handleListSeats(
     : await getActiveSeats(ctx.account!.account_id);
 
   const seatCount = await getSeatCount(ctx.account!.account_id);
-  const seatLimit = SEAT_LIMITS[ctx.account!.tier];
+  const seatLimit = resolveSeatLimit(ctx.account!.tier, await getAccountPaidPlanId(ctx.account!.account_id));
 
   sendJSON(res, 200, {
     seats: seats.map(s => ({

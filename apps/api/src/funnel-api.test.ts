@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, createAccount, createApiKey, updateAccountTier, recordUsage, SEAT_LIMITS } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey, updateAccountTier, updateAccountPaidPlanId, recordUsage, SEAT_LIMITS } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import {
@@ -433,6 +433,21 @@ describe("POST /v1/account/seats (invite)", () => {
     expect((res.data as Record<string, unknown>).message).toBe((res.data as Record<string, unknown>).error);
     expect((res.data as Record<string, unknown>).upgrade_url).toBe("https://iliad.trustfabric.ai/#plans");
   });
+
+  // H-Phase-A cycle 3: enforcement (not just the GET listing) must also
+  // respect the Pro seat limit — a Pro subscriber must be able to invite up
+  // to 10 seats, not get rejected at Starter's 5th.
+  it("a Pro-plan account can invite past Starter's 5-seat cap, up to Pro's 10", async () => {
+    const { account_id, rawKey } = await createAuthenticatedAccount("SeatCapPro", "seat-cap-pro@example.com", "paid");
+    await updateAccountPaidPlanId(account_id, "pro");
+    for (let i = 0; i < 10; i++) {
+      const r = await req("POST", "/v1/account/seats", { email: `procap${i}@example.com` }, rawKey);
+      expect(r.status).toBe(201);
+    }
+    const overflow = await req("POST", "/v1/account/seats", { email: "pro-overflow@example.com" }, rawKey);
+    expect(overflow.status).toBe(429);
+    expect((overflow.data as Record<string, unknown>).limit).toBe(10);
+  });
 });
 
 // ─── Seat List ──────────────────────────────────────────────────
@@ -475,6 +490,31 @@ describe("GET /v1/account/seats", () => {
     const data = res.data as Record<string, unknown>;
     expect(data.limit).toBe("unlimited");
     expect(data.remaining).toBe("unlimited");
+  });
+
+  // ─── H-Phase-A cycle 3: Pro's seat limit was silently capped at Starter's ──
+  //
+  // Starter and Pro both collapse into BillingTier "paid", so SEAT_LIMITS.paid
+  // (5, Starter's advertised count) alone was used for every paid-tier
+  // account regardless of paid_plan_id — a real Pro subscriber (advertised
+  // 10 seats in PLAN_FEATURES) was capped at 5, half what they're paying for.
+  it("a Pro-plan account shows the Pro seat limit (10), not Starter's 5", async () => {
+    const { account_id, rawKey } = await createAuthenticatedAccount("ProLister", "pro-lister@example.com", "paid");
+    await updateAccountPaidPlanId(account_id, "pro");
+    const res = await req("GET", "/v1/account/seats", undefined, rawKey);
+    expect(res.status).toBe(200);
+    const data = res.data as Record<string, unknown>;
+    expect(data.limit).toBe(10);
+    expect(data.limit).not.toBe(SEAT_LIMITS.paid);
+  });
+
+  it("a Starter-plan account (no paid_plan_id set) still shows the 5-seat limit", async () => {
+    const { rawKey } = await createAuthenticatedAccount("StarterLister", "starter-lister@example.com", "paid");
+    const res = await req("GET", "/v1/account/seats", undefined, rawKey);
+    expect(res.status).toBe(200);
+    const data = res.data as Record<string, unknown>;
+    expect(data.limit).toBe(SEAT_LIMITS.paid);
+    expect(data.limit).toBe(5);
   });
 
   it("returns count and remaining for paid tier", async () => {
