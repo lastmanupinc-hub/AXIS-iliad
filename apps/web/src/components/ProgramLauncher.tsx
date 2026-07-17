@@ -5,7 +5,6 @@ import { downloadExport, getAccount, ApiError } from "../api.ts";
 import { PROGRAM_COUNT } from "../config.ts";
 
 interface Props {
-  snapshotId: string;
   generatedFiles: GeneratedFile[];
   /** WO-P7: `opts.lite` forwards to runProgram's X-Agent-Mode: lite pricing
    *  lever — see the "Lite mode" toggle below. */
@@ -50,16 +49,26 @@ export const PROGRAMS: ProgramDef[] = [
   { name: "deploy", label: "Deploy", description: "Dockerfile, render.yaml, deploy scripts, Cloudflare worker config", endpoint: "deploy/generate", tier: "pro" },
 ];
 
-export function ProgramLauncher({ snapshotId, generatedFiles, onRun, onOpenRunner }: Props) {
+export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) {
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tier, setTier] = useState<BillingTier>("free");
+  // H-Phase-A cycle 5: tier starts "free" and only resolves to the real
+  // value after this async getAccount() call — without a resolved flag,
+  // every Pro subscriber saw every Pro program card locked (opacity 0.55,
+  // cursor not-allowed, clicks silently no-op) until the fetch completed, on
+  // the app's most-visited page (ProjectPage). RunnerPage/AnalyzePage don't
+  // have this bug because neither pre-locks client-side — both submit and
+  // let the server's actual 402/TIER_REQUIRED response drive the UI, which
+  // is also the safe default here: while unresolved, `locked` treats the
+  // account as NOT free-tier (server enforcement is authoritative either way).
+  const [tierResolved, setTierResolved] = useState(false);
   // WO-P7: the one real option this quick-launch surface offers — the full
   // per-project/per-output picker lives in the Program Runner (onOpenRunner).
   const [liteMode, setLiteMode] = useState(false);
 
   useEffect(() => {
-    getAccount().then(a => setTier(a.tier)).catch(() => {});
+    getAccount().then(a => setTier(a.tier)).catch(() => {}).finally(() => setTierResolved(true));
   }, []);
 
   const filesPerProgram = new Map<string, number>();
@@ -144,7 +153,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun, onOpenRunne
               program={p}
               fileCount={filesPerProgram.get(p.name) ?? 0}
               running={running === p.name}
-              locked={tier === "free"}
+              locked={tierResolved && tier === "free"}
               onRun={() => handleRun(p)}
               onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
             />

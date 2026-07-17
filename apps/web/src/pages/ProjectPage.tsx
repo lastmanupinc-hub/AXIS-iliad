@@ -262,7 +262,6 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
         )}
         {activeTab === "Programs" && (
           <ProgramLauncher
-            snapshotId={result.snapshot_id}
             generatedFiles={generatedFiles}
             onRun={handleRunProgram}
             onOpenRunner={onOpenRunner}
