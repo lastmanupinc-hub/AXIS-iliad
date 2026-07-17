@@ -2366,6 +2366,91 @@ describe("POST /mcp — tools/call prepare_agentic_purchasing (MCP transport)", 
     const content = result.content as Array<{ type: string; text: string }>;
     expect(content[0].text).toContain("frameworks");
   });
+
+  // ─── Lite mode withholds the artifact bundle (H-Phase-A cycle 1) ──
+  //
+  // lite_description promises "purchasing readiness score + top 3 gaps only
+  // (no full artifact bundle)". Before this fix, artifacts/purchasing_artifacts/
+  // all_artifact_paths were returned unfiltered in every mode -- a fully-
+  // entitled account paying the $0.25 lite price still got the full $0.50
+  // deliverable. apiKey is suite tier (all 20 programs enabled), so it's the
+  // only account shape that reaches generation at all (an under-entitled
+  // account 402s before this point, in every mode).
+  const purchasingFiles = [
+    { path: "index.ts", content: "export const app = { checkout: () => {} };" },
+    { path: "package.json", content: '{"name":"lite-test","dependencies":{"stripe":"^14.0.0"}}' },
+  ];
+
+  it("lite mode withholds the full artifact bundle, keeping only score + top-3 gaps", async () => {
+    const r = await postWithHeaders(
+      "/mcp",
+      {
+        jsonrpc: "2.0",
+        id: 123,
+        method: "tools/call",
+        params: {
+          name: "prepare_agentic_purchasing",
+          arguments: {
+            project_name: "lite-purchasing-test",
+            project_type: "web_application",
+            frameworks: ["express"],
+            goals: ["secure checkout"],
+            files: purchasingFiles,
+          },
+        },
+      },
+      { Authorization: `Bearer ${apiKey}`, "X-Agent-Mode": "lite" },
+    );
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.summary.compliance_depth).toBe("summary");
+    expect(typeof parsed.summary.purchasing_readiness_score).toBe("number");
+    expect(Array.isArray(parsed.summary.gaps)).toBe(true);
+    expect(parsed.summary.gaps.length).toBeLessThanOrEqual(3);
+    // The bundle itself must be gone, not just documented as truncated.
+    expect(parsed.artifacts).toBeUndefined();
+    expect(parsed.purchasing_artifacts).toBeUndefined();
+    expect(parsed.all_artifact_paths).toBeUndefined();
+    expect(typeof parsed.artifacts_note).toBe("string");
+    // artifact_count (a bare number, not content) is legitimate lite metadata.
+    expect(typeof parsed.artifact_count).toBe("number");
+    expect(parsed.artifact_count).toBeGreaterThan(0);
+  });
+
+  it("standard mode still returns the full artifact bundle (no regression)", async () => {
+    const r = await post(
+      "/mcp",
+      {
+        jsonrpc: "2.0",
+        id: 124,
+        method: "tools/call",
+        params: {
+          name: "prepare_agentic_purchasing",
+          arguments: {
+            project_name: "standard-purchasing-test",
+            project_type: "web_application",
+            frameworks: ["express"],
+            goals: ["secure checkout"],
+            files: purchasingFiles,
+          },
+        },
+      },
+      apiKey,
+    );
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.summary.compliance_depth).toBe("full");
+    expect(parsed.artifacts).toBeDefined();
+    expect(Array.isArray(parsed.purchasing_artifacts)).toBe(true);
+    expect(Array.isArray(parsed.all_artifact_paths)).toBe(true);
+    expect(parsed.artifacts_note).toBeUndefined();
+  });
 });
 
 // ─── _usage field in tools/call responses ────────────────────────

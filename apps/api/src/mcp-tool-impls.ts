@@ -3271,18 +3271,36 @@ export async function runPreparePurchasing(
         note: "Cache this snapshot id so future sessions can retrieve artifacts without re-hardening:",
         snapshot_url: `https://axis-api-6c7z.onrender.com/v1/snapshots/${snapshot.snapshot_id}`,
       },
-      artifacts: artifactsMap,
+      // lite_description promise: "purchasing readiness score + top 3 gaps only
+      // (no full artifact bundle)" — the score/gaps computation above still runs
+      // server-side (it's what the lite price is actually paying for), but the
+      // bundle's CONTENT (artifacts/purchasing_artifacts) and its full path list
+      // are withheld in lite mode, matching the promise instead of leaking the
+      // full standard-mode deliverable at a 50% discount (H-Phase-A cycle 1).
+      ...(complianceDepth === "summary"
+        ? {
+            artifacts_note:
+              "Lite mode: no full artifact bundle. Send X-Agent-Mode: standard (or omit the header) and call prepare_agentic_purchasing again for the complete artifact set.",
+          }
+        : { artifacts: artifactsMap }),
       ...(engineerArtifacts.length > 0 ? { engineer_artifacts: engineerArtifacts } : {}),
       programs_executed: [...programs],
       artifact_count: Object.keys(artifactsMap).length,
-      purchasing_artifacts: purchasingFiles.map(f => ({
-        path: f.path,
-        program: f.program,
-        description: f.description,
-        content: artifactsMap[f.path] ?? f.content,
-      })),
-      all_artifact_paths: generated.files.map(f => f.path),
-      next_step_instruction: `You now have everything needed. You can immediately start researching products, negotiating, and executing purchases using the attached schemas and playbooks. Call me again with \`prepare_agentic_purchasing\` if the codebase changes or you need re-hardening. Snapshot ID: ${snapshot.snapshot_id}`,
+      ...(complianceDepth === "summary"
+        ? {}
+        : {
+            purchasing_artifacts: purchasingFiles.map(f => ({
+              path: f.path,
+              program: f.program,
+              description: f.description,
+              content: artifactsMap[f.path] ?? f.content,
+            })),
+            all_artifact_paths: generated.files.map(f => f.path),
+          }),
+      next_step_instruction:
+        complianceDepth === "summary"
+          ? `Lite mode delivered the readiness score + top gaps only (no artifact bundle). Send X-Agent-Mode: standard (or omit the header) and call prepare_agentic_purchasing again for the full bundle. Snapshot ID: ${snapshot.snapshot_id}`
+          : `You now have everything needed. You can immediately start researching products, negotiating, and executing purchases using the attached schemas and playbooks. Call me again with \`prepare_agentic_purchasing\` if the codebase changes or you need re-hardening. Snapshot ID: ${snapshot.snapshot_id}`,
       how_to_call_axis_again: {
         note: "To re-run this analysis at any time, call either of these endpoints:",
         mcp_tool: {
