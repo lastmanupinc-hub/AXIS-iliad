@@ -26,8 +26,14 @@ export interface GrowthSnapshot {
      * ESTIMATE — never conflate with `settled_mrr_cents`, the code-derived figure.
      */
     estimated_mrr_cents: number;
-    /** Per-tier monthly price (cents) used for the estimate — exposed so the number is auditable. */
-    mrr_basis_cents: { paid: number; suite: number };
+    /**
+     * Per-plan monthly price (cents) used for the estimate — exposed so the
+     * number is auditable. Starter and Pro both collapse into the coarse
+     * "paid" BillingTier, so they're split here via paid_plan_id
+     * (H-Phase-A cycle 2 — this used to be a single flat `paid` price that
+     * always assumed Starter, undercounting every real Pro subscriber).
+     */
+    mrr_basis_cents: { starter: number; pro: number; suite: number };
     /** Concrete: usage-credit OVERAGE billed this calendar month (real metered revenue). */
     metered_overage_cents_this_month: number;
     /** Concrete: active or trialing subscriptions on record. */
@@ -62,9 +68,9 @@ export interface GrowthSnapshot {
   };
 }
 
-// MRR estimate assumptions: paid ≈ Starter ($29), suite ≈ Growth ($299).
-// Adjust here if the tier↔plan mapping changes; the value is echoed in mrr_basis_cents.
-const TIER_MONTHLY_CENTS = { paid: 2900, suite: 29900 } as const;
+// MRR estimate assumptions: starter ($29), pro ($99), suite ≈ Growth ($299).
+// Adjust here if the plan↔price mapping changes; the value is echoed in mrr_basis_cents.
+const PLAN_MONTHLY_CENTS = { starter: 2900, pro: 9900, suite: 29900 } as const;
 
 /** A growth + revenue snapshot computed entirely from local data (no external calls). */
 export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthSnapshot> {
@@ -81,15 +87,22 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
     total: string | number;
     free: string | number | null;
     paid: string | number | null;
+    paid_pro: string | number | null;
     suite: string | number | null;
   }>(
     `SELECT COUNT(*) as total,
             SUM(CASE WHEN tier='free'  THEN 1 ELSE 0 END) as free,
             SUM(CASE WHEN tier='paid'  THEN 1 ELSE 0 END) as paid,
+            SUM(CASE WHEN tier='paid' AND paid_plan_id='pro' THEN 1 ELSE 0 END) as paid_pro,
             SUM(CASE WHEN tier='suite' THEN 1 ELSE 0 END) as suite
        FROM accounts`,
   ))!;
   const paid = Number(tiers.paid ?? 0);
+  // Starter/Pro both collapse into tier==='paid' — paidPro is the subset
+  // with paid_plan_id='pro' (H-Phase-A cycle 1); the rest default to
+  // Starter, matching resolvePlanForAccount's own fallback.
+  const paidPro = Number(tiers.paid_pro ?? 0);
+  const paidStarter = paid - paidPro;
   const suite = Number(tiers.suite ?? 0);
 
   // 1 credit = 0.18 cents (18/100); match consumeUsageCredits' ceil rounding.
@@ -155,8 +168,8 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
       new_30d: await since(30 * DAY),
     },
     revenue: {
-      estimated_mrr_cents: paid * TIER_MONTHLY_CENTS.paid + suite * TIER_MONTHLY_CENTS.suite,
-      mrr_basis_cents: { paid: TIER_MONTHLY_CENTS.paid, suite: TIER_MONTHLY_CENTS.suite },
+      estimated_mrr_cents: paidStarter * PLAN_MONTHLY_CENTS.starter + paidPro * PLAN_MONTHLY_CENTS.pro + suite * PLAN_MONTHLY_CENTS.suite,
+      mrr_basis_cents: { starter: PLAN_MONTHLY_CENTS.starter, pro: PLAN_MONTHLY_CENTS.pro, suite: PLAN_MONTHLY_CENTS.suite },
       metered_overage_cents_this_month: Math.ceil((overage * 18) / 100),
       active_subscriptions: activeSubs,
       settled_mrr_cents: Number(settledTrailing?.total ?? 0),

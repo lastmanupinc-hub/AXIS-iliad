@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
-import { createAccount } from "./billing-store.js";
+import { createAccount, updateAccountPaidPlanId } from "./billing-store.js";
 import { consumeUsageCredits } from "./usage-credit-metering.js";
 import { recordSettledPayment } from "./payment-receipts-store.js";
 import { recordCompensationOwed, claimCompensationForCredit } from "./compensation-store.js";
@@ -36,11 +36,26 @@ describe("getGrowthSnapshot", () => {
     expect(s.accounts).toMatchObject({ total: 3, free: 1, paid: 1, suite: 1 });
     expect(s.accounts.new_24h).toBe(3); // all created just now
     expect(s.accounts.new_7d).toBe(3);
-    expect(s.revenue.mrr_basis_cents).toEqual({ paid: 2900, suite: 29900 });
+    expect(s.revenue.mrr_basis_cents).toEqual({ starter: 2900, pro: 9900, suite: 29900 });
+    // No paid_plan_id set — defaults to Starter, matching resolvePlanForAccount.
     expect(s.revenue.estimated_mrr_cents).toBe(2900 + 29900);
     // Zero settled payments — the live figure stays $0 even though the estimate is non-zero.
     expect(s.revenue.settled_mrr_cents).toBe(0);
     expect(s.revenue.payment_conversion_rate).toBe(0);
+  });
+
+  // H-Phase-A cycle 2: Starter and Pro both collapse into tier==='paid', so
+  // the estimate previously always priced every "paid" account at Starter's
+  // $29 — undercounting every real Pro subscriber's contribution to MRR.
+  it("prices a Pro subscriber at $99, not Starter's $29, in the MRR estimate", async () => {
+    await createAccount("Starter", "starter@x.com", "paid");
+    const proAcct = await createAccount("Pro", "pro@x.com", "paid");
+    await updateAccountPaidPlanId(proAcct.account_id, "pro");
+
+    const s = await getGrowthSnapshot();
+    expect(s.accounts).toMatchObject({ paid: 2 });
+    // starter@$29 + pro@$99, not 2 * $29.
+    expect(s.revenue.estimated_mrr_cents).toBe(2900 + 9900);
   });
 
   it("counts metered overage billed this month as concrete revenue", async () => {

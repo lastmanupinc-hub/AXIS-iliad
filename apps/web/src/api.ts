@@ -1629,7 +1629,7 @@ export interface AdminRevenue {
   revenue: {
     /** Tier-count ESTIMATE — never conflate with settled_mrr_cents below. */
     estimated_mrr_cents: number;
-    mrr_basis_cents: { paid: number; suite: number };
+    mrr_basis_cents: { starter: number; pro: number; suite: number };
     metered_overage_cents_this_month: number;
     active_subscriptions: number;
     /** SETTLED (WO-19): real money, trailing 30 days. Reads $0 until a payment actually settles. */

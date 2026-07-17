@@ -33,7 +33,7 @@ function emptyAdminResponses(): Record<string, unknown> {
       generated_at: "2026-01-01",
       accounts: { total: 0, free: 0, paid: 0, suite: 0, new_24h: 0, new_7d: 0, new_30d: 0 },
       revenue: {
-        estimated_mrr_cents: 0, mrr_basis_cents: { paid: 0, suite: 0 }, metered_overage_cents_this_month: 0,
+        estimated_mrr_cents: 0, mrr_basis_cents: { starter: 0, pro: 0, suite: 0 }, metered_overage_cents_this_month: 0,
         active_subscriptions: 0, settled_mrr_cents: 0, settled_revenue_cents_all_time: 0, revenue_by_tool: [],
         first_paid_call_at: null, paying_account_count: 0, payment_conversion_rate: 0,
       },

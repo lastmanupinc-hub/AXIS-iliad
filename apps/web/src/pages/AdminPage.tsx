@@ -137,8 +137,9 @@ export function AdminPage() {
             payments (metered overage collection + card/USDC receipts) — a true $0 until the first
             dollar settles, then it rises on its own
             {revenue.revenue.first_paid_call_at ? ` (first settled: ${new Date(revenue.revenue.first_paid_call_at).toLocaleDateString()})` : ""}.
-            "Estimated MRR" is a separate, transparent tier-count estimate (paid×$
-            {revenue.revenue.mrr_basis_cents.paid / 100} + suite×${revenue.revenue.mrr_basis_cents.suite / 100}) — never conflate the two.
+            "Estimated MRR" is a separate, transparent plan-count estimate (starter×$
+            {revenue.revenue.mrr_basis_cents.starter / 100} + pro×${revenue.revenue.mrr_basis_cents.pro / 100} + suite×$
+            {revenue.revenue.mrr_basis_cents.suite / 100}) — never conflate the two.
           </p>
         </div>
       )}

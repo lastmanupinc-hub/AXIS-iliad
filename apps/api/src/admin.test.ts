@@ -185,7 +185,7 @@ describe("GET /v1/admin/revenue", () => {
     expect(r.status).toBe(200);
     const d = r.data as any;
     expect(d.accounts.total).toBeGreaterThanOrEqual(2); // admin + regular from setup
-    expect(d.revenue.mrr_basis_cents).toEqual({ paid: 2900, suite: 29900 });
+    expect(d.revenue.mrr_basis_cents).toEqual({ starter: 2900, pro: 9900, suite: 29900 });
     expect(typeof d.revenue.estimated_mrr_cents).toBe("number");
     expect(typeof d.revenue.metered_overage_cents_this_month).toBe("number");
     expect(typeof d.funnel.conversion_rate).toBe("number");
