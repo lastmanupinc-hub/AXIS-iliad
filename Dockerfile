@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
@@ -9,12 +9,12 @@ COPY apps ./apps
 COPY packages ./packages
 RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm install --frozen-lockfile
 
-FROM node:22-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app /app
 RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm run build
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:26-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN groupadd -r axis && useradd -r -g axis axis
