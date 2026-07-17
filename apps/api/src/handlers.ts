@@ -426,6 +426,14 @@ export async function handleCreateSnapshot(
       }
     }
 
+    // H-Phase-A cycle 5: the quota-exceeded charge below and the program-
+    // entitlement charge further down used to both fire unconditionally when
+    // BOTH conditions were true for the same call (over quota AND requesting
+    // a program the tier doesn't include) — an account was billed twice for
+    // one snapshot creation. paidForThisCall tracks a successful charge from
+    // EITHER branch so the second never re-charges (same shape/fix as the
+    // cycle-4 Firecrawl double-charge).
+    let paidForThisCall = false;
     const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
@@ -463,6 +471,7 @@ export async function handleCreateSnapshot(
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
+        paidForThisCall = true;
       }
     }
     /* v8 ignore stop */
@@ -480,7 +489,7 @@ export async function handleCreateSnapshot(
         }
       }
     }
-    if (requestedPro.size > 0) {
+    if (requestedPro.size > 0 && !paidForThisCall) {
       const proList = [...requestedPro].sort();
 
       // Offer MPP per-call payment before returning static 402
@@ -1556,6 +1565,15 @@ export async function handleAnalyze(
       }
     }
 
+    // H-Phase-A cycle 5: the entitlement charge below and the quota-exceeded
+    // charge further down used to both fire unconditionally when BOTH
+    // conditions were true for the same request (missing program access AND
+    // over quota) — an account was billed twice for one analyze call.
+    // paidForThisCall tracks a successful charge from EITHER branch so the
+    // second never re-charges (same shape/fix as the cycle-4 Firecrawl and
+    // cycle-5 handleCreateSnapshot double-charges).
+    let paidForThisCall = false;
+
     // Enforce program-level billing next: check which paid programs the user lacks access to.
     if (requestedPaidPrograms.length > 0) {
       const requestedPaidProgramsEnabled = await Promise.all(
@@ -1585,12 +1603,13 @@ export async function handleAnalyze(
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
+        paidForThisCall = true;
       }
     }
 
     const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path */
-    if (!quota.allowed) {
+    if (!quota.allowed && !paidForThisCall) {
       await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
       const budget = parseAgentBudget(req);
       const mode = resolveAgentMode(req);
@@ -1936,6 +1955,15 @@ export async function handlePreparePurchasing(
     files.push({ path, content: file.content as string, size: Buffer.byteLength(file.content as string, "utf-8") });
   }
 
+  // H-Phase-A cycle 5: the entitlement charge below and the quota-exceeded
+  // charge further down used to both fire unconditionally when BOTH
+  // conditions were true for the same request (missing program access AND
+  // over quota) — an account was billed twice for one prepare_agentic_
+  // purchasing call. paidForThisCall tracks a successful charge from EITHER
+  // branch so the second never re-charges (same shape/fix as the cycle-4
+  // Firecrawl and cycle-5 handleCreateSnapshot/handleAnalyze double-charges).
+  let paidForThisCall = false;
+
   // Billing gate ï¿½ the hardener runs pro programs, so require auth + entitlement
   const proPrograms = PURCHASING_PROGRAMS.filter(p => !FREE_PROGRAMS.has(p));
   if (proPrograms.length > 0) {
@@ -1976,13 +2004,14 @@ export async function handlePreparePurchasing(
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
+      paidForThisCall = true;
     }
   }
 
   if (auth.account) {
     const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path */
-    if (!quota.allowed) {
+    if (!quota.allowed && !paidForThisCall) {
       const budget = parseAgentBudget(req);
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier("prepare_agentic_purchasing");
