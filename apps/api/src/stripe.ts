@@ -24,7 +24,9 @@ import {
   listSubscriptionsByAccount,
   updateSubscriptionStatus,
   priceToTier,
+  priceToPlanId,
   updateAccountTier,
+  updateAccountPaidPlanId,
   logTierChange,
   trackEvent,
   getAccount,
@@ -223,7 +225,20 @@ async function syncTierFromStripeSubscription(
   if (!newTier || newTier === previousTier) return;
 
   await updateAccountTier(accountId, newTier);
+  // logTierChange reads the account's CURRENT paid_plan_id (still the OLD
+  // plan at this point) to price the "from" side of the proration it logs —
+  // must run before updateAccountPaidPlanId below, mirroring paid-handlers.ts's
+  // established ordering (H-Phase-A cycle 2).
   await logTierChange(accountId, previousTier, newTier, "stripe_webhook", { status });
+  // Starter/Pro both collapse into newTier==='paid' — persist the specific
+  // plan so resolvePlanForAccount can tell them apart, same as the PAI'D
+  // checkout webhook (H-Phase-A cycle 1). This path predates PAI'D and the
+  // live web UI never reaches it (PAI'D is the only checkout it calls), but
+  // it's still a live, tested route (POST /v1/checkout + this webhook) any
+  // direct API caller or pre-PAI'D legacy subscriber can hit — without this,
+  // an account tier-synced here would silently fall back to Starter's
+  // allowance even if actually paying Pro.
+  await updateAccountPaidPlanId(accountId, newTier === "free" ? null : priceToPlanId(priceId));
   await trackEvent(
     accountId,
     newTier === "free" ? "downgrade_completed" : "upgrade_completed",

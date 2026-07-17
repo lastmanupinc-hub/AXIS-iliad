@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { resetTestDb, getSubscription, getAccount } from "@axis/snapshots";
+import { resetTestDb, getSubscription, getAccount, getAccountPaidPlanId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -218,6 +218,64 @@ describe("Stripe webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     expect(r.data.event).toBe("customer.subscription.updated");
+  });
+
+  // ─── H-Phase-A cycle 2: this legacy Stripe-direct sync path never wrote ──
+  // paid_plan_id, reintroducing cycle 1's Pro-metered-as-Starter bug for any
+  // account tier-synced through it. Starter/Pro both map to tier==="paid",
+  // so priceToPlanId (which already distinguishes them) must be persisted
+  // alongside updateAccountTier, same as the PAI'D checkout webhook.
+  it("persists paid_plan_id='pro' when a subscription syncs via a Pro-priced item (H-Phase-A cycle 2)", async () => {
+    process.env.STRIPE_PRICE_ID_PRO = "price_pro_direct_999";
+    try {
+      const { account } = await createTestAccount("stripe-pro", "stripe-pro@test.com");
+      const accountId = account.account_id as string;
+
+      const payload = JSON.stringify(
+        buildSubscriptionPayload("customer.subscription.updated", "sub_pro_direct", accountId, {
+          items: { data: [{ price: { id: "price_pro_direct_999" } }] },
+        }),
+      );
+      const r = await req("POST", "/v1/webhooks/stripe", payload, {
+        "stripe-signature": signStripePayload(payload),
+      });
+
+      expect(r.status).toBe(200);
+      expect((await getAccount(accountId))?.tier).toBe("paid");
+      expect(await getAccountPaidPlanId(accountId)).toBe("pro");
+    } finally {
+      delete process.env.STRIPE_PRICE_ID_PRO;
+    }
+  });
+
+  it("clears paid_plan_id when a subscription syncs to free (canceled)", async () => {
+    process.env.STRIPE_PRICE_ID_PRO = "price_pro_cancel_999";
+    try {
+      const { account } = await createTestAccount("stripe-pro-cancel", "stripe-pro-cancel@test.com");
+      const accountId = account.account_id as string;
+
+      const upPayload = JSON.stringify(
+        buildSubscriptionPayload("customer.subscription.updated", "sub_pro_cancel", accountId, {
+          items: { data: [{ price: { id: "price_pro_cancel_999" } }] },
+        }),
+      );
+      await req("POST", "/v1/webhooks/stripe", upPayload, { "stripe-signature": signStripePayload(upPayload) });
+      expect(await getAccountPaidPlanId(accountId)).toBe("pro");
+
+      const cancelPayload = JSON.stringify(
+        buildSubscriptionPayload("customer.subscription.deleted", "sub_pro_cancel", accountId, {
+          items: { data: [{ price: { id: "price_pro_cancel_999" } }] },
+          status: "canceled",
+        }),
+      );
+      const r = await req("POST", "/v1/webhooks/stripe", cancelPayload, { "stripe-signature": signStripePayload(cancelPayload) });
+
+      expect(r.status).toBe(200);
+      expect((await getAccount(accountId))?.tier).toBe("free");
+      expect(await getAccountPaidPlanId(accountId)).toBeNull();
+    } finally {
+      delete process.env.STRIPE_PRICE_ID_PRO;
+    }
   });
 
   it("stores the price the customer ACTUALLY bought when env prices rotated between checkout and webhook (H0.5)", async () => {
