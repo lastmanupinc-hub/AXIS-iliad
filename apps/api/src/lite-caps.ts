@@ -166,6 +166,14 @@ const LITE_RULES: Record<string, readonly LiteRule[]> = {
   ],
 };
 
+// H-Phase-A cycle 5: lite-caps.test.ts's LITE_CAPPED_TOOLS used to be a
+// hand-declared array with no structural link to LITE_RULES (which was
+// entirely private) — a tool added here with real enforcement rules could
+// ship completely untested (no compile error, no runtime canary) if the test
+// file's own list wasn't also updated. Exported so the test derives its tool
+// list from the real table instead of duplicating it.
+export const LITE_CAPPED_TOOL_NAMES: readonly string[] = Object.keys(LITE_RULES);
+
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }

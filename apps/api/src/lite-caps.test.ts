@@ -76,7 +76,7 @@ vi.mock("./local-embeddings.js", async (importOriginal) => {
   };
 });
 
-import { applyLiteCaps, LITE_CAPS } from "./lite-caps.js";
+import { applyLiteCaps, LITE_CAPS, LITE_CAPPED_TOOL_NAMES } from "./lite-caps.js";
 import { LITE_CRAWL_MAX_PAGES } from "./handlers.js";
 import { PRICING_TIERS } from "@axis/mpp";
 import { dispatch } from "./mcp-server.js";
@@ -84,6 +84,15 @@ import { runCompletion } from "./llm-inference.js";
 import { computeEmbeddings } from "./embeddings.js";
 import * as snapshots from "@axis/snapshots";
 
+// H-Phase-A cycle 5: LITE_CAPPED_TOOLS used to have no structural link to
+// LITE_RULES (the real enforcement table in lite-caps.ts, which was entirely
+// private) — a tool added there with real enforcement rules could ship
+// completely untested if this list wasn't also updated by hand, with zero
+// compile error and zero runtime canary. Kept as a literal `as const` tuple
+// (OVER_CAP_ARGS below needs the specific per-tool literal keys for its own
+// type safety, which a plain `readonly string[]` can't provide), but a
+// canary test asserts its contents match the real, exported
+// LITE_CAPPED_TOOL_NAMES exactly.
 const LITE_CAPPED_TOOLS = [
   "iliad_object_storage",
   "iliad_vector_database",
@@ -96,6 +105,12 @@ const LITE_CAPPED_TOOLS = [
   "iliad_web_search",
   "iliad_web_research_crawl",
 ] as const;
+
+describe("LITE_CAPPED_TOOLS — stays in sync with the real LITE_RULES table", () => {
+  it("has exactly the same tool set as lite-caps.ts's own LITE_CAPPED_TOOL_NAMES", () => {
+    expect([...LITE_CAPPED_TOOLS].sort()).toEqual([...LITE_CAPPED_TOOL_NAMES].sort());
+  });
+});
 
 /** Over-cap args per tool — used by the pass-through tests. */
 const OVER_CAP_ARGS: Record<(typeof LITE_CAPPED_TOOLS)[number], Record<string, unknown>> = {
