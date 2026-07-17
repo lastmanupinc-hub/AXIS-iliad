@@ -9,6 +9,8 @@ import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
 import {
   handlePreparePurchasing,
+  handleGetGeneratedFiles,
+  handleGetGeneratedFile,
   computePurchasingReadinessScore,
   PURCHASING_PROGRAMS,
   PURCHASING_READINESS_WEIGHTS,
@@ -81,6 +83,8 @@ beforeAll(async () => {
   suiteApiKey = suiteKey.rawKey;
   const router = new Router();
   router.post("/v1/prepare-for-agentic-purchasing", handlePreparePurchasing);
+  router.get("/v1/projects/:project_id/generated-files", handleGetGeneratedFiles);
+  router.get("/v1/projects/:project_id/generated-files/:file_path*", handleGetGeneratedFile);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -468,6 +472,59 @@ describe("POST /v1/prepare-for-agentic-purchasing — lite mode withholds the bu
   });
 });
 
+// ─── Lite mode's withheld bundle is not retrievable after the fact
+// (H-Phase-A cycle 3) ────────────────────────────────────────────
+//
+// The response-layer redaction above (cycle 2) is not enough on its own:
+// GET /v1/projects/:id/generated-files(/:file_path) checks ONLY project
+// ownership, with no mode/charge/entitlement awareness at all — so a lite
+// caller could previously fetch the exact pro-program bundle this same call's
+// own response just withheld, by simply reading the snapshot back afterward.
+// The fix persists only the free-program files' full content when lite mode
+// applies, so these endpoints have nothing pro-tier left to serve.
+describe("lite mode's withheld bundle cannot be retrieved via generated-files afterward", () => {
+  it("pro-program files (e.g. agentic-purchasing) are absent from generated-files and 404 individually", async () => {
+    const r = await req(
+      "POST",
+      "/v1/prepare-for-agentic-purchasing",
+      validBody,
+      suiteApiKey,
+      { "X-Agent-Mode": "lite" },
+    );
+    expect(r.status).toBe(201);
+    const lite = r.data as Record<string, unknown>;
+    const projectId = lite.project_id as string;
+
+    const listing = await req("GET", `/v1/projects/${projectId}/generated-files`, undefined, suiteApiKey);
+    expect(listing.status).toBe(200);
+    const listData = listing.data as { files: Array<{ path: string; program: string }> };
+    expect(listData.files.some(f => f.program === "agentic-purchasing")).toBe(false);
+    // Free programs (search/skills/debug) remain — proves this isn't just an
+    // empty bundle, only the pro-tier content was stripped.
+    expect(listData.files.some(f => f.program === "debug")).toBe(true);
+
+    const single = await req(
+      "GET",
+      `/v1/projects/${projectId}/generated-files/agent-purchasing-playbook.md`,
+      undefined,
+      suiteApiKey,
+    );
+    expect(single.status).toBe(404);
+  });
+
+  it("standard mode's full bundle IS retrievable afterward (contrast case)", async () => {
+    const r = await req("POST", "/v1/prepare-for-agentic-purchasing", validBody, suiteApiKey);
+    expect(r.status).toBe(201);
+    const std = r.data as Record<string, unknown>;
+    const projectId = std.project_id as string;
+
+    const listing = await req("GET", `/v1/projects/${projectId}/generated-files`, undefined, suiteApiKey);
+    expect(listing.status).toBe(200);
+    const listData = listing.data as { files: Array<{ path: string; program: string }> };
+    expect(listData.files.some(f => f.program === "agentic-purchasing")).toBe(true);
+  });
+});
+
 // ─── MCP_TOOLS — prepare_agentic_purchasing schema ──────────────
 
 describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
@@ -578,5 +635,60 @@ describe("dispatch — prepare_agentic_purchasing auth gate", () => {
     expect("result" in result).toBe(true);
     const r = (result as { result: { isError: boolean } }).result;
     expect(r.isError).toBe(true);
+  });
+});
+
+// ─── MCP twin: lite mode's withheld bundle is not retrievable via
+// get_snapshot/get_artifact afterward (H-Phase-A cycle 3) ────────
+//
+// Same vulnerability as the REST twin above: get_snapshot/get_artifact check
+// ONLY snapshot ownership, with no mode/charge/entitlement awareness — so a
+// lite MCP caller could previously fetch the pro-program bundle its own
+// prepare_agentic_purchasing response just withheld.
+describe("dispatch — lite mode's withheld bundle cannot be retrieved via get_snapshot/get_artifact", () => {
+  function fakeReq(extraHeaders: Record<string, string> = {}) {
+    return {
+      headers: { authorization: `Bearer ${suiteApiKey}`, ...extraHeaders },
+    } as unknown as import("node:http").IncomingMessage;
+  }
+
+  it("get_snapshot's artifact listing excludes pro programs; get_artifact 404s a pro-program path", async () => {
+    const prepResult = await dispatch(
+      "tools/call",
+      {
+        name: "prepare_agentic_purchasing",
+        arguments: {
+          project_name: "mcp-lite-retrieval-test",
+          project_type: "web_application",
+          frameworks: ["react"],
+          goals: ["enable purchasing agents"],
+          files: minFiles,
+        },
+      },
+      1,
+      fakeReq({ "x-agent-mode": "lite" }),
+    );
+    const prepText = (prepResult as { result: { content: Array<{ text: string }> } }).result.content[0].text;
+    const prep = JSON.parse(prepText) as { snapshot_id: string };
+    expect(typeof prep.snapshot_id).toBe("string");
+
+    const snapResult = await dispatch(
+      "tools/call",
+      { name: "get_snapshot", arguments: { snapshot_id: prep.snapshot_id } },
+      2,
+      fakeReq(),
+    );
+    const snapText = (snapResult as { result: { content: Array<{ text: string }> } }).result.content[0].text;
+    const snap = JSON.parse(snapText) as { artifacts: Array<{ program: string }> };
+    expect(snap.artifacts.some(a => a.program === "agentic-purchasing")).toBe(false);
+    expect(snap.artifacts.some(a => a.program === "debug")).toBe(true);
+
+    const artifactResult = await dispatch(
+      "tools/call",
+      { name: "get_artifact", arguments: { snapshot_id: prep.snapshot_id, path: "agent-purchasing-playbook.md" } },
+      3,
+      fakeReq(),
+    );
+    expect((artifactResult as { result: { isError: boolean } }).result.isError).toBe(true);
   });
 });

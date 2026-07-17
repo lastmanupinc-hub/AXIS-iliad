@@ -2041,7 +2041,20 @@ export async function handlePreparePurchasing(
       requested_outputs: allOutputs,
       source_files: snapshot.files,
     });
-    await saveGeneratorResult(snapshot.snapshot_id, generated);
+    // H-Phase-A cycle 3: GET /v1/snapshots/:id and its file-content twin check
+    // ONLY snapshot ownership -- no mode, charge, or entitlement check -- so a
+    // lite-mode caller could retrieve the exact pro-program bundle this
+    // call's own response withholds, simply by fetching the snapshot
+    // afterward. Persist only the free-program files' full content in lite
+    // mode; the score below is computed from the FULL in-memory `generated`
+    // (unaffected), so lite mode's readiness score stays accurate -- only
+    // what's retrievable later via the snapshot/artifact endpoints is
+    // restricted. Mirrors the MCP twin's runPreparePurchasing fix.
+    const liteForPersistence = resolveAgentMode(req) === "lite";
+    const toPersist = liteForPersistence
+      ? { ...generated, files: generated.files.filter(f => FREE_PROGRAMS.has(f.program)) }
+      : generated;
+    await saveGeneratorResult(snapshot.snapshot_id, toPersist);
     await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
     if (auth.account) {

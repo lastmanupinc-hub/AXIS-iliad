@@ -3090,7 +3090,19 @@ export async function runPreparePurchasing(
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   await maybeRunQualityGate(generated, ctxMap, req);
-  await saveGeneratorResult(snapshot.snapshot_id, generated);
+  // H-Phase-A cycle 3: get_snapshot/get_artifact (and their REST twins) check
+  // ONLY snapshot/project ownership -- no mode, charge, or entitlement check --
+  // so a lite-mode caller could retrieve the exact pro-program bundle this
+  // call's own response withholds, simply by fetching the snapshot afterward.
+  // Persist only the free-program files' full content in lite mode; the score
+  // below is computed from the FULL in-memory `generated` (unaffected), so
+  // lite mode's readiness score stays accurate -- only what's retrievable
+  // later via get_snapshot/get_artifact is restricted.
+  const liteForPersistence = resolveAgentMode(req) === "lite";
+  const toPersist = liteForPersistence
+    ? { ...generated, files: generated.files.filter(f => MCP_FREE_PROGRAMS.has(f.program)) }
+    : generated;
+  await saveGeneratorResult(snapshot.snapshot_id, toPersist);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
   const programs = new Set(generated.files.map(f => f.program));
