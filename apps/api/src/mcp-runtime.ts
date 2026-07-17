@@ -129,6 +129,8 @@ export type MeteredMcpTool =
   | "analyze_files"
   | "analyze_repo"
   | "prepare_agentic_purchasing"
+  | "closer"
+  | "deploy"
   | "assemble_representment"
   | "iliad_object_storage"
   | "iliad_vector_database"
@@ -155,6 +157,8 @@ export const METERED_MCP_TOOLS: readonly MeteredMcpTool[] = [
   "analyze_files",
   "analyze_repo",
   "prepare_agentic_purchasing",
+  "closer",
+  "deploy",
   "assemble_representment",
   "iliad_object_storage",
   "iliad_vector_database",

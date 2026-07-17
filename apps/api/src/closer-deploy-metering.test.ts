@@ -1,0 +1,105 @@
+/**
+ * H-Phase-A cycle 3 — the MCP `closer`/`deploy` tools checked entitlement
+ * (isProgramEnabled) but never called any charge function at all, while their
+ * REST twins (handleCloserGenerate/handleDeployGenerate, via
+ * makeProgramHandler) charge every call through chargeWithDiscounts. An
+ * entitled account got unlimited free closer/deploy runs via MCP. Fixed by
+ * wiring both through the standard authorize/capture pair (mirrors
+ * runAnalyzeFiles/runPreparePurchasing), and by adding both tools to
+ * METERED_MCP_TOOLS + PRICING_TIERS so discover_commerce_tools's catalog
+ * stops describing them as "included in plan".
+ */
+import { describe, it, expect, beforeAll } from "vitest";
+import type { IncomingMessage } from "node:http";
+import { resetTestDb, createAccount, createApiKey, getUsageCreditSummary } from "@axis/snapshots";
+import { runAnalyzeFiles, runCloser, runDeploy } from "./mcp-tool-impls.js";
+import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
+import { PRICING_TIERS } from "@axis/mpp";
+
+function reqWithKey(rawKey: string, extraHeaders: Record<string, string> = {}): IncomingMessage {
+  return { headers: { authorization: `Bearer ${rawKey}`, ...extraHeaders } } as unknown as IncomingMessage;
+}
+
+async function makeSuiteAccountWithSnapshot(label: string): Promise<{ accountId: string; rawKey: string; snapshotId: string }> {
+  const acc = await createAccount(label, `${label.toLowerCase().replace(/\s+/g, "-")}@test.local`, "suite");
+  const { rawKey } = await createApiKey(acc.account_id, "test");
+  const text = await runAnalyzeFiles(
+    {
+      project_name: label,
+      project_type: "web_application",
+      frameworks: ["react"],
+      goals: ["ship it"],
+      files: [
+        { path: "package.json", content: '{"name":"x","dependencies":{"react":"18.0.0"}}' },
+        { path: "src/index.ts", content: "export const x = 1;" },
+      ],
+    },
+    reqWithKey(rawKey),
+  );
+  const { snapshot_id } = JSON.parse(text) as { snapshot_id: string };
+  return { accountId: acc.account_id, rawKey, snapshotId: snapshot_id };
+}
+
+beforeAll(async () => {
+  await resetTestDb();
+});
+
+describe("METERED_MCP_TOOLS / PRICING_TIERS — closer and deploy are genuinely metered", () => {
+  it("both tools are registered as metered", () => {
+    expect(METERED_MCP_TOOLS).toContain("closer");
+    expect(METERED_MCP_TOOLS).toContain("deploy");
+  });
+
+  it("both tools have an explicit PRICING_TIERS entry (not just the default fallback)", () => {
+    expect(PRICING_TIERS.closer).toBeDefined();
+    expect(PRICING_TIERS.deploy).toBeDefined();
+    expect(PRICING_TIERS.closer.standard_cents).toBe(50);
+    expect(PRICING_TIERS.deploy.standard_cents).toBe(50);
+  });
+});
+
+describe("runCloser meters through authorize/capture", () => {
+  it("a successful call debits plan credits", async () => {
+    const { accountId, rawKey, snapshotId } = await makeSuiteAccountWithSnapshot("Closer Metered");
+    const before = await getUsageCreditSummary(accountId, "suite");
+    const text = await runCloser({ snapshot_id: snapshotId }, reqWithKey(rawKey));
+    const after = await getUsageCreditSummary(accountId, "suite");
+    expect(after.included_credits_used).toBeGreaterThan(before.included_credits_used);
+
+    const parsed = JSON.parse(text) as { program: string; artifact_count: number };
+    expect(parsed.program).toBe("closer");
+    expect(parsed.artifact_count).toBeGreaterThan(0);
+  });
+
+  it("a failed call (unknown snapshot) never debits", async () => {
+    const acc = await createAccount("Closer Unbilled", "closer-unbilled@test.local", "suite");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    const before = await getUsageCreditSummary(acc.account_id, "suite");
+    await expect(runCloser({ snapshot_id: "snap_does_not_exist" }, reqWithKey(rawKey))).rejects.toThrow("Snapshot not found");
+    const after = await getUsageCreditSummary(acc.account_id, "suite");
+    expect(after.included_credits_used).toBe(before.included_credits_used);
+  });
+});
+
+describe("runDeploy meters through authorize/capture", () => {
+  it("a successful call debits plan credits", async () => {
+    const { accountId, rawKey, snapshotId } = await makeSuiteAccountWithSnapshot("Deploy Metered");
+    const before = await getUsageCreditSummary(accountId, "suite");
+    const text = await runDeploy({ snapshot_id: snapshotId }, reqWithKey(rawKey));
+    const after = await getUsageCreditSummary(accountId, "suite");
+    expect(after.included_credits_used).toBeGreaterThan(before.included_credits_used);
+
+    const parsed = JSON.parse(text) as { program: string; artifact_count: number };
+    expect(parsed.program).toBe("deploy");
+    expect(parsed.artifact_count).toBeGreaterThan(0);
+  });
+
+  it("a failed call (unknown snapshot) never debits", async () => {
+    const acc = await createAccount("Deploy Unbilled", "deploy-unbilled@test.local", "suite");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    const before = await getUsageCreditSummary(acc.account_id, "suite");
+    await expect(runDeploy({ snapshot_id: "snap_does_not_exist" }, reqWithKey(rawKey))).rejects.toThrow("Snapshot not found");
+    const after = await getUsageCreditSummary(acc.account_id, "suite");
+    expect(after.included_credits_used).toBe(before.included_credits_used);
+  });
+});

@@ -1776,10 +1776,12 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
   it("H4.1: every genuinely per-call-metered tool's description states its price", async () => {
     // Uses discover_commerce_tools's own (now-accurate) per-tool pricing as the oracle for
     // "is this tool metered" — pricing !== "free" and !== "included in plan" (the honest
-    // label for plan-gated/never-charged tools like closer, deploy, get_snapshot). Any tool
-    // that IS metered must state a $ price in its catalog description, or an agent reading
-    // mcp-tools.ts alone (without calling discover_commerce_tools first) has no way to know
-    // it costs money before calling it.
+    // label for tools that never charge, like get_snapshot/get_artifact/
+    // improve_my_agent_with_axis; closer/deploy used to fall in this bucket too before
+    // H-Phase-A cycle 3 found they were entitlement-gated but never actually charged).
+    // Any tool that IS metered must state a $ price in its catalog description, or an
+    // agent reading mcp-tools.ts alone (without calling discover_commerce_tools first)
+    // has no way to know it costs money before calling it.
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 65,

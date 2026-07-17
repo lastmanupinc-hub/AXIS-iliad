@@ -375,7 +375,7 @@ export const MCP_TOOLS = [
   {
     name: "closer",
     description:
-      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell.",
+      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell. Requires a paid plan or entitlement. Pricing: $0.50 standard, $0.25 lite budget mode.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],
@@ -434,7 +434,7 @@ export const MCP_TOOLS = [
   {
     name: "deploy",
     description:
-      "Generate a zero-pipeline-minutes deploy bundle: stack-aware Dockerfile, .dockerignore, dev compose, render.yaml (Render existing-image), wrangler.pages.toml + wrangler.containers.toml + worker.ts (Cloudflare), bash/PowerShell push scripts, and a qualification report. The project builds locally in VSCode, pushes images to GHCR or via wrangler, and Render/Cloudflare just pulls — no GitHub Actions minutes, no Render build pipeline minutes, no CF build minutes.",
+      "Generate a zero-pipeline-minutes deploy bundle: stack-aware Dockerfile, .dockerignore, dev compose, render.yaml (Render existing-image), wrangler.pages.toml + wrangler.containers.toml + worker.ts (Cloudflare), bash/PowerShell push scripts, and a qualification report. The project builds locally in VSCode, pushes images to GHCR or via wrangler, and Render/Cloudflare just pulls — no GitHub Actions minutes, no Render build pipeline minutes, no CF build minutes. Requires a paid plan or entitlement. Pricing: $0.50 standard, $0.25 lite budget mode.",
     inputSchema: {
       type: "object",
       properties: {

@@ -2187,9 +2187,10 @@ export function runDiscoverAgenticCommerceTools(): string {
     // Real per-tool price for tools METERED_MCP_TOOLS confirms are actually
     // charged at runtime — NOT just "has a PRICING_TIERS row" (that object also
     // carries a dead entry for improve_my_agent_with_axis, which no runX handler
-    // ever reads). Tools that are neither free nor genuinely metered are
-    // plan-gated (closer, deploy) or never charge (get_snapshot, get_artifact,
-    // improve_my_agent_with_axis) — say so honestly instead of guessing a figure.
+    // ever reads). closer/deploy are both entitlement-gated AND metered (H-Phase-A
+    // cycle 3 — they used to check entitlement but never charge). Tools that never
+    // charge at all (get_snapshot, get_artifact, improve_my_agent_with_axis) still
+    // fall through to "included in plan" — say so honestly instead of guessing a figure.
     const metered = !free && (METERED_MCP_TOOLS as readonly string[]).includes(t.name);
     const tier = metered ? PRICING_TIERS[t.name] : null;
     return {
@@ -2818,6 +2819,14 @@ export async function runCloser(
     throw new Error("closer requires a paid plan or entitlement. Upgrade account program access first.");
   }
 
+  // H-Phase-A cycle 3: the REST twin (handleCloserGenerate, via
+  // makeProgramHandler) charges every call through chargeWithDiscounts; this
+  // MCP tool only checked entitlement and never charged at all, so an
+  // entitled account got unlimited free closer runs via MCP. Authorize now
+  // (before any generation work), capture only after every step below
+  // succeeds — mirrors runPreparePurchasing's authorize/capture placement.
+  const charge = await authorizeMcpToolCredits(req, auth.account, "closer");
+
   const contextMap = await getContextMap(snapshotId) as ContextMap | undefined;
   const repoProfile = await getRepoProfile(snapshotId) as RepoProfile | undefined;
   if (!contextMap || !repoProfile) {
@@ -2877,6 +2886,10 @@ export async function runCloser(
     snapshot.total_size_bytes,
   );
 
+  // All work succeeded — commit the charge now, never before generation, so
+  // a failed call debits nothing.
+  await captureMcpToolCredits(auth.account, charge);
+
   return JSON.stringify(
     {
       snapshot_id: snapshot.snapshot_id,
@@ -2922,6 +2935,14 @@ export async function runDeploy(
     throw new Error("deploy requires a paid plan or entitlement. Upgrade account program access first.");
   }
 
+  // H-Phase-A cycle 3: the REST twin (handleDeployGenerate, via
+  // makeProgramHandler) charges every call through chargeWithDiscounts; this
+  // MCP tool only checked entitlement and never charged at all, so an
+  // entitled account got unlimited free deploy runs via MCP. Authorize now
+  // (before any generation work), capture only after every step below
+  // succeeds — mirrors runPreparePurchasing's authorize/capture placement.
+  const charge = await authorizeMcpToolCredits(req, auth.account, "deploy");
+
   const contextMap = await getContextMap(snapshotId) as ContextMap | undefined;
   const repoProfile = await getRepoProfile(snapshotId) as RepoProfile | undefined;
   if (!contextMap || !repoProfile) {
@@ -2956,6 +2977,10 @@ export async function runDeploy(
     snapshot.file_count,
     snapshot.total_size_bytes,
   );
+
+  // All work succeeded — commit the charge now, never before generation, so
+  // a failed call debits nothing.
+  await captureMcpToolCredits(auth.account, charge);
 
   return JSON.stringify(
     {

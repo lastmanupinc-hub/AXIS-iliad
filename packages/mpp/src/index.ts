@@ -101,6 +101,18 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     engineer_cents: 2500,
     engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
+  closer: {
+    tool: "closer",
+    standard_cents: 50,
+    lite_cents: 25,
+    lite_description: "Lite mode: reduced per-call price (packaging bundle scope unchanged)",
+  },
+  deploy: {
+    tool: "deploy",
+    standard_cents: 50,
+    lite_cents: 25,
+    lite_description: "Lite mode: reduced per-call price (deploy bundle scope unchanged)",
+  },
   improve_my_agent_with_axis: {
     tool: "improve_my_agent_with_axis",
     standard_cents: 50,
