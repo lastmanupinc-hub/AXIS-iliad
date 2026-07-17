@@ -1959,6 +1959,44 @@ describe("POST /mcp — tools/call ping_payment", () => {
     expect(parsed._payment_required).toBe(true);
   });
 
+  it("challenge response never varies by X-Axis-Key validity (H-Phase-A cycle 1: closes a key-existence oracle)", async () => {
+    // ping_payment is the one tool a fully anonymous caller can reach with zero auth.
+    // If its 402 challenge varied (e.g. via a referral_token field) based on whether an
+    // attempted X-Axis-Key happened to resolve, that would let anyone probe a guessed
+    // or suspected-leaked key's validity with no auth-failure signal and no distinct
+    // error shape. The challenge body must be identical for no-key, invalid-key, and
+    // valid-key requests — only the /mcp/tools/call retry path (which requires the real
+    // payment credential) is allowed to differ, and only on a genuine settlement.
+    const noKey = await post("/mcp", {
+      jsonrpc: "2.0", id: 210, method: "tools/call",
+      params: { name: "ping_payment", arguments: {} },
+    });
+    const invalidKey = await post("/mcp", {
+      jsonrpc: "2.0", id: 211, method: "tools/call",
+      params: { name: "ping_payment", arguments: {} },
+    }, "axis_definitely-not-a-real-key-0000000000");
+    const validKey = await post("/mcp", {
+      jsonrpc: "2.0", id: 212, method: "tools/call",
+      params: { name: "ping_payment", arguments: {} },
+    }, freeApiKey);
+
+    const bodyOf = (r: Res) => {
+      const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+      const content = result.content as Array<{ type: string; text: string }>;
+      return JSON.parse(content[0].text) as Record<string, unknown>;
+    };
+    const noKeyBody = bodyOf(noKey);
+    const invalidKeyBody = bodyOf(invalidKey);
+    const validKeyBody = bodyOf(validKey);
+
+    expect(noKeyBody.referral_token).toBeNull();
+    expect(invalidKeyBody.referral_token).toBeNull();
+    expect(validKeyBody.referral_token).toBeNull();
+    // Full-body equality (net of nothing — no per-request field should differ at all).
+    expect(invalidKeyBody).toEqual(noKeyBody);
+    expect(validKeyBody).toEqual(noKeyBody);
+  });
+
   it("retry with a payment credential in Authorization (API key moved to X-Axis-Key) — succeeds at $0", async () => {
     const r = await postWithHeaders(
       "/mcp",

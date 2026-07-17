@@ -3660,12 +3660,17 @@ export async function runPingPayment(_args: Record<string, unknown>, req: Incomi
     } catch {
       /* funnel telemetry is best-effort — must never block the challenge response */
     }
-    const referralToken = accountId ? (await createReferralCode(accountId)).code : null;
+    // No referral_token here (unlike a real metered tool's 402): ping_payment is the
+    // one tool reachable by a fully anonymous caller, so varying this response by
+    // whether an attempted X-Axis-Key happens to resolve would let anyone use it as
+    // a stealthy oracle for "is this guessed/leaked key still valid" — no auth-failure
+    // signal, no distinct error shape, just a present-vs-absent field. Real referral
+    // tokens are still issued on every genuine metered tool's 402 (buildMcpPaymentRequiredError),
+    // which requires actual authentication to reach in the first place.
     return JSON.stringify(
       {
         ...build402NegotiationBody("ping_payment", parseAgentBudget(req), {
           message: "This is a free payment-flow probe. Fulfil the x402 challenge and retry the same tools/call with the payment credential.",
-          referral_token: referralToken,
         }),
         _payment_required: true,
         tool: "ping_payment",
