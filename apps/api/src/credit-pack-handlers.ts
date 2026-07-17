@@ -149,5 +149,5 @@ export async function handleListMyPurchases(
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
     return;
   }
-  sendJSON(res, 200, { purchases: listPurchasesByAccount(auth.account.account_id) });
+  sendJSON(res, 200, { purchases: await listPurchasesByAccount(auth.account.account_id) });
 }
