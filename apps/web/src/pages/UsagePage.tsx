@@ -354,7 +354,11 @@ export function UsagePage() {
           <div className="grid grid-3">
             <StatTile label="Credits remaining" value={credits.balance} />
             <StatTile label="Transactions" value={credits.ledger.length} />
-            <StatTile label="Tier" value={credits.tier} />
+            {/* H-Phase-A cycle 4: credits.tier is the coarse BillingTier
+                ("paid"), the same value whose raw display on this page was
+                already fixed once above (currentPlanLabel) — a real Pro
+                subscriber saw "Pro" in the header but "paid" here. */}
+            <StatTile label="Tier" value={planLabel(credits.tier, planId)} />
           </div>
           {credits.credit_packs.length > 0 && (
             <div className="mt-4">

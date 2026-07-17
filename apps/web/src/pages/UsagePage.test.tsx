@@ -137,6 +137,38 @@ describe("UsagePage — Pro vs Starter labeling", () => {
   });
 });
 
+// ─── Persistence-credits Tier StatTile (H-Phase-A cycle 4) ────────
+//
+// The "You're on the Pro tier" header sentence (above) was fixed for Pro
+// labeling in cycle 2, but the Persistence Credits card's own "Tier"
+// StatTile reads credits.tier (the same coarse BillingTier) directly and
+// was never updated — a real Pro subscriber saw "Pro" in the header and
+// "paid" in this stat tile on the SAME page.
+describe("UsagePage — Persistence Credits Tier StatTile matches the header plan label", () => {
+  it("shows 'Pro' in the credits Tier stat tile for a Pro subscriber, not the raw 'paid' tier", async () => {
+    stubFetch([
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 5, max_snapshots_per_month: 200, project_count: 2, max_projects: 20, max_files_per_snapshot: 1000 } }],
+      ["/v1/account/usage/timeseries", TIMESERIES],
+      ["/v1/account/usage", { ...USAGE, tier: "paid" }],
+      ["/v1/account/subscription", {}, 404],
+      ["/v1/account/credits", {
+        account_id: "acct_1", tier: "paid", balance: 500, credit_costs: {}, credit_packs: [], ledger: [],
+      }],
+      ["/v1/account", {
+        account: { ...ACCOUNT, tier: "paid" as const },
+        usage_credits: { plan_id: "pro", month_key: "2026-07", monthly_allowance: 300_000, included_credits_used: 0, included_credits_remaining: 300_000, overage_credits_this_month: 0 },
+      }],
+    ]);
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText("Persistence Credits")).toBeTruthy());
+    // "Pro" appears at least twice — the header sentence and this stat tile —
+    // and the raw coarse tier string "paid" must never render on its own.
+    expect(screen.getAllByText("Pro").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText("paid")).toBeNull();
+  });
+});
+
 describe("UsagePage — proration preview", () => {
   it("selecting a target tier fetches and displays the proration preview", async () => {
     stubFetch(baseHandlers([
