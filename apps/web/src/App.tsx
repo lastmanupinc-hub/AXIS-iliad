@@ -141,7 +141,17 @@ export function App() {
   // Analyze form's initial githubUrl value (see routes.tsx's RouteContext
   // doc comment for why a stale value can't leak into a later visit).
   const [prefillRepoUrl, setPrefillRepoUrl] = useState<string | null>(null);
-  const [restoring, setRestoring] = useState(false);
+  // H-Phase-A cycle 5: restoring started false and only flipped true INSIDE
+  // the restore effect below, one render after mount — a deep-link/reopen of
+  // a project not already in `result` (the common case: no matching anon
+  // cache) committed one render with result=null, restoring=false, which
+  // renderProjectDetail (routes.tsx) reads as "confirmed gone," flashing
+  // "This project doesn't exist..." before "Restoring project…" replaces it.
+  // Lazy-initialize to the synchronously-knowable answer instead: are we on
+  // a project-detail route without the matching result already loaded?
+  const [restoring, setRestoring] = useState(
+    () => PROJECT_DETAIL_PAGES.has(route.page) && !(result && result.project_id === route.params.id),
+  );
   // WO-P5: set when the last restore attempt (for the current PROJECT_DETAIL_PAGES
   // route's params.id) failed — human copy only, rendered by renderProjectDetail.
   const [restoreError, setRestoreError] = useState<string | null>(null);

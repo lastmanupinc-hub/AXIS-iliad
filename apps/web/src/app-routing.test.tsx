@@ -353,6 +353,49 @@ describe("Multi-project state (WO-F3)", () => {
     expect(localStorage.getItem("axis_last_project_id")).toBe("proj_fx");
   });
 
+  // H-Phase-A cycle 5: `restoring` started a plain `useState(false)` and only
+  // flipped true INSIDE the restore effect (a useEffect, which React defers
+  // until after the browser paints the initial commit) — so a deep-link/
+  // reopen with no matching anon cache genuinely PAINTS "Project not found"
+  // in a real browser for one frame (result=null, restoring=false at commit
+  // time) before "Restoring project…" replaces it once the effect runs.
+  // Fixed with a lazy useState initializer that computes the correct
+  // STARTING value synchronously, so the very first commit is already right.
+  //
+  // NOTE on verification: React Testing Library's render() wraps mount in
+  // act(), which synchronously drains the FIRST effect pass (including this
+  // effect's own synchronous setRestoring(true) call) before render()
+  // returns — so this specific one-frame paint gap is a real browser-only
+  // race that render()'s return value cannot observe or mutation-test either
+  // way; both the buggy plain-false initializer and the fix pass this
+  // assertion identically post-render(). This test still pins the correct
+  // end state (never not-found while a fetch is genuinely pending) as a
+  // specification, but the fix itself is verified by code reasoning about
+  // React's effect-scheduling semantics (useEffect runs after paint, a lazy
+  // useState initializer runs synchronously during render), not by a
+  // red-then-green mutation cycle.
+  it("#projects/:id never shows 'Project not found' while the restore fetch is genuinely pending", () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    let resolveContext!: (v: Response) => void;
+    const pending = new Promise<Response>((resolve) => { resolveContext = resolve; });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/projects/proj_never_cached/context")) return pending;
+        return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }),
+    );
+    window.location.hash = "#projects/proj_never_cached";
+
+    const { container } = render(<App />);
+
+    const main = within(container.querySelector(".ide-main") as HTMLElement);
+    expect(main.queryByText("Project not found")).toBeNull();
+    expect(main.queryByText("Restoring project…")).toBeTruthy();
+    void resolveContext; // never resolved — this test only asserts the pending-fetch render
+  });
+
   it("#projects/:id shows an inline not-found state (not a bounce) on a 404, and drops a matching stored pointer", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
     localStorage.setItem("axis_last_project_id", "proj_gone");
