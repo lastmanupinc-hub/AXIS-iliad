@@ -51,6 +51,7 @@ import {
 } from "./network-token.js";
 import {
   runTranscription,
+  LITE_STT_MAX_DURATION_SECONDS,
   type TranscriptionOptions,
 } from "./speech-to-text.js";
 import {
@@ -1227,14 +1228,17 @@ export async function runSpeechToText(args: Record<string, unknown>, req: Incomi
   if (args.word_timestamps !== undefined && typeof args.word_timestamps !== "boolean") {
     throw new Error("iliad_speech_to_text: `word_timestamps` must be a boolean when provided.");
   }
+  const lite = resolveAgentMode(req) === "lite";
   const opts: TranscriptionOptions = {
     audio_url: args.audio_url as string | undefined,
     audio_base64: args.audio_base64 as string | undefined,
     language: args.language as string | undefined,
     initial_prompt: args.initial_prompt as string | undefined,
-    word_timestamps: args.word_timestamps as boolean | undefined,
+    // "word_timestamps disabled" lite promise — forced regardless of what was
+    // requested, mirroring iliad_text_to_speech's format-lock pattern.
+    word_timestamps: lite ? false : (args.word_timestamps as boolean | undefined),
   };
-  const result = await runTranscription(opts);
+  const result = await runTranscription(opts, lite ? LITE_STT_MAX_DURATION_SECONDS : undefined);
   if (!isNotConfiguredResult(result)) {
     await meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
   }

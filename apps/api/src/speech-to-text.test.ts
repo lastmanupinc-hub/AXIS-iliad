@@ -9,6 +9,7 @@ import {
   isSttConfigured,
   getWhisperModelPath,
   getWhisperCliPath,
+  getWavDurationSeconds,
   resetSpeechToTextForTests,
   type NotConfiguredResult,
   type TranscriptionResult,
@@ -146,6 +147,63 @@ describe("speech-to-text — isWhisperModelPresent + isSttConfigured", () => {
     const r = await isSttConfigured();
     expect(typeof r).toBe("boolean");
   }, 15_000);
+});
+
+// ─── getWavDurationSeconds — H-Phase-A cycle 1 (lite mode's 60s audio cap) ──
+//
+// Pure header-parsing logic, tested with a hand-built canonical WAV (no
+// ffmpeg/whisper needed — this sandbox has no real ffmpeg binary, see the
+// audio_url describe block below). Duration = dataChunkSize / byteRate; a
+// wrong offset or endianness would silently mis-measure every lite call.
+describe("speech-to-text — getWavDurationSeconds", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "axis-stt-wav-"));
+  });
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  function buildWav(opts: { sampleRate: number; channels: number; bitsPerSample: number; durationSeconds: number }): Buffer {
+    const { sampleRate, channels, bitsPerSample, durationSeconds } = opts;
+    const byteRate = sampleRate * channels * (bitsPerSample / 8);
+    const dataSize = Math.round(byteRate * durationSeconds);
+    const buf = Buffer.alloc(44 + dataSize);
+    buf.write("RIFF", 0, "ascii");
+    buf.writeUInt32LE(36 + dataSize, 4);
+    buf.write("WAVE", 8, "ascii");
+    buf.write("fmt ", 12, "ascii");
+    buf.writeUInt32LE(16, 16); // fmt chunk size
+    buf.writeUInt16LE(1, 20); // PCM
+    buf.writeUInt16LE(channels, 22);
+    buf.writeUInt32LE(sampleRate, 24);
+    buf.writeUInt32LE(byteRate, 28);
+    buf.writeUInt16LE(channels * (bitsPerSample / 8), 32); // block align
+    buf.writeUInt16LE(bitsPerSample, 34);
+    buf.write("data", 36, "ascii");
+    buf.writeUInt32LE(dataSize, 40);
+    // Data bytes themselves are irrelevant to duration — left zeroed.
+    return buf;
+  }
+
+  it("computes duration from a 16kHz mono 16-bit WAV (ffmpeg's resample target format)", async () => {
+    const p = path.join(tmpDir, "a.wav");
+    await fs.writeFile(p, buildWav({ sampleRate: 16_000, channels: 1, bitsPerSample: 16, durationSeconds: 42 }));
+    expect(await getWavDurationSeconds(p)).toBeCloseTo(42, 1);
+  });
+
+  it("computes duration correctly for a different sample rate / stereo / 8-bit combo", async () => {
+    const p = path.join(tmpDir, "b.wav");
+    await fs.writeFile(p, buildWav({ sampleRate: 44_100, channels: 2, bitsPerSample: 8, durationSeconds: 7.5 }));
+    expect(await getWavDurationSeconds(p)).toBeCloseTo(7.5, 1);
+  });
+
+  it("rejects a file that isn't RIFF/WAVE", async () => {
+    const p = path.join(tmpDir, "not-a-wav.bin");
+    await fs.writeFile(p, Buffer.from("this is not a wav file at all, just plain bytes"));
+    await expect(getWavDurationSeconds(p)).rejects.toThrow(/RIFF\/WAVE/);
+  });
 });
 
 describe("speech-to-text — runTranscription _not_configured envelopes", () => {

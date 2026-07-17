@@ -84,6 +84,9 @@ const MAX_INITIAL_PROMPT_CHARS = 512;
 const TARGET_SAMPLE_RATE = 16_000;
 const TARGET_CHANNELS = 1;
 
+/** lite_description promise (@axis/mpp PRICING_TIERS.iliad_speech_to_text): "audio capped at 60 seconds". */
+export const LITE_STT_MAX_DURATION_SECONDS = 60;
+
 function resolveModelPath(): string {
   const env = process.env.AXIS_WHISPER_MODEL_PATH;
   if (env && env.length > 0) return env;
@@ -287,6 +290,53 @@ async function resampleToWav(
   );
 }
 
+/**
+ * Reads just enough of a canonical RIFF/WAVE file to compute its duration —
+ * no full-file read, no new dependency. ffmpeg's `-f wav` output always puts
+ * a `fmt ` chunk immediately after the 12-byte RIFF header followed by
+ * `data`, but this walks chunks (bounded) rather than assuming a fixed
+ * offset, so a stray chunk (e.g. LIST/INFO) doesn't break it.
+ */
+export async function getWavDurationSeconds(wavPath: string): Promise<number> {
+  const handle = await fs.open(wavPath, "r");
+  try {
+    const riff = Buffer.alloc(12);
+    await handle.read(riff, 0, 12, 0);
+    if (riff.toString("ascii", 0, 4) !== "RIFF" || riff.toString("ascii", 8, 12) !== "WAVE") {
+      throw new Error("not a RIFF/WAVE file");
+    }
+    let offset = 12;
+    let sampleRate = 0;
+    let channels = 0;
+    let bitsPerSample = 0;
+    let dataSize: number | null = null;
+    const chunkHeader = Buffer.alloc(8);
+    for (let i = 0; i < 20 && dataSize === null; i++) {
+      const { bytesRead } = await handle.read(chunkHeader, 0, 8, offset);
+      if (bytesRead < 8) break;
+      const chunkId = chunkHeader.toString("ascii", 0, 4);
+      const chunkSize = chunkHeader.readUInt32LE(4);
+      if (chunkId === "fmt ") {
+        const fmt = Buffer.alloc(16);
+        await handle.read(fmt, 0, 16, offset + 8);
+        channels = fmt.readUInt16LE(2);
+        sampleRate = fmt.readUInt32LE(4);
+        bitsPerSample = fmt.readUInt16LE(14);
+      } else if (chunkId === "data") {
+        dataSize = chunkSize;
+      }
+      offset += 8 + chunkSize + (chunkSize % 2); // chunks are word-aligned
+    }
+    if (dataSize === null || sampleRate === 0 || channels === 0 || bitsPerSample === 0) {
+      throw new Error("could not determine WAV duration (missing fmt or data chunk)");
+    }
+    const byteRate = sampleRate * channels * (bitsPerSample / 8);
+    return dataSize / byteRate;
+  } finally {
+    await handle.close();
+  }
+}
+
 // ─── whisper-cli invocation ─────────────────────────────────────
 
 interface WhisperJsonShape {
@@ -406,6 +456,7 @@ function parseWhisperJson(raw: string, modelPath: string): TranscriptionResult {
 
 export async function runTranscription(
   opts: TranscriptionOptions,
+  liteMaxDurationSeconds?: number,
 ): Promise<TranscriptionResult | NotConfiguredResult> {
   validateTranscriptionOptions(opts);
 
@@ -480,6 +531,20 @@ export async function runTranscription(
     }
 
     await resampleToWav(ffmpeg, inputPath, wavPath);
+
+    // Lite mode's 60-second cap, checked BEFORE the whisper-cli step (which
+    // dominates cost/latency) so an over-limit call is rejected cheaply
+    // rather than paying for a transcription it can't use.
+    if (liteMaxDurationSeconds !== undefined) {
+      const durationSeconds = await getWavDurationSeconds(wavPath);
+      if (durationSeconds > liteMaxDurationSeconds) {
+        throw new Error(
+          `iliad_speech_to_text: lite mode caps audio at ${liteMaxDurationSeconds} seconds ` +
+            `(this file is ~${Math.round(durationSeconds)}s). Send X-Agent-Mode: standard for up to 30 minutes.`,
+        );
+      }
+    }
+
     await runWhisperCli(cli, modelPath, wavPath, outBase, opts);
 
     const raw = await fs.readFile(outJsonPath, "utf8");
