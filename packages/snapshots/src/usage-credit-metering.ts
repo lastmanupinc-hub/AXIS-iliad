@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql, pgPlaceholders } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 import { getActiveSubscriptionByAccount, priceToPlanId } from "./stripe-store.js";
+import { getAccountPaidPlanId } from "./billing-store.js";
 import { getReferralTokenUsageModifier } from "./referral-store.js";
 import { MARKETED_TIERS, OVERAGE_CENTS_PER_CREDIT } from "./pricing-constants.js";
 
@@ -40,7 +41,14 @@ async function resolvePlanForAccount(account_id: string, tier: BillingTier): Pro
     if (planFromPrice) return planFromPrice;
   }
   if (tier === "suite") return "growth";
-  if (tier === "paid") return "starter";
+  if (tier === "paid") {
+    // Starter and Pro both collapse into the coarse "paid" BillingTier. The
+    // PAI'D checkout webhook (the only live checkout path) additionally
+    // persists the specific marketed plan so a real Pro subscriber isn't
+    // silently metered against Starter's smaller allowance (H-Phase-A cycle 1).
+    const paidPlanId = await getAccountPaidPlanId(account_id);
+    return paidPlanId === "pro" ? "pro" : "starter";
+  }
   return "free";
 }
 

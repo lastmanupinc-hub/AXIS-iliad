@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
-import { createAccount } from "./billing-store.js";
+import { createAccount, updateAccountPaidPlanId } from "./billing-store.js";
 import {
   creditsFromUsdCents,
   previewUsageCredits,
@@ -54,6 +54,46 @@ describe("resolvePlanForAccount — active subscription price overrides the tier
     } finally {
       delete process.env.STRIPE_PRICE_ID_PRO;
     }
+  });
+});
+
+// ─── H-Phase-A cycle 1 — PAI'D Pro subscribers were silently metered as Starter ──
+//
+// Starter and Pro both collapse into the coarse "paid" BillingTier, and (unlike
+// the Stripe-direct path above) PAI'D never writes a stripe_subscriptions row —
+// it's the only live checkout path, so before this fix EVERY real Pro subscriber
+// got the 75,000-credit Starter allowance instead of Pro's 300,000. The account's
+// persisted paid_plan_id (written by paid-handlers.ts's webhook) must be the
+// tiebreaker when no Stripe-direct subscription row exists.
+describe("resolvePlanForAccount — PAI'D paid_plan_id disambiguates Starter vs Pro", () => {
+  beforeEach(async () => {
+    await resetTestDb();
+  });
+
+  it("a 'paid'-tier account with paid_plan_id='pro' (PAI'D checkout) is metered as pro, not starter", async () => {
+    const account = await createAccount("PaidPro", "paidpro@example.com", "paid");
+    await updateAccountPaidPlanId(account.account_id, "pro");
+
+    const summary = await getUsageCreditSummary(account.account_id, "paid");
+    expect(summary.plan_id).toBe("pro");
+    expect(summary.monthly_allowance).toBe(300_000);
+  });
+
+  it("a 'paid'-tier account with paid_plan_id='starter' is metered as starter (unchanged default)", async () => {
+    const account = await createAccount("PaidStarter", "paidstarter@example.com", "paid");
+    await updateAccountPaidPlanId(account.account_id, "starter");
+
+    const summary = await getUsageCreditSummary(account.account_id, "paid");
+    expect(summary.plan_id).toBe("starter");
+    expect(summary.monthly_allowance).toBe(75_000);
+  });
+
+  it("a 'paid'-tier account with no paid_plan_id (pre-existing accounts) still defaults to starter", async () => {
+    const account = await createAccount("PaidNoPlan", "paidnoplan@example.com", "paid");
+
+    const summary = await getUsageCreditSummary(account.account_id, "paid");
+    expect(summary.plan_id).toBe("starter");
+    expect(summary.monthly_allowance).toBe(75_000);
   });
 });
 

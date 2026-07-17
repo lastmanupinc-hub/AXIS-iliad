@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   tier TEXT NOT NULL DEFAULT 'free',
   created_at TEXT NOT NULL,
   github_id TEXT,
-  google_id TEXT
+  google_id TEXT,
+  paid_plan_id TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_github_id ON accounts(github_id) WHERE github_id IS NOT NULL;
 -- NOTE: idx_accounts_google_id is created in PG_MIGRATIONS v29, NOT here. On an
@@ -724,6 +725,18 @@ ALTER TABLE idempotency_keys ADD CONSTRAINT idempotency_keys_status_check CHECK 
 );
 CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_kind ON payment_funnel_events(kind);
 CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_created ON payment_funnel_events(created_at);`,
+  },
+  {
+    // H-Phase-A cycle 1: Starter and Pro both collapse into the same coarse
+    // "paid" BillingTier, so resolvePlanForAccount had no way to tell a real
+    // Pro subscriber (via PAI'D, the only live checkout path) from a Starter
+    // one — Pro subscribers were silently metered against Starter's smaller
+    // credit allowance. This column lets the PAI'D checkout webhook persist
+    // the specific marketed plan id; existing DBs get it via ADD COLUMN IF NOT
+    // EXISTS (a no-op on fresh DBs, which already have it from the baseline).
+    version: 39,
+    name: "accounts_paid_plan_id",
+    sql: `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS paid_plan_id TEXT;`,
   },
 ];
 

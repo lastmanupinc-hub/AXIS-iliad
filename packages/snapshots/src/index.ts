@@ -42,6 +42,8 @@ export {
   deleteAccount,
   updateAccountTier,
   updateAccountTierIfCurrent,
+  getAccountPaidPlanId,
+  updateAccountPaidPlanId,
   createApiKey,
   resolveApiKey,
   revokeApiKey,

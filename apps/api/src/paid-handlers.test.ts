@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { resetTestDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance } from "@axis/snapshots";
+import { resetTestDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance, getAccountPaidPlanId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -452,6 +452,81 @@ describe("POST /portal/api/paid/webhook", () => {
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect((await getAccountByEmail("checkout-growth@test.com"))?.tier).toBe("suite");
+  });
+
+  // ─── H-Phase-A cycle 1 — persist the specific marketed plan, not just the coarse tier ──
+  it("persists paid_plan_id='pro' on a Pro checkout (Starter and Pro both map to the 'paid' tier alone)", async () => {
+    const account = await createAccount("checkout-pro@test.com");
+    const body = JSON.stringify({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_pro",
+          metadata: { user_email: "checkout-pro@test.com", plan_id: "pro", tier: "paid", kind: "subscription" },
+        },
+      },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect((await getAccountByEmail("checkout-pro@test.com"))?.tier).toBe("paid");
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("pro");
+  });
+
+  it("persists paid_plan_id='starter' on a Starter checkout, distinct from a later Pro upgrade", async () => {
+    const account = await createAccount("checkout-starter-then-pro@test.com");
+    const starterBody = JSON.stringify({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_st",
+          metadata: { user_email: "checkout-starter-then-pro@test.com", plan_id: "starter", tier: "paid", kind: "subscription" },
+        },
+      },
+    });
+    await req("POST", "/portal/api/paid/webhook", starterBody, { "Webhook-Signature": signPaid(starterBody) });
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("starter");
+
+    // Starter -> Pro: the coarse tier stays "paid" throughout (tier_change: false
+    // is expected), but paid_plan_id must still move to "pro" — this is exactly
+    // the case where updateAccountTierIfCurrent's compare-and-set never fires.
+    const proBody = JSON.stringify({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_st_to_pro",
+          metadata: { user_email: "checkout-starter-then-pro@test.com", plan_id: "pro", tier: "paid", kind: "subscription" },
+        },
+      },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", proBody, { "Webhook-Signature": signPaid(proBody) });
+    expect(r.status).toBe(200);
+    expect(r.data.tier_change).toBe(false);
+    expect((await getAccountByEmail("checkout-starter-then-pro@test.com"))?.tier).toBe("paid");
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("pro");
+  });
+
+  it("clears paid_plan_id when a Pro subscriber cancels back to free", async () => {
+    const account = await createAccount("checkout-pro-cancel@test.com");
+    const proBody = JSON.stringify({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_pro_cancel",
+          metadata: { user_email: "checkout-pro-cancel@test.com", plan_id: "pro", tier: "paid", kind: "subscription" },
+        },
+      },
+    });
+    await req("POST", "/portal/api/paid/webhook", proBody, { "Webhook-Signature": signPaid(proBody) });
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("pro");
+
+    const cancelBody = JSON.stringify({
+      type: "subscription.canceled",
+      data: { object: { customer_email: "checkout-pro-cancel@test.com", id: "sub_pro_cancel" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
+    expect(r.status).toBe(200);
+    expect((await getAccountByEmail("checkout-pro-cancel@test.com"))?.tier).toBe("free");
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBeNull();
   });
 });
 

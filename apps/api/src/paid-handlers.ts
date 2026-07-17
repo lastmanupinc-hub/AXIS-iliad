@@ -32,6 +32,7 @@ import {
   getAccountByEmail,
   updateAccountTier,
   updateAccountTierIfCurrent,
+  updateAccountPaidPlanId,
   logTierChange,
   trackEvent,
   markPurchaseSucceeded,
@@ -289,6 +290,24 @@ function tierForPaidEvent(eventType: string, obj: Record<string, unknown>): Paid
   return null;
 }
 
+/**
+ * The specific marketed plan (starter/pro/growth) a PAID webhook event names,
+ * distinct from tierForPaidEvent's coarse paid/suite tier — Starter and Pro
+ * both map to "paid", so this is the only place that still knows which one a
+ * subscriber actually bought (H-Phase-A cycle 1). Only checkout.session.completed
+ * reliably carries it: createCheckoutSession stamps metadata.plan_id with the
+ * exact CheckoutPlanId at session-creation time. subscription.created/updated
+ * events carry an opaque price/plan id we don't attempt to map back to a
+ * marketed name here, so null in that case intentionally leaves any
+ * previously-recorded plan_id untouched rather than guessing wrong.
+ */
+function marketedPlanIdForPaidEvent(eventType: string, obj: Record<string, unknown>): CheckoutPlanId | null {
+  if (eventType !== "checkout.session.completed") return null;
+  const meta = (obj.metadata ?? {}) as Record<string, unknown>;
+  const planId = meta.plan_id;
+  return planId === "starter" || planId === "pro" || planId === "growth" ? planId : null;
+}
+
 export async function handlePaidWebhook(
   req: IncomingMessage,
   res: ServerResponse,
@@ -407,6 +426,17 @@ export async function handlePaidWebhook(
       targetTier === "free" ? "signup" : "conversion",
       { from_tier: previousTier, to_tier: targetTier, source: "paid", event: eventType },
     ).catch(() => {});
+  }
+
+  // Runs independently of `changed`: Starter <-> Pro both collapse into the
+  // same coarse "paid" tier, so a Starter->Pro upgrade never trips the
+  // previousTier !== targetTier branch above even though the specific plan
+  // DID change (H-Phase-A cycle 1).
+  const marketedPlanId = marketedPlanIdForPaidEvent(eventType, obj);
+  if (targetTier === "free") {
+    await updateAccountPaidPlanId(account.account_id, null);
+  } else if (marketedPlanId) {
+    await updateAccountPaidPlanId(account.account_id, marketedPlanId);
   }
 
   sendJSON(res, 200, {

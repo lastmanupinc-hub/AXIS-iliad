@@ -234,6 +234,27 @@ export async function updateAccountTierIfCurrent(
   return result.rowCount > 0;
 }
 
+/**
+ * The specific marketed plan (starter/pro/growth) behind an account's coarse
+ * BillingTier. Starter and Pro both collapse into the same "paid" tier, so
+ * this is the only durable record of which one a PAI'D subscriber actually
+ * bought — resolvePlanForAccount reads it to avoid metering a Pro subscriber
+ * against Starter's smaller credit allowance. Null for free accounts, or
+ * paid accounts predating this column (H-Phase-A cycle 1).
+ */
+export async function getAccountPaidPlanId(account_id: string): Promise<string | null> {
+  const row = await sql.one<{ paid_plan_id: string | null }>(
+    "SELECT paid_plan_id FROM accounts WHERE account_id = ?",
+    [account_id],
+  );
+  return row?.paid_plan_id ?? null;
+}
+
+export async function updateAccountPaidPlanId(account_id: string, paid_plan_id: string | null): Promise<boolean> {
+  const result = await sql.run("UPDATE accounts SET paid_plan_id = ? WHERE account_id = ?", [paid_plan_id, account_id]);
+  return result.rowCount > 0;
+}
+
 // ─── API Keys ───────────────────────────────────────────────────
 
 /** Creates a new API key. Returns the key record AND the raw key (only time it's available). */
