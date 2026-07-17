@@ -77,6 +77,7 @@ vi.mock("./local-embeddings.js", async (importOriginal) => {
 });
 
 import { applyLiteCaps, LITE_CAPS } from "./lite-caps.js";
+import { LITE_CRAWL_MAX_PAGES } from "./handlers.js";
 import { PRICING_TIERS } from "@axis/mpp";
 import { dispatch } from "./mcp-server.js";
 import { runCompletion } from "./llm-inference.js";
@@ -346,6 +347,18 @@ describe("contract: PRICING_TIERS lite_description pins the enforcement table", 
 
   it("iliad_web_research_crawl: promised page cap equals the table constant", () => {
     expect(pinnedNumber("iliad_web_research_crawl", /crawl up to (\d+) pages/)).toBe(LITE_CAPS.CRAWL_MAX_PAGES);
+  });
+
+  // H-Phase-A cycle 3: POST /v1/research/crawl (REST) and the
+  // iliad_web_research_crawl MCP tool are two independently-enforced code
+  // paths for the SAME externally-visible promise ("lite mode caps crawls at
+  // 5 pages") — handlers.ts's LITE_CRAWL_MAX_PAGES literal has no structural
+  // link to this table's CRAWL_MAX_PAGES, so a future edit to one alone
+  // would silently break the promise on the other route. Not a live bug
+  // today (both are 5) — this pins them together so drift fails CI instead
+  // of shipping silently.
+  it("REST's LITE_CRAWL_MAX_PAGES matches the MCP table's CRAWL_MAX_PAGES (no silent drift between the two routes)", () => {
+    expect(LITE_CRAWL_MAX_PAGES).toBe(LITE_CAPS.CRAWL_MAX_PAGES);
   });
 
   it("iliad_web_research: copy claims no behavioral difference, and the table imposes none", () => {

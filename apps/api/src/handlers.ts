@@ -4011,8 +4011,16 @@ export async function handleFirecrawlScrape(
     }
 }
 
-/** Lite-mode page cap for POST /v1/research/crawl (lite_description promise: 5 pages; standard allows 100). */
-const LITE_CRAWL_MAX_PAGES = 5;
+/**
+ * Lite-mode page cap for POST /v1/research/crawl (lite_description promise: 5
+ * pages; standard allows 100). A separate literal from lite-caps.ts's
+ * LITE_CAPS.CRAWL_MAX_PAGES by design (that table enforces the MCP
+ * iliad_web_research_crawl tool's arg-clamp; this REST route is enforced
+ * inline, per lite-caps.ts's own docstring) — but both promise the SAME
+ * externally-visible cap, so drift between them is a real risk. Exported so
+ * lite-caps.test.ts can pin the two together (H-Phase-A cycle 3).
+ */
+export const LITE_CRAWL_MAX_PAGES = 5;
 
 /**
  * POST /v1/research/crawl â€” Proxy to Firecrawl /crawl endpoint
