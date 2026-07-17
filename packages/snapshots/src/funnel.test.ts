@@ -29,7 +29,9 @@ import {
   PLAN_FEATURES,
   ACTIVATION_THRESHOLD,
   ENGAGEMENT_THRESHOLD,
+  resolveSeatLimit,
 } from "./funnel-types.js";
+import { ALL_PROGRAMS, TIER_LIMITS } from "./billing-types.js";
 
 beforeEach(async () => { await resetTestDb(); });
 
@@ -250,6 +252,9 @@ describe("Upgrade Prompts", () => {
     expect(prompt!.current_tier).toBe("free");
     expect(prompt!.recommended_tier).toBe("paid");
     expect(prompt!.urgency).toBe("low");
+
+    const lockedProgramCount = ALL_PROGRAMS.filter(p => !TIER_LIMITS.free.programs.includes(p)).length;
+    expect(prompt!.features_unlocked).toContain(`All ${lockedProgramCount} programs`);
   });
 
   it("returns engagement prompt for active users", async () => {
@@ -276,6 +281,16 @@ describe("Upgrade Prompts", () => {
     expect(prompt!.trigger).toBe("monthly_limit_reached");
     expect(prompt!.urgency).toBe("high");
     expect(prompt!.cta_label).toContain("Upgrade");
+
+    // H-Phase-A cycle 6: this copy used to hardcode "up to 5" seats (Starter's
+    // limit, not Pro's real 10) and a hardcoded "17 programs" that could
+    // silently drift — pinned against the real sources, not literals, so a
+    // future ALL_PROGRAMS/TIER_LIMITS.free change can't re-introduce drift.
+    const proSeatLimit = resolveSeatLimit("paid", "pro");
+    const lockedProgramCount = ALL_PROGRAMS.filter(p => !TIER_LIMITS.free.programs.includes(p)).length;
+    expect(prompt!.body).toContain(`access to all ${lockedProgramCount} programs`);
+    expect(prompt!.features_unlocked).toContain(`All ${lockedProgramCount} programs`);
+    expect(prompt!.features_unlocked).toContain(`Team seats (up to ${proSeatLimit})`);
   });
 
   it("returns seat limit prompt for paid tier at capacity", async () => {

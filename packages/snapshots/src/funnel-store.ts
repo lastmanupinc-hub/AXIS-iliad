@@ -295,7 +295,13 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
     return null;
   }
 
-  // Free → Pro upgrade prompts
+  // Free → Pro upgrade prompts. Seat count and program count are computed
+  // from the real entitlement sources (H-Phase-A cycle 6: this copy had
+  // hardcoded "up to 5" seats — Pro's real limit is 10 — and a hardcoded
+  // "17 programs" that could silently drift, unlike the "engagement" case a
+  // few lines down which already computed its program count dynamically).
+  const proSeatLimit = resolveSeatLimit("paid", "pro");
+  const lockedProgramCount = ALL_PROGRAMS.filter(p => !TIER_LIMITS.free.programs.includes(p)).length;
   switch (stage) {
     case "limit_hit":
       return {
@@ -303,14 +309,14 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
         current_tier: "free",
         recommended_tier: "paid",
         headline: "You've hit your monthly limit",
-        body: `You've used all ${limits.max_snapshots_per_month} free snapshots this month. Upgrade to Pro for 200 snapshots/month and access to all 17 programs.`,
+        body: `You've used all ${limits.max_snapshots_per_month} free snapshots this month. Upgrade to Pro for 200 snapshots/month and access to all ${lockedProgramCount} programs.`,
         cta_label: "Upgrade to Pro — $99/mo",
         cta_url: "/upgrade?plan=pro",
         features_unlocked: [
           "200 snapshots per month",
-          "All 17 programs",
+          `All ${lockedProgramCount} programs`,
           "20 active projects",
-          "Team seats (up to 5)",
+          `Team seats (up to ${proSeatLimit})`,
           "Priority support",
         ],
         urgency: "high",
@@ -339,11 +345,11 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
         current_tier: "free",
         recommended_tier: "paid",
         headline: "Nice first analysis!",
-        body: "Your free plan includes Search, Skills, and Debug programs. Upgrade to Pro to unlock all 17 programs and deeper analysis.",
+        body: `Your free plan includes Search, Skills, and Debug programs. Upgrade to Pro to unlock all ${lockedProgramCount} programs and deeper analysis.`,
         cta_label: "See Pro Features",
         cta_url: "/plans",
         features_unlocked: [
-          "All 17 programs",
+          `All ${lockedProgramCount} programs`,
           "200 snapshots/month",
           "20 projects",
         ],
