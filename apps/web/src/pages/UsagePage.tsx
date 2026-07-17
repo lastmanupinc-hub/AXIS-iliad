@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getAccount,
+  getAccountPlanId,
   getQuota,
   getUsage,
   getUsageTimeseries,
@@ -69,8 +70,21 @@ function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string;
 }
 
 const TIMESERIES_DAYS = 30;
+// Starter and Pro both collapse into tier==="paid" — this default is only
+// correct for Starter; callers with a real plan_id should prefer
+// planLabel() below (H-Phase-A cycle 2: this table alone was silently
+// mislabeling every Pro subscriber as "Starter" on their own billing page).
 const TIER_LABELS: Record<BillingTier, string> = { free: "Free", paid: "Starter", suite: "Growth" };
 const TIER_ORDER: BillingTier[] = ["free", "paid", "suite"];
+
+/** The account's real plan label — planId (from usage_credits.plan_id) wins
+ *  when it distinguishes Starter from Pro; otherwise falls back to the
+ *  coarse tier label (matches TIER_LABELS for free/suite, where there's no
+ *  Starter/Pro-style ambiguity to resolve). */
+function planLabel(tier: BillingTier, planId: string | null): string {
+  if (tier === "paid" && planId === "pro") return "Pro";
+  return TIER_LABELS[tier];
+}
 
 function tierBadgeClass(tier: BillingTier): string {
   if (tier === "free") return "badge badge-green";
@@ -80,6 +94,7 @@ function tierBadgeClass(tier: BillingTier): string {
 
 interface Data {
   account: Account;
+  planId: string | null;
   quota: Awaited<ReturnType<typeof getQuota>>;
   usage: { tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] };
   buckets: UsageBucket[];
@@ -110,15 +125,16 @@ export function UsagePage() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [account, quota, usage, timeseries, subscription, credits] = await Promise.all([
+      const [account, planId, quota, usage, timeseries, subscription, credits] = await Promise.all([
         getAccount(),
+        getAccountPlanId().catch(() => null),
         getQuota(),
         getUsage(),
         getUsageTimeseries({ sinceDays: TIMESERIES_DAYS }),
         getSubscription().catch(() => null),
         getCredits().catch(() => null),
       ]);
-      setData({ account, quota, usage, buckets: timeseries.buckets, subscription, credits });
+      setData({ account, planId, quota, usage, buckets: timeseries.buckets, subscription, credits });
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to load usage & billing", details: apiErrorDetails(err) });
     }
@@ -198,7 +214,8 @@ export function UsagePage() {
     );
   }
 
-  const { account, quota, usage, buckets, subscription, credits } = data;
+  const { account, planId, quota, usage, buckets, subscription, credits } = data;
+  const currentPlanLabel = planLabel(account.tier, planId);
   const maxSnapshots = quota.resource_quota?.max_snapshots_per_month ?? 0;
   const runsInWindow = buckets.reduce((s, b) => s + b.runs, 0);
   const creditsInWindow = buckets.reduce((s, b) => s + b.credits_spent, 0);
@@ -218,9 +235,9 @@ export function UsagePage() {
         <div className="flex-between mb-2">
           <div>
             <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Current plan</h2>
-            <p className="text-muted text-sm">You're on the <strong>{TIER_LABELS[account.tier]}</strong> tier.</p>
+            <p className="text-muted text-sm">You're on the <strong>{currentPlanLabel}</strong> tier.</p>
           </div>
-          <span className={tierBadgeClass(account.tier)}>{TIER_LABELS[account.tier]}</span>
+          <span className={tierBadgeClass(account.tier)}>{currentPlanLabel}</span>
         </div>
 
         {account.tier === "free" && (

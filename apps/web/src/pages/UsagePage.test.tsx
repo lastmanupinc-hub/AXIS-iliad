@@ -91,6 +91,52 @@ describe("UsagePage — loading & core stats", () => {
   });
 });
 
+// ─── Pro vs Starter labeling (H-Phase-A cycle 2) ──────────────────
+//
+// Starter and Pro both show as tier==="paid" — before this fix, every Pro
+// subscriber saw themselves labeled "Starter" on their own billing page,
+// even though the backend (usage_credits.plan_id, fixed in cycle 1) already
+// knew the real plan. Built as a standalone handler list (not baseHandlers +
+// an override) since stubFetch's match-by-substring means an "/v1/account"
+// override would also swallow "/v1/account/quota" etc. if it ran first.
+describe("UsagePage — Pro vs Starter labeling", () => {
+  it("a Pro subscriber is labeled 'Pro', not 'Starter'", async () => {
+    stubFetch([
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 5, max_snapshots_per_month: 200, project_count: 2, max_projects: 20, max_files_per_snapshot: 1000 } }],
+      ["/v1/account/usage/timeseries", TIMESERIES],
+      ["/v1/account/usage", { ...USAGE, tier: "paid" }],
+      ["/v1/account/subscription", {}, 404],
+      ["/v1/account/credits", {}, 404],
+      ["/v1/account", {
+        account: { ...ACCOUNT, tier: "paid" as const },
+        usage_credits: { plan_id: "pro", month_key: "2026-07", monthly_allowance: 300_000, included_credits_used: 0, included_credits_remaining: 300_000, overage_credits_this_month: 0 },
+      }],
+    ]);
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getAllByText("Pro").length).toBeGreaterThan(0));
+    expect(screen.queryByText("Starter")).toBeNull();
+  });
+
+  it("a Starter subscriber (no distinguishing plan_id) is still labeled 'Starter' (unchanged default)", async () => {
+    stubFetch([
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 5, max_snapshots_per_month: 200, project_count: 2, max_projects: 20, max_files_per_snapshot: 1000 } }],
+      ["/v1/account/usage/timeseries", TIMESERIES],
+      ["/v1/account/usage", { ...USAGE, tier: "paid" }],
+      ["/v1/account/subscription", {}, 404],
+      ["/v1/account/credits", {}, 404],
+      ["/v1/account", {
+        account: { ...ACCOUNT, tier: "paid" as const },
+        usage_credits: { plan_id: "starter", month_key: "2026-07", monthly_allowance: 75_000, included_credits_used: 0, included_credits_remaining: 75_000, overage_credits_this_month: 0 },
+      }],
+    ]);
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getAllByText("Starter").length).toBeGreaterThan(0));
+    expect(screen.queryByText("Pro")).toBeNull();
+  });
+});
+
 describe("UsagePage — proration preview", () => {
   it("selecting a target tier fetches and displays the proration preview", async () => {
     stubFetch(baseHandlers([

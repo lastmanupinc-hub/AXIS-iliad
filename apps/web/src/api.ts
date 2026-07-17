@@ -1336,6 +1336,20 @@ export async function getAccountEntitlements(): Promise<string[]> {
   return data.entitlements ?? [];
 }
 
+/**
+ * The specific marketed plan (starter/pro/growth/free) behind this account's
+ * coarse BillingTier — Starter and Pro both show as tier==="paid", so the
+ * UI needs this to label them correctly (H-Phase-A cycle 2: UsagePage was
+ * showing every Pro subscriber as "Starter"). GET /v1/account already
+ * returns it in usage_credits.plan_id (packages/snapshots's
+ * resolvePlanForAccount); same read-the-same-endpoint-for-one-more-field
+ * pattern as getAccountEntitlements above.
+ */
+export async function getAccountPlanId(): Promise<"free" | "starter" | "pro" | "growth" | "enterprise" | null> {
+  const data = await fetchJSON("/v1/account") as { usage_credits?: { plan_id?: string } };
+  return (data.usage_credits?.plan_id as "free" | "starter" | "pro" | "growth" | "enterprise" | undefined) ?? null;
+}
+
 export async function createApiKey(label: string): Promise<{ key_id: string; raw_key: string; label: string }> {
   return fetchJSON("/v1/account/keys", {
     method: "POST",
