@@ -22,6 +22,7 @@ async function req(
   path: string,
   body?: unknown,
   authKey?: string,
+  extraHeaders?: Record<string, string>,
 ): Promise<{ status: number; data: unknown }> {
   return new Promise((resolve, reject) => {
     const payload = body !== undefined ? JSON.stringify(body) : undefined;
@@ -35,6 +36,7 @@ async function req(
           "Content-Type": "application/json",
           ...(payload ? { "Content-Length": Buffer.byteLength(payload) } : {}),
           ...(authKey ? { "Authorization": `Bearer ${authKey}` } : {}),
+          ...(extraHeaders ?? {}),
         },
       },
       (res: import("node:http").IncomingMessage) => {
@@ -410,6 +412,59 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     const paths1 = (result.all_artifacts as Array<{ path: string }>).map(f => f.path).sort();
     const paths2 = (r2result.all_artifacts as Array<{ path: string }>).map(f => f.path).sort();
     expect(paths1).toEqual(paths2);
+  });
+});
+
+// ─── Lite mode withholds the artifact bundle (H-Phase-A cycle 2) ────
+//
+// lite_description promises "purchasing readiness score + top 3 gaps only
+// (no full artifact bundle)". The MCP twin (runPreparePurchasing) had this
+// fixed in cycle 1; this REST endpoint used X-Agent-Mode only to decide
+// complianceDepth's LABEL, but three separate leaks meant the actual
+// response still carried the full bundle regardless: (1) the top-level
+// `gaps` field was never sliced, (2) an unconditional `evidence,` key after
+// `...complianceSection` silently overwrote the section's own mode-gated
+// evidence exclusion, (3) purchasing_artifacts/all_artifacts had no
+// complianceDepth check at all.
+describe("POST /v1/prepare-for-agentic-purchasing — lite mode withholds the bundle", () => {
+  it("gaps is sliced to top 3, evidence/artifacts are withheld, score/strengths still returned", async () => {
+    const r = await req(
+      "POST",
+      "/v1/prepare-for-agentic-purchasing",
+      validBody,
+      suiteApiKey,
+      { "X-Agent-Mode": "lite" },
+    );
+    expect(r.status).toBe(201);
+    const lite = r.data as Record<string, unknown>;
+    expect(typeof lite.purchasing_readiness_score).toBe("number");
+    const bd = lite.score_breakdown as Record<string, unknown>;
+    expect(bd.compliance_depth).toBe("summary");
+    expect(Array.isArray(bd.gaps)).toBe(true);
+    expect((bd.gaps as unknown[]).length).toBeLessThanOrEqual(3);
+    // The evidence-override bug: this key must be ABSENT (or explicitly
+    // undefined), not silently re-added by a later spread/key collision.
+    expect(bd.evidence).toBeUndefined();
+    expect(bd.evidence_summary).toBeUndefined();
+    expect(typeof bd.top_gaps).toBe("object");
+    expect(lite.purchasing_artifacts).toBeUndefined();
+    expect(lite.all_artifacts).toBeUndefined();
+    expect(typeof lite.artifacts_note).toBe("string");
+    // artifact_count (a bare number, not content) is legitimate lite metadata.
+    expect(typeof lite.artifact_count).toBe("number");
+    expect((lite.artifact_count as number)).toBeGreaterThan(0);
+  });
+
+  it("standard mode (no header) still returns full gaps, evidence, and the artifact bundle", async () => {
+    const r = await req("POST", "/v1/prepare-for-agentic-purchasing", validBody, suiteApiKey);
+    expect(r.status).toBe(201);
+    const std = r.data as Record<string, unknown>;
+    const bd = std.score_breakdown as Record<string, unknown>;
+    expect(bd.compliance_depth).toBe("full");
+    expect(bd.evidence).toBeDefined();
+    expect(std.purchasing_artifacts).toBeDefined();
+    expect(std.all_artifacts).toBeDefined();
+    expect(std.artifacts_note).toBeUndefined();
   });
 });
 

@@ -2130,11 +2130,22 @@ export async function handlePreparePurchasing(
       code_readiness: codeReadiness,
       score_breakdown: {
         strengths,
-        gaps,
+        // lite_description promise: "purchasing readiness score + top 3 gaps
+        // only (no full artifact bundle)" — mirrors the top-level `gaps`
+        // field's gating in the MCP twin (mcp-tool-impls.ts's
+        // runPreparePurchasing). complianceSection's own `top_gaps` (summary
+        // mode) is now a redundant duplicate of this, not a separate leak.
+        gaps: complianceDepth === "summary" ? gaps.slice(0, 3) : gaps,
         max_score: 100,
         interpretation: interpretReadiness(score).interpretation,
+        // H-Phase-A cycle 2: this used to be followed by an unconditional
+        // `evidence,` key that silently overwrote complianceSection's own
+        // mode-gated evidence exclusion (a spread + same-name-key collision
+        // bug) — every mode got the full evidence object regardless of
+        // complianceDepth. complianceSection already carries `evidence` for
+        // "full", `evidence_summary` for "standard", and nothing (just
+        // `top_gaps`/`upgrade_hint`) for "summary" — trust its own gating.
         ...complianceSection,
-        evidence,
         focus_areas: parsedFocusAreas,
         ...(effectiveBudgetCents !== undefined ? { effective_budget_cents: effectiveBudgetCents } : {}),
         recommended_next_action: gaps.length > 0
@@ -2143,17 +2154,30 @@ export async function handlePreparePurchasing(
       },
       programs_executed: [...new Set(generated.files.map(f => f.program))],
       artifact_count: generated.files.length,
-      purchasing_artifacts: purchasingFiles.map(f => ({
-        path: f.path,
-        program: f.program,
-        description: f.description,
-        content: f.content,
-      })),
-      all_artifacts: generated.files.map(f => ({
-        path: f.path,
-        program: f.program,
-        description: f.description,
-      })),
+      // lite_description promise: "no full artifact bundle" — the score/gaps
+      // computation above still runs server-side; only the bundle CONTENT
+      // (purchasing_artifacts) and its full path inventory (all_artifacts)
+      // are withheld in lite mode, mirroring the MCP twin's fix (H-Phase-A
+      // cycle 1 on runPreparePurchasing; this REST twin was missed then and
+      // confirmed leaking in cycle 2).
+      ...(complianceDepth === "summary"
+        ? {
+            artifacts_note:
+              "Lite mode: no full artifact bundle. Send X-Agent-Mode: standard (or omit the header) and call this endpoint again for the complete artifact set.",
+          }
+        : {
+            purchasing_artifacts: purchasingFiles.map(f => ({
+              path: f.path,
+              program: f.program,
+              description: f.description,
+              content: f.content,
+            })),
+            all_artifacts: generated.files.map(f => ({
+              path: f.path,
+              program: f.program,
+              description: f.description,
+            })),
+          }),
       how_to_call_axis_again: {
         note: "To re-run this analysis at any time, call either of these endpoints:",
         rest_endpoint: {
