@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getMyAnalyticsSummary, ApiError, type MyAnalyticsSummary } from "../api.ts";
 import { Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
 
@@ -75,17 +75,28 @@ export function MyAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<MyAnalyticsSummary | null>(null);
+  // H-Phase-A cycle 6: load() is triggered both by the days-change effect and
+  // by the Refresh button — a rapid Window re-select (7d -> 30d -> 90d) could
+  // let an OLDER request's response resolve after a newer one and overwrite
+  // it, showing e.g. "90 days" selected with stale 7-day numbers. Same
+  // stale-response guard already used by UsagePage.tsx's proration-preview
+  // effect, generalized to a request counter since this function is shared
+  // by two different triggers instead of owned by a single effect.
+  const requestIdRef = useRef(0);
 
   async function load() {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const data = await getMyAnalyticsSummary(days, 300);
+      if (requestIdRef.current !== requestId) return;
       setSummary(data);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
       setError(err instanceof ApiError ? err.message : "Failed to load analytics");
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }
 
