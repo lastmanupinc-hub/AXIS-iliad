@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb } from "@axis/snapshots";
+import { resetTestDb, updateAccountPaidPlanId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import {
@@ -224,5 +224,27 @@ describe("GET /v1/billing/proration", () => {
     const key = await createAuth();
     const res = await req("GET", "/v1/billing/proration", undefined, key);
     expect(res.status).toBe(400);
+  });
+
+  // ─── H-Phase-A cycle 2: a Pro subscriber previewing an upgrade must be ──
+  // priced from Pro's $99, not Starter's $29 default — both collapse into
+  // the same "paid" tier query param, so the endpoint has no way to know
+  // which plan the caller is actually on except by reading paid_plan_id.
+  it("prices a Pro subscriber's upgrade preview off $99, not Starter's $29", async () => {
+    const created = await req("POST", "/v1/accounts", {
+      name: `pro-preview-${Date.now()}`,
+      email: `pro-preview-${Date.now()}@test.com`,
+    });
+    const account = created.data.account as Record<string, unknown>;
+    const key = (created.data.api_key as Record<string, unknown>).raw_key as string;
+    await req("POST", "/v1/account/tier", { tier: "paid" }, key);
+    await updateAccountPaidPlanId(account.account_id as string, "pro");
+
+    const res = await req("GET", "/v1/billing/proration?tier=suite", undefined, key);
+    expect(res.status).toBe(200);
+    expect(res.data.current_tier).toBe("paid");
+    expect(res.data.target_tier).toBe("suite");
+    // $299 - $99 = $200 (full-period default), not $299 - $29 = $270.
+    expect(res.data.proration_amount).toBe(20000);
   });
 });

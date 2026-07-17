@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { sql } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 import { TIER_LIMITS } from "./billing-types.js";
+import { resolveAccountMonthlyPriceCents } from "./pricing-constants.js";
+import { getAccountPaidPlanId } from "./billing-store.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -42,12 +44,18 @@ export function calculateProration(
   to_tier: BillingTier,
   daysRemainingInPeriod: number = 30,
   daysInPeriod: number = 30,
+  // The account's actual current plan (starter/pro), when known — Starter
+  // and Pro both collapse into `from_tier === "paid"`, so without this a
+  // real Pro subscriber's proration was always computed off Starter's $29
+  // price (H-Phase-A cycle 2). Omit for a fresh-tier preview with no
+  // account context; defaults to Starter, matching resolvePlanForAccount.
+  fromPaidPlanId?: string | null,
 ): ProrationResult {
   if (from_tier === to_tier) {
     return { from_tier, to_tier, days_remaining_in_period: daysRemainingInPeriod, days_in_period: daysInPeriod, proration_amount: 0, direction: "none" };
   }
 
-  const fromPrice = TIER_PRICES[from_tier];
+  const fromPrice = resolveAccountMonthlyPriceCents(from_tier, fromPaidPlanId);
   const toPrice = TIER_PRICES[to_tier];
   const fraction = daysRemainingInPeriod / daysInPeriod;
 
@@ -70,7 +78,15 @@ export async function logTierChange(
   reason: string = "user_request",
   metadata: Record<string, unknown> = {},
 ): Promise<TierChange> {
-  const proration = calculateProration(from_tier, to_tier);
+  // Starter/Pro both collapse into from_tier === "paid" — every caller logs
+  // BEFORE writing any plan_id change for this transition (paid-handlers.ts's
+  // updateAccountPaidPlanId call happens after logTierChange), so the
+  // column still holds the account's real FROM plan at this point. Without
+  // this, every real tier change (self-service, PAI'D webhook, legacy
+  // Stripe webhook) permanently logged a Pro subscriber's proration as if
+  // they were on Starter (H-Phase-A cycle 2).
+  const fromPaidPlanId = await getAccountPaidPlanId(account_id);
+  const proration = calculateProration(from_tier, to_tier, undefined, undefined, fromPaidPlanId);
 
   const change: TierChange = {
     change_id: randomUUID(),

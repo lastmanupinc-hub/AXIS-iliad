@@ -13,6 +13,7 @@ import {
   getTierHistory,
   getLastTierChange,
   calculateProration,
+  updateAccountPaidPlanId,
 } from "@axis/snapshots";
 
 beforeEach(async () => {
@@ -175,6 +176,30 @@ describe("Tier Audit", () => {
     expect(parsed.source).toBe("api");
     expect(parsed.campaign).toBe("spring2026");
   });
+
+  // ─── H-Phase-A cycle 2: a real Pro subscriber's tier change must be ──
+  // logged at Pro's price, not Starter's — Starter/Pro both collapse into
+  // from_tier === "paid", so logTierChange previously always priced the
+  // "from" side at Starter's $29 regardless of which plan the account
+  // actually held, permanently under-pricing every real Pro→Growth (or
+  // Pro→cancel) proration in the audit trail.
+  it("logs a Pro subscriber's tier change at Pro's $99 price, not Starter's $29", async () => {
+    const acct = await createAccount("ProChange", "pro-change@example.com", "paid");
+    await updateAccountPaidPlanId(acct.account_id, "pro");
+
+    const change = await logTierChange(acct.account_id, "paid", "suite", "user_request");
+    // $299 - $99 = $200, full month (logTierChange's own default period).
+    expect(change.proration_amount).toBe(20000);
+  });
+
+  it("logs a Starter subscriber's tier change at Starter's $29 price (unchanged default)", async () => {
+    const acct = await createAccount("StarterChange", "starter-change@example.com", "paid");
+    await updateAccountPaidPlanId(acct.account_id, "starter");
+
+    const change = await logTierChange(acct.account_id, "paid", "suite", "user_request");
+    // $299 - $29 = $270.
+    expect(change.proration_amount).toBe(27000);
+  });
 });
 
 // ─── Proration Calculation ──────────────────────────────────────
@@ -215,5 +240,16 @@ describe("calculateProration", () => {
     expect(result.direction).toBe("downgrade");
     const expectedCredit = -Math.round(2900 * (20 / 30));
     expect(result.proration_amount).toBe(expectedCredit);
+  });
+
+  it("a Pro fromPaidPlanId prices the 'from' side at $99, not Starter's $29 default (H-Phase-A cycle 2)", () => {
+    const result = calculateProration("paid", "suite", 30, 30, "pro");
+    expect(result.direction).toBe("upgrade");
+    expect(result.proration_amount).toBe(20000); // $299 - $99 = $200
+  });
+
+  it("no fromPaidPlanId (undefined) still defaults to Starter's $29 (unchanged default)", () => {
+    const result = calculateProration("paid", "suite", 30, 30);
+    expect(result.proration_amount).toBe(27000); // $299 - $29 = $270
   });
 });

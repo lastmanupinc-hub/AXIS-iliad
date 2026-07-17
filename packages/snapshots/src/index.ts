@@ -265,7 +265,7 @@ export {
 
 // Marketed pricing constants (single source of truth — WO-01 billing-tiers-4)
 export type { MarketedTier, MarketedPlanId } from "./pricing-constants.js";
-export { MARKETED_TIERS, OVERAGE_USD_PER_CREDIT, OVERAGE_CENTS_PER_CREDIT, REFERRAL_MAX_REDUCTION_RATE } from "./pricing-constants.js";
+export { MARKETED_TIERS, OVERAGE_USD_PER_CREDIT, OVERAGE_CENTS_PER_CREDIT, REFERRAL_MAX_REDUCTION_RATE, resolveAccountMonthlyPriceCents } from "./pricing-constants.js";
 export {
   getIdempotentResult,
   claimIdempotencyKey,
