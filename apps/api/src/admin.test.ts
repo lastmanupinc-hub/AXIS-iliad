@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, recordMcpUsage } from "@axis/snapshots";
+import { resetTestDb, recordMcpUsage, updateAccountPaidPlanId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -123,6 +123,22 @@ describe("GET /v1/admin/accounts", () => {
     expect(adminAccount).toBeDefined();
     expect(adminAccount!.name).toBe("Admin Tester");
     expect(adminAccount!.tier).toBe("free");
+  });
+
+  // H-Phase-A cycle 2: Starter/Pro both show as tier==="paid" in this list —
+  // paid_plan_id disambiguates them for support/ops, a real (if low-severity)
+  // visibility gap the admin account list had no way to close before this.
+  it("surfaces paid_plan_id so a Pro account is distinguishable from a Starter one", async () => {
+    const created = await req("POST", "/v1/accounts", { name: "Pro Admin View", email: "pro-admin-view@test.com" });
+    const accountId = (created.data.account as Record<string, unknown>).account_id as string;
+    await updateAccountPaidPlanId(accountId, "pro");
+
+    const r = await req("GET", "/v1/admin/accounts?limit=200", undefined, apiKey);
+    expect(r.status).toBe(200);
+    const accounts = r.data.accounts as Array<Record<string, unknown>>;
+    const proAccount = accounts.find((a) => a.account_id === accountId);
+    expect(proAccount).toBeDefined();
+    expect(proAccount!.paid_plan_id).toBe("pro");
   });
 
   it("respects limit and offset params", async () => {

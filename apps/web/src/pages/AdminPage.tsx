@@ -348,7 +348,7 @@ export function AdminPage() {
                 <tr key={account.account_id}>
                   <td>{account.name}</td>
                   <td>{account.email}</td>
-                  <td>{account.tier}</td>
+                  <td>{account.tier === "paid" && account.paid_plan_id ? `paid (${account.paid_plan_id})` : account.tier}</td>
                   <td>{new Date(account.created_at).toLocaleString()}</td>
                 </tr>
               ))}

@@ -231,6 +231,9 @@ export interface AdminAccountSummary {
   name: string;
   email: string;
   tier: BillingTier;
+  /** Starter/Pro both show as tier==="paid" — disambiguates which real plan
+   *  a "paid"-tier account is on (H-Phase-A cycle 2). */
+  paid_plan_id: string | null;
   created_at: string;
 }
 

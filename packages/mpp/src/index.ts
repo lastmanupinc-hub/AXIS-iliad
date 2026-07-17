@@ -117,27 +117,6 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 25,
     lite_description: "Lite mode: CE 3.0 qualification + evidence hash only (no auto-submit to the Stripe disputes API)",
   },
-  // Strategy 1: x402/MCP Gateway (agent-to-agent commerce infrastructure)
-  mcp_gateway_snapshot: {
-    tool: "mcp_gateway_snapshot",
-    standard_cents: 15,
-    lite_cents: 9,
-    lite_description: "Lite mode: gateway routing + auth only (no call logs, no analytics)",
-  },
-  // Strategy 2: Codebase Intelligence API (per-push CI snapshot)
-  ci_snapshot: {
-    tool: "ci_snapshot",
-    standard_cents: 50,
-    lite_cents: 25,
-    lite_description: "Lite mode: compliance grade + AGENTS.md + CLAUDE.md only (no full 18-program bundle)",
-  },
-  // Strategy 3: Compliance Artifact Compiler (fintech CI gate)
-  compliance_check: {
-    tool: "compliance_check",
-    standard_cents: 50,
-    lite_cents: 15,
-    lite_description: "Lite mode: compliance grade (A/B/C/D) + top 3 SCA exemptions + CE 3.0 score only",
-  },
   // Phase 1: Firecrawl web research proxy (per-page pricing)
   iliad_web_research: {
     tool: "iliad_web_research",
@@ -323,13 +302,6 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
 
 export const LEGACY_TOOL_ALIASES: Record<string, string> = {
   prepare_for_agentic_purchasing: "prepare_agentic_purchasing",
-  mcp_gateway: "mcp_gateway_snapshot",
-  gateway_snapshot: "mcp_gateway_snapshot",
-  snapshot: "ci_snapshot",
-  push_snapshot: "ci_snapshot",
-  compliance: "compliance_check",
-  compliance_gate: "compliance_check",
-  compliance_audit: "compliance_check",
 };
 
 // ─── Core Functions ───────────────────────────────────────────────

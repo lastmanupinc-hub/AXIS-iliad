@@ -687,6 +687,10 @@ export interface AccountSummary {
   name: string;
   email: string;
   tier: BillingTier;
+  /** Starter/Pro both show as tier==="paid" — this disambiguates which real
+   *  plan a "paid"-tier account is on (H-Phase-A cycle 2: admin's account
+   *  list had no way to tell them apart, a support/ops visibility gap). */
+  paid_plan_id: string | null;
   created_at: string;
   snapshot_count: number;
   project_count: number;
@@ -699,7 +703,7 @@ export async function listAllAccounts(limit = 100, offset = 0): Promise<{ accoun
     snapshot_count: string | number;
     project_count: string | number;
   }>(`
-    SELECT a.account_id, a.name, a.email, a.tier, a.created_at,
+    SELECT a.account_id, a.name, a.email, a.tier, a.paid_plan_id, a.created_at,
       (SELECT COUNT(*) FROM snapshots s JOIN (SELECT DISTINCT project_id FROM snapshots) p ON s.project_id = p.project_id WHERE EXISTS (SELECT 1 FROM usage_records u WHERE u.account_id = a.account_id AND u.snapshot_id = s.snapshot_id)) as snapshot_count,
       (SELECT COUNT(DISTINCT u.snapshot_id) FROM usage_records u WHERE u.account_id = a.account_id) as project_count
     FROM accounts a
@@ -713,6 +717,7 @@ export async function listAllAccounts(limit = 100, offset = 0): Promise<{ accoun
     name: r.name,
     email: r.email,
     tier: r.tier,
+    paid_plan_id: r.paid_plan_id ?? null,
     created_at: r.created_at,
     snapshot_count: Number(r.snapshot_count ?? 0),
     project_count: Number(r.project_count ?? 0),
