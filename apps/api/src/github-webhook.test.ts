@@ -548,3 +548,114 @@ describe("Watchtower delta on webhook re-analysis (SPEC-04 + SPEC-11 analysis-on
     stdoutSpy.mockRestore();
   });
 });
+
+// ─── H8.11b: replay protection — duplicate X-GitHub-Delivery is deduped ──
+//
+// GitHub's signature scheme carries no timestamp (structural — there is
+// nothing to check a staleness tolerance against), so the delivery-ID cache
+// in rememberDelivery() is this handler's ONLY defense against a captured-
+// and-replayed valid payload. Until this unit, that path had zero test
+// coverage — the audit's own acceptance bar ("verify... reject stale/
+// replayed deliveries") requires proving it, not just reading the code.
+describe("Replay protection — duplicate X-GitHub-Delivery (H8.11b)", () => {
+  beforeEach(() => {
+    watchtowerState.snapshotsByProject.clear();
+    watchtowerState.contextMaps.clear();
+    watchtowerState.repoProfiles.clear();
+    watchtowerState.generatorResults.clear();
+    watchtowerState.nextId = 0;
+    vi.mocked(fetchGitHubRepo).mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("a second delivery with the SAME X-GitHub-Delivery id is deduped — no second snapshot is created", async () => {
+    const repo = "replay-org/replay-repo-1";
+    const body = pushBody(repo);
+    const headers = {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "replay-delivery-same-id",
+    };
+
+    const r1 = await req("POST", "/v1/github/webhook", body, headers);
+    expect(r1.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(fetchGitHubRepo).toHaveBeenCalledTimes(1);
+
+    // Exact same delivery id, exact same body — a real GitHub retry/replay.
+    const r2 = await req("POST", "/v1/github/webhook", body, headers);
+    expect(r2.status).toBe(202); // still acks fast — GitHub doesn't need to know it was deduped
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    // The real assertion: the expensive downstream work did NOT run twice.
+    expect(fetchGitHubRepo).toHaveBeenCalledTimes(1);
+    expect(watchtowerState.snapshotsByProject.get(repo)?.length ?? 0).toBe(1);
+  });
+
+  it("logs github-webhook.duplicate_delivery on the replayed request", async () => {
+    vi.stubEnv("AXIS_ENABLE_TEST_LOGS", "1");
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    const repo = "replay-org/replay-repo-logged";
+    const body = pushBody(repo);
+    const headers = {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "replay-delivery-logged",
+    };
+    await req("POST", "/v1/github/webhook", body, headers);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await req("POST", "/v1/github/webhook", body, headers);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const lines = stdoutSpy.mock.calls.map((c) => String(c[0])).join("");
+    expect(lines).toContain("github-webhook.duplicate_delivery");
+    expect(lines).toContain("replay-delivery-logged");
+    stdoutSpy.mockRestore();
+  });
+
+  it("a DIFFERENT X-GitHub-Delivery id for the same repo is NOT deduped — two real pushes both process", async () => {
+    const repo = "replay-org/replay-repo-distinct";
+    const body1 = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body1, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body1),
+      "X-GitHub-Delivery": "replay-delivery-distinct-1",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const body2 = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body2, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body2),
+      "X-GitHub-Delivery": "replay-delivery-distinct-2",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    expect(fetchGitHubRepo).toHaveBeenCalledTimes(2);
+    expect(watchtowerState.snapshotsByProject.get(repo)?.length ?? 0).toBe(2);
+  });
+
+  it("resetGitHubWebhookState() actually clears the dedup cache (the beforeEach hook's own contract)", async () => {
+    const repo = "replay-org/replay-repo-reset-check";
+    const body = pushBody(repo);
+    const headers = {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "replay-delivery-reset-check",
+    };
+    await req("POST", "/v1/github/webhook", body, headers);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(fetchGitHubRepo).toHaveBeenCalledTimes(1);
+
+    resetGitHubWebhookState();
+
+    // Same delivery id again, but the cache was just reset — treated as fresh.
+    await req("POST", "/v1/github/webhook", body, headers);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(fetchGitHubRepo).toHaveBeenCalledTimes(2);
+  });
+});
