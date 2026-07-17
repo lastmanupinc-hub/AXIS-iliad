@@ -951,6 +951,31 @@ export async function runDocumentParsingDispatch(args: Record<string, unknown>, 
     throw new Error("iliad_document_parsing: `mime_type` must be a string when provided.");
   }
   const engineer = resolveAgentMode(req) === "engineer";
+  const lite = resolveAgentMode(req) === "lite";
+  // Lite input gate (lite_description promise: 5 MiB in / 256 KiB markdown out).
+  // The base64 size check runs BEFORE authorize/parsing so an oversized
+  // payload is cleanly rejected without ever placing a credit hold. URL
+  // inputs (size unknowable up front) are capped during download via
+  // max_doc_bytes below — download failures return a _not_configured
+  // envelope, which is never captured.
+  if (lite && typeof args.document_base64 === "string") {
+    const decodedBytes = Buffer.from(args.document_base64, "base64").byteLength;
+    if (decodedBytes > LITE_DOC_INPUT_MAX_BYTES) {
+      throw new Error(
+        `iliad_document_parsing: lite mode caps document input at 5 MiB (decoded input is ${decodedBytes} bytes). ` +
+          `Send X-Agent-Mode: standard for up to 50 MiB.`,
+      );
+    }
+  }
+
+  // H-Phase-A cycle 3: authorize BEFORE the fallible OCR/parsing work below,
+  // not after — meterMcpToolCredits (combined authorize+capture) only checked
+  // credits AFTER the work ran, so an account with insufficient credits still
+  // got a free OCR/parse (the compute cost was already spent by the time the
+  // 402 fired). Capture only commits once real work actually succeeded; the
+  // existing not-configured/empty-result skips below now simply never
+  // capture the hold, matching every other authorize/capture tool in this file.
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_document_parsing");
 
   // Engineer + image input → OCR path (images aren't parseable in standard mode).
   if (engineer && isImageMime(args.mime_type)) {
@@ -959,7 +984,7 @@ export async function runDocumentParsingDispatch(args: Record<string, unknown>, 
     }
     const ocr = await ocrImage(Buffer.from(args.document_base64, "base64"));
     if (!ocr.available) {
-      // OCR couldn't run — don't meter (operator-level, like _not_configured).
+      // OCR couldn't run — don't capture (operator-level, like _not_configured).
       return JSON.stringify({
         _not_configured: true,
         tool: "iliad_document_parsing",
@@ -971,25 +996,10 @@ export async function runDocumentParsingDispatch(args: Record<string, unknown>, 
       return JSON.stringify({ _not_configured: true, tool: "iliad_document_parsing", reason: "OCR ran but detected no text in the image." }, null, 2);
     }
     const imageBlock = await buildDocEngineerBlock(ocr.text, args.json_schema);
-    await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: imageBlock }, null, 2);
   }
 
-  const lite = resolveAgentMode(req) === "lite";
-  // Lite input gate (lite_description promise: 5 MiB in / 256 KiB markdown out).
-  // The base64 size check runs BEFORE any parsing or metering so an oversized
-  // payload is cleanly rejected without charge. URL inputs (size unknowable
-  // up front) are capped during download via max_doc_bytes below — download
-  // failures return a _not_configured envelope, which is never metered.
-  if (lite && typeof args.document_base64 === "string") {
-    const decodedBytes = Buffer.from(args.document_base64, "base64").byteLength;
-    if (decodedBytes > LITE_DOC_INPUT_MAX_BYTES) {
-      throw new Error(
-        `iliad_document_parsing: lite mode caps document input at 5 MiB (decoded input is ${decodedBytes} bytes). ` +
-          `Send X-Agent-Mode: standard for up to 50 MiB.`,
-      );
-    }
-  }
   const opts: ParseOptions = {
     document_url: args.document_url as string | undefined,
     document_base64: args.document_base64 as string | undefined,
@@ -999,18 +1009,18 @@ export async function runDocumentParsingDispatch(args: Record<string, unknown>, 
     ...(lite ? { max_doc_bytes: LITE_DOC_INPUT_MAX_BYTES, max_markdown_chars: LITE_DOC_MARKDOWN_MAX_CHARS } : {}),
   };
   const result = await runDocumentParsing(opts);
-  // Skip metering when the call returned a _not_configured envelope —
+  // Skip capturing when the call returned a _not_configured envelope —
   // those branches mean the input was unsupported/malformed/unreachable
   // (operator-level issues), not a value the caller asked for.
   if (!isNotConfiguredResult(result)) {
     // Engineer mode (Document Intelligence): chunks (+ schema extraction). Build
-    // the block BEFORE metering so the charge follows the delivered work.
+    // the block BEFORE capturing so the charge follows the delivered work.
     if (engineer) {
       const textBlock = await buildDocEngineerBlock(result.markdown, args.json_schema);
-      await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+      await captureMcpToolCredits(auth.account, charge);
       return JSON.stringify({ ...result, engineer: textBlock }, null, 2);
     }
-    await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    await captureMcpToolCredits(auth.account, charge);
   }
   return JSON.stringify(result, null, 2);
 }
@@ -1198,12 +1208,15 @@ export async function runTextToSpeech(args: Record<string, unknown>, req: Incomi
     format: args.format as AudioFormat | undefined,
     sentence_silence: persona ? persona.sentence_silence : (args.sentence_silence as number | undefined),
   };
+  // H-Phase-A cycle 3: authorize BEFORE runSynthesis (the fallible subprocess
+  // work), not after — see runDocumentParsingDispatch's identical fix for why.
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_text_to_speech");
   const result = await runSynthesis(opts);
-  // Skip metering on _not_configured branches (piper missing, voice
+  // Skip capturing on _not_configured branches (piper missing, voice
   // missing, etc.) — those are operator-setup gaps, not work the
   // caller successfully completed.
   if (!isNotConfiguredResult(result)) {
-    await meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
+    await captureMcpToolCredits(auth.account, charge);
   }
   return JSON.stringify(persona ? { ...result, persona } : result, null, 2);
 }
@@ -1238,9 +1251,13 @@ export async function runSpeechToText(args: Record<string, unknown>, req: Incomi
     // requested, mirroring iliad_text_to_speech's format-lock pattern.
     word_timestamps: lite ? false : (args.word_timestamps as boolean | undefined),
   };
+  // H-Phase-A cycle 3: authorize BEFORE runTranscription (the fallible
+  // subprocess work), not after — see runDocumentParsingDispatch's identical
+  // fix for why.
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_speech_to_text");
   const result = await runTranscription(opts, lite ? LITE_STT_MAX_DURATION_SECONDS : undefined);
   if (!isNotConfiguredResult(result)) {
-    await meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
+    await captureMcpToolCredits(auth.account, charge);
   }
   // Engineer mode (Diarization): group the transcript's segments into speaker
   // turns by inter-segment pause gaps.
@@ -1279,11 +1296,19 @@ export async function runCodeSandbox(args: Record<string, unknown>, req: Incomin
     timeout_seconds: args.timeout_seconds as number | undefined,
     stdin: args.stdin as string | undefined,
   };
+  // H-Phase-A cycle 3: authorize BEFORE runCodeSandboxModule spawns the
+  // container, not after — meterMcpToolCredits (combined authorize+capture)
+  // only checked credits AFTER the container ran, so an account with
+  // insufficient credits still got a free sandbox execution (the compute
+  // cost was already spent by the time the 402 fired). Capture only commits
+  // once real work succeeded; the not-configured skip below now simply never
+  // captures the hold, matching every other authorize/capture tool in this file.
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_code_sandbox");
   const result = await runCodeSandboxModule(opts);
   // Docker daemon unreachable / dockerode import failed → _not_configured.
-  // Don't meter those — the container never spawned.
+  // Don't capture those — the container never spawned.
   if (!isNotConfiguredResult(result)) {
-    // Engineer mode: build the signed attestation BEFORE metering, so a signing-
+    // Engineer mode: build the signed attestation BEFORE capturing, so a signing-
     // key misconfiguration fails the call rather than charging for a missing
     // attestation. attestRun is pure crypto over the already-capped inputs.
     if (resolveAgentMode(req) === "engineer") {
@@ -1292,10 +1317,10 @@ export async function runCodeSandbox(args: Record<string, unknown>, req: Incomin
         { stdout: result.stdout, stderr: result.stderr, exit_code: result.exit_code },
         auth.account.account_id,
       );
-      await meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+      await captureMcpToolCredits(auth.account, charge);
       return JSON.stringify({ ...result, attestation }, null, 2);
     }
-    await meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+    await captureMcpToolCredits(auth.account, charge);
   }
   return JSON.stringify(result, null, 2);
 }

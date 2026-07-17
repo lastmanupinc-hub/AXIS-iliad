@@ -330,6 +330,40 @@ describe("runDocumentParsingDispatch — lite caps", () => {
     expect(out.markdown.length).toBe(300_000);
     expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
   });
+
+  // ─── H-Phase-A cycle 3: insufficient credits reject BEFORE the fallible ──
+  // download/parse work, not after.
+  //
+  // meterMcpToolCredits (the combined authorize+capture this tool used to
+  // call AFTER runDocumentParsing) meant an account over its included
+  // credits still got a free download + parse — the 402 only fired once the
+  // (already-spent) work was done. authorizeMcpToolCredits now runs first,
+  // so an insufficient-credit call never reaches the network at all.
+  it("an insufficient-credit account is rejected before any network fetch happens", async () => {
+    vi.mocked(snapshots.previewUsageCredits).mockResolvedValueOnce({
+      tool: "iliad_document_parsing",
+      credits_required: 100,
+      included_credits_applied: 0,
+      overage_credits: 100,
+      effective_overage_cents: 500,
+      plan_id: "starter",
+      monthly_allowance: 75_000,
+      included_credits_used: 75_000,
+      included_credits_remaining: 0,
+      overage_credits_this_month: 100,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    try {
+      await expect(
+        runDocumentParsingDispatch({ document_url: "http://93.184.216.34/report.pdf" }, stdReq),
+      ).rejects.toThrow();
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
 });
 
 // ─── document_url ingestion — unhappy paths (safeFetch / url-guard) ──
