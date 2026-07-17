@@ -94,9 +94,16 @@ interface CategoryDef {
   patterns: RegExp[];
 }
 
-const CATEGORY_DEFS: CategoryDef[] = [
-  {
-    category: "psp_integration",
+// H-Phase-A cycle 5: an array literal here (or in purchasing-readiness-
+// analysis.test.ts's own hand-typed CATEGORY_MARKERS/ALL_CRITICAL lists) is
+// NOT exhaustiveness-checked against ReadinessCategory — a missing category
+// would compile fine either way. CATEGORY_DEF_SET is the genuinely exhaustive
+// Record<ReadinessCategory, ...> (a missing/extra key is a real tsc build
+// error); CATEGORY_DEFS derives its array shape from it for the existing
+// .map() call site below. The test file imports this set (via
+// getReadinessCategories) instead of re-declaring its own category list.
+const CATEGORY_DEF_SET: Record<ReadinessCategory, Omit<CategoryDef, "category">> = {
+  psp_integration: {
     label: "PSP/Stripe SDK integration",
     weight: 20,
     critical: true,
@@ -111,8 +118,7 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /razorpay/i,
     ],
   },
-  {
-    category: "webhook_verification",
+  webhook_verification: {
     label: "Webhook signature verification",
     weight: 20,
     critical: true,
@@ -125,8 +131,7 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /createHmac\([^)]*\).*(sign|signature)/i,
     ],
   },
-  {
-    category: "idempotency",
+  idempotency: {
     label: "Idempotency keys",
     weight: 15,
     critical: true,
@@ -135,8 +140,7 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /Idempotency-Key/,
     ],
   },
-  {
-    category: "refund_cancel",
+  refund_cancel: {
     label: "Refund/cancel paths",
     weight: 15,
     critical: true,
@@ -149,8 +153,7 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /['"`]\/(refund|cancel)s?['"`]/,
     ],
   },
-  {
-    category: "auth",
+  auth: {
     label: "Request authentication",
     weight: 15,
     critical: true,
@@ -163,8 +166,7 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /getAuthContext/,
     ],
   },
-  {
-    category: "budget_guard",
+  budget_guard: {
     label: "Spend/budget guard",
     weight: 10,
     critical: true,
@@ -177,8 +179,7 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /\bbudget\b.{0,40}\b(limit|cap|guard|exceed)/i,
     ],
   },
-  {
-    category: "payment_mandate",
+  payment_mandate: {
     label: "AP2/payment-mandate handling",
     weight: 5,
     critical: false,
@@ -191,7 +192,23 @@ const CATEGORY_DEFS: CategoryDef[] = [
       /\bucp\b/i,
     ],
   },
-];
+};
+
+const CATEGORY_DEFS: CategoryDef[] = (Object.keys(CATEGORY_DEF_SET) as ReadinessCategory[]).map(
+  (category) => ({ category, ...CATEGORY_DEF_SET[category] }),
+);
+
+/** The full ReadinessCategory list, derived from the exhaustive CATEGORY_DEF_SET —
+ *  exported so tests can iterate the real set instead of hand-typing their own. */
+export function getReadinessCategories(): ReadinessCategory[] {
+  return Object.keys(CATEGORY_DEF_SET) as ReadinessCategory[];
+}
+
+/** The CRITICAL subset (the anti-tautology rule's "all six" — everything except
+ *  the non-critical payment_mandate bonus category), derived the same way. */
+export function getCriticalReadinessCategories(): ReadinessCategory[] {
+  return getReadinessCategories().filter((c) => CATEGORY_DEF_SET[c].critical);
+}
 
 /** Earliest match of any pattern in `content`, or null. Pure; no /g state. */
 function earliestMatch(patterns: RegExp[], content: string): { line: number; excerpt: string } | null {

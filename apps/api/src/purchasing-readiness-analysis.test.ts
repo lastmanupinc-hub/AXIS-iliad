@@ -14,6 +14,8 @@ import {
   buildCodeReadinessBlock,
   READINESS_CAVEAT,
   MAX_EVIDENCE_PER_CATEGORY,
+  getReadinessCategories,
+  getCriticalReadinessCategories,
   type ReadinessCategory,
 } from "./purchasing-readiness-analysis.js";
 import { computePurchasingReadinessScore } from "./handlers.js";
@@ -25,14 +27,19 @@ function entry(path: string, content: string): FileEntry {
   return { path, content, size: Buffer.byteLength(content, "utf-8") };
 }
 
-const ALL_CRITICAL: ReadinessCategory[] = [
-  "psp_integration",
-  "webhook_verification",
-  "idempotency",
-  "refund_cancel",
-  "auth",
-  "budget_guard",
-];
+// H-Phase-A cycle 5: ALL_CRITICAL and CATEGORY_MARKERS below used to be
+// independently hand-typed lists — a `.test.ts` file is excluded from
+// apps/api/tsconfig.json's tsc pass, so even CATEGORY_MARKERS' own
+// Record<ReadinessCategory, string> typing (which LOOKS exhaustive) was never
+// actually checked by CI; a category added to the real union could silently
+// go unlisted here with zero build error. ALL_CRITICAL now derives from the
+// real, tsc-checked source (getCriticalReadinessCategories, backed by
+// purchasing-readiness-analysis.ts's own exhaustive CATEGORY_DEF_SET).
+// CATEGORY_MARKERS still needs hand-authored fixture content per category
+// (that data can't be derived), so a canary test below asserts its key set
+// matches the real category list — same "runtime tripwire" mitigation cycle
+// 4 used for mcp-inband-settlement.test.ts's BILLABLE_ARGS.
+const ALL_CRITICAL: ReadinessCategory[] = getCriticalReadinessCategories();
 
 // One isolated marker per category — each matches ONLY its own category's patterns.
 const CATEGORY_MARKERS: Record<ReadinessCategory, string> = {
@@ -44,6 +51,14 @@ const CATEGORY_MARKERS: Record<ReadinessCategory, string> = {
   budget_guard: "if (amountCents > spendingLimit) throw new Error('over budget');",
   payment_mandate: "const mandate = { scheme: 'ap2' };",
 };
+
+describe("CATEGORY_MARKERS — stays in sync with the real ReadinessCategory set", () => {
+  it("has exactly one marker per category, no more, no less", () => {
+    const markerKeys = Object.keys(CATEGORY_MARKERS).sort();
+    const realCategories = getReadinessCategories().sort();
+    expect(markerKeys).toEqual(realCategories);
+  });
+});
 
 function markerFixture(exclude: ReadinessCategory[] = []): FileEntry[] {
   return (Object.entries(CATEGORY_MARKERS) as [ReadinessCategory, string][])
