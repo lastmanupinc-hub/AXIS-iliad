@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary, getPaymentFunnelStats, getSettledRevenue, recordPaymentFunnelEvent } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary, getPaymentFunnelStats, getSettledRevenue, recordPaymentFunnelEvent, ALL_PROGRAMS } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -581,6 +581,60 @@ describe("POST /mcp — tools/call analyze_files", () => {
     expect(parsed.artifact_count).toBeGreaterThan(0);
     expect(parsed.snapshot_summary.pro_unlock).toContain("15 more programs");
     snapshotId = parsed.snapshot_id; // save for subsequent tests
+  });
+
+  // ─── Lite mode restriction (H-Phase-A cycle 1) ────────────────────
+  //
+  // lite_description promises "search/skills/debug programs only (3 of 20
+  // programs)". Before this fix, requested_outputs was always every program
+  // regardless of X-Agent-Mode, so a fully-entitled (suite) account paying the
+  // lite price still received the full standard-mode bundle — apiKey (suite
+  // tier, all 20 programs auto-enabled) is the account that can reach this
+  // path at all (analyze_files 402s a free-tier account outright, tested
+  // above), so it's the only way to prove lite ACTUALLY restricts output
+  // rather than just being allowed to run.
+  it("lite mode restricts output to the 3 free programs even for a fully-entitled account", async () => {
+    const r = await postWithHeaders(
+      "/mcp",
+      {
+        jsonrpc: "2.0",
+        id: 121,
+        method: "tools/call",
+        params: {
+          name: "analyze_files",
+          arguments: {
+            project_name: "lite-mode-test",
+            project_type: "web_application",
+            frameworks: [],
+            goals: ["ctx"],
+            files: testFiles,
+          },
+        },
+      },
+      { Authorization: `Bearer ${apiKey}`, "X-Agent-Mode": "lite" },
+    );
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.snapshot_summary.mode).toBe("lite");
+    expect(parsed.artifact_count).toBeGreaterThan(0);
+    const programsExecuted = parsed.programs_executed as string[];
+    expect(programsExecuted.length).toBeGreaterThan(0);
+    // At least the 3 free programs must run. Cross-cutting meta-artifacts
+    // ("quality", "begin", ...) that aren't part of the 20 counted generator
+    // programs the lite promise scopes "3 of 20" against are allowed to
+    // appear regardless of mode -- what must NEVER appear is any of the
+    // OTHER 17 real, non-free generator programs (seo, optimization, theme,
+    // brand, marketing, ...): that's the exact leak this fix closes.
+    expect(programsExecuted).toEqual(expect.arrayContaining(["search", "skills", "debug"]));
+    const nonFreeGeneratorPrograms = ALL_PROGRAMS.filter(
+      (p) => !["search", "skills", "debug"].includes(p),
+    );
+    for (const program of programsExecuted) {
+      expect(nonFreeGeneratorPrograms).not.toContain(program);
+    }
   });
 
   it("returns isError:true when project_name is missing", async () => {

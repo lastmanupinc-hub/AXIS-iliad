@@ -1364,6 +1364,24 @@ export async function runWebResearchCrawl(args: Record<string, unknown>, req: In
 
 const MCP_FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
 
+/**
+ * analyze_repo/analyze_files' lite_description promise (@axis/mpp
+ * PRICING_TIERS): "search/skills/debug programs only (3 of 20 programs)".
+ * Restricts the generator list BEFORE requested_outputs is built, so a lite
+ * call never generates (and is never billed the standard price for) more
+ * than the 3 free programs' artifacts — regardless of how many programs the
+ * caller's account has enabled (H-Phase-A cycle 1: this was previously
+ * unenforced, so a Suite/all-programs-enabled account paying the lite price
+ * still received the full standard-mode bundle).
+ */
+function restrictGeneratorsForLiteMode<T extends { program: string }>(
+  generators: readonly T[],
+  req: IncomingMessage,
+): T[] {
+  if (resolveAgentMode(req) !== "lite") return generators as T[];
+  return generators.filter((g) => MCP_FREE_PROGRAMS.has(g.program));
+}
+
 /** Per-file content size limit (5 MB) â€” prevents oversized payloads. */
 const MAX_FILE_CONTENT_BYTES = 5 * 1024 * 1024;
 /** Max length for short string inputs (project_name, project_type). */
@@ -1787,7 +1805,7 @@ export async function runAnalyzeFiles(
     );
   }
 
-  const generators = listAvailableGenerators();
+  const generators = restrictGeneratorsForLiteMode(listAvailableGenerators(), req);
   const requestedOutputs = generators.map(g => g.path);
   const manifest: SnapshotManifest = {
     project_name,
@@ -1847,7 +1865,7 @@ export async function runAnalyzeFiles(
       project_id: snapshot.project_id,
       status: "ready",
       snapshot_summary: {
-        mode: blockedPrograms.length > 0 ? "free-tier" : "full-access",
+        mode: resolveAgentMode(req) === "lite" ? "lite" : (blockedPrograms.length > 0 ? "free-tier" : "full-access"),
         pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99/mo).",
       },
       programs_executed: [...programs],
@@ -1940,7 +1958,7 @@ export async function runAnalyzeRepo(
     return { path, content: f.content, size: Buffer.byteLength(f.content, "utf-8") };
   });
 
-  const generators = listAvailableGenerators();
+  const generators = restrictGeneratorsForLiteMode(listAvailableGenerators(), req);
   const requestedOutputs = generators.map(g => g.path);
   const manifest: SnapshotManifest = {
     project_name: parsed.repo,
@@ -1994,7 +2012,7 @@ export async function runAnalyzeRepo(
       github_url,
       status: "ready",
       snapshot_summary: {
-        mode: blockedPrograms.length > 0 ? "free-tier" : "full-access",
+        mode: resolveAgentMode(req) === "lite" ? "lite" : (blockedPrograms.length > 0 ? "free-tier" : "full-access"),
         pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99/mo).",
       },
       programs_executed: [...programs],
