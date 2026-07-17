@@ -38,8 +38,8 @@ function statusBadgeClass(status: string): string {
   return "badge badge-yellow"; // "processing"
 }
 
-function gradeBadgeClass(letter: string | null): string {
-  if (letter === "A") return "badge badge-green";
+export function gradeBadgeClass(letter: string | null): string {
+  if (letter === "A" || letter === "A+") return "badge badge-green";
   if (letter === "B") return "badge badge-blue";
   if (letter === "C") return "badge badge-yellow";
   if (letter === "D") return "badge badge-red";
