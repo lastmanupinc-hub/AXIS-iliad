@@ -1,0 +1,45 @@
+version: 2
+
+# H8.12 — weekly, grouped minor/patch, majors labeled for discussion, never
+# auto-merged. No auto-merge automation exists anywhere in this repo (checked
+# before writing this file) — that half of the repo law is satisfied by
+# simply never adding one, not by anything below.
+#
+# Dependabot's own schema has no "label only major-version PRs" primitive —
+# `labels` applies uniformly to every PR an update block opens (grouped or
+# not), and `groups` doesn't carry its own label override. So the
+# `deps-discussion` half of "majors labeled deps-discussion" is enforced at
+# triage time, by hand, on whichever PRs Dependabot opens outside the
+# minor/patch group (i.e. major-version bumps) — not something this config
+# file can mechanically guarantee for every future PR on its own.
+updates:
+  # npm/pnpm workspace (single root pnpm-lock.yaml covers apps/* + packages/*).
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Root Dockerfile (axis-api's Render build).
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+  # Pinned Action versions across every .github/workflows/*.yml.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
