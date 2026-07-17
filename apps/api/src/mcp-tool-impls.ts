@@ -2078,6 +2078,15 @@ const FREE_TOOL_NAMES = new Set([
   "ping_payment",
 ]);
 
+// H-Phase-A cycle 6: handlers.ts's GET /for-agents shareable_manifest/
+// pricing_table hardcoded a literal "12" free-tool count that drifted stale
+// after WO-13/WO-14/x402 additions marked more tools free — derived here
+// from the SAME real-registration filter runDiscoverAgenticCommerceTools
+// itself uses below (FREE_TOOL_NAMES has 2 entries — "discover_agentic_
+// commerce_tools", "check_referral_credits" — that are aliases, not real
+// MCP_TOOLS registrations, so a plain FREE_TOOL_NAMES.size would overcount).
+export const FREE_MCP_TOOL_COUNT = MCP_TOOLS.filter(t => FREE_TOOL_NAMES.has(t.name)).length;
+
 // x402 onboarding program, Phase 2: the ONE standard CTA every free
 // discovery tool surfaces, so an agent that only ever calls free tools can
 // still discover how to pay — no free tool invents its own payment story.
@@ -2201,6 +2210,15 @@ export function runSearchTools(args: Record<string, unknown>): string {
 const AXIS_MCP_ENDPOINT = "https://axis-api-6c7z.onrender.com/mcp";
 const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
 
+// H-Phase-A cycle 6: "free" (no charge) and "no auth needed" are NOT the
+// same thing — these 3 tools are free but their own handlers throw
+// "Authentication required" for an anonymous caller (runGetReferralCode,
+// runCheckReferralCredits, runNetworkTokenization all call resolveAuth and
+// reject auth.anonymous). auth_required used to be computed as simply
+// `!free`, so the catalog told a caller planning an integration these were
+// reachable with zero auth, when they aren't.
+const FREE_TOOLS_REQUIRING_AUTH = new Set(["get_referral_code", "get_referral_credits", "iliad_network_tokenization"]);
+
 export function runDiscoverAgenticCommerceTools(): string {
   // Distribution-facing surface — advertises the full 27-tool catalog
   // (revised catalog-honesty policy: build-not-redact). Each
@@ -2221,7 +2239,7 @@ export function runDiscoverAgenticCommerceTools(): string {
     return {
       name: t.name,
       description: t.description.slice(0, 200),
-      auth_required: !free,
+      auth_required: !free || FREE_TOOLS_REQUIRING_AUTH.has(t.name),
       pricing: free
         ? "free"
         : tier

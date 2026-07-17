@@ -327,4 +327,24 @@ describe("discovery surfaces advertise the new free tools", () => {
     expect(parsed.shareable_manifest.free_tools).toContain("sca_exemption_decision");
     expect(parsed.shareable_manifest.tools).toBe(37);
   });
+
+  // H-Phase-A cycle 6: auth_required used to be computed as simply `!free`,
+  // conflating "no charge" with "no auth needed" — get_referral_code,
+  // get_referral_credits, and iliad_network_tokenization are all free but
+  // their own handlers reject an anonymous caller. The 5 WO-13 engines
+  // above genuinely take no `req` param at all, so they're correctly
+  // auth-free.
+  it("marks free-but-auth-required tools as auth_required:true, not false", async () => {
+    const { text } = await callTool("discover_commerce_tools", {});
+    const parsed = JSON.parse(text);
+    for (const n of ["get_referral_code", "get_referral_credits", "iliad_network_tokenization"]) {
+      const entry = parsed.tools.find((t: { name: string }) => t.name === n);
+      expect(entry.pricing, `${n}.pricing`).toBe("free");
+      expect(entry.auth_required, `${n}.auth_required`).toBe(true);
+    }
+    for (const n of NEW_FREE_TOOLS) {
+      const entry = parsed.tools.find((t: { name: string }) => t.name === n);
+      expect(entry.auth_required, `${n}.auth_required`).toBe(false);
+    }
+  });
 });

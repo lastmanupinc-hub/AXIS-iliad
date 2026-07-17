@@ -58,6 +58,7 @@ import { MCP_ERROR_CATEGORY_CATALOG } from "./mcp-runtime.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
+import { FREE_MCP_TOOL_COUNT } from "./mcp-tool-impls.js";
 
 // â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -3082,11 +3083,11 @@ export async function handleForAgents(
           "Agents B-D call get_artifact with snapshot_id to read specific artifacts",
           "Agent E calls prepare_agentic_purchasing for commerce hardening",
         ],
-        manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: 12 },
+        manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: FREE_MCP_TOOL_COUNT },
       },
     },
     pricing_table: {
-      overview: "12 free tools (discovery + the WO-13 commerce decision engines + the ping_payment x402 probe), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.",
+      overview: `${FREE_MCP_TOOL_COUNT} free tools (discovery + the WO-13 commerce decision engines + the ping_payment x402 probe), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.`,
       tiers: [
         { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },

@@ -12,6 +12,7 @@ import { resetTestDb, TIER_LIMITS } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { MCP_TOOL_COUNT } from "./counts.js";
 import { MCP_TOOLS } from "./mcp-tools.js";
+import { FREE_MCP_TOOL_COUNT } from "./mcp-tool-impls.js";
 import {
   handleLlmsTxt,
   handleSkillsIndex,
@@ -481,6 +482,18 @@ describe("GET /for-agents", () => {
     const row = tiers.find((t) => t.tool === "improve_my_agent_with_axis");
     expect(row).toBeDefined();
     expect(row!.price).toBe("free");
+  });
+
+  // H-Phase-A cycle 6: both the custom_swarm manifest and the pricing_table
+  // overview hardcoded a literal "12" free-tool count that had drifted stale
+  // (real count is now higher after WO-13/WO-14/x402 additions) — pinned
+  // against the same real-registration-derived FREE_MCP_TOOL_COUNT the MCP
+  // discover_commerce_tools catalog itself uses, not a re-typed literal.
+  it("custom_swarm manifest and pricing_table overview report the real free-tool count, not a stale literal", async () => {
+    const examples = data.integration_examples as Record<string, { manifest?: { free_tools?: number } }>;
+    expect(examples.custom_swarm.manifest?.free_tools).toBe(FREE_MCP_TOOL_COUNT);
+    const pricingTable = data.pricing_table as Record<string, unknown>;
+    expect(String(pricingTable.overview)).toContain(`${FREE_MCP_TOOL_COUNT} free tools`);
   });
 
   it("does not embed propagation or incentive marketing", async () => {
