@@ -149,32 +149,42 @@ export type MeteredMcpTool =
 
 // Runtime companion to the type above — TS unions erase at compile time, so any
 // code that needs to ask "is this tool name genuinely metered" (e.g. computing an
-// honest per-tool price for discover_commerce_tools) needs an actual array. Kept
-// literally adjacent to the type so the two can't silently drift apart; a missing
-// entry here would make an actually-metered tool look free (or vice versa) in any
-// consumer that trusts this list.
-export const METERED_MCP_TOOLS: readonly MeteredMcpTool[] = [
-  "analyze_files",
-  "analyze_repo",
-  "prepare_agentic_purchasing",
-  "closer",
-  "deploy",
-  "assemble_representment",
-  "iliad_object_storage",
-  "iliad_vector_database",
-  "iliad_embeddings",
-  "iliad_transactional_email",
-  "iliad_analytics",
-  "iliad_llm_inference",
-  "iliad_code_sandbox",
-  "iliad_speech_to_text",
-  "iliad_text_to_speech",
-  "iliad_web_search",
-  "iliad_document_parsing",
-  "iliad_hygiene",
-  "iliad_web_research",
-  "iliad_web_research_crawl",
-];
+// honest per-tool price for discover_commerce_tools) needs an actual array.
+//
+// H-Phase-A cycle 4: an array literal here is NOT actually exhaustiveness-checked
+// against MeteredMcpTool — TS happily accepts an array missing a union member, so
+// "kept literally adjacent to the type" was an aspiration, not an enforced
+// guarantee, and closer/deploy/assemble_representment silently missing from a
+// DIFFERENT hand-typed Record in mcp-inband-settlement.test.ts went undetected
+// for a full cycle (worse: that test file is `.test.ts`, excluded from
+// apps/api/tsconfig.json's tsc pass, so even a genuinely-exhaustive Record there
+// would never be checked by CI). METERED_MCP_TOOL_SET below is the real,
+// compile-time-exhaustive source of truth — a missing or extra key is a build
+// error in THIS file, which tsc always checks — and METERED_MCP_TOOLS derives
+// from it rather than duplicating the list.
+const METERED_MCP_TOOL_SET: Record<MeteredMcpTool, true> = {
+  analyze_files: true,
+  analyze_repo: true,
+  prepare_agentic_purchasing: true,
+  closer: true,
+  deploy: true,
+  assemble_representment: true,
+  iliad_object_storage: true,
+  iliad_vector_database: true,
+  iliad_embeddings: true,
+  iliad_transactional_email: true,
+  iliad_analytics: true,
+  iliad_llm_inference: true,
+  iliad_code_sandbox: true,
+  iliad_speech_to_text: true,
+  iliad_text_to_speech: true,
+  iliad_web_search: true,
+  iliad_document_parsing: true,
+  iliad_hygiene: true,
+  iliad_web_research: true,
+  iliad_web_research_crawl: true,
+};
+export const METERED_MCP_TOOLS: readonly MeteredMcpTool[] = Object.keys(METERED_MCP_TOOL_SET) as MeteredMcpTool[];
 
 /** A pre-authorized charge — the tool + resolved price, ready to commit on success. */
 interface AuthorizedCharge {

@@ -119,6 +119,7 @@ import {
   authorizeMcpToolCredits,
   captureMcpToolCredits,
   hashToolRequest,
+  METERED_MCP_TOOLS,
   type MeteredMcpTool,
 } from "./mcp-runtime.js";
 import { handleMcpPost } from "./mcp-server.js";
@@ -545,35 +546,30 @@ describe("decideInbandGate — out of scope", () => {
   });
 });
 
-describe("decideInbandGate — total-classification invariant (all 17 MeteredMcpTool names)", () => {
-  // A Record keyed by the FULL MeteredMcpTool union — TypeScript enforces exhaustiveness
-  // here (a missing or extra key is a compile error), so this list can't silently drift
-  // from mcp-runtime.ts's union the way a hand-maintained array could.
-  const ALL_METERED_TOOLS: Record<MeteredMcpTool, true> = {
-    analyze_files: true,
-    analyze_repo: true,
-    prepare_agentic_purchasing: true,
-    iliad_object_storage: true,
-    iliad_vector_database: true,
-    iliad_embeddings: true,
-    iliad_transactional_email: true,
-    iliad_analytics: true,
-    iliad_llm_inference: true,
-    iliad_code_sandbox: true,
-    iliad_speech_to_text: true,
-    iliad_text_to_speech: true,
-    iliad_web_search: true,
-    iliad_document_parsing: true,
-    iliad_hygiene: true,
-    iliad_web_research: true,
-    iliad_web_research_crawl: true,
-  };
+describe("decideInbandGate — total-classification invariant (every MeteredMcpTool name)", () => {
+  // H-Phase-A cycle 4: this used to be a hand-typed `Record<MeteredMcpTool, true>`
+  // literal, on the theory that "TypeScript enforces exhaustiveness here." That's
+  // true of the TYPE in isolation, but this is a `.test.ts` file, and
+  // apps/api/tsconfig.json excludes `src/**/*.test.ts` from the tsc pass CI
+  // actually runs — so a missing key here was never a build error in practice.
+  // closer/deploy/assemble_representment silently fell out of this list for a
+  // full cycle, undetected. METERED_MCP_TOOLS (imported from mcp-runtime.ts, a
+  // real source file tsc always checks) is now the actual source of truth —
+  // this test iterates it directly instead of re-declaring the tool list.
+  const toolNames = METERED_MCP_TOOLS;
 
   // Representative BILLABLE arg shape per tool (matches each runX's own billable branch).
+  // If a future tool is added to MeteredMcpTool without an entry here,
+  // BILLABLE_ARGS[tool] is `undefined` and decideInbandGate throws on it (most
+  // branches destructure `args`) — the test fails loudly rather than silently
+  // skipping the new tool, even without compile-time exhaustiveness on this object.
   const BILLABLE_ARGS: Record<MeteredMcpTool, Record<string, unknown>> = {
     analyze_files: {},
     analyze_repo: {},
     prepare_agentic_purchasing: {},
+    closer: { snapshot_id: "snap_x" },
+    deploy: { snapshot_id: "snap_x" },
+    assemble_representment: { dispute_id: "dp_x" },
     iliad_object_storage: { operation: "put", key: "k" },
     iliad_vector_database: { operation: "upsert", vectors: [{ id: "a", vector: [1] }] },
     iliad_embeddings: { input: "hello" },
@@ -638,9 +634,8 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("exactly 13 of 17 tools settle:true and the other 4 resolve runtime_metered — no tool falls through", async () => {
-    const toolNames = Object.keys(ALL_METERED_TOOLS) as MeteredMcpTool[];
-    expect(toolNames.length).toBe(17); // proves the invariant covers the full union, not a stale subset
+  it("exactly 16 of 20 tools settle:true and the other 4 resolve runtime_metered — no tool falls through", async () => {
+    expect(toolNames.length).toBe(20); // proves the invariant covers the full union, not a stale subset
 
     let settleTrueCount = 0;
     let runtimeMeteredCount = 0;
@@ -654,7 +649,7 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
         throw new Error(`${tool} classified as "${decision.reason}", expected settle:true or runtime_metered`);
       }
     }
-    expect(settleTrueCount).toBe(13);
+    expect(settleTrueCount).toBe(16);
     expect(runtimeMeteredCount).toBe(4);
   });
 });

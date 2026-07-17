@@ -3627,6 +3627,14 @@ export async function decideInbandGate(
     // WO-08: representment assembly is always metered when it runs (auth +
     // authorize/capture inside runAssembleRepresentment); price known up front.
     case "assemble_representment":
+    // H-Phase-A cycle 4: closer/deploy are the same shape as the group above —
+    // always-metered once entitlement passes, price known up front (see
+    // runCloser/runDeploy's authorize/capture pair) — added when cycle 3
+    // wired them into MeteredMcpTool but missed this switch, so they fell to
+    // the default not_in_scope branch and would silently skip in-band cash
+    // settlement once AXIS_MCP_INBAND_SETTLEMENT is enabled.
+    case "closer":
+    case "deploy":
       return { settle: true, tool };
 
     // Config-gated backends: billable iff the operator has provisioned the SAME
