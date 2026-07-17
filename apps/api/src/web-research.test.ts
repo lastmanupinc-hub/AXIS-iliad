@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IncomingMessage } from "node:http";
-import { resetTestDb, createAccount, createApiKey, consumeFreeScrapes } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey, consumeFreeScrapes, recordUsage, TIER_LIMITS } from "@axis/snapshots";
 import type { Server } from "node:http";
 import { firecrawlScrape, firecrawlCrawl, isWebResearchNotConfigured } from "./web-research.js";
 import { dispatch } from "./mcp-server.js";
@@ -347,6 +347,188 @@ describe("POST /v1/research/crawl — billing, free pool & two-phase charge", ()
     const sentBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
     expect(sentBody.limit).toBe(50);
     expect(r.data.lite_note).toBeUndefined();
+  });
+});
+
+// ─── H-Phase-A cycle 4: quota-exceeded no longer double-charges ─────
+//
+// handleFirecrawlScrape/handleFirecrawlCrawl both charge once in the
+// !quota.allowed branch (before the Firecrawl call) and used to charge AGAIN
+// unconditionally after the call succeeded — no `return` after a successful
+// pre-charge meant execution fell through into the post-call charge too.
+// Neither handler had any test exercising the !quota.allowed branch before
+// this fix.
+async function exhaustSnapshotQuota(accountId: string): Promise<void> {
+  const cap = TIER_LIMITS.paid.max_snapshots_per_month;
+  await Promise.all(
+    Array.from({ length: cap }, (_, i) =>
+      recordUsage(accountId, "debug", `quota-fill-${i}-${accountId}`, 1, 1, 100),
+    ),
+  );
+}
+
+describe("POST /v1/research/scrape — quota-exceeded charges exactly once", () => {
+  let server: Server;
+  let testPort = 0;
+  let apiKey = "";
+  let accountId = "";
+
+  beforeEach(async () => {
+    await resetTestDb();
+    const acct = await createAccount("ScrapeQuota", "scrape-quota@test.com", "paid");
+    accountId = acct.account_id;
+    apiKey = (await createApiKey(acct.account_id)).rawKey;
+    await exhaustSnapshotQuota(accountId);
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    const router = new Router();
+    router.post("/v1/research/scrape", handleFirecrawlScrape);
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    restoreKey();
+    vi.unstubAllGlobals();
+  });
+
+  function post(url: string, key: string): Promise<{ status: number; data: any }> {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify({ url });
+      const r = require("node:http").request(
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/research/scrape", method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` } },
+        (res: IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            let data: unknown;
+            try { data = JSON.parse(Buffer.concat(chunks).toString("utf-8")); } catch { data = {}; }
+            resolve({ status: res.statusCode ?? 0, data });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(payload);
+      r.end();
+    });
+  }
+
+  it("charges the account's included credits exactly once for one scrape, not twice", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ data: { markdown: "# Doc" } }), { status: 200 })),
+    );
+    const { getUsageCreditSummary, createAccount: mkAccount, createApiKey: mkKey } = await import("@axis/snapshots");
+
+    // Baseline: an account NOT over quota, scraping the identical URL/mode —
+    // its single (post-scrape-only) charge is the true per-scrape cost.
+    const baselineAcct = await mkAccount("ScrapeBaseline", "scrape-baseline@test.com", "paid");
+    const baselineKey = (await mkKey(baselineAcct.account_id)).rawKey;
+    const baselineBefore = await getUsageCreditSummary(baselineAcct.account_id, "paid");
+    // Distinct URL from the quota-exceeded call below — the 24h shared scrape
+    // cache would otherwise serve the second call for $0 regardless of the
+    // fix, masking the assertion.
+    const baselineRes = await post("https://example.com/quota-test-baseline", baselineKey);
+    expect(baselineRes.status).toBe(200);
+    const baselineAfter = await getUsageCreditSummary(baselineAcct.account_id, "paid");
+    const perScrapeCredits = baselineAfter.included_credits_used - baselineBefore.included_credits_used;
+    expect(perScrapeCredits).toBeGreaterThan(0);
+
+    // The quota-exceeded account hits BOTH the pre-charge branch and (before
+    // this fix) the unconditional post-charge — its total delta must equal
+    // the SAME single per-scrape cost, not double it.
+    const before = await getUsageCreditSummary(accountId, "paid");
+    const r = await post("https://example.com/quota-test-exceeded", apiKey);
+    expect(r.status).toBe(200);
+    const after = await getUsageCreditSummary(accountId, "paid");
+    expect(after.included_credits_used - before.included_credits_used).toBe(perScrapeCredits);
+  });
+});
+
+describe("POST /v1/research/crawl — quota-exceeded charges exactly once", () => {
+  let server: Server;
+  let testPort = 0;
+  let apiKey = "";
+  let accountId = "";
+
+  beforeEach(async () => {
+    await resetTestDb();
+    const acct = await createAccount("CrawlQuota", "crawl-quota@test.com", "paid");
+    accountId = acct.account_id;
+    apiKey = (await createApiKey(acct.account_id)).rawKey;
+    await exhaustSnapshotQuota(accountId);
+    await consumeFreeScrapes(accountId, 100); // drain the free pool so every crawled page is billable
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    const router = new Router();
+    router.post("/v1/research/crawl", handleFirecrawlCrawl);
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    restoreKey();
+    vi.unstubAllGlobals();
+  });
+
+  function postCrawl(body: unknown, key: string): Promise<{ status: number; data: any }> {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify(body);
+      const r = require("node:http").request(
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/research/crawl", method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` } },
+        (res: IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            let data: unknown;
+            try { data = JSON.parse(Buffer.concat(chunks).toString("utf-8")); } catch { data = {}; }
+            resolve({ status: res.statusCode ?? 0, data });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(payload);
+      r.end();
+    });
+  }
+
+  it("charges the account's included credits once for the pre-charge estimate, not again after the crawl completes", async () => {
+    const mockFetch = () =>
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({ data: { scrapeResults: [{ url: "https://a", markdown: "A" }, { url: "https://b", markdown: "B" }] } }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", mockFetch());
+    const { getUsageCreditSummary, createAccount: mkAccount, createApiKey: mkKey } = await import("@axis/snapshots");
+
+    // Baseline: an account NOT over quota but with its free pool equally
+    // drained, crawling the identical url/limit — its single post-crawl
+    // charge (based on actual unfunded pages) is the true per-crawl cost.
+    const baselineAcct = await mkAccount("CrawlBaseline", "crawl-baseline@test.com", "paid");
+    const baselineKey = (await mkKey(baselineAcct.account_id)).rawKey;
+    await consumeFreeScrapes(baselineAcct.account_id, 100);
+    const baselineBefore = await getUsageCreditSummary(baselineAcct.account_id, "paid");
+    const baselineRes = await postCrawl({ url: "https://example.com", limit: 2 }, baselineKey);
+    expect(baselineRes.status).toBe(200);
+    const baselineAfter = await getUsageCreditSummary(baselineAcct.account_id, "paid");
+    const perCrawlCredits = baselineAfter.included_credits_used - baselineBefore.included_credits_used;
+    expect(perCrawlCredits).toBeGreaterThan(0);
+
+    // The quota-exceeded account hits the pre-charge estimate AND (before
+    // this fix) an unconditional post-crawl charge for the same pages — its
+    // total delta must equal the SAME single per-crawl cost, not double it.
+    const before = await getUsageCreditSummary(accountId, "paid");
+    const r = await postCrawl({ url: "https://example.com", limit: 2 }, apiKey);
+    expect(r.status).toBe(200);
+    const after = await getUsageCreditSummary(accountId, "paid");
+    expect(after.included_credits_used - before.included_credits_used).toBe(perCrawlCredits);
+    // The response's own reported cost must reflect what was actually
+    // billed (the pre-charge estimate), not a misleading $0.00.
+    expect(r.data.cost).not.toBe("$0.00");
   });
 });
 

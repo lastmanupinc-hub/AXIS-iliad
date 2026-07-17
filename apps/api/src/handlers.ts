@@ -3899,6 +3899,11 @@ export async function handleFirecrawlScrape(
 
   // Check quota before attempting Firecrawl call
   const quota = await checkQuota(auth.account.account_id);
+  // H-Phase-A cycle 4: this pre-charge and the post-scrape charge below used
+  // to both run unconditionally when quota was exceeded, double-billing the
+  // caller for one page. preCharged tracks that this branch already
+  // collected the full amount, so the post-scrape charge is skipped.
+  let preCharged = false;
   if (!quota.allowed) {
     const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
       currency: "usd",
@@ -3913,6 +3918,7 @@ export async function handleFirecrawlScrape(
       });
     }
     if (mppResult === null || mppResult.status === 402) return;
+    preCharged = true;
   }
 
   // Proxy to Firecrawl API
@@ -3964,20 +3970,24 @@ export async function handleFirecrawlScrape(
 
       const firecrawlData = (await firecrawlRes.json()) as FirecrawlScrapeResponse;
 
-      // Charge after successful scrape
-      const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
-        currency: "usd",
-        decimals: 2,
-        description: `Firecrawl web scrape - ${url.slice(0, 50)}...`,
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research", url },
-      });
-
-      if (chargeResult === null) {
-        const paymentMessage = "Payment required after scrape complete";
-        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
-          ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
+      // Charge after successful scrape — skipped when the quota-exceeded
+      // branch above already collected this page's full amount (preCharged),
+      // so a quota-exceeded caller is never billed twice for one scrape.
+      if (!preCharged) {
+        const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+          currency: "usd",
+          decimals: 2,
+          description: `Firecrawl web scrape - ${url.slice(0, 50)}...`,
+          meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research", url },
         });
-        return;
+
+        if (chargeResult === null) {
+          const paymentMessage = "Payment required after scrape complete";
+          sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+            ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
+          });
+          return;
+        }
       }
 
       try {
@@ -4076,6 +4086,17 @@ export async function handleFirecrawlCrawl(
 
   // Check quota — only require payment when there are paid (unfunded) pages.
   const quota = await checkQuota(auth.account.account_id);
+  // H-Phase-A cycle 4: this pre-charge (an ESTIMATE off the requested limit)
+  // and the post-crawl charge below (the FINAL amount off actually-crawled
+  // pages) used to both run unconditionally when quota was exceeded — two
+  // separate, non-reconciled charges for one crawl. preCharged tracks that
+  // this branch already collected payment, so the post-crawl charge is
+  // skipped; a pre-charged caller pays the requested-limit estimate rather
+  // than the (usually lower, since Firecrawl can return fewer pages than
+  // requested) actual-usage amount — no refund path exists for the
+  // difference, but that's a pre-existing estimate-vs-actual tradeoff, not
+  // the double-charge this fix closes.
+  let preCharged = false;
   if (!quota.allowed && estimatedAmountCents > 0) {
     const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, estimatedAmountCents, {
       currency: "usd",
@@ -4090,6 +4111,7 @@ export async function handleFirecrawlCrawl(
       });
     }
     if (mppResult === null || mppResult.status === 402) return;
+    preCharged = true;
   }
 
   const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
@@ -4146,9 +4168,11 @@ export async function handleFirecrawlCrawl(
 
     const pagesCrawled = firecrawlData.data?.scrapeResults?.length ?? 0;
     // Draw down the free pool for the pages actually returned; bill only the
-    // unfunded remainder at the per-page (1¢) floor.
+    // unfunded remainder at the per-page (1¢) floor. Pool bookkeeping always
+    // runs (poolDraw feeds the response's free_pages_used/remaining fields);
+    // the CHARGE is skipped when preCharged already collected payment above.
     const poolDraw = await consumeFreeScrapes(auth.account.account_id, pagesCrawled);
-    const finalAmountCents = perPageCents * poolDraw.unfunded;
+    const finalAmountCents = preCharged ? 0 : perPageCents * poolDraw.unfunded;
 
     if (finalAmountCents > 0) {
       const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, finalAmountCents, {
@@ -4182,7 +4206,10 @@ export async function handleFirecrawlCrawl(
       free_pages_used: poolDraw.consumed,
       free_pages_remaining: poolDraw.remaining,
       paid_pages: poolDraw.unfunded,
-      cost: `$${(finalAmountCents / 100).toFixed(2)}`,
+      // preCharged: the estimate was already collected above, not finalAmountCents
+      // (which is forced to 0 to skip the second charge) — report what was
+      // actually billed, not a misleading $0.00.
+      cost: `$${((preCharged ? estimatedAmountCents : finalAmountCents) / 100).toFixed(2)}`,
       data: {
         url,
         pages_crawled: pagesCrawled,
