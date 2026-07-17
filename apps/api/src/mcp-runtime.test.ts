@@ -2,6 +2,11 @@ import { describe, it, expect } from "vitest";
 import type { IncomingMessage } from "node:http";
 import { MCP_ERROR_CATEGORY_CATALOG, categorizeError, readIdempotencyKey, type ErrorCategory } from "./mcp-runtime.js";
 
+// H-Phase-A cycle 5: the REAL exhaustiveness guarantee for MCP_ERROR_CATEGORY_CATALOG
+// now lives in mcp-runtime.ts's MCP_ERROR_CATEGORY_SET (a genuine Record<ErrorCategory,
+// ...>, checked by every tsc run since it's a normal source file, not excluded like
+// this .test.ts is) — this hand-typed list is a secondary, independent runtime
+// double-check, not the source of truth.
 const ALL_CATEGORIES: ErrorCategory[] = ["auth", "validation", "quota", "tier_limit", "external", "internal"];
 
 // H8.3 — mutation-lite kill: no other suite exercises the exact 255-char cap on

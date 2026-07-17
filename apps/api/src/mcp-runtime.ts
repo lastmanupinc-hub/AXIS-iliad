@@ -80,16 +80,28 @@ export function categorizeError(msg: string): { code: ErrorCategory; retryable: 
 // Doc-facing catalog of the 6 categories above (H4.2) — categorizeError itself can't be
 // introspected for a static list (it's a chain of regex tests), so this is a hand-kept
 // summary of its branches. Kept directly below the function it documents so a change to
-// one is hard to miss when reading the other; mcp-runtime.test.ts checks the `code` set
-// matches the ErrorCategory union exactly (TS also enforces each entry is a real category).
-export const MCP_ERROR_CATEGORY_CATALOG: readonly { code: ErrorCategory; retryable: boolean; description: string }[] = [
-  { code: "auth", retryable: false, description: "API key missing, invalid, or revoked." },
-  { code: "tier_limit", retryable: false, description: "Payment or plan tier required — the tool call needs an upgrade or MPP credit, not a retry." },
-  { code: "quota", retryable: true, description: "Quota exceeded, or another in-flight request already holds this Idempotency-Key — retry after the window/request clears." },
-  { code: "validation", retryable: false, description: "Bad tool arguments (missing/invalid field, path, or URL)." },
-  { code: "external", retryable: true, description: "An upstream dependency (e.g. GitHub) failed or was unreachable." },
-  { code: "internal", retryable: false, description: "Uncategorized error, including genuine server bugs." },
-];
+// one is hard to miss when reading the other.
+//
+// H-Phase-A cycle 5: this used to be an ARRAY literal with a comment claiming
+// "TS also enforces each entry is a real category" — true of each individual
+// `code` field (a typo'd category would fail to typecheck), but NOT of
+// exhaustiveness: an array literal can silently omit a union member with no
+// compile error, the exact same false-guarantee shape cycle 4 found in
+// mcp-inband-settlement.test.ts's METERED_MCP_TOOLS. MCP_ERROR_CATEGORY_SET is
+// now a genuinely exhaustive Record<ErrorCategory, ...> — a missing or extra
+// key is a real build error, checked by every tsc run (this is a normal
+// source file, not a `.test.ts` excluded from the tsc pass) — and
+// MCP_ERROR_CATEGORY_CATALOG derives from it instead of duplicating the list.
+const MCP_ERROR_CATEGORY_SET: Record<ErrorCategory, { retryable: boolean; description: string }> = {
+  auth: { retryable: false, description: "API key missing, invalid, or revoked." },
+  tier_limit: { retryable: false, description: "Payment or plan tier required — the tool call needs an upgrade or MPP credit, not a retry." },
+  quota: { retryable: true, description: "Quota exceeded, or another in-flight request already holds this Idempotency-Key — retry after the window/request clears." },
+  validation: { retryable: false, description: "Bad tool arguments (missing/invalid field, path, or URL)." },
+  external: { retryable: true, description: "An upstream dependency (e.g. GitHub) failed or was unreachable." },
+  internal: { retryable: false, description: "Uncategorized error, including genuine server bugs." },
+};
+export const MCP_ERROR_CATEGORY_CATALOG: readonly { code: ErrorCategory; retryable: boolean; description: string }[] =
+  (Object.keys(MCP_ERROR_CATEGORY_SET) as ErrorCategory[]).map((code) => ({ code, ...MCP_ERROR_CATEGORY_SET[code] }));
 
 async function buildMcpPaymentRequiredError(
   tool: MeteredMcpTool,
