@@ -1712,7 +1712,7 @@ export async function handleAnalyze(
       project_id: snapshot.project_id,
       status: "ready",
       snapshot_summary: {
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $29/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99/mo).",
       },
       analysis: {
         project_name: projectName,
@@ -2113,7 +2113,7 @@ export async function handlePreparePurchasing(
       status: "ready",
       upgrade_offer: {
         agent_conversion_message: `This codebase has ${score}% of the AXIS agentic-commerce artifact coverage. Upgrade to Pro for the full hardening bundle + $0.15 lite mode option.`,
-        plan: "$29/month",
+        plan: "$99/month",
         standard_run: "$0.50/run",
         lite_from: "$0.15/run",
       },
@@ -3506,7 +3506,7 @@ export async function handleAgentJson(
     },
     monetization: {
       model: "usage-based MPP ($0.50 per run)",
-      pro: "$29/month â€” unlimited + all features",
+      pro: "$99/month â€” unlimited + all features",
     },
     homepage: "https://iliad.trustfabric.ai",
     mcp_endpoint: "/mcp",

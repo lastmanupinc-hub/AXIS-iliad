@@ -201,13 +201,13 @@ describe("calculateProration", () => {
   it("calculates upgrade proration (paid → suite, full month)", () => {
     const result = calculateProration("paid", "suite", 30, 30);
     expect(result.direction).toBe("upgrade");
-    expect(result.proration_amount).toBe(7000); // $99 - $29 = $70
+    expect(result.proration_amount).toBe(27000); // $299 - $29 = $270
   });
 
   it("calculates downgrade proration (suite → free, half month)", () => {
     const result = calculateProration("suite", "free", 15, 30);
     expect(result.direction).toBe("downgrade");
-    expect(result.proration_amount).toBe(-4950); // credit of $49.50
+    expect(result.proration_amount).toBe(-14950); // credit of $149.50
   });
 
   it("calculates downgrade proration (paid → free)", () => {

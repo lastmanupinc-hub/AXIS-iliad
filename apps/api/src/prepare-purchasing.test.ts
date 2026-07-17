@@ -324,7 +324,7 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     // Honest framing (c03feee): the REST message sells artifact COVERAGE, never
     // "ready for autonomous spending" — code readiness is a separate content-based block.
     expect(String(offer.agent_conversion_message)).toContain("artifact coverage");
-    expect(String(offer.plan)).toContain("$29/month");
+    expect(String(offer.plan)).toContain("$99/month");
   });
 
   it("returns score_breakdown with strengths, gaps, max_score, interpretation", () => {

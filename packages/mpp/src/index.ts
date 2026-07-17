@@ -507,7 +507,7 @@ export function build402NegotiationBody(
         budget: 'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}',
         lite: "X-Agent-Mode: lite",
       },
-      upgrade_path: "Upgrade to Pro for unlimited full-bundle calls at $29/month.",
+      upgrade_path: "Upgrade to Pro for unlimited full-bundle calls at $99/month.",
     },
     free_alternatives: [
       "list_programs — enumerate all 18 programs",

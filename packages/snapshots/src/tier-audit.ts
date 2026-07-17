@@ -27,11 +27,14 @@ export interface ProrationResult {
 
 // ─── Proration calculation ──────────────────────────────────────
 
-/** Monthly prices in cents */
+/** Monthly prices in cents. suite/Growth is $299/mo — see growth-store.ts's
+ * TIER_MONTHLY_CENTS (the live MRR-estimate source of truth) and
+ * pricing-constants.ts's MARKETED_TIERS; this table held a stale $99/mo
+ * holdover from the old 2-tier pricing model until H-Phase-A cycle 1. */
 const TIER_PRICES: Record<BillingTier, number> = {
   free: 0,
-  paid: 2900,   // $29/month
-  suite: 9900,  // $99/month
+  paid: 2900,    // $29/month
+  suite: 29900,  // $299/month
 };
 
 export function calculateProration(

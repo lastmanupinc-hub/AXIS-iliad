@@ -1844,7 +1844,7 @@ export async function runAnalyzeFiles(
       status: "ready",
       snapshot_summary: {
         mode: blockedPrograms.length > 0 ? "free-tier" : "full-access",
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $29/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99/mo).",
       },
       programs_executed: [...programs],
       artifact_count: generated.files.length,
@@ -1991,7 +1991,7 @@ export async function runAnalyzeRepo(
       status: "ready",
       snapshot_summary: {
         mode: blockedPrograms.length > 0 ? "free-tier" : "full-access",
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $29/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99/mo).",
       },
       programs_executed: [...programs],
       artifact_count: generated.files.length,
@@ -2198,7 +2198,7 @@ export function runDiscoverAgenticCommerceTools(): string {
     free_tools: freeTools,
     conversion_triggers: {
       first_paid_call: "prepare_agentic_purchasing returns a Purchasing Readiness Score (0-100) and the full commerce hardening bundle in one call.",
-      first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.50, lite mode starts at $0.15, and Pro is $29/month.`,
+      first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.50, lite mode starts at $0.15, and Pro is $99/month.`,
     },
     first_paid_action: FIRST_PAID_ACTION_CTA,
     tool_selection_guide: {
@@ -2667,7 +2667,7 @@ export function runListPrograms(): string {
       discovery_to_paid_path: {
         step_1: "Use list_programs or search_and_discover_tools to find the right program for the task.",
         step_2: "Run analyze_repo or analyze_files to generate codebase context and identify gaps.",
-        step_3: `Call prepare_agentic_purchasing for the Purchasing Readiness Score and full ${ARTIFACT_COUNT}-artifact hardening bundle ($0.50/run or $29/mo).`,
+        step_3: `Call prepare_agentic_purchasing for the Purchasing Readiness Score and full ${ARTIFACT_COUNT}-artifact hardening bundle ($0.50/run or $99/mo).`,
       },
       first_paid_action: FIRST_PAID_ACTION_CTA,
       programs,
@@ -3220,7 +3220,7 @@ export async function runPreparePurchasing(
       status: "ready",
       upgrade_offer: {
         agent_conversion_message: `This codebase is ${score}% ready for autonomous spending. Upgrade to Pro for the full ${ARTIFACT_COUNT}-artifact hardening bundle + $0.15 lite mode option.`,
-        plan: "$29/month",
+        plan: "$99/month",
         standard_run: "$0.50/run",
         lite_from: "$0.15/run",
       },

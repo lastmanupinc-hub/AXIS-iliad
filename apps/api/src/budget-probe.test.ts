@@ -462,7 +462,7 @@ describe("build402NegotiationBody", () => {
     expect(String(body.agent_message)).toContain("Retry with an MPP credential");
     const nextStep = body.next_step as Record<string, unknown>;
     expect(String(nextStep.immediate)).toContain("Pay $0.50");
-    expect(String(nextStep.upgrade_path)).toContain("$29/month");
+    expect(String(nextStep.upgrade_path)).toContain("$99/month");
   });
 
   it("includes x402-compatible top-level payment fields", async () => {
