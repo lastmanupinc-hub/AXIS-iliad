@@ -277,6 +277,13 @@ export function App() {
 
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("axis_api_key"));
   const [privateAccess, setPrivateAccess] = useState(false);
+  // H-Phase-A cycle 4: privateAccess starts false and only flips true after
+  // an async getAdminStats() round-trip resolves — the admin-gate effect
+  // below must not treat "not yet resolved" the same as "resolved, not
+  // admin," or a real admin landing directly on #admin/#myanalytics (a
+  // bookmark or reload) gets bounced to #account before the probe ever has
+  // a chance to complete, every single time.
+  const [privateAccessResolved, setPrivateAccessResolved] = useState(false);
 
   const handleAuthChange = useCallback(() => {
     setLoggedIn(!!localStorage.getItem("axis_api_key"));
@@ -325,15 +332,23 @@ export function App() {
     async function resolvePrivateAccess() {
       if (!loggedIn) {
         setPrivateAccess(false);
+        setPrivateAccessResolved(true);
         return;
       }
 
+      // A fresh login (possibly a different account than whatever the last
+      // resolution was for) starts a new probe — treat it as unresolved
+      // again until THIS probe completes, so a stale prior privateAccess
+      // value can't leak into the admin gate during the round-trip.
+      setPrivateAccessResolved(false);
       try {
         await getAdminStats();
         if (!cancelled) setPrivateAccess(true);
       } catch (err) {
         // Any failure (403 forbidden, network error, etc.) means no admin access.
         if (!cancelled) setPrivateAccess(false);
+      } finally {
+        if (!cancelled) setPrivateAccessResolved(true);
       }
     }
 
@@ -433,12 +448,15 @@ export function App() {
 
   // Admin gate: a signed-in but non-admin user on an `adminOnly` page falls
   // back to their account page (accessible once logged in). Signed-out users
-  // are handled by the login gate above.
+  // are handled by the login gate above. Waits for privateAccessResolved —
+  // without it, a real admin landing directly on an adminOnly page (bookmark,
+  // reload) got bounced before the async admin probe ever had a chance to
+  // resolve (H-Phase-A cycle 4).
   useEffect(() => {
-    if (routeForPage(route.page).adminOnly && loggedIn && !privateAccess) {
+    if (routeForPage(route.page).adminOnly && loggedIn && privateAccessResolved && !privateAccess) {
       navigate("account");
     }
-  }, [route.page, privateAccess, loggedIn, navigate]);
+  }, [route.page, privateAccess, privateAccessResolved, loggedIn, navigate]);
 
   // H9: signup no longer has a pending analysis to reconcile — a completed
   // analysis is already shown (handleAnalyzeComplete runs regardless of login

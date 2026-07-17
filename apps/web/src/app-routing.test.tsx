@@ -456,6 +456,78 @@ describe("Account Dashboard (WO-P3/WO-P5)", () => {
   });
 });
 
+// ─── Admin gate race (H-Phase-A cycle 4) ──────────────────────────
+//
+// privateAccess starts false and only flips true after an async
+// getAdminStats() round-trip resolves. The admin-gate effect used to fire
+// on the SAME initial render/commit as the resolvePrivateAccess effect,
+// reading privateAccess=false (not yet resolved, indistinguishable from
+// "resolved, not admin") and immediately bouncing to #account — before the
+// admin probe had any chance to complete. A real admin landing directly on
+// an adminOnly page (bookmark, reload) was bounced every time.
+
+/** A fetch stub whose /v1/admin/* response stays pending until resolveAdmin
+ *  is called — lets a test observe the state DURING the async gate window,
+ *  not just before/after it. */
+function stubDeferredAdminFetch(): { resolveAdmin: (ok: boolean) => void } {
+  let resolvePending!: (v: Response) => void;
+  const pending = new Promise<Response>((resolve) => { resolvePending = resolve; });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/admin/")) return pending;
+      return {
+        ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null },
+      } as unknown as Response;
+    }),
+  );
+  return {
+    resolveAdmin: (ok: boolean) => {
+      resolvePending(
+        ok
+          ? ({ ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response)
+          : ({ ok: false, status: 403, json: async () => ({ error: "forbidden" }), text: async () => "forbidden", headers: { get: () => null } } as unknown as Response),
+      );
+    },
+  };
+}
+
+describe("Admin gate race (H-Phase-A cycle 4)", () => {
+  it("does not bounce a direct #admin load away before the admin probe resolves", () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubDeferredAdminFetch(); // admin probe never resolves in this test
+    window.location.hash = "#admin";
+    const { container } = render(<App />);
+    // Old bug: the admin-gate effect ran synchronously in the same commit as
+    // the still-pending probe and called navigate("account") immediately.
+    expect(shellPage(container)).toBe("admin");
+  });
+
+  it("a real admin stays on #admin once the probe resolves successfully", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    const { resolveAdmin } = stubDeferredAdminFetch();
+    window.location.hash = "#admin";
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("admin");
+    resolveAdmin(true);
+    // Give the resolved probe a tick to flush, then confirm it's STILL admin
+    // (never bounced, at any point).
+    await new Promise((r) => setTimeout(r, 0));
+    expect(shellPage(container)).toBe("admin");
+  });
+
+  it("a non-admin is bounced to #account only after the probe actually resolves as forbidden", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    const { resolveAdmin } = stubDeferredAdminFetch();
+    window.location.hash = "#admin";
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("admin"); // not bounced yet — probe still pending
+    resolveAdmin(false);
+    await waitFor(() => expect(shellPage(container)).toBe("account"));
+  });
+});
+
 // ─── Projects/History (WO-P11) ────────────────────────────────────
 // "#projects" is auth-only (GET /v1/projects has no anonymous result — an
 // anon analysis lives client-side only, never server-listed) — same gate
