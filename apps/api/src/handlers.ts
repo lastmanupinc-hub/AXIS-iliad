@@ -2917,7 +2917,13 @@ export async function handleForAgents(
       { name: "prepare_agentic_purchasing",      auth: true,  x_payment: { ...PAYMENT_META, lite_price_usd: "0.25" }, description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence requirements, SCA exemption paths, playbooks. Paid ($0.50/run). Focus areas: sca, dispute, mandate, tap, tokenization. On 402, present checkout_url or pay autonomously, then retry." },
       { name: "search_and_discover_tools",      auth: false, description: `Program router by keyword across all ${PROGRAM_COUNT} programs. Use when you know desired outcome but not which program.` },
       { name: "discover_commerce_tools",        auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
-      { name: "improve_my_agent_with_axis",     auth: true,  x_payment: PAYMENT_META, description: "Analyze your agent's codebase, get improvement plan + missing context files. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry." },
+      // H-Phase-A cycle 4: runImproveMyAgent never calls any charge function and
+      // "improve_my_agent_with_axis" isn't in MeteredMcpTool — it always runs
+      // free-tier programs only, for any mode, for free. This entry used to
+      // advertise x_payment/"Paid ($0.50/run)" here (self-contradicting
+      // handleProbeIntent's own correct "free (uses free-tier programs)" label
+      // below), promising a 402 challenge that never arrives.
+      { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files. Free (uses free-tier programs: search, skills, debug)." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid per page crawled ($0.25/page, or $0.12/page lite). On 402, present checkout_url or pay autonomously, then retry." },
@@ -3056,9 +3062,12 @@ export async function handleForAgents(
         { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "prepare_agentic_purchasing",   price: "$0.50/run",  lite: "$0.25/run", auth: true  },
-        { tool: "improve_my_agent_with_axis",       price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "assemble_representment",           price: "$0.50/run",  lite: "$0.25/run", auth: true  },
         { tool: "list_programs",                    price: "free",       lite: null,         auth: false },
+        // H-Phase-A cycle 4: runImproveMyAgent never charges — always free-tier
+        // programs only, matching handleProbeIntent's "free (uses free-tier
+        // programs)" label. Moved out of the paid group above.
+        { tool: "improve_my_agent_with_axis",       price: "free",       lite: null,         auth: true  },
         { tool: "get_snapshot",                     price: "free",       lite: null,         auth: false },
         { tool: "get_artifact",                     price: "free",       lite: null,         auth: false },
         { tool: "search_and_discover_tools",        price: "free",       lite: null,         auth: false },

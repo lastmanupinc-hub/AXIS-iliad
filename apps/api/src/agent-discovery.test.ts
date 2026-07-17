@@ -460,6 +460,29 @@ describe("GET /for-agents", () => {
     expect(typeof discovery.install).toBe("string");
   });
 
+  // H-Phase-A cycle 4: runImproveMyAgent (mcp-tool-impls.ts) never calls any
+  // charge function and "improve_my_agent_with_axis" isn't in MeteredMcpTool
+  // — it's always free. This endpoint's own tools[] entry and pricing_table
+  // used to advertise "Paid ($0.50/run)"/x_payment for it, self-contradicting
+  // handleProbeIntent's already-correct "free (uses free-tier programs)" and
+  // promising a 402 challenge that never arrives.
+  it("improve_my_agent_with_axis's tools[] entry says free and carries no x_payment", async () => {
+    const tools = data.tools as Array<Record<string, unknown>>;
+    const entry = tools.find((t) => t.name === "improve_my_agent_with_axis");
+    expect(entry).toBeDefined();
+    expect(entry!.x_payment).toBeUndefined();
+    expect(String(entry!.description)).toMatch(/free/i);
+    expect(String(entry!.description)).not.toMatch(/Paid \(\$/);
+  });
+
+  it("improve_my_agent_with_axis's pricing_table row says free, not $0.50/run", async () => {
+    const pricingTable = data.pricing_table as Record<string, unknown>;
+    const tiers = pricingTable.tiers as Array<Record<string, unknown>>;
+    const row = tiers.find((t) => t.tool === "improve_my_agent_with_axis");
+    expect(row).toBeDefined();
+    expect(row!.price).toBe("free");
+  });
+
   it("does not embed propagation or incentive marketing", async () => {
     expect(data.propagation).toBeUndefined();
     expect(data.system_prompt_snippet).toBeUndefined();
