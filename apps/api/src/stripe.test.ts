@@ -248,6 +248,46 @@ describe("Stripe webhook", () => {
     }
   });
 
+  // ─── H-Phase-A cycle 3: a same-tier Starter <-> Pro switch used to hit the ──
+  // early `newTier === previousTier` return before EVER reaching
+  // updateAccountPaidPlanId — Starter and Pro both map to tier==="paid", so
+  // switching between them never tripped the tier-change branch that carried
+  // the paid_plan_id write. resolvePlanForAccount would then keep metering
+  // the account at whichever plan it started on, indefinitely.
+  it("updates paid_plan_id on a same-tier Starter -> Pro switch (no tier change)", async () => {
+    process.env.STRIPE_PRICE_ID_STARTER = "price_starter_switch_999";
+    process.env.STRIPE_PRICE_ID_PRO = "price_pro_switch_999";
+    try {
+      const { account } = await createTestAccount("stripe-switch", "stripe-switch@test.com");
+      const accountId = account.account_id as string;
+
+      const starterPayload = JSON.stringify(
+        buildSubscriptionPayload("customer.subscription.updated", "sub_switch", accountId, {
+          items: { data: [{ price: { id: "price_starter_switch_999" } }] },
+        }),
+      );
+      await req("POST", "/v1/webhooks/stripe", starterPayload, { "stripe-signature": signStripePayload(starterPayload) });
+      expect((await getAccount(accountId))?.tier).toBe("paid");
+      expect(await getAccountPaidPlanId(accountId)).toBe("starter");
+
+      const proPayload = JSON.stringify(
+        buildSubscriptionPayload("customer.subscription.updated", "sub_switch", accountId, {
+          items: { data: [{ price: { id: "price_pro_switch_999" } }] },
+        }),
+      );
+      const r = await req("POST", "/v1/webhooks/stripe", proPayload, { "stripe-signature": signStripePayload(proPayload) });
+
+      expect(r.status).toBe(200);
+      // Tier itself never moves — both prices map to "paid" — but the plan
+      // id must still flip from starter to pro.
+      expect((await getAccount(accountId))?.tier).toBe("paid");
+      expect(await getAccountPaidPlanId(accountId)).toBe("pro");
+    } finally {
+      delete process.env.STRIPE_PRICE_ID_STARTER;
+      delete process.env.STRIPE_PRICE_ID_PRO;
+    }
+  });
+
   it("clears paid_plan_id when a subscription syncs to free (canceled)", async () => {
     process.env.STRIPE_PRICE_ID_PRO = "price_pro_cancel_999";
     try {

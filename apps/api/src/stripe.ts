@@ -222,7 +222,19 @@ async function syncTierFromStripeSubscription(
   // past_due, incomplete, paused → keep current tier (Stripe will retry)
   if (status === "past_due" || status === "incomplete" || status === "paused") return;
 
-  if (!newTier || newTier === previousTier) return;
+  if (!newTier) return;
+
+  // H-Phase-A cycle 3: Starter and Pro both collapse into newTier==='paid',
+  // so a same-tier plan switch (e.g. Starter -> Pro) used to hit the early
+  // return below and never reach updateAccountPaidPlanId — the exact
+  // "money-math-without-paid_plan_id" gap cycles 1-2 fixed downstream, but
+  // at its SOURCE here. Still skip the tier-transition machinery (tier
+  // write, audit log, upgrade email) below since the coarse tier itself
+  // didn't move.
+  if (newTier === previousTier) {
+    await updateAccountPaidPlanId(accountId, priceToPlanId(priceId));
+    return;
+  }
 
   await updateAccountTier(accountId, newTier);
   // logTierChange reads the account's CURRENT paid_plan_id (still the OLD

@@ -247,6 +247,31 @@ function buildPlanTierMap(env: NodeJS.ProcessEnv = process.env): Map<string, "pa
   return map;
 }
 
+/**
+ * Price/plan id → the specific marketed plan (starter/pro/growth) it
+ * represents, for subscription lifecycle events. Mirrors buildPlanTierMap's
+ * env-driven shape but keeps Starter distinct from Pro (both collapse into
+ * the same coarse "paid" tier there) — H-Phase-A cycle 3: a Starter<->Pro
+ * switch delivered via subscription.updated/created previously had no way to
+ * update accounts.paid_plan_id at all, since marketedPlanIdForPaidEvent only
+ * read it from checkout.session.completed's own metadata. Dormant until the
+ * PAID_PLAN_STARTER_MONTHLY/ANNUAL env vars are set in the deploy
+ * environment (mirroring PAID_PLAN_PRO_MONTHLY/ANNUAL and
+ * PAID_PLAN_GROWTH_MONTHLY/ANNUAL, which are themselves optional today) —
+ * until then this map is empty and the existing previously-recorded-
+ * plan_id-untouched fallback still applies.
+ */
+function buildPricePlanIdMap(env: NodeJS.ProcessEnv = process.env): Map<string, CheckoutPlanId> {
+  const map = new Map<string, CheckoutPlanId>();
+  if (env.PAID_PLAN_STARTER_MONTHLY) map.set(env.PAID_PLAN_STARTER_MONTHLY, "starter");
+  if (env.PAID_PLAN_STARTER_ANNUAL) map.set(env.PAID_PLAN_STARTER_ANNUAL, "starter");
+  if (env.PAID_PLAN_PRO_MONTHLY) map.set(env.PAID_PLAN_PRO_MONTHLY, "pro");
+  if (env.PAID_PLAN_PRO_ANNUAL) map.set(env.PAID_PLAN_PRO_ANNUAL, "pro");
+  if (env.PAID_PLAN_GROWTH_MONTHLY) map.set(env.PAID_PLAN_GROWTH_MONTHLY, "growth");
+  if (env.PAID_PLAN_GROWTH_ANNUAL) map.set(env.PAID_PLAN_GROWTH_ANNUAL, "growth");
+  return map;
+}
+
 /** Defensively pull a plan id out of the webhook event object. */
 function extractPlanId(obj: Record<string, unknown>): string | undefined {
   for (const candidate of [obj.plan_id, obj.plan, obj.price_id]) {
@@ -294,18 +319,29 @@ function tierForPaidEvent(eventType: string, obj: Record<string, unknown>): Paid
  * The specific marketed plan (starter/pro/growth) a PAID webhook event names,
  * distinct from tierForPaidEvent's coarse paid/suite tier — Starter and Pro
  * both map to "paid", so this is the only place that still knows which one a
- * subscriber actually bought (H-Phase-A cycle 1). Only checkout.session.completed
- * reliably carries it: createCheckoutSession stamps metadata.plan_id with the
- * exact CheckoutPlanId at session-creation time. subscription.created/updated
- * events carry an opaque price/plan id we don't attempt to map back to a
- * marketed name here, so null in that case intentionally leaves any
- * previously-recorded plan_id untouched rather than guessing wrong.
+ * subscriber actually bought (H-Phase-A cycle 1). checkout.session.completed
+ * reliably carries it via createCheckoutSession's own metadata.plan_id,
+ * stamped at session-creation time. subscription.created/updated events
+ * carry PAI'D's own price/plan id instead, resolved through
+ * buildPricePlanIdMap the same way tierForPaidEvent resolves buildPlanTierMap
+ * (H-Phase-A cycle 3 — a Starter<->Pro switch delivered via subscription.
+ * updated previously had NO path to update paid_plan_id at all, since this
+ * function only looked at checkout.session.completed). An unrecognized price
+ * id still returns null, intentionally leaving any previously-recorded
+ * plan_id untouched rather than guessing wrong.
  */
 function marketedPlanIdForPaidEvent(eventType: string, obj: Record<string, unknown>): CheckoutPlanId | null {
-  if (eventType !== "checkout.session.completed") return null;
-  const meta = (obj.metadata ?? {}) as Record<string, unknown>;
-  const planId = meta.plan_id;
-  return planId === "starter" || planId === "pro" || planId === "growth" ? planId : null;
+  if (eventType === "checkout.session.completed") {
+    const meta = (obj.metadata ?? {}) as Record<string, unknown>;
+    const planId = meta.plan_id;
+    return planId === "starter" || planId === "pro" || planId === "growth" ? planId : null;
+  }
+  if (eventType === "subscription.created" || eventType === "subscription.updated") {
+    const planId = extractPlanId(obj);
+    if (!planId) return null;
+    return buildPricePlanIdMap().get(planId) ?? null;
+  }
+  return null;
 }
 
 export async function handlePaidWebhook(

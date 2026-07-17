@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { resetTestDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance, getAccountPaidPlanId } from "@axis/snapshots";
+import { resetTestDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance, getAccountPaidPlanId, updateAccountPaidPlanId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -584,6 +584,65 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     const lines = stdoutSpy.mock.calls.map((c) => String(c[0])).join("");
     expect(lines).toContain("defaulting tier to paid");
     expect(lines).toContain("plan_does_not_exist");
+  });
+
+  // ─── H-Phase-A cycle 3: subscription.updated can now change paid_plan_id ──
+  //
+  // Starter and Pro both collapse into the coarse "paid" tier, so a plan
+  // switch delivered via subscription.updated (not checkout.session.completed)
+  // previously had NO path to update accounts.paid_plan_id at all —
+  // resolvePlanForAccount would keep metering the account at whichever plan
+  // it started at, indefinitely, regardless of what they actually pay for.
+  it("a subscription.updated event with a recognized Starter price id sets paid_plan_id to starter", async () => {
+    vi.stubEnv("PAID_PLAN_STARTER_MONTHLY", "plan_starter_m");
+    const account = await createAccount("sub-updated-starter@test.com");
+    await updateAccountPaidPlanId(account.account_id as string, "pro"); // simulate a prior Pro plan on record
+    const body = JSON.stringify({
+      type: "subscription.updated",
+      data: { object: { customer_email: "sub-updated-starter@test.com", id: "sub_su1", plan_id: "plan_starter_m" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("starter");
+  });
+
+  it("a subscription.updated event with a recognized Pro price id sets paid_plan_id to pro (no tier change, since Starter and Pro are both 'paid')", async () => {
+    vi.stubEnv("PAID_PLAN_STARTER_MONTHLY", "plan_starter_m2");
+    vi.stubEnv("PAID_PLAN_PRO_MONTHLY", "plan_pro_m");
+    const account = await createAccount("sub-updated-pro@test.com");
+    // Get the account onto Starter first (free -> paid, a real tier change) so
+    // the Pro event below is a same-tier plan switch, not the account's first
+    // ever upgrade — the scenario this fix actually targets.
+    const starterBody = JSON.stringify({
+      type: "subscription.updated",
+      data: { object: { customer_email: "sub-updated-pro@test.com", id: "sub_su2a", plan_id: "plan_starter_m2" } },
+    });
+    await req("POST", "/portal/api/paid/webhook", starterBody, { "paid-signature": signPaid(starterBody) });
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("starter");
+
+    const body = JSON.stringify({
+      type: "subscription.updated",
+      data: { object: { customer_email: "sub-updated-pro@test.com", id: "sub_su2b", plan_id: "plan_pro_m" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    // tier_change is false — Starter and Pro both map to "paid" — but
+    // paid_plan_id must still move, which is the whole point of this fix.
+    expect(r.data.tier_change).toBe(false);
+    expect((await getAccountByEmail("sub-updated-pro@test.com"))?.tier).toBe("paid");
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("pro");
+  });
+
+  it("an unrecognized price id on subscription.updated leaves the previously-recorded plan_id untouched", async () => {
+    const account = await createAccount("sub-updated-unknown@test.com");
+    await updateAccountPaidPlanId(account.account_id as string, "pro");
+    const body = JSON.stringify({
+      type: "subscription.updated",
+      data: { object: { customer_email: "sub-updated-unknown@test.com", id: "sub_su3", plan_id: "plan_never_configured" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(await getAccountPaidPlanId(account.account_id as string)).toBe("pro");
   });
 });
 
