@@ -197,6 +197,41 @@ describe("Cloudflare Pages static config", () => {
     const content = readRoot("apps/web/public/_headers");
     expect(content).toContain("X-Content-Type-Options: nosniff");
   });
+
+  // ─── H8.10 — CSP + HSTS ─────────────────────────────────────────
+
+  it("_headers includes a CSP scoped to self + the two API origins", () => {
+    const content = readRoot("apps/web/public/_headers");
+    expect(content).toContain("Content-Security-Policy:");
+    expect(content).toContain("default-src 'self'");
+    // The two API origins the web app actually talks to (config.ts's
+    // PROD_API_BASE, same underlying Render service under two hostnames).
+    expect(content).toContain("https://api.iliad.trustfabric.ai");
+    expect(content).toContain("https://axis-api-6c7z.onrender.com");
+  });
+
+  it("CSP allows Cloudflare's own auto-injected analytics beacon (would otherwise self-break)", () => {
+    const content = readRoot("apps/web/public/_headers");
+    expect(content).toContain("https://static.cloudflareinsights.com");
+  });
+
+  it("CSP sets frame-ancestors 'none' (anti-clickjacking, alongside the legacy X-Frame-Options)", () => {
+    const content = readRoot("apps/web/public/_headers");
+    expect(content).toMatch(/frame-ancestors 'none'/);
+  });
+
+  it("CSP restricts navigation-adjacent surfaces the app doesn't use (frame-src, object-src)", () => {
+    const content = readRoot("apps/web/public/_headers");
+    expect(content).toMatch(/frame-src 'none'/);
+    expect(content).toMatch(/object-src 'none'/);
+  });
+
+  it("includes HSTS, scoped to this host only (no includeSubDomains — trustfabric.ai has other AXIS products on other subdomains not controlled by this repo)", () => {
+    const content = readRoot("apps/web/public/_headers");
+    expect(content).toMatch(/Strict-Transport-Security:\s*max-age=\d+/);
+    expect(content).not.toContain("includeSubDomains");
+    expect(content).not.toContain("preload");
+  });
 });
 
 // ─── Dockerfile ─────────────────────────────────────────────────
