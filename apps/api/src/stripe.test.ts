@@ -197,6 +197,28 @@ describe("Stripe webhook", () => {
     expect(r.data.handled).toBe(false);
   });
 
+  // H-Phase-A cycle 8: charge.refunded used to be a silent 200 no-op
+  // (not in HANDLED_EVENTS) — this system has no automatic reconciliation
+  // for a refund, so making it observable (a structured log line, checked
+  // indirectly here via handled:true — the log call itself isn't asserted
+  // since it has no other observable side effect by design) is the fix; a
+  // full automatic clawback is a separate, disclosed product decision.
+  it("handles charge.refunded (observability only, not a silent no-op)", async () => {
+    const payload = JSON.stringify({
+      type: "charge.refunded",
+      data: { object: { id: "ch_test_refund", payment_intent: "pi_test_refund", customer: "cus_test", amount_refunded: 500, currency: "usd", refunded: true } },
+    });
+    const sig = signStripePayload(payload);
+
+    const r = await req("POST", "/v1/webhooks/stripe", payload, {
+      "stripe-signature": sig,
+    });
+
+    expect(r.status).toBe(200);
+    expect(r.data.handled).toBe(true);
+    expect(r.data.event).toBe("charge.refunded");
+  });
+
   it("handles customer.subscription.updated for existing subscription", async () => {
     const { account } = await createTestAccount("sub-update", "sub-update@test.com");
     const accountId = account.account_id as string;

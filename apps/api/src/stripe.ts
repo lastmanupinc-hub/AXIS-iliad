@@ -143,6 +143,11 @@ const HANDLED_EVENTS = new Set([
   "charge.dispute.updated",
   "charge.dispute.closed",
   "radar.early_fraud_warning.created",
+  // H-Phase-A cycle 8: a refund used to be a silent 200 no-op (event type
+  // not in this set) — nothing in this system's own database ever learned
+  // a refund happened, for either a subscription payment or a one-shot
+  // credit-pack top-up. See handleChargeRefunded's own comment for scope.
+  "charge.refunded",
 ]);
 
 // ─── Convert Unix timestamp to ISO string ──────────────────────
@@ -456,6 +461,27 @@ async function handleSubscriptionEvent(
 
 // ─── Handle invoice.payment_failed ─────────────────────────────
 
+// H-Phase-A cycle 8: this system has no automatic refund reconciliation —
+// a refunded customer keeps whatever tier/persistence-credits/PAI'D-granted
+// balance they already had, indefinitely. Deciding HOW to reconcile a
+// refund (revoke consumed credits? downgrade mid-cycle? handle a partial
+// refund differently from a full one?) is a genuine product/policy
+// decision this loop can't make unilaterally — correctly out of scope here.
+// This makes a refund OBSERVABLE instead of a silent no-op: a structured
+// log line an operator can alert on or grep for, using only the fields a
+// charge.refunded event actually and reliably carries (no DB lookup that
+// could itself fail or resolve to the wrong account).
+async function handleChargeRefunded(charge: Record<string, unknown>): Promise<void> {
+  log("warn", "stripe_charge_refunded", {
+    charge_id: charge.id,
+    payment_intent: charge.payment_intent,
+    customer: charge.customer,
+    amount_refunded: charge.amount_refunded,
+    currency: charge.currency,
+    refunded: charge.refunded,
+  });
+}
+
 async function handleInvoicePaymentFailed(invoice: Record<string, unknown>): Promise<void> {
   // Basil+ moved the invoice's subscription reference under
   // parent.subscription_details; legacy webhook-endpoint versions still send
@@ -525,6 +551,8 @@ export async function handleStripeWebhook(
     await handleDisputeClosed(obj);
   } else if (eventType === "radar.early_fraud_warning.created") {
     await handleEarlyFraudWarning(obj);
+  } else if (eventType === "charge.refunded") {
+    await handleChargeRefunded(obj);
   /* v8 ignore next */
   } else {
     // invoice.payment_failed (only remaining HANDLED_EVENT after the above checks)
