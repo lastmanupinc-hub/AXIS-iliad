@@ -146,6 +146,14 @@ export type RouteParams = Record<string, string>;
 export interface NavContext {
   loggedIn: boolean;
   privateAccess: boolean;
+  /** H-Phase-A cycle 7: `privateAccess` starts false and only resolves after
+   *  an async admin probe — this flag distinguishes "confirmed not admin"
+   *  from "haven't checked yet" so a route's render function can show a
+   *  loading state instead of nothing while the probe is in flight (the
+   *  redirect-away decision itself already gates on this same flag,
+   *  App.tsx:466, since H-Phase-A cycle 4 — this is the render-side half of
+   *  that same fix, which cycle 4 missed). */
+  privateAccessResolved: boolean;
   /** A project result is currently loaded (any project, not just the account
    *  overview's list) — informational; no route's `visible` gates on it since
    *  WO-P5 moved the per-project view off the shared "#dashboard" hash. */
@@ -551,7 +559,12 @@ export const ROUTES: RouteDef[] = [
     adminOnly: true,
     visible: (ctx) => ctx.privateAccess,
     nav: { group: "ACCOUNT", icon: "bar-chart" },
-    render: (ctx) => (ctx.privateAccess ? <MyAnalyticsPage /> : null),
+    render: (ctx) =>
+      !ctx.privateAccessResolved ? (
+        <div className="empty-state" role="status" aria-live="polite"><span className="spinner" /> Loading…</div>
+      ) : ctx.privateAccess ? (
+        <MyAnalyticsPage />
+      ) : null,
   },
   {
     page: "admin",
@@ -563,7 +576,12 @@ export const ROUTES: RouteDef[] = [
     adminOnly: true,
     visible: (ctx) => ctx.privateAccess,
     nav: { group: "ACCOUNT", icon: "settings" },
-    render: (ctx) => (ctx.privateAccess ? <AdminPage /> : null),
+    render: (ctx) =>
+      !ctx.privateAccessResolved ? (
+        <div className="empty-state" role="status" aria-live="polite"><span className="spinner" /> Loading…</div>
+      ) : ctx.privateAccess ? (
+        <AdminPage />
+      ) : null,
   },
   {
     page: "docs",

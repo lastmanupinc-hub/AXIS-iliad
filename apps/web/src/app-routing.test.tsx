@@ -569,6 +569,23 @@ describe("Admin gate race (H-Phase-A cycle 4)", () => {
     resolveAdmin(false);
     await waitFor(() => expect(shellPage(container)).toBe("account"));
   });
+
+  // H-Phase-A cycle 7: cycle 4's fix only patched the REDIRECT decision
+  // (App.tsx's own effect) — routes.tsx's render function for #admin/
+  // #myanalytics never learned about privateAccessResolved, so it rendered
+  // NOTHING (not even a spinner) for the full probe round-trip, even though
+  // shellPage correctly stayed "admin" the whole time (that attribute is
+  // set independently of what the route's own render function returns).
+  // The suite above only ever asserted on shellPage, never on the actual
+  // content pane — this gap was real and untested.
+  it("shows a loading indicator, not a blank pane, while the admin probe is still pending", () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubDeferredAdminFetch(); // never resolves in this test
+    window.location.hash = "#admin";
+    render(<App />);
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(screen.queryByText("Admin Analytics")).toBeNull(); // AdminPage's own content, not yet rendered
+  });
 });
 
 // ─── Projects/History (WO-P11) ────────────────────────────────────

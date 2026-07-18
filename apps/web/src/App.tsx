@@ -492,8 +492,8 @@ export function App() {
 
   // Runtime context the route-table derivations depend on.
   const navCtx = useMemo<NavContext>(
-    () => ({ loggedIn, privateAccess, hasResult: !!result }),
-    [loggedIn, privateAccess, result],
+    () => ({ loggedIn, privateAccess, privateAccessResolved, hasResult: !!result }),
+    [loggedIn, privateAccess, privateAccessResolved, result],
   );
 
   // Command palette actions — every visible nav route, with the live Ctrl+N
