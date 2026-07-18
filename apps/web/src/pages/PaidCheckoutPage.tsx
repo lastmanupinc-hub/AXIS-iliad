@@ -179,7 +179,8 @@ export function PaidCheckoutPage() {
       <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", textAlign: "center", margin: "12px 0 0", lineHeight: 1.5 }}>
         By subscribing you agree to our{" "}
         <a href="#terms" style={{ color: "var(--accent)" }}>Terms of Service</a>.
-        Payments processed securely by PAI'D. Cancel any time.
+        Payments processed securely by PAI'D. This is a one-time charge for your selected plan and
+        billing cycle — it does not automatically renew.
       </p>
     </div>
   );

@@ -150,19 +150,23 @@ export function TermsPage() {
               </a>. All amounts are in USD.
             </p>
 
-            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.3 Auto-Renewal</h3>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.3 Billing</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Paid subscriptions automatically renew at the end of each billing period. You authorise
-              us to charge your payment method on file for each renewal period unless you cancel
-              before the renewal date.
+              Payment for a paid tier is a single, one-time charge for the plan and billing cycle you
+              select (the monthly-priced or annual-priced amount shown on the Plans page). We do not
+              store your payment method, and a purchase does not automatically renew or re-charge you.
+              Once payment is confirmed, your account's tier and credit allowance take effect and
+              remain in place indefinitely — no further payment is required to keep them active.
             </p>
 
-            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.4 Cancellation</h3>
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.4 Changing or Ending a Plan</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              You may cancel your subscription at any time from the Usage page. Cancellation takes
-              effect at the end of the current billing period; you retain access to paid features
-              until that date. We do not provide pro-rated refunds for partial billing periods unless
-              required by applicable law.
+              Self-serve plan changes are not yet available. To move to a different tier — including
+              returning to the Free tier — email support@jonathanarvay.com. Do not start a new
+              checkout for a different plan on your own: since each purchase is a separate one-time
+              charge, doing so bills you again rather than replacing your current plan. We do not
+              provide refunds for unused time on a plan you no longer want, except where required by
+              applicable law.
             </p>
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.5 Growth and Custom Terms</h3>
@@ -306,8 +310,8 @@ export function TermsPage() {
           <div className="card" id="terms-termination">
             <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>10. Termination</h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              You may terminate your account at any time by cancelling your subscription and
-              contacting support to request account deletion.
+              You may terminate your account at any time by contacting support to request account
+              deletion.
             </p>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginTop: 12 }}>
               We may suspend or terminate your access immediately and without notice if you breach
