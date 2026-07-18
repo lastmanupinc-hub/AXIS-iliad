@@ -91,6 +91,26 @@ export async function claimCompensationForCredit(entry_id: string): Promise<Comp
   return rows[0] ?? null;
 }
 
+// H-Phase-A cycle 8: claimCompensationForCredit's own at-most-once claim
+// (owed -> credited) and the actual usage-credit grant compensator.ts
+// performs afterward are two separate, non-transactional operations. If the
+// grant throws after the claim already committed (a transient DB hiccup —
+// exactly the failure class this whole compensation system exists to
+// survive), the entry is PERMANENTLY stuck 'credited' with no credit ever
+// granted, and the at-most-once guard (WHERE status='owed') means it can
+// never be reclaimed. Lets compensator.ts undo a failed grant's claim so
+// the next lazy sweep retries it instead of silently abandoning it.
+export async function revertCompensationClaim(entry_id: string): Promise<boolean> {
+  const rows = await sql.many<{ entry_id: string }>(
+    `UPDATE compensation_ledger
+        SET status = 'owed', resolved_at = NULL
+      WHERE entry_id = ? AND status = 'credited'
+      RETURNING entry_id`,
+    [entry_id],
+  );
+  return rows.length > 0;
+}
+
 /** Resolve an entry out-of-band (operator cash refund or explicit waiver). */
 export async function resolveCompensation(
   entry_id: string,

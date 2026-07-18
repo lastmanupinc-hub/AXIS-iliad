@@ -12,7 +12,7 @@
 // background infra is needed: an account with owed compensation is made whole
 // on its very next call, and the ledger is the durable record if that never
 // comes (visible via listOwedCompensation for an operator sweep).
-import { getAccount, claimCompensationForCredit, grantUsageCredits, listOwedCompensationForAccount, getCompensationSummary } from "@axis/snapshots";
+import { getAccount, claimCompensationForCredit, revertCompensationClaim, grantUsageCredits, listOwedCompensationForAccount, getCompensationSummary } from "@axis/snapshots";
 import { log } from "./logger.js";
 
 /**
@@ -22,14 +22,35 @@ import { log } from "./logger.js";
  * grant; every other (concurrent or replayed) call sees null and does nothing.
  * Returns true if this call performed the grant, false if there was nothing
  * to claim (already resolved, or not owed).
+ *
+ * H-Phase-A cycle 8: the claim and the grant are still two separate
+ * operations (not one shared transaction — grantUsageCredits owns its own
+ * internal sql.tx), so a failure between them is possible in principle. If
+ * the grant throws, revert the claim back to 'owed' so the next lazy sweep
+ * (compensateAccountOwed) retries this entry instead of leaving it
+ * permanently stuck 'credited' with no credit actually granted — the exact
+ * failure mode this compensation system exists to prevent, previously
+ * possible in its own recovery path.
  */
 export async function compensateEntry(entry_id: string): Promise<boolean> {
   const claimed = await claimCompensationForCredit(entry_id);
   if (!claimed) return false;
-  const account = await getAccount(claimed.account_id);
-  const tier = account?.tier ?? "free";
-  await grantUsageCredits(claimed.account_id, tier, claimed.amount_cents);
-  return true;
+  try {
+    const account = await getAccount(claimed.account_id);
+    const tier = account?.tier ?? "free";
+    await grantUsageCredits(claimed.account_id, tier, claimed.amount_cents);
+    return true;
+  } catch (err) {
+    await revertCompensationClaim(entry_id).catch((revertErr) => {
+      log("error", "compensation_revert_failed", {
+        entry_id,
+        account_id: claimed.account_id,
+        original_error: err instanceof Error ? err.message : String(err),
+        revert_error: revertErr instanceof Error ? revertErr.message : String(revertErr),
+      });
+    });
+    throw err;
+  }
 }
 
 /**

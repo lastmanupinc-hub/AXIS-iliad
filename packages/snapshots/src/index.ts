@@ -104,6 +104,7 @@ export type { CompensationEntry, CompensationReason, CompensationStatus, RecordC
 export {
   recordCompensationOwed,
   claimCompensationForCredit,
+  revertCompensationClaim,
   resolveCompensation,
   getCompensationSummary,
   getTotalCompensationOwed,

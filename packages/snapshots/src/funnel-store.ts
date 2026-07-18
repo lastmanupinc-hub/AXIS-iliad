@@ -51,10 +51,14 @@ export async function inviteSeat(
   // limit could both read a count under the limit and both insert,
   // exceeding the plan's seat entitlement. Same per-account advisory-lock
   // pattern already established for the other append-only-ledger races in
-  // this codebase (persistence_credits uses namespace 1; this uses a
-  // distinct namespace 2 so seat invites and credit grants never contend).
+  // this codebase. Namespace 4: 1=persistence_credits, 2=usage_credit_monthly,
+  // 3=suite_monthly_grant — cycle 7 originally picked 2 here too without
+  // checking it was already claimed by usage-credit-metering.ts, which
+  // would've needlessly serialized seat invites against unrelated credit
+  // grants for the same account (harmless — same key space, not a
+  // correctness bug — but sloppy; caught and fixed in cycle 8).
   await sql.tx(async (client) => {
-    await client.query("SELECT pg_advisory_xact_lock(2, hashtext($1))", [account_id]);
+    await client.query("SELECT pg_advisory_xact_lock(4, hashtext($1))", [account_id]);
     if (limit !== -1) {
       const active = await client.query<Seat>(
         pgPlaceholders("SELECT * FROM seats WHERE account_id = ? AND revoked_at IS NULL"),

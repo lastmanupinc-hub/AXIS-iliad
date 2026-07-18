@@ -88,14 +88,38 @@ describe("compensateAccountOwed", () => {
 
     // The loop reached BOTH entries (2 grantUsageCredits calls) despite the
     // first one throwing — proof the try/catch inside the sweep loop moved on
-    // instead of aborting. Both entries are claimed regardless of grant outcome
-    // (claim-then-grant — the same disclosed crash-gap tradeoff cashier.ts's
-    // wallet-ambiguity path documents), so the ledger shows zero still owed.
+    // instead of aborting.
     expect(spy).toHaveBeenCalledTimes(2);
     spy.mockRestore();
 
+    // H-Phase-A cycle 8: this used to assert owed_cents === 0 here — the
+    // failed entry's claim was NEVER reverted, so it sat permanently
+    // 'credited' with no credit actually granted, silently vanishing from
+    // "still owed" while never having been made whole. compensateEntry now
+    // reverts a failed grant's claim back to 'owed', so the failed $0.10
+    // entry is still visibly owed (available for the next lazy sweep to
+    // retry) while the successful $0.20 one is credited.
     const summary = await getCompensationSummary(acct.account_id);
-    expect(summary.owed_cents).toBe(0);
+    expect(summary).toEqual({ owed_cents: 10, credited_cents: 20 });
+  });
+
+  // H-Phase-A cycle 8: compensateEntry itself — direct test of the
+  // claim-then-grant atomicity fix, isolated from the sweep loop.
+  it("reverts the claim back to 'owed' when the grant fails, so the entry can be retried", async () => {
+    const acct = await createAccount("RevertDirect", "revert-direct@test.com", "paid");
+    const entry = await owed(acct.account_id, 50);
+
+    const spy = vi.spyOn(snapshots, "grantUsageCredits").mockRejectedValueOnce(new Error("transient db error"));
+    await expect(compensateEntry(entry.entry_id)).rejects.toThrow("transient db error");
+    spy.mockRestore();
+
+    // Not stuck 'credited' with nothing granted — back to 'owed', retryable.
+    expect(await getCompensationSummary(acct.account_id)).toEqual({ owed_cents: 50, credited_cents: 0 });
+
+    // Retry succeeds now that the mock is restored — proves the reverted
+    // entry is genuinely re-claimable, not just showing the right numbers.
+    expect(await compensateEntry(entry.entry_id)).toBe(true);
+    expect(await getCompensationSummary(acct.account_id)).toEqual({ owed_cents: 0, credited_cents: 50 });
   });
 });
 
