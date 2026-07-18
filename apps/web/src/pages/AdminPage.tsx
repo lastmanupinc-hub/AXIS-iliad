@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ApiError,
   getAdminStats,
@@ -25,8 +25,15 @@ export function AdminPage() {
   const [funnelMetrics, setFunnelMetrics] = useState<FunnelMetrics | null>(null);
   const [mcpUsage, setMcpUsage] = useState<McpUsageResponse | null>(null);
   const [revenue, setRevenue] = useState<AdminRevenue | null>(null);
+  // H-Phase-A cycle 8: loadAdminData is triggered both on mount AND by the
+  // Refresh button — same dual-trigger shape MyAnalyticsPage.tsx's load()
+  // had (cycle 6) — with no guard against an OLDER in-flight request's
+  // response landing after a newer one and silently overwriting it with
+  // stale revenue/account/activity numbers.
+  const requestIdRef = useRef(0);
 
   async function loadAdminData() {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -38,6 +45,7 @@ export function AdminPage() {
         getMcpUsage(30),
         getAdminRevenue(),
       ]);
+      if (requestIdRef.current !== requestId) return;
       setStats(statsRes);
       setAccounts(accountsRes);
       setActivity(activityRes);
@@ -45,6 +53,7 @@ export function AdminPage() {
       setMcpUsage(mcpUsageRes);
       setRevenue(revenueRes);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
       if (err instanceof ApiError && err.status === 403) {
         setError("Admin access required. Use an admin API key.");
       } else if (err instanceof Error) {
@@ -53,7 +62,7 @@ export function AdminPage() {
         setError("Failed to load admin analytics.");
       }
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }
 

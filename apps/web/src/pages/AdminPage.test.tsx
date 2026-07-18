@@ -9,6 +9,7 @@
 // audit flagged, matching what every sibling admin/account page already
 // does correctly.
 
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { AdminPage } from "./AdminPage.tsx";
@@ -107,5 +108,52 @@ describe("AdminPage — empty-state guards + TableWrap (H5.1b(f))", () => {
 
     await waitFor(() => expect(screen.getByText("ada@example.com")).toBeTruthy());
     expect(screen.queryByText("No accounts yet.")).toBeNull();
+  });
+});
+
+// H-Phase-A cycle 8: loadAdminData is triggered both on mount AND by the
+// Refresh button, sharing the exact dual-trigger shape MyAnalyticsPage.tsx's
+// load() had (cycle 6) before its requestId guard — with no guard here, an
+// OLDER in-flight request's response landing after a newer one would
+// silently overwrite it. The real app (main.tsx) mounts under <StrictMode>,
+// which double-invokes a mount effect with no cleanup exactly once in
+// development — a genuinely reachable trigger for two overlapping
+// loadAdminData() calls on the same instance, unlike attempting this via
+// the Refresh button (which is unreachable mid-load here: AdminPage swaps
+// its ENTIRE tree for a bare loading skeleton, hiding the button, so a
+// second click can never race the first).
+describe("AdminPage — stale-response race guard", () => {
+  it("shows the NEWER load's data even when an older (StrictMode double-invoked) request resolves after it", async () => {
+    const responses = emptyAdminResponses();
+    let revenueCallCount = 0;
+    let resolveFirstRevenue!: (v: Response) => void;
+    const firstPending = new Promise<Response>((resolve) => { resolveFirstRevenue = resolve; });
+
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/admin/revenue")) {
+        revenueCallCount++;
+        if (revenueCallCount === 1) return firstPending; // StrictMode's first (discarded) effect invocation
+        const newer = { ...(responses["/v1/admin/revenue"] as Record<string, unknown>) };
+        (newer.accounts as Record<string, unknown>).paid = 999;
+        return { ok: true, status: 200, json: async () => newer, text: async () => JSON.stringify(newer), headers: { get: () => null } } as unknown as Response;
+      }
+      const hit = Object.entries(responses).find(([match]) => url.includes(match));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    }));
+
+    render(<StrictMode><AdminPage /></StrictMode>);
+
+    await waitFor(() => expect(screen.getByText("999")).toBeTruthy());
+
+    // Release the STALE first (StrictMode-discarded) request — it must be
+    // ignored, not overwrite the already-displayed newer 999 value.
+    const stale = { ...(responses["/v1/admin/revenue"] as Record<string, unknown>) };
+    (stale.accounts as Record<string, unknown>).paid = 111;
+    resolveFirstRevenue({ ok: true, status: 200, json: async () => stale, text: async () => JSON.stringify(stale), headers: { get: () => null } } as unknown as Response);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("111")).toBeNull();
+    expect(screen.getByText("999")).toBeTruthy();
   });
 });
