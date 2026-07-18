@@ -122,6 +122,26 @@ describe("Seats", () => {
     await expect(inviteSeat(acct.account_id, "overflow@example.com", "member", acct.account_id))
       .rejects.toThrow("Seat limit reached");
   });
+
+  // H-Phase-A cycle 7: the seat-limit check-then-insert used to run as two
+  // separate, unlocked queries — a warm-pool burst of concurrent invites
+  // near the limit could all read a count under the limit and all insert,
+  // exceeding the plan's real seat entitlement. Same warm-pool technique as
+  // persistence-metering.test.ts's own concurrency suite (a cold pool's
+  // slower 2nd-connection-acquisition masks the race otherwise).
+  it("does not overshoot the seat limit under a concurrent invite burst", async () => {
+    const acct = await createAccount("Burst", "burst@example.com", "paid");
+    const limit = SEAT_LIMITS.paid;
+    const N = limit + 5; // more concurrent invites than the plan allows
+
+    await Promise.all(Array.from({ length: 10 }, () => sql.one("SELECT 1")));
+    const results = await Promise.allSettled(
+      Array.from({ length: N }, (_, i) => inviteSeat(acct.account_id, `race${i}@example.com`, "member", acct.account_id)),
+    );
+
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(limit); // exactly the limit, never more
+    expect(await getSeatCount(acct.account_id)).toBe(limit);
+  });
 });
 
 // ─── Funnel Events ──────────────────────────────────────────────

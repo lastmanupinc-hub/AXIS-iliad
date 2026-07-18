@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sql } from "./pg.js";
+import { sql, pgPlaceholders } from "./pg.js";
 import { getAccount, getMonthlySnapshotCount, getEntitlements, getAccountPaidPlanId } from "./billing-store.js";
 import { TIER_LIMITS, ALL_PROGRAMS } from "./billing-types.js";
 import type { BillingTier } from "./billing-types.js";
@@ -34,12 +34,6 @@ export async function inviteSeat(
   // tier (H-Phase-A cycle 3: SEAT_LIMITS alone caps every Pro subscriber at
   // Starter's 5-seat count).
   const limit = resolveSeatLimit(account.tier, await getAccountPaidPlanId(account_id));
-  if (limit !== -1) {
-    const active = await getActiveSeats(account_id);
-    if (active.length >= limit) {
-      throw new Error(`Seat limit reached (${limit} for ${account.tier} tier)`);
-    }
-  }
 
   const seat: Seat = {
     seat_id: randomUUID(),
@@ -52,11 +46,32 @@ export async function inviteSeat(
     created_at: new Date().toISOString(),
   };
 
-  await sql.run(
-    `INSERT INTO seats (seat_id, account_id, email, role, invited_by, accepted_at, revoked_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [seat.seat_id, seat.account_id, seat.email, seat.role, seat.invited_by, seat.accepted_at, seat.revoked_at, seat.created_at],
-  );
+  // H-Phase-A cycle 7: the count-then-insert below used to run as two
+  // separate, unlocked queries — two concurrent invite requests near the
+  // limit could both read a count under the limit and both insert,
+  // exceeding the plan's seat entitlement. Same per-account advisory-lock
+  // pattern already established for the other append-only-ledger races in
+  // this codebase (persistence_credits uses namespace 1; this uses a
+  // distinct namespace 2 so seat invites and credit grants never contend).
+  await sql.tx(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(2, hashtext($1))", [account_id]);
+    if (limit !== -1) {
+      const active = await client.query<Seat>(
+        pgPlaceholders("SELECT * FROM seats WHERE account_id = ? AND revoked_at IS NULL"),
+        [account_id],
+      );
+      if (active.rows.length >= limit) {
+        throw new Error(`Seat limit reached (${limit} for ${account.tier} tier)`);
+      }
+    }
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO seats (seat_id, account_id, email, role, invited_by, accepted_at, revoked_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ),
+      [seat.seat_id, seat.account_id, seat.email, seat.role, seat.invited_by, seat.accepted_at, seat.revoked_at, seat.created_at],
+    );
+  });
 
   await trackEvent(account_id, "seat_invited", await resolveStage(account_id), { email, role });
   return seat;
