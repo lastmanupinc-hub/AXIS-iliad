@@ -3117,9 +3117,8 @@ export async function handleForAgents(
         manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: FREE_MCP_TOOL_COUNT },
       },
     },
-    pricing_table: {
-      overview: `${FREE_MCP_TOOL_COUNT} free tools (discovery + the WO-13 commerce decision engines + the ping_payment x402 probe), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.`,
-      tiers: [
+    pricing_table: (() => {
+      const curatedTiers = [
         { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "prepare_agentic_purchasing",   price: "$0.50/run",  lite: "$0.25/run", auth: true  },
@@ -3141,8 +3140,29 @@ export async function handleForAgents(
         { tool: "score_dispute_readiness",          price: "free",       lite: null,         auth: false },
         { tool: "get_referral_code",                price: "free",       lite: null,         auth: true  },
         { tool: "get_referral_credits",           price: "free",       lite: null,         auth: true  },
-      ],
-    },
+      ];
+      // H-Phase-A cycle 9: this hardcoded array is the SAME
+      // hand-duplicated-catalog-drift shape already fixed for allTools
+      // (cycle 8) and this manifest's own free-tool count (cycle 6), now
+      // found a THIRD time in this same function — the audit that flagged
+      // this named 2 missing free tools (iliad_network_tokenization,
+      // ping_payment); a fresh diff against the real FREE_TOOL_NAMES
+      // registrations found a 3rd it missed (prepare_agentic_purchasing_
+      // preview — not the paid "prepare_agentic_purchasing" row already
+      // present). Derive the missing FREE entries programmatically — this
+      // table's role is "every free tool plus a few flagship paid
+      // examples," not an exhaustive 37-tool dump — rather than hand-typing
+      // a fixed list of names that would just drift again, the same way
+      // the original 2-tool miss became a 3-tool miss here.
+      const curatedNames = new Set(curatedTiers.map(t => t.tool));
+      const missingFreeTiers = deriveMcpToolCatalog()
+        .filter(t => t.pricing === "free" && !curatedNames.has(t.name))
+        .map(t => ({ tool: t.name, price: "free", lite: null as string | null, auth: t.auth_required }));
+      return {
+        overview: `${FREE_MCP_TOOL_COUNT} free tools (discovery + the WO-13 commerce decision engines + the ping_payment x402 probe), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.`,
+        tiers: [...curatedTiers, ...missingFreeTiers],
+      };
+    })(),
     demo_output: {
       description: "Example output from analyze_repo on a public e-commerce repo.",
       input: { tool: "analyze_repo", args: { github_url: "https://github.com/medusajs/medusa" } },

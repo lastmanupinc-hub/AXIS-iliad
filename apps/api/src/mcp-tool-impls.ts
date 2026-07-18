@@ -2219,6 +2219,21 @@ const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
 // reachable with zero auth, when they aren't.
 const FREE_TOOLS_REQUIRING_AUTH = new Set(["get_referral_code", "get_referral_credits", "iliad_network_tokenization"]);
 
+// H-Phase-A cycle 9: the inverse gap — auth_required's `!free` default can
+// only correct a FALSE NEGATIVE (a free tool that actually needs auth); it
+// has no way to mark a FALSE POSITIVE for a tool that's neither free nor
+// metered (get_snapshot, get_artifact, and improve_my_agent_with_axis are
+// the only 3 of 37 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS —
+// confirmed via direct count). get_snapshot/get_artifact's own handlers
+// (runGetSnapshot/runGetArtifact) only check auth CONDITIONALLY — an
+// ownerless/anonymous snapshot needs none at all — so `!free` alone
+// mismarked both as auth_required:true, disagreeing with GET /for-agents'
+// own hand-curated entries for the same two tools (which already correctly
+// say auth:false). improve_my_agent_with_axis genuinely DOES require auth
+// (runImproveMyAgent rejects an anonymous caller unconditionally), so it's
+// correctly left out of this set — `!free` already gets it right.
+const NON_FREE_TOOLS_NOT_REQUIRING_AUTH = new Set(["get_snapshot", "get_artifact"]);
+
 export interface McpToolCatalogEntry {
   name: string;
   description: string;
@@ -2252,7 +2267,7 @@ export function deriveMcpToolCatalog(): McpToolCatalogEntry[] {
     return {
       name: t.name,
       description: t.description.slice(0, 200),
-      auth_required: !free || FREE_TOOLS_REQUIRING_AUTH.has(t.name),
+      auth_required: (!free && !NON_FREE_TOOLS_NOT_REQUIRING_AUTH.has(t.name)) || FREE_TOOLS_REQUIRING_AUTH.has(t.name),
       pricing: free
         ? "free"
         : tier

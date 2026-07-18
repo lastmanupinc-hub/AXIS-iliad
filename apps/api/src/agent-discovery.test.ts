@@ -498,6 +498,34 @@ describe("GET /for-agents", () => {
     expect(String(pricingTable.overview)).toContain(`${FREE_MCP_TOOL_COUNT} free tools`);
   });
 
+  // H-Phase-A cycle 9: pricing_table.tiers is a THIRD hand-maintained list
+  // (after allTools and this endpoint's free-tool count, both already fixed)
+  // that drifted the same way — its itemized FREE rows disagreed with the
+  // overview sentence's own correctly-derived free-tool count right above
+  // it. The audit that found this named iliad_network_tokenization and
+  // ping_payment specifically, but a fresh diff against the real
+  // FREE_TOOL_NAMES registrations found a THIRD, previously-unnoticed miss:
+  // prepare_agentic_purchasing_preview (not to be confused with the paid
+  // "prepare_agentic_purchasing" row already present) — confirming the fix
+  // needed to derive the missing set programmatically, not name 2 tools by
+  // hand and risk missing a 3rd the same way the original table did.
+  it("pricing_table.tiers includes every free tool the overview counts, not just the originally hand-typed rows", async () => {
+    const pricingTable = data.pricing_table as Record<string, unknown>;
+    const tiers = pricingTable.tiers as Array<Record<string, unknown>>;
+    for (const name of ["iliad_network_tokenization", "ping_payment", "prepare_agentic_purchasing_preview"]) {
+      const row = tiers.find((t) => t.tool === name);
+      expect(row, `${name} row`).toBeDefined();
+      expect(row!.price).toBe("free");
+    }
+    const freeToolNamesInTiers = new Set(tiers.filter((t) => t.price === "free").map((t) => t.tool));
+    // get_snapshot/get_artifact/improve_my_agent_with_axis are labeled "free"
+    // in this hand-curated table informally (the call costs $0) but aren't
+    // in FREE_TOOL_NAMES — the 3rd-category tools the auth_required fix
+    // above covers — so the real free-tool count is a floor, not an exact
+    // match, for this table's own "free" label.
+    expect(freeToolNamesInTiers.size).toBeGreaterThanOrEqual(FREE_MCP_TOOL_COUNT);
+  });
+
   it("does not embed propagation or incentive marketing", async () => {
     expect(data.propagation).toBeUndefined();
     expect(data.system_prompt_snippet).toBeUndefined();

@@ -353,4 +353,26 @@ describe("discovery surfaces advertise the new free tools", () => {
       expect(entry.auth_required, `${n}.auth_required`).toBe(false);
     }
   });
+
+  // H-Phase-A cycle 9: the inverse gap — auth_required's `!free` default
+  // only corrects a FALSE NEGATIVE (a free tool needing auth); it has no
+  // way to mark a FALSE POSITIVE for a tool that's neither free nor metered.
+  // get_snapshot/get_artifact are 2 of the only 3 tools in neither bucket,
+  // and their own handlers only check auth CONDITIONALLY (an ownerless
+  // snapshot needs none) — so `!free` alone mismarked both as
+  // auth_required:true, disagreeing with GET /for-agents' own hand-curated
+  // entries for the same two tools. improve_my_agent_with_axis is the third
+  // such tool but genuinely DOES require auth unconditionally, so `!free`
+  // already gets it right and it's correctly excluded from this fix.
+  it("get_snapshot/get_artifact are neither free nor metered, but genuinely don't require auth", async () => {
+    const { text } = await callTool("discover_commerce_tools", {});
+    const parsed = JSON.parse(text);
+    for (const n of ["get_snapshot", "get_artifact"]) {
+      const entry = parsed.tools.find((t: { name: string }) => t.name === n);
+      expect(entry.pricing, `${n}.pricing`).toBe("included in plan");
+      expect(entry.auth_required, `${n}.auth_required`).toBe(false);
+    }
+    const stillAuthRequired = parsed.tools.find((t: { name: string }) => t.name === "improve_my_agent_with_axis");
+    expect(stillAuthRequired.auth_required).toBe(true);
+  });
 });
