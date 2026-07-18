@@ -98,6 +98,17 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
   const [tierBlock, setTierBlock] = useState<{ blocked: string[]; allowed: string[] } | null>(null);
   const { toast } = useToast();
 
+  // H-Phase-A cycle 9: browser Back/Forward between two different projects
+  // doesn't remount this component — useHashRoute.ts's hashchange handler
+  // preserves route.key on history navigation (only navigate() increments
+  // it) — so result.project_id can change on an already-mounted instance.
+  // A request-generation guard (same requestIdRef pattern already used in
+  // MyAnalyticsPage.tsx/AdminPage.tsx) stops an OLDER project's response
+  // from landing after a NEWER one and silently overwriting its files —
+  // needed for the Retry button below too, not just the effect, since both
+  // share this same function.
+  const filesRequestIdRef = useRef(0);
+
   // H2.6 (red-team fix, WAVE-0 finding #8): a malformed response or a fetch
   // failure must still degrade to a non-crashing render (H1.2's fix, kept —
   // storing undefined here threw on the next generatedFiles.length read) —
@@ -106,9 +117,11 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
   // paid for behind what looks like an empty project. filesLoadFailed tracks
   // that distinction so the page can say so instead of staying silent.
   const loadGeneratedFiles = useCallback(() => {
+    const requestId = ++filesRequestIdRef.current;
     setFilesLoadFailed(false);
     getGeneratedFiles(result.project_id)
       .then((data) => {
+        if (requestId !== filesRequestIdRef.current) return;
         if (Array.isArray(data.files)) {
           setGeneratedFiles(data.files);
         } else {
@@ -117,6 +130,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
         }
       })
       .catch(() => {
+        if (requestId !== filesRequestIdRef.current) return;
         setGeneratedFiles([]);
         setFilesLoadFailed(true);
       });
