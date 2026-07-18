@@ -530,6 +530,35 @@ describe("POST /portal/api/paid/webhook", () => {
   });
 });
 
+// H-Phase-A cycle 9: cycle 8 believed charge.refunded was already handled on
+// "either webhook" — it only touched the DORMANT legacy stripe.ts path, never
+// this LIVE one. Two tests: the best-guess named event, and a differently-
+// named refund-shaped event (since PAI'D's exact refund event-type string is
+// unconfirmed) to prove the case-insensitive substring catch-all works too.
+describe("POST /portal/api/paid/webhook — refund observability", () => {
+  it("handles the best-guess 'charge.refunded' event (not a silent no-op)", async () => {
+    const body = JSON.stringify({
+      type: "charge.refunded",
+      data: { object: { id: "ch_paid_refund", payment_intent: "pi_paid_refund", customer_email: "refund@test.com", amount_refunded: 900, currency: "usd" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.handled).toBe(true);
+    expect(r.data.event).toBe("charge.refunded");
+  });
+
+  it("catches a differently-named refund event via the case-insensitive substring match", async () => {
+    const body = JSON.stringify({
+      type: "refund.created",
+      data: { object: { id: "rf_paid_1", customer_email: "refund2@test.com", amount: 500, currency: "usd" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.handled).toBe(true);
+    expect(r.data.event).toBe("refund.created");
+  });
+});
+
 // ─── Plan-aware tier mapping ────────────────────────────────────
 
 describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {

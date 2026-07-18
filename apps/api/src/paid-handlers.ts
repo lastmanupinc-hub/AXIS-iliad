@@ -221,6 +221,16 @@ export async function handlePaidConfig(
 //
 // Header: PAID-Signature: t=<unix>,v1=<hex>
 // Body:   { type: string, data: { object: { customer_email?, … } } }
+//
+// H-Phase-A cycle 9: the subscription.created/updated/canceled/deleted
+// handling below is currently DEAD IN PRODUCTION — createPaidCheckoutSession
+// (paid-client package) hardcodes mode:"payment" (a one-time charge; PAI'D
+// 501s mode:"subscription" until it supports recurring billing), and nothing
+// else in this repo ever creates a PAI'D subscription object, so PAI'D
+// cannot emit these events today. Kept implemented (not deleted) since it's
+// the correct handling WHENEVER PAI'D ships subscription mode — this is a
+// documentation note so a future reader doesn't debug "why don't these fire"
+// or mistake this logic for tested-live behavior.
 
 const HANDLED_PAID_EVENTS = new Set([
   "checkout.session.completed", // hosted-checkout fulfilment (the live path)
@@ -229,6 +239,12 @@ const HANDLED_PAID_EVENTS = new Set([
   "subscription.updated",
   "subscription.canceled",
   "subscription.deleted",
+  // H-Phase-A cycle 8 believed this webhook already handled charge.refunded
+  // — it did not; that fix (commit f047bd5) only touched the DORMANT legacy
+  // stripe.ts webhook, never this LIVE one. Best-guess named entry — see
+  // handlePaidRefund's own comment for why an unnamed catch-all covers this
+  // too, since PAI'D's exact refund event-type string is unconfirmed.
+  "charge.refunded",
 ]);
 
 type PaidTier = "free" | "paid" | "suite";
@@ -344,6 +360,24 @@ function marketedPlanIdForPaidEvent(eventType: string, obj: Record<string, unkno
   return null;
 }
 
+// H-Phase-A cycle 9: same scope/rationale as stripe.ts's handleChargeRefunded
+// — this system has no automatic refund reconciliation, and deciding HOW to
+// reconcile one (revoke consumed credits? downgrade mid-cycle? partial vs
+// full refund?) is a genuine product/policy decision, correctly out of
+// scope here. This makes a PAI'D-collected refund OBSERVABLE instead of a
+// silent no-op, using only fields a refund-shaped event plausibly carries
+// (no DB lookup that could itself fail or resolve to the wrong account).
+function handlePaidRefund(eventType: string, obj: Record<string, unknown>): void {
+  log("warn", "paid_charge_refunded", {
+    event: eventType,
+    charge_id: obj.charge_id ?? obj.id,
+    payment_intent: obj.payment_intent,
+    customer_email: obj.customer_email ?? obj.email,
+    amount_refunded: obj.amount_refunded ?? obj.amount,
+    currency: obj.currency,
+  });
+}
+
 export async function handlePaidWebhook(
   req: IncomingMessage,
   res: ServerResponse,
@@ -379,12 +413,26 @@ export async function handlePaidWebhook(
   }
 
   const eventType = event.type ?? "";
+  const obj = event.data?.object ?? {};
+
+  // Checked before the named-event allowlist below, and independent of it:
+  // PAI'D's naming doesn't mirror Stripe verbatim (subscription.created has
+  // no "customer." prefix here, unlike Stripe's own customer.subscription.
+  // created), so the exact refund event-type string PAI'D sends is
+  // unconfirmed. A case-insensitive substring match catches any refund-
+  // shaped event regardless of its exact name, not just the best-guess
+  // "charge.refunded" entry in HANDLED_PAID_EVENTS.
+  if (eventType.toLowerCase().includes("refund")) {
+    handlePaidRefund(eventType, obj);
+    sendJSON(res, 200, { received: true, event: eventType, handled: true });
+    return;
+  }
+
   if (!HANDLED_PAID_EVENTS.has(eventType)) {
     sendJSON(res, 200, { received: true, event: eventType, handled: false });
     return;
   }
 
-  const obj = event.data?.object ?? {};
   const meta = (obj.metadata ?? {}) as Record<string, unknown>;
 
   // Credit-pack top-up fulfilment — a one-shot purchase, not a tier change.
