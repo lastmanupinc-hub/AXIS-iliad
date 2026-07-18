@@ -1736,6 +1736,46 @@ export async function getProrationPreview(targetTier: BillingTier): Promise<Pror
   return fetchJSON(`/v1/billing/proration?tier=${encodeURIComponent(targetTier)}`);
 }
 
+export interface TierChangeHistoryEntry {
+  change_id: string;
+  from_tier: BillingTier;
+  to_tier: BillingTier;
+  reason: string;
+  proration_amount: number;
+  created_at: string;
+}
+
+export interface BillingHistoryResponse {
+  account_id: string;
+  current_tier: BillingTier;
+  history: TierChangeHistoryEntry[];
+}
+
+// H-Phase-A cycle 8: GET /v1/billing/history has a real handler (handleBillingHistory)
+// and an OpenAPI entry but never had a web wrapper at all — no signed-in
+// user could ever see their own tier-change history in the product.
+// Wrapper only; no UI consumes this yet (a real, disclosed product/UX call,
+// not a quick add — see HARDEN_POLISH_LOOP.md's cycle 8 ledger entry).
+export async function getBillingHistory(): Promise<BillingHistoryResponse> {
+  return fetchJSON("/v1/billing/history");
+}
+
+export type FleetReportResponse =
+  | { ready: false; project_count: number; eligible_projects: number; reason: string }
+  | { ready: true; project_count: number; eligible_projects: number; projects: string[]; files: GeneratedFile[] };
+
+// H-Phase-A cycle 8: GET /v1/account/fleet is a paid/suite-tier-gated
+// feature (403 TIER_REQUIRED on free) with a real handler but no web
+// wrapper and zero UI references anywhere — a Pro/Growth customer paying
+// for tier access has no way to discover or use a feature their
+// subscription is supposed to unlock. Wrapper only; a real FleetPage.tsx is
+// a genuine, non-trivial feature build, correctly a separate tracked unit
+// rather than a drive-by fix here — see HARDEN_POLISH_LOOP.md's cycle 8
+// ledger entry.
+export async function getFleetReport(): Promise<FleetReportResponse> {
+  return fetchJSON("/v1/account/fleet");
+}
+
 // ─── PAI'D Checkout API ─────────────────────────────────────────
 
 export interface PaidConfig {
