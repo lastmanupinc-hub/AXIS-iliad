@@ -109,6 +109,39 @@ describe("applySuiteMonthlyGrant", () => {
     expect(result).toBeNull();
     expect(await getPersistenceBalance(acct.account_id)).toBe(SUITE_MONTHLY_PERSISTENCE_CREDITS);
   });
+
+  // H-Phase-A cycle 9: this used advisory-lock namespace 3 while every other
+  // writer to persistence_credits (addPersistenceCredits, meterPersistenceOp)
+  // uses namespace 1 — a different Postgres advisory-lock classid never
+  // blocks against a different one (documented Postgres behavior — distinct
+  // lock IDs are simply unrelated locks), so this function wasn't actually
+  // covered by the "one lock per account for every persistence_credits
+  // mutation" invariant addPersistenceCredits' own cycle-6 fix established.
+  //
+  // DISCLOSED, not mutation-verified: attempted to race this grant against
+  // a concurrent addPersistenceCredits burst (the same shape as the
+  // addPersistenceCredits-concurrency test below) at both N=5 and N=20 —
+  // the resulting test passed identically whether the lock used namespace 1
+  // or the pre-fix namespace 3, so it does not actually distinguish the two
+  // and would misrepresent verification if kept as a claimed race-detection
+  // test. This matches the auditing agent's own conclusion ("I could not
+  // construct a scenario producing a negative balance, double-grant, or
+  // double-spend") — the SELECT-then-INSERT window this fix closes is real
+  // per Postgres's documented locking semantics, but too narrow to
+  // reliably trigger at this test's scale. The assertion below still
+  // legitimately proves the grant and a concurrent credit-add compose to
+  // the correct final state; it does not prove the lock is what makes that
+  // true.
+  it("a suite grant and a concurrent addPersistenceCredits burst still land on the mathematically correct final balance", async () => {
+    const acct = await createAccount("GrantVsAdd", "grantvsadd@example.com", "suite");
+    await warmPool(10);
+    const [grantResult, ...addResults] = await Promise.all([
+      applySuiteMonthlyGrant(acct.account_id, "suite"),
+      ...Array.from({ length: 10 }, () => addPersistenceCredits(acct.account_id, 1)),
+    ]);
+    expect(grantResult).not.toBeNull();
+    expect(await getPersistenceBalance(acct.account_id)).toBe(SUITE_MONTHLY_PERSISTENCE_CREDITS + addResults.length);
+  });
 });
 
 // ─── Metering ────────────────────────────────────────────────────

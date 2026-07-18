@@ -81,10 +81,22 @@ export async function applySuiteMonthlyGrant(account_id: string, tier: BillingTi
   const month = new Date().toISOString().slice(0, 7); // "YYYY-MM"
   // Check-then-insert over the append-only ledger: two concurrent calls (e.g. parallel
   // GET /v1/account/credits) both pass the "already granted?" check and double-grant.
-  // Serialize per-account with a tx-scoped advisory lock (namespace 3 = suite grant),
-  // mirroring meterPersistenceOp (namespace 1); the lock releases at COMMIT.
+  // H-Phase-A cycle 9: this used namespace 3 while claiming to "mirror
+  // meterPersistenceOp (namespace 1)" — a real inconsistency (not just a
+  // stale comment): a different Postgres advisory-lock classid never blocks
+  // against namespace 1, so this writer to the SAME persistence_credits
+  // ledger wasn't actually covered by the "one lock per account for every
+  // mutation" invariant addPersistenceCredits' own fix established. Matched
+  // to namespace 1 for real, not just in the comment.
+  // Disclosed: the race this closes could not be reliably reproduced in a
+  // test (attempted at N=5 and N=20 concurrent addPersistenceCredits calls
+  // — see persistence-metering.test.ts), matching this repo's own prior
+  // audit conclusion that no negative-balance/double-grant scenario could
+  // be constructed. This fix's correctness rests on documented Postgres
+  // advisory-lock semantics (distinct classids never block each other),
+  // not on an empirical red-then-green test.
   return await sql.tx<number | null>(async (client) => {
-    await client.query("SELECT pg_advisory_xact_lock(3, hashtext($1))", [account_id]);
+    await client.query("SELECT pg_advisory_xact_lock(1, hashtext($1))", [account_id]);
 
     const granted = await client.query(
       `SELECT 1 FROM persistence_credits
