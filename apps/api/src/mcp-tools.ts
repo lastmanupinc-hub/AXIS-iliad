@@ -1726,7 +1726,7 @@ export const MCP_TOOLS = [
       type: "object" as const,
       required: ["readiness", "disclaimer", "proof"],
       properties: {
-        readiness: { type: "object", description: "{reasonCode, probability (0-1 heuristic score), band, topMissingEvidence[], recommendedAction, rationale[], modelVersion}." },
+        readiness: { type: "object", description: "{reasonCode, readiness_score (0-1 heuristic score), band, topMissingEvidence[], recommendedAction, rationale[], modelVersion}." },
         disclaimer: { type: "string", description: "The NOT-a-win-prediction honesty disclaimer (always present)." },
         proof: { type: "object", description: "{algo:'sha256', digest, over[]} reproducibility proof." },
       },

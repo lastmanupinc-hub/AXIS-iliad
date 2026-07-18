@@ -285,7 +285,13 @@ describe("score_dispute_readiness (dispatch, no auth)", () => {
     expect(isError).toBe(false);
     const parsed = JSON.parse(text);
     const engine = scoreWinProbability("10.4", { ce3Eligible: true, matchingDataElements: 3, has3dsAuthenticated: true });
-    expect(parsed.readiness).toEqual(JSON.parse(JSON.stringify(engine)));
+    // H-Phase-A cycle 9: the wire response renames probability -> readiness_score
+    // (see runScoreDisputeReadiness's own comment) — every OTHER field still
+    // deep-equals the raw engine output; only this one key is renamed.
+    const { probability, ...engineRest } = JSON.parse(JSON.stringify(engine));
+    expect(parsed.readiness).toEqual({ ...engineRest, readiness_score: probability });
+    expect(parsed.readiness.probability).toBeUndefined();
+    expect(parsed.readiness.readiness_score).toBe(probability);
     expect(parsed.readiness.modelVersion).toBe("win-prob-v0");
     expect(parsed.disclaimer).toContain("NOT a dispute-win prediction");
     expect(parsed.disclaimer).toContain("AXIS does not publish win-rate estimates");

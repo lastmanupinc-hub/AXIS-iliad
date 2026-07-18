@@ -3662,11 +3662,21 @@ export function runScoreDisputeReadiness(args: Record<string, unknown>): string 
     throw new Error("evidence must be an object when present");
   }
   const evidence = (rawEvidence ?? {}) as Partial<EvidenceState>;
-  const readiness = scoreWinProbability(args.reason_code, evidence);
+  const winScore = scoreWinProbability(args.reason_code, evidence);
+  // H-Phase-A cycle 9: winScore.probability is a raw 0..1 number that reads
+  // as exactly the "dispute-win prediction" DISPUTE_READINESS_DISCLAIMER (two
+  // lines below) says this tool does NOT provide — and docs/build-plan/
+  // WO-09-dispute-win-model.md + WO-13-commerce-engines-as-mcp-tools.md both
+  // explicitly document that a win-probability tool was considered and
+  // REJECTED. Renamed at this MCP boundary only (the internal WinScore type
+  // and scoreWinProbability's own math are unchanged) so the wire response
+  // matches what the disclaimer right next to it actually promises.
+  const { probability, ...readinessRest } = winScore;
+  const readiness = { ...readinessRest, readiness_score: probability };
   return JSON.stringify({
     readiness,
     disclaimer: DISPUTE_READINESS_DISCLAIMER,
-    proof: proofDigest(["reason_code", "EvidenceState", "WinScore"], { reason_code: args.reason_code, evidence, readiness }),
+    proof: proofDigest(["reason_code", "EvidenceState", "WinScore"], { reason_code: args.reason_code, evidence, readiness: winScore }),
     cost: "free — no auth required, no side effects",
   }, null, 2);
 }
