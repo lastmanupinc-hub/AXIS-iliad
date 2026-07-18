@@ -32,6 +32,17 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
   const [exchanging, setExchanging] = useState(false);
 
   const isLoggedIn = !!localStorage.getItem("axis_api_key");
+  // H-Phase-A cycle 6: computed synchronously from the URL (not from
+  // `exchanging` state) so it's correct on the VERY FIRST paint, before any
+  // effect has run — an already-logged-in visit (stale marker) landing on a
+  // fresh OAuth callback URL used to redirect to Settings before the
+  // exchange effect's own setExchanging(true) had a chance to land, since a
+  // state update scheduled by one effect isn't visible to a SIBLING effect
+  // in the same commit (both still see the render's original closed-over
+  // value) — only a synchronous read like this one is.
+  const oauthParams = new URLSearchParams(window.location.search);
+  const hasPendingOAuthCode =
+    oauthParams.has("code") && (oauthParams.get("login") === "github" || oauthParams.get("login") === "google");
 
   // Handle the OAuth callback: trade the one-time ?code= for the API key — the
   // key is never placed in the URL. Scrub the URL immediately, either way.
@@ -65,10 +76,10 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
   }, [onNavigate]);
 
   useEffect(() => {
-    if (isLoggedIn && !exchanging) redirectToSettings();
-  }, [isLoggedIn, exchanging, redirectToSettings]);
+    if (isLoggedIn && !exchanging && !hasPendingOAuthCode) redirectToSettings();
+  }, [isLoggedIn, exchanging, hasPendingOAuthCode, redirectToSettings]);
 
-  if (isLoggedIn && !exchanging) {
+  if (isLoggedIn && !exchanging && !hasPendingOAuthCode) {
     return (
       <div className="empty-state" role="status" aria-live="polite">
         <span className="spinner" /> Redirecting to Settings...
