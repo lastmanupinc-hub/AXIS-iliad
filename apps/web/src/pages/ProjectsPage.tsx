@@ -8,6 +8,7 @@ import {
   type ProjectSummary,
 } from "../api.ts";
 import { SectionHeader, Callout, EmptyState, Skeleton, Pill, TableWrap } from "../components/primitives/index.ts";
+import { statusBadgeClass, gradeBadgeClass } from "../badge-utils.ts";
 
 // ─── ProjectsPage (WO-P11) ────────────────────────────────────────────────
 // Full history of every repo the account has analyzed — the Account
@@ -26,20 +27,6 @@ interface Props {
 
 type SortKey = "recent" | "name" | "snapshots";
 const FETCH_LIMIT = 200;
-
-function statusBadgeClass(status: string): string {
-  if (status === "ready") return "badge badge-green";
-  if (status === "failed") return "badge badge-red";
-  return "badge badge-yellow"; // "processing"
-}
-
-function gradeBadgeClass(letter: string | null): string {
-  if (letter === "A" || letter === "A+") return "badge badge-green";
-  if (letter === "B") return "badge badge-blue";
-  if (letter === "C") return "badge badge-yellow";
-  if (letter === "D") return "badge badge-red";
-  return "badge";
-}
 
 /** Click once to arm, click again to confirm — avoids a native confirm()
  *  dialog (untestable/unstyleable) while still requiring a deliberate

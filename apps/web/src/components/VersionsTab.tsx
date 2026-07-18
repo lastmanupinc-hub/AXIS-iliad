@@ -22,6 +22,7 @@ import {
 } from "../api.ts";
 import { SectionHeader, Callout, EmptyState, Skeleton } from "./primitives/index.ts";
 import { DiffViewer } from "./DiffViewer.tsx";
+import { statusBadgeClass, gradeBadgeClass } from "../badge-utils.ts";
 
 // --- VersionsTab (WO-P5) -----------------------------------------------------
 // Version History + Diff Viewer + Project Memory + delete (snapshot/project).
@@ -38,20 +39,6 @@ interface Props {
   onSnapshotDeleted: () => void;
   onProjectDeleted: () => void;
   onNeedCredits: () => void;
-}
-
-function statusBadgeClass(status: string): string {
-  if (status === "ready") return "badge badge-green";
-  if (status === "failed") return "badge badge-red";
-  return "badge badge-yellow"; // "processing"
-}
-
-function gradeBadgeClass(letter: string | null): string {
-  if (letter === "A" || letter === "A+") return "badge badge-green";
-  if (letter === "B") return "badge badge-blue";
-  if (letter === "C") return "badge badge-yellow";
-  if (letter === "D") return "badge badge-red";
-  return "badge";
 }
 
 /** Click once to arm, click again to confirm -- avoids a native confirm()

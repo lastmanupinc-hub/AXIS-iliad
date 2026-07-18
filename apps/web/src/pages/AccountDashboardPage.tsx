@@ -16,6 +16,7 @@ import { StatTile, SectionHeader, Callout, EmptyState, Skeleton, Sparkline, Pill
 import type { PageId, RouteParams } from "../routes.tsx";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { PROGRAM_COUNT } from "../config.ts";
+import { statusBadgeClass, gradeBadgeClass } from "../badge-utils.ts";
 
 // ─── AccountDashboardPage (WO-P3) ────────────────────────────────────────────
 // Account-level overview: recent-projects cards, usage stat tiles + quota bar
@@ -31,20 +32,6 @@ interface Props {
 
 const TIMESERIES_DAYS = 14;
 const RECENT_PROJECTS_LIMIT = 20;
-
-function statusBadgeClass(status: string): string {
-  if (status === "ready") return "badge badge-green";
-  if (status === "failed") return "badge badge-red";
-  return "badge badge-yellow"; // "processing"
-}
-
-export function gradeBadgeClass(letter: string | null): string {
-  if (letter === "A" || letter === "A+") return "badge badge-green";
-  if (letter === "B") return "badge badge-blue";
-  if (letter === "C") return "badge badge-yellow";
-  if (letter === "D") return "badge badge-red";
-  return "badge";
-}
 
 function urgencyTone(urgency: UpgradePrompt["urgency"]): "info" | "warning" {
   return urgency === "low" ? "info" : "warning";
@@ -261,7 +248,7 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
           <strong>Open MCP config</strong>
           <p className="text-muted text-sm mt-1">Copy a working config for Claude, Cursor, or VS Code.</p>
         </button>
-        <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onNavigate("account")}>
+        <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onNavigate("settings")}>
           <strong>Invite teammate</strong>
           <p className="text-muted text-sm mt-1">Add a seat on your team (Paid/Suite plans).</p>
         </button>
