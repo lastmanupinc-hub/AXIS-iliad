@@ -330,7 +330,11 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     // Honest framing (c03feee): the REST message sells artifact COVERAGE, never
     // "ready for autonomous spending" — code readiness is a separate content-based block.
     expect(String(offer.agent_conversion_message)).toContain("artifact coverage");
-    expect(String(offer.plan)).toContain("$99/month");
+    // H-Phase-A cycle 9: PAI'D's checkout is a one-time charge (no recurring
+    // billing exists yet) — Pro costs $99 once, never phrased as "$99/month".
+    expect(String(offer.plan)).toContain("$99");
+    expect(String(offer.plan)).not.toContain("$99/month");
+    expect(String(offer.plan)).toContain("one-time");
   });
 
   it("returns score_breakdown with strengths, gaps, max_score, interpretation", () => {

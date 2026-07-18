@@ -497,7 +497,13 @@ export function build402NegotiationBody(
       // consumeUsageCredits once exhausted, not unlimited. An agent that
       // upgraded expecting "unlimited" and burned past 300k credits/month
       // would be billed overage it was told wouldn't happen.
-      upgrade_path: "Upgrade to Pro for 300,000 monthly credits covering full-bundle calls at $99/month (overage billed per-call beyond that).",
+      // H-Phase-A cycle 9: "$99/month" was also misleading a different way —
+      // PAI'D's checkout only supports a single one-time charge (no recurring
+      // billing exists at all yet), so a Pro upgrade costs $99 ONCE, not $99
+      // billed repeatedly. This is the universal 402 body for every metered
+      // tool (MCP and REST alike) — see TermsPage.tsx's own corrected §4.3
+      // wording for the phrasing this mirrors.
+      upgrade_path: "Upgrade to Pro for 300,000 monthly credits covering full-bundle calls — a one-time $99 charge, not a recurring subscription (overage billed per-call beyond that).",
     },
     free_alternatives: [
       "list_programs — enumerate all 18 programs",

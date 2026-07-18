@@ -1741,7 +1741,7 @@ export async function handleAnalyze(
       project_id: snapshot.project_id,
       status: "ready",
       snapshot_summary: {
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).",
       },
       analysis: {
         project_name: projectName,
@@ -2165,7 +2165,10 @@ export async function handlePreparePurchasing(
       status: "ready",
       upgrade_offer: {
         agent_conversion_message: `This codebase has ${score}% of the AXIS agentic-commerce artifact coverage. Upgrade to Pro for the full hardening bundle + $0.15 lite mode option.`,
-        plan: "$99/month",
+        // H-Phase-A cycle 9: "$99/month" implied recurring billing — PAI'D's
+        // checkout is a single one-time charge (no recurring billing exists
+        // yet), so Pro costs $99 once.
+        plan: "$99 once (Pro, one-time — not a recurring subscription)",
         standard_run: "$0.50/run",
         lite_from: "$0.15/run",
       },
@@ -3617,9 +3620,15 @@ export async function handleAgentJson(
       programs: PROGRAM_COUNT,
       artifacts: ARTIFACT_COUNT,
     },
+    // H-Phase-A cycle 9: this was the one surface that never got cycle 5's
+    // "unlimited" -> "300,000 monthly credits" correction (mpp/index.ts,
+    // budget-probe.test.ts, and every other agent-facing surface were fixed
+    // then; GET /.well-known/agent.json wasn't in that sweep's scope). Also
+    // fixed the same "$99/month" recurring-billing framing every other
+    // surface needed this cycle — PAI'D's checkout is a one-time charge.
     monetization: {
       model: "usage-based MPP ($0.50 per run)",
-      pro: "$99/month â€” unlimited + all features",
+      pro: "$99 once for Pro (one-time charge, not a recurring subscription) â€” 300,000 monthly credits, all programs",
     },
     homepage: "https://iliad.trustfabric.ai",
     mcp_endpoint: "/mcp",

@@ -329,7 +329,10 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
         recommended_tier: "paid",
         headline: "You've hit your monthly limit",
         body: `You've used all ${limits.max_snapshots_per_month} free snapshots this month. Upgrade to Pro for 200 snapshots/month and access to all ${lockedProgramCount} programs.`,
-        cta_label: "Upgrade to Pro — $99/mo",
+        // H-Phase-A cycle 9: "$99/mo" read as a recurring charge — PAI'D's
+        // checkout is a single one-time payment (no recurring billing exists
+        // yet), so Pro costs $99 once, not $99 billed every month.
+        cta_label: "Upgrade to Pro — $99 once",
         cta_url: "/upgrade?plan=pro",
         features_unlocked: [
           "200 snapshots per month",
@@ -351,7 +354,7 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
         recommended_tier: "paid",
         headline: "You're getting value — unlock more",
         body: `You've run ${snapshotCount} snapshots with ${usedPrograms.length} programs. Pro unlocks ${lockedPrograms.length} more programs including SEO, optimization, theme, and marketing tools.`,
-        cta_label: "Try Pro — $99/mo",
+        cta_label: "Try Pro — $99 once",
         cta_url: "/upgrade?plan=pro",
         features_unlocked: lockedPrograms.slice(0, 5),
         urgency: "medium",

@@ -156,6 +156,16 @@ describe("GET /.well-known/agent.json", () => {
     expect(json.endpoints).toBeDefined();
     expect(typeof json.endpoints).toBe("object");
   });
+
+  // H-Phase-A cycle 9: this endpoint was the one surface that never got
+  // cycle 5's "unlimited" -> real-credit-allowance correction, and separately
+  // implied recurring billing PAI'D's checkout doesn't do.
+  it("never claims 'unlimited' Pro calls, and doesn't imply recurring billing", async () => {
+    const monetization = json.monetization as Record<string, unknown>;
+    expect(String(monetization.pro)).not.toContain("unlimited");
+    expect(String(monetization.pro)).toContain("300,000");
+    expect(String(monetization.pro)).toContain("one-time");
+  });
 });
 
 // â”€â”€â”€ GET /.well-known/glama.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

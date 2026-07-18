@@ -462,11 +462,15 @@ describe("build402NegotiationBody", () => {
     expect(String(body.agent_message)).toContain("Retry with an MPP credential");
     const nextStep = body.next_step as Record<string, unknown>;
     expect(String(nextStep.immediate)).toContain("Pay $0.50");
-    expect(String(nextStep.upgrade_path)).toContain("$99/month");
     // H-Phase-A cycle 5: Pro grants a finite 300,000 monthly credit
     // allowance, billed as metered overage beyond that — never "unlimited."
     expect(String(nextStep.upgrade_path)).not.toContain("unlimited");
     expect(String(nextStep.upgrade_path)).toContain("300,000");
+    // H-Phase-A cycle 9: PAI'D's checkout is a one-time charge (no recurring
+    // billing exists yet) — Pro costs $99 once, never phrased as "$99/month".
+    expect(String(nextStep.upgrade_path)).toContain("$99");
+    expect(String(nextStep.upgrade_path)).not.toContain("$99/month");
+    expect(String(nextStep.upgrade_path)).toContain("one-time");
   });
 
   it("includes x402-compatible top-level payment fields", async () => {
