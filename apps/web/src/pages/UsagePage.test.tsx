@@ -169,18 +169,55 @@ describe("UsagePage — Persistence Credits Tier StatTile matches the header pla
   });
 });
 
-describe("UsagePage — proration preview", () => {
-  it("selecting a target tier fetches and displays the proration preview", async () => {
-    stubFetch(baseHandlers([
-      ["/v1/billing/proration", { current_tier: "free", target_tier: "paid", from_tier: "free", to_tier: "paid", days_remaining_in_period: 20, days_in_period: 30, proration_amount: 1900, direction: "upgrade" }],
-    ]));
+// H-Phase-A cycle 9: this page used to preview a plan change via
+// GET /v1/billing/proration — but every real caller of the underlying
+// calculateProration() omits the day-count args (there is no real billing
+// period to prorate against; PAI'D bills once, not on a recurring cycle),
+// so the endpoint always fell back to a fabricated "30 of 30 days left in
+// period" and computed a full-price delta it then mislabeled as a
+// time-weighted proration — including calling a downgrade's negative delta
+// a "Credit", which TermsPage.tsx's own §4.4 says is never actually paid.
+// Replaced with honest static copy; there is nothing left to fetch or preview.
+describe("UsagePage — plan-change copy is honest about the one-time-charge model", () => {
+  // Standalone handler list (not baseHandlers + an override) — see the
+  // "Pro vs Starter labeling" comment above: stubFetch matches by substring,
+  // so an "/v1/account" override placed before "/v1/account/quota" etc.
+  // would swallow those calls too if it ran first.
+  function paidTierHandlers() {
+    return [
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 5, max_snapshots_per_month: 200, project_count: 2, max_projects: 20, max_files_per_snapshot: 1000 } }],
+      ["/v1/account/usage/timeseries", TIMESERIES],
+      ["/v1/account/usage", { ...USAGE, tier: "paid" }],
+      ["/v1/account/subscription", {}, 404],
+      ["/v1/account/credits", {}, 404],
+      ["/v1/account", { account: { ...ACCOUNT, tier: "paid" as const } }],
+    ] as Array<[match: string, body: unknown, status?: number]>;
+  }
+
+  it("shows no fabricated proration preview UI at all", async () => {
+    stubFetch(paidTierHandlers());
     render(<UsagePage />);
 
-    await waitFor(() => expect(screen.getByLabelText("Preview a plan change")).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("Preview a plan change"), { target: { value: "paid" } });
+    await waitFor(() => expect(screen.getByText("Current plan")).toBeTruthy());
+    expect(screen.queryByLabelText("Preview a plan change")).toBeNull();
+    expect(screen.queryByText(/Additional charge/)).toBeNull();
+    expect(screen.queryByText(/days left in period/)).toBeNull();
+  });
 
-    await waitFor(() => expect(screen.getByText(/Additional charge/)).toBeTruthy());
-    expect(screen.getByText(/\$19\.00/)).toBeTruthy();
+  it("a paid-tier account sees the double-billing warning before switching plans", async () => {
+    stubFetch(paidTierHandlers());
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText(/charges the full price of the new plan/)).toBeTruthy());
+    expect(screen.getByText(/we don't bill you for two plans at once/)).toBeTruthy();
+  });
+
+  it("a free-tier account (nothing to double-bill yet) sees no switching warning", async () => {
+    stubFetch(baseHandlers());
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText("Current plan")).toBeTruthy());
+    expect(screen.queryByText(/charges the full price of the new plan/)).toBeNull();
   });
 });
 

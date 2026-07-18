@@ -10,7 +10,6 @@ import {
   getCredits,
   createCreditTopup,
   getPaidConfig,
-  getProrationPreview,
   apiErrorDetails,
   type Account,
   type UsageSummary,
@@ -18,9 +17,8 @@ import {
   type SubscriptionInfo,
   type CreditsInfo,
   type UsageBucket,
-  type ProrationPreview,
 } from "../api.ts";
-import { SectionHeader, StatTile, Sparkline, BarChart, Callout, Skeleton, Pill, TableWrap } from "../components/primitives/index.ts";
+import { SectionHeader, StatTile, Sparkline, BarChart, Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
 import { PROGRAM_COUNT } from "../config.ts";
 
 // ─── UsagePage (WO-P10) ───────────────────────────────────────────────────
@@ -75,7 +73,6 @@ const TIMESERIES_DAYS = 30;
 // planLabel() below (H-Phase-A cycle 2: this table alone was silently
 // mislabeling every Pro subscriber as "Starter" on their own billing page).
 const TIER_LABELS: Record<BillingTier, string> = { free: "Free", paid: "Starter", suite: "Growth" };
-const TIER_ORDER: BillingTier[] = ["free", "paid", "suite"];
 
 /** The account's real plan label — planId (from usage_credits.plan_id) wins
  *  when it distinguishes Starter from Pro; otherwise falls back to the
@@ -118,10 +115,6 @@ export function UsagePage() {
     }
     lastBusyTopup.current = topupBusy;
   }, [topupBusy]);
-  const [previewTier, setPreviewTier] = useState<BillingTier | "">("");
-  const [preview, setPreview] = useState<ProrationPreview | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-
   const load = useCallback(async () => {
     setError(null);
     try {
@@ -141,18 +134,6 @@ export function UsagePage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-
-  useEffect(() => {
-    if (!previewTier) { setPreview(null); return; }
-    let cancelled = false;
-    setPreviewLoading(true);
-    setPreview(null);
-    getProrationPreview(previewTier)
-      .then((p) => { if (!cancelled) setPreview(p); })
-      .catch((err) => { if (!cancelled) setError({ message: err instanceof Error ? err.message : "Failed to preview proration", details: apiErrorDetails(err) }); })
-      .finally(() => { if (!cancelled) setPreviewLoading(false); });
-    return () => { cancelled = true; };
-  }, [previewTier]);
 
   async function handleUpgrade(planId: "starter" | "pro" | "growth") {
     setError(null);
@@ -263,23 +244,13 @@ export function UsagePage() {
           </div>
         )}
 
-        <div className="mt-4">
-          <label className="text-sm text-muted" htmlFor="proration-target">Preview a plan change</label>
-          <div className="flex gap-2 mt-1" style={{ flexWrap: "wrap", alignItems: "center" }}>
-            <select id="proration-target" value={previewTier} onChange={(e) => setPreviewTier(e.target.value as BillingTier | "")} style={{ maxWidth: 200 }}>
-              <option value="">Select a tier…</option>
-              {TIER_ORDER.filter((t) => t !== account.tier).map((t) => <option key={t} value={t}>{TIER_LABELS[t]}</option>)}
-            </select>
-            {previewLoading && <span className="text-muted text-sm">Calculating…</span>}
-            {preview && !previewLoading && (
-              <Pill tone={preview.direction === "upgrade" ? "accent" : "muted"}>
-                {preview.direction === "upgrade" ? "Additional charge" : "Credit"}: ${(Math.abs(preview.proration_amount) / 100).toFixed(2)}
-                {" "}({preview.days_remaining_in_period} of {preview.days_in_period} days left in period)
-              </Pill>
-            )}
-          </div>
-          <p className="text-muted text-xs mt-1">Preview only — nothing changes until you complete checkout on the Plans page.</p>
-        </div>
+        {account.tier !== "free" && (
+          <p className="text-muted text-xs mt-4">
+            Switching plans on the Plans page charges the full price of the new plan as a fresh
+            one-time payment — there's no prorated credit for time remaining on your current plan.
+            Email support@jonathanarvay.com before switching so we don't bill you for two plans at once.
+          </p>
+        )}
       </div>
 
       {/* Subscription */}
