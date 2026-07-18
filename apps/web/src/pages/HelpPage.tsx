@@ -669,7 +669,7 @@ function AccountGuideSection() {
         </p>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Referral rewards lower your effective dollars per call as referrals grow (up to 0.02% benefit),
-          and this reward state resets each billing cycle.
+          and this reward state resets at the start of each calendar month.
         </p>
         <table>
           <thead>

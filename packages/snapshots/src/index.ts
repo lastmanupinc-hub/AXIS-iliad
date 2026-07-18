@@ -310,7 +310,6 @@ export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUs
 export {
   REWARD_MILLICENTS,
   MAX_EARNED_MILLICENTS,
-  CREDIT_WINDOW_MS,
   createReferralCode,
   lookupReferralCode,
   getReferralCodes,

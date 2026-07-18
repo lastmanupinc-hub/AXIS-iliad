@@ -154,12 +154,12 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Do programs have individual pricing?",
-    answer: `Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all ${PROGRAM_COUNT} programs, with overage billed at $0.0018 per credit. Referral rewards reduce your effective dollars per call as referrals increase (up to 0.02% benefit), and reset each billing cycle.`,
+    answer: `Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all ${PROGRAM_COUNT} programs, with overage billed at $0.0018 per credit. Referral rewards reduce your effective dollars per call as referrals increase (up to 0.02% benefit), and reset at the start of each calendar month.`,
   },
   {
     category: "billing",
     question: "How do referral rewards affect billing?",
-    answer: "The referral program is opt-in: paid calls return a referral_token, and unique conversions attributed to your token earn usage credits that lower your effective dollars per call (up to 0.02% benefit). Reward state resets each billing cycle.",
+    answer: "The referral program is opt-in: paid calls return a referral_token, and unique conversions attributed to your token earn usage credits that lower your effective dollars per call (up to 0.02% benefit). Reward state resets at the start of each calendar month.",
   },
 
   // Technical

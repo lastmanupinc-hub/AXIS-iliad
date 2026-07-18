@@ -89,7 +89,7 @@
     {
       "name": "get_referral_code",
       "summary": "Get your account's referral token for the opt-in referral usage-credit program. Requires API key.",
-      "description": "Returns your referral token. Unique conversions attributed to your token earn usage credits (capped per call, 30-day reset). Use get_referral_credits to query balances and status."
+      "description": "Returns your referral token. Unique conversions attributed to your token earn usage credits (capped per call, calendar-month reset). Use get_referral_credits to query balances and status."
     },
     {
       "name": "get_referral_credits",

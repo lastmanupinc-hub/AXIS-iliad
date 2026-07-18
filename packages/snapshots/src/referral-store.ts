@@ -42,14 +42,24 @@ export const REWARD_MILLICENTS = 1;
 /** Maximum earned discount balance: $0.0002 = 20 millicents. */
 export const MAX_EARNED_MILLICENTS = 20;
 
-/** Rolling window for credit expiry: 30 days in milliseconds. */
-export const CREDIT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-
 function getMonthKey(isoDate = new Date().toISOString()): string {
   return isoDate.slice(0, 7);
 }
 
-async function resetCreditsIfBillingCycleChanged(account_id: string, nowIso = new Date().toISOString()): Promise<void> {
+// H-Phase-A cycle 9: earned-credit resets are keyed on calendar month (an
+// account's last_reset_at and now falling in different "YYYY-MM" buckets),
+// NOT a rolling 30-day window from last_reset_at — the actual gap between
+// resets varies with where in the month the last reset landed (1-31 days),
+// not a fixed 30. External copy describing this feature had drifted into
+// three different, mutually-inconsistent claims: "resets each billing
+// cycle" (implies a subscription-renewal event PAI'D's one-time-charge
+// model doesn't have), "resets every 30 days" / "30-day reset" (implies a
+// rolling window this function never implements), and a
+// `rolling_window_days: 30` field in buildIncentivesSummary below (same
+// false rolling-window claim, in a machine-readable field). Standardized
+// on "calendar month" everywhere — the one description that actually
+// matches this function.
+async function resetCreditsIfCalendarMonthChanged(account_id: string, nowIso = new Date().toISOString()): Promise<void> {
   const row = await sql.one<{ last_reset_at: string }>("SELECT last_reset_at FROM referral_credits WHERE account_id = ?", [account_id]);
   if (!row) return;
   if (getMonthKey(row.last_reset_at) === getMonthKey(nowIso)) return;
@@ -143,7 +153,7 @@ async function ensureReferralCredits(account_id: string): Promise<void> {
 /** Get referral credits for an account. Returns defaults if none exist. */
 export async function getReferralCredits(account_id: string): Promise<ReferralCredits> {
   await ensureReferralCredits(account_id);
-  await resetCreditsIfBillingCycleChanged(account_id);
+  await resetCreditsIfCalendarMonthChanged(account_id);
   return (await sql.one<ReferralCredits>("SELECT * FROM referral_credits WHERE account_id = ?", [account_id]))!;
 }
 
@@ -215,7 +225,7 @@ export async function buildIncentivesSummary(account_id?: string): Promise<Recor
       max_discount_per_call: "$0.0002",
       max_discount_millicents: MAX_EARNED_MILLICENTS,
       max_token_usage_reduction_rate: 0.0002,
-      rolling_window_days: 30,
+      reward_reset: "Earned credits reset to 0 at the start of each calendar month (not a rolling 30-day window).",
       how: "Share your referral_token with other agents. Referral rewards reduce token usage per call (cash pricing remains unchanged).",
     },
     fifth_call_free: {

@@ -137,7 +137,8 @@ export function TermsPage() {
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.1.2 Referral Rewards</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Referral rewards lower your effective dollars per call as successful referrals grow
-              (up to 0.02% benefit per call). Referral reward state resets each billing cycle.
+              (up to 0.02% benefit per call). Referral reward state resets at the start of each
+              calendar month.
             </p>
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.2 Payment Processing</h3>

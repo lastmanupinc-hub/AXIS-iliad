@@ -214,7 +214,7 @@ export function ForAgentsPage() {
         <ul>
           <li>Paid calls return a <code>referral_token</code>.</li>
           <li>Unique conversions attributed to your token earn usage credits (up to 0.02% per call).</li>
-          <li>Reward state resets each billing cycle.</li>
+          <li>Reward state resets at the start of each calendar month.</li>
           <li>Query status with the free <code>get_referral_code</code> / <code>get_referral_credits</code> tools.</li>
         </ul>
       </div>

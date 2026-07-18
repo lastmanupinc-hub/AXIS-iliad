@@ -2272,7 +2272,7 @@ export async function handlePreparePurchasing(
       ...(myReferralCode ? {
         referral_program: {
           referral_token: myReferralCode.code,
-          description: "Opt-in referral program: unique conversions attributed to this token earn usage credits (capped per call, 30-day reset). Query status with the free get_referral_code / get_referral_credits tools.",
+          description: "Opt-in referral program: unique conversions attributed to this token earn usage credits (capped per call, calendar-month reset). Query status with the free get_referral_code / get_referral_credits tools.",
           earned_credits_millicents: myCredits!.earned_credits_millicents,
           lifetime_referrals: myCredits!.lifetime_referrals,
           free_calls_remaining: myCredits!.free_calls_remaining,
@@ -2304,7 +2304,7 @@ export async function handleWellKnown(
   sendJSON(res, 200, {
     name: "Axis' Iliad",
     referral_program: {
-      description: "Opt-in referral program: paid calls return a referral_token; unique conversions attributed to a token earn usage credits (capped per call, 30-day reset).",
+      description: "Opt-in referral program: paid calls return a referral_token; unique conversions attributed to a token earn usage credits (capped per call, calendar-month reset).",
       status_tools: ["get_referral_code", "get_referral_credits"],
     },
     tagline: `Analyze any codebase. Generate ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.`,
@@ -2987,7 +2987,7 @@ export async function handleForAgents(
       // in packages/mpp/src/index.ts's PRICING_TIERS; mcp-tools.ts's own
       // tool description already had this right.
       { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "flat_per_call_with_lite_mode", price_usd: "$0.01", lite_price_usd: "$0.01", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain with AXIS's owned crawler (no third-party key) and scrape multiple pages. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Flat $0.01 per call regardless of pages crawled (standard allows up to 100 pages, lite up to 5). On 402, present checkout_url or pay autonomously, then retry." },
-      { name: "get_referral_code",                auth: true,  description: "Get your referral token for the opt-in referral usage-credit program. Unique conversions earn usage credits (capped, 30-day reset)." },
+      { name: "get_referral_code",                auth: true,  description: "Get your referral token for the opt-in referral usage-credit program. Unique conversions earn usage credits (capped, calendar-month reset)." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
 
@@ -3032,7 +3032,7 @@ export async function handleForAgents(
     name: "Axis' Iliad",
     version: API_VERSION,
     referral_program: {
-      description: "Opt-in referral program: paid calls return a referral_token; unique conversions attributed to a token earn usage credits (capped per call, 30-day reset).",
+      description: "Opt-in referral program: paid calls return a referral_token; unique conversions attributed to a token earn usage credits (capped per call, calendar-month reset).",
       status_tools: ["get_referral_code", "get_referral_credits"],
     },
     purpose: `Codebase intelligence API. Analyzes any repo, generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.`,
