@@ -27,8 +27,9 @@ import {
   type NotConfiguredResult,
   type ParseResult,
 } from "./document-parsing.js";
-import { runDocumentParsingDispatch } from "./mcp-tool-impls.js";
+import { runDocumentParsingDispatch, LITE_DOC_INPUT_MAX_BYTES, LITE_DOC_MARKDOWN_MAX_CHARS } from "./mcp-tool-impls.js";
 import * as snapshots from "@axis/snapshots";
+import { PRICING_TIERS } from "@axis/mpp";
 import type { IncomingMessage } from "node:http";
 
 function isNotConfigured(r: unknown): r is NotConfiguredResult {
@@ -329,6 +330,23 @@ describe("runDocumentParsingDispatch — lite caps", () => {
     expect(out.truncated).toBe(false);
     expect(out.markdown.length).toBe(300_000);
     expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
+  });
+
+  // H-Phase-A cycle 9: the tests above prove enforcement is correct, but
+  // nothing tied that enforcement to the lite_description PROSE in
+  // @axis/mpp's PRICING_TIERS — unlike lite-caps.ts's table (bidirectionally
+  // pinned by lite-caps.test.ts), a copy edit here could silently drift from
+  // what these constants actually enforce. Not a live bug today (both already
+  // agree); this closes the gap so future drift fails CI instead of shipping.
+  it("contract: PRICING_TIERS' lite_description promise matches the enforced constants", () => {
+    const desc = PRICING_TIERS.iliad_document_parsing.lite_description;
+    const inputMb = desc.match(/input capped at (\d+) MiB/);
+    expect(inputMb, `/input capped at (\\d+) MiB/ not found in "${desc}"`).not.toBeNull();
+    expect(Number((inputMb as RegExpMatchArray)[1]) * 1024 * 1024).toBe(LITE_DOC_INPUT_MAX_BYTES);
+
+    const outputKib = desc.match(/markdown output capped at (\d+) KiB/);
+    expect(outputKib, `/markdown output capped at (\\d+) KiB/ not found in "${desc}"`).not.toBeNull();
+    expect(Number((outputKib as RegExpMatchArray)[1]) * 1024).toBe(LITE_DOC_MARKDOWN_MAX_CHARS);
   });
 
   // ─── H-Phase-A cycle 3: insufficient credits reject BEFORE the fallible ──

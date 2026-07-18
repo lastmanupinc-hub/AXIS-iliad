@@ -24,7 +24,8 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
 import { resetTestDb } from "@axis/snapshots";
 import * as snapshots from "@axis/snapshots";
 import type { IncomingMessage } from "node:http";
-import { runVectorDatabase } from "./mcp-tool-impls.js";
+import { runVectorDatabase, LITE_VECTOR_NAMESPACE_MAX_VECTORS } from "./mcp-tool-impls.js";
+import { PRICING_TIERS } from "@axis/mpp";
 import {
   cosineSimilarity,
   upsertVectors,
@@ -275,5 +276,19 @@ describe("runVectorDatabase — lite namespace cap (1k vectors)", () => {
     expect(out.upserted).toBe(3);
     expect(out.total_in_namespace).toBe(1001);
     expect(snapshots.consumeUsageCredits).toHaveBeenCalledTimes(1);
+  });
+
+  // H-Phase-A cycle 9: the tests above prove enforcement is correct, but
+  // nothing tied that enforcement to the lite_description PROSE in
+  // @axis/mpp's PRICING_TIERS — unlike lite-caps.ts's top_k half of this same
+  // tool (bidirectionally pinned in lite-caps.test.ts), this namespace-cap
+  // half is runtime state (not a pure input transform), so it lives outside
+  // that table and had no equivalent pin. Not a live bug today (both already
+  // agree); this closes the gap so future drift fails CI instead of shipping.
+  it("contract: PRICING_TIERS' lite_description namespace-cap promise matches LITE_VECTOR_NAMESPACE_MAX_VECTORS", () => {
+    const desc = PRICING_TIERS.iliad_vector_database.lite_description;
+    const m = desc.match(/(\d+)k vectors per namespace/);
+    expect(m, `/(\\d+)k vectors per namespace/ not found in "${desc}"`).not.toBeNull();
+    expect(Number((m as RegExpMatchArray)[1]) * 1000).toBe(LITE_VECTOR_NAMESPACE_MAX_VECTORS);
   });
 });

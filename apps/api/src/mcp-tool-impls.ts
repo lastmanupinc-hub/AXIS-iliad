@@ -447,7 +447,7 @@ export async function runEmbeddings(args: Record<string, unknown>, req: Incoming
 /** Hard cap on a single upsert batch to keep request size bounded. */
 const VECTOR_UPSERT_MAX_BATCH = 256;
 /** Lite-mode cap on TOTAL vectors per namespace (lite_description promise: 1k; standard allows 10k). */
-const LITE_VECTOR_NAMESPACE_MAX_VECTORS = 1000;
+export const LITE_VECTOR_NAMESPACE_MAX_VECTORS = 1000;
 /** Hard cap on top_k so a single query can't read an entire namespace. */
 const VECTOR_QUERY_MAX_TOP_K = 100;
 /** Hard cap on engineer hybrid-fusion sparse_ids to bound RRF allocation. */
@@ -932,9 +932,9 @@ export async function runNetworkTokenization(args: Record<string, unknown>, req:
 }
 
 /** Lite-mode input cap for iliad_document_parsing (lite_description promise: 5 MiB; standard allows 50 MiB). */
-const LITE_DOC_INPUT_MAX_BYTES = 5 * 1024 * 1024;
+export const LITE_DOC_INPUT_MAX_BYTES = 5 * 1024 * 1024;
 /** Lite-mode markdown output cap for iliad_document_parsing (lite_description promise: 256 KiB; standard caps at 1 MiB). */
-const LITE_DOC_MARKDOWN_MAX_CHARS = 256 * 1024;
+export const LITE_DOC_MARKDOWN_MAX_CHARS = 256 * 1024;
 
 export async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
   const auth = await resolveAuth(req);

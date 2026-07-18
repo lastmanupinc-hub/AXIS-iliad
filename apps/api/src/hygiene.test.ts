@@ -23,6 +23,7 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { runHygiene } from "./mcp-tool-impls.js";
 import * as snapshots from "@axis/snapshots";
+import { PRICING_TIERS } from "@axis/mpp";
 import type { IncomingMessage } from "node:http";
 
 const f = (path: string, content: string): HygieneFile => ({ path, content, size: Buffer.byteLength(content, "utf-8") });
@@ -300,5 +301,24 @@ describe("runHygiene — lite fix output shape", () => {
     expect(Array.isArray(out.findings)).toBe(true);
     expect(snapshots.previewUsageCredits).not.toHaveBeenCalled();
     expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
+  });
+
+  // H-Phase-A cycle 9: the tests above prove the SHAPE is correct, but
+  // nothing tied it to the lite_description PROSE in @axis/mpp's
+  // PRICING_TIERS — unlike lite-caps.ts's table (bidirectionally pinned in
+  // lite-caps.test.ts), this promise isn't a number (it's a response-shape
+  // claim), so it had no equivalent pin. Not a live bug today (the shape
+  // already matches); this closes the gap so future drift — either the copy
+  // or the enforced shape changing alone — fails CI instead of shipping.
+  it("contract: PRICING_TIERS' lite_description shape promise matches the actual lite fix output shape", async () => {
+    const desc = PRICING_TIERS.iliad_hygiene.lite_description;
+    expect(desc).toMatch(/ordered steps/);
+    expect(desc).toMatch(/\.gitignore additions/);
+    expect(desc).toMatch(/full per-finding detail/);
+
+    const out = JSON.parse(await runHygiene({ files, mode: "fix" }, liteReq));
+    expect(out.findings).toBeUndefined(); // no "full per-finding detail" in lite
+    expect(Array.isArray(out.remediation_plan.ordered_steps)).toBe(true); // "ordered steps"
+    expect(Array.isArray(out.remediation_plan.gitignore_additions)).toBe(true); // ".gitignore additions"
   });
 });
