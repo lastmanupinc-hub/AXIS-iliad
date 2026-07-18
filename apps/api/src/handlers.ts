@@ -1048,6 +1048,27 @@ export async function handleGitHubAnalyze(
       }
       if (mppResult === null || mppResult.status === 402) return;
     }
+  } else if (auth.anonymous) {
+    // H-Phase-A cycle 9: anonymous callers skipped this whole quota block
+    // entirely — the same "anonymous uploads must still obey free-tier
+    // limits" gap handleCreateSnapshot's own anon branch was fixed for
+    // (unbounded uploads = DoS), just never mirrored here. fetchGitHubRepo's
+    // own caps (500 files/256KB each) happen to already be stricter than
+    // free tier's today, but that's an incidental property of ITS current
+    // config, not a guarantee this handler enforces independently — matching
+    // the sibling pattern closes that gap regardless of how fetchGitHubRepo
+    // is configured in the future.
+    const anonLimits = TIER_LIMITS.free;
+    if (fetchResult.files.length > anonLimits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${fetchResult.files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`);
+      return;
+    }
+    for (const file of fetchResult.files) {
+      if (file.size > anonLimits.max_file_size_bytes) {
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`);
+        return;
+      }
+    }
   }
 
   // Create snapshot from fetched files

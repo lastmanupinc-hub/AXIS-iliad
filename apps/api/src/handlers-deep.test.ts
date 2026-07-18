@@ -466,6 +466,34 @@ describe("handleGitHubAnalyze", () => {
     expect(r.status).toBe(401);
     expect(r.data.error_code).toBe("INVALID_KEY");
   });
+
+  // H-Phase-A cycle 9: anonymous callers skipped the free-tier file-count/
+  // size enforcement entirely — handleCreateSnapshot's anon branch has had
+  // this exact check since its own earlier DoS fix, never mirrored here.
+  // fetchGitHubRepo's own real caps (500 files/256KB) happen to already be
+  // stricter than free tier's today, so mocking a result that bypasses
+  // those real caps is the only way to prove this handler enforces the
+  // limit independently, not just coincidentally via fetchGitHubRepo's
+  // current config.
+  it("rejects an oversized anonymous fetch result even though fetchGitHubRepo's own caps would normally prevent one this large", async () => {
+    mockFetchGitHubRepo.mockResolvedValueOnce({
+      files: Array.from({ length: 1001 }, (_, i) => ({ path: `f${i}.ts`, content: "x", size: 1 })),
+      owner: "o", repo: "big", ref: "HEAD", skipped_count: 0, total_bytes: 1001,
+    });
+    const r = await req("POST", "/v1/github/analyze", { github_url: "https://github.com/o/big" });
+    expect(r.status).toBe(413);
+    expect(r.data.error_code).toBe("FILE_COUNT_EXCEEDED");
+  });
+
+  it("rejects an oversized-per-file anonymous fetch result", async () => {
+    mockFetchGitHubRepo.mockResolvedValueOnce({
+      files: [{ path: "huge.bin", content: "x", size: 10 * 1024 * 1024 }],
+      owner: "o", repo: "huge", ref: "HEAD", skipped_count: 0, total_bytes: 10 * 1024 * 1024,
+    });
+    const r = await req("POST", "/v1/github/analyze", { github_url: "https://github.com/o/huge" });
+    expect(r.status).toBe(413);
+    expect(r.data.error_code).toBe("FILE_TOO_LARGE");
+  });
 });
 
 // ─── handleDeleteProject with no snapshots ──────────────────────
