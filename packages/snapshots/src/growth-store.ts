@@ -8,6 +8,7 @@
 
 import { sql } from "./pg.js";
 import { getTotalCompensationOwed } from "./compensation-store.js";
+import { MARKETED_TIERS } from "./pricing-constants.js";
 
 export interface GrowthSnapshot {
   generated_at: string;
@@ -69,8 +70,17 @@ export interface GrowthSnapshot {
 }
 
 // MRR estimate assumptions: starter ($29), pro ($99), suite ≈ Growth ($299).
-// Adjust here if the plan↔price mapping changes; the value is echoed in mrr_basis_cents.
-const PLAN_MONTHLY_CENTS = { starter: 2900, pro: 9900, suite: 29900 } as const;
+// H-Phase-A cycle 9: this used to be a THIRD independently-hardcoded price
+// table (alongside pricing-constants.ts's MARKETED_TIERS — the file's own
+// documented single source of truth — and tier-audit.ts's TIER_PRICES), with
+// no test cross-checking any of them — the exact shape that already drifted
+// once (tier-audit.ts's TIER_PRICES held a stale $99/mo suite price until
+// cycle 1). Derived from MARKETED_TIERS now so a real price change can't
+// desync this file from the source of truth it's documented to defer to.
+function marketedPriceCents(planId: "starter" | "pro" | "growth"): number {
+  return MARKETED_TIERS.find((t) => t.plan_id === planId)!.price_monthly_cents;
+}
+const PLAN_MONTHLY_CENTS = { starter: marketedPriceCents("starter"), pro: marketedPriceCents("pro"), suite: marketedPriceCents("growth") } as const;
 
 /** A growth + revenue snapshot computed entirely from local data (no external calls). */
 export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthSnapshot> {

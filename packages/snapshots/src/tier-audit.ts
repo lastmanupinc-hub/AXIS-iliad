@@ -36,10 +36,19 @@ export interface ProrationResult {
  * PLAN_MONTHLY_CENTS (the live MRR-estimate source of truth) and
  * pricing-constants.ts's MARKETED_TIERS; this table held a stale $99/mo
  * holdover from the old 2-tier pricing model until H-Phase-A cycle 1. */
+// H-Phase-A cycle 9: this used to be a hardcoded literal table, independent
+// of both pricing-constants.ts's MARKETED_TIERS (the documented single
+// source of truth) and growth-store.ts's own PLAN_MONTHLY_CENTS, with no
+// test cross-checking any of them — exactly the shape that already drifted
+// once here (this table held a stale $99/mo suite price until cycle 1;
+// see the comment above). Derived via resolveAccountMonthlyPriceCents with
+// no paidPlanId (its own documented Starter-default fallback for a coarse
+// "paid" tier with no specific-plan context — matching this table's own
+// purpose) instead of re-declaring the numbers.
 const TIER_PRICES: Record<BillingTier, number> = {
-  free: 0,
-  paid: 2900,    // $29/month
-  suite: 29900,  // $299/month
+  free: resolveAccountMonthlyPriceCents("free", null),
+  paid: resolveAccountMonthlyPriceCents("paid", null),
+  suite: resolveAccountMonthlyPriceCents("suite", null),
 };
 
 export function calculateProration(
