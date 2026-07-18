@@ -452,7 +452,14 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/research/crawl": {
         post: {
           summary: "Crawl a domain and scrape multiple pages",
-          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. Pricing: $0.25 standard, $0.12 lite per page crawled.",
+          // H-Phase-A cycle 8: price was stale by 12-25x ($0.25/$0.12 "per
+          // page crawled") — the handler actually bills a flat $0.01 via
+          // getPricingTier("iliad_web_research_crawl") (packages/mpp/src/
+          // index.ts), same real price the MCP twin (iliad_web_research_crawl)
+          // advertises. "Proxy to Firecrawl" stays accurate — unlike the MCP
+          // tool, this REST endpoint has NOT been migrated to the sovereign
+          // crawler (disclosed, tracked separately, not this fix's scope).
+          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. Pricing: flat $0.01 per call (standard and lite), regardless of pages crawled.",
           operationId: "firecrawlCrawl",
           tags: ["Web Research"],
           requestBody: {
@@ -478,9 +485,9 @@ export function buildOpenApiSpec(): OpenApiSpec {
             502: { description: "Firecrawl service error" },
           },
           "x-payment": {
-            model: "per_call_with_lite_mode",
-            price_usd: "$0.25",
-            lite_price_usd: "$0.12",
+            model: "flat_per_call_with_lite_mode",
+            price_usd: "$0.01",
+            lite_price_usd: "$0.01",
             budget_header: "X-Agent-Budget",
             lite_mode_header: "X-Agent-Mode: lite",
             retry_pattern: "Retry with same body after paying",

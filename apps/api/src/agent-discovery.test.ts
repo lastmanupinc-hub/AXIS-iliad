@@ -444,9 +444,11 @@ describe("GET /for-agents", () => {
     expect(platforms["claude-code"]).toBeDefined();
   });
 
-  it("includes tools array with 14 tools", async () => {
+  it("includes tools array with all real MCP tools", async () => {
+    // H-Phase-A cycle 8: this array used to hand-list only 14 of the 37
+    // real tools — pinned against the live count, not a re-typed literal.
     const tools = data.tools as Array<unknown>;
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(MCP_TOOL_COUNT);
   });
 
   it("includes first_action hint", async () => {
@@ -722,7 +724,10 @@ describe("GET /for-agents?intent=", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
-    expect(data.tools.length).toBe(14);
+    // H-Phase-A cycle 8: allTools used to hand-list only 14 of the real 37
+    // tools — the missing 23 are now derived from the real MCP_TOOLS
+    // registration, so the full list matches MCP_TOOL_COUNT exactly.
+    expect(data.tools.length).toBe(MCP_TOOL_COUNT);
     // purchasing-related tools should be ranked higher
     const names = data.tools.map((t: { name: string }) => t.name);
     const purchasingIdx = names.indexOf("prepare_agentic_purchasing");
@@ -735,7 +740,31 @@ describe("GET /for-agents?intent=", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
-    expect(data.tools.length).toBe(14);
+    // H-Phase-A cycle 8: allTools used to hand-list only 14 of the real 37
+    // tools — the missing 23 are now derived from the real MCP_TOOLS
+    // registration, so the full list matches MCP_TOOL_COUNT exactly.
+    expect(data.tools.length).toBe(MCP_TOOL_COUNT);
+  });
+
+  it("every real registered MCP tool appears in the /for-agents catalog, not just the 14 hand-curated ones", async () => {
+    const r = await req("/for-agents");
+    const data = JSON.parse(r.body);
+    const catalogNames = new Set((data.tools as Array<{ name: string }>).map((t) => t.name));
+    for (const tool of MCP_TOOLS) {
+      expect(catalogNames.has(tool.name), `${tool.name} missing from /for-agents catalog`).toBe(true);
+    }
+  });
+
+  // H-Phase-A cycle 8: iliad_web_research_crawl's entry advertised
+  // $0.25/$0.12 "per page crawled" — stale by 12-25x since WO-12 replaced
+  // the per-page Firecrawl pricing with a flat 1c/call.
+  it("iliad_web_research_crawl's advertised price is not the stale $0.25/$0.12", async () => {
+    const r = await req("/for-agents");
+    const data = JSON.parse(r.body);
+    const tools = data.tools as Array<{ name: string; x_payment?: { price_usd?: string; lite_price_usd?: string } }>;
+    const entry = tools.find((t) => t.name === "iliad_web_research_crawl");
+    expect(entry?.x_payment?.price_usd).toBe("$0.01");
+    expect(entry?.x_payment?.lite_price_usd).toBe("$0.01");
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { buildOpenApiSpec } from "./openapi.js";
+import { getPricingTier } from "@axis/mpp";
 
 describe("buildOpenApiSpec", () => {
   const spec = buildOpenApiSpec();
@@ -340,5 +341,19 @@ describe("buildOpenApiSpec", () => {
     const paths = Object.keys(spec.paths);
     // 57 unique paths (some have multiple methods combined)
     expect(paths.length).toBeGreaterThanOrEqual(55);
+  });
+
+  // H-Phase-A cycle 8: /v1/research/crawl's advertised price was stale by
+  // 12-25x ($0.25/$0.12 "per page crawled") after WO-12 replaced the
+  // per-page Firecrawl pricing with a flat 1c/call — pinned against the SAME
+  // real pricing tier handleFirecrawlCrawl itself bills from, not a re-typed
+  // literal that could drift again.
+  it("/v1/research/crawl's advertised price matches what it actually bills", () => {
+    const tier = getPricingTier("iliad_web_research_crawl");
+    const post = spec.paths["/v1/research/crawl"]?.post as { "x-payment"?: Record<string, string> } | undefined;
+    const payment = post?.["x-payment"];
+    expect(payment).toBeDefined();
+    expect(payment!.price_usd).toBe(`$${(tier.standard_cents / 100).toFixed(2)}`);
+    expect(payment!.lite_price_usd).toBe(`$${(tier.lite_cents / 100).toFixed(2)}`);
   });
 });

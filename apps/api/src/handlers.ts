@@ -58,7 +58,7 @@ import { MCP_ERROR_CATEGORY_CATALOG } from "./mcp-runtime.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
-import { FREE_MCP_TOOL_COUNT } from "./mcp-tool-impls.js";
+import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 
 // â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -2956,10 +2956,38 @@ export async function handleForAgents(
       { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files. Free (uses free-tier programs: search, skills, debug)." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
-      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid per page crawled ($0.25/page, or $0.12/page lite). On 402, present checkout_url or pay autonomously, then retry." },
+      // H-Phase-A cycle 8: this entry advertised $0.25/$0.12 ("per page
+      // crawled") — stale by 12-25x since WO-12 replaced the Firecrawl proxy
+      // with AXIS's own owned crawler at a flat 1c/call. The real price
+      // (what handleFirecrawlCrawl actually bills via getPricingTier) lives
+      // in packages/mpp/src/index.ts's PRICING_TIERS; mcp-tools.ts's own
+      // tool description already had this right.
+      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "flat_per_call_with_lite_mode", price_usd: "$0.01", lite_price_usd: "$0.01", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain with AXIS's owned crawler (no third-party key) and scrape multiple pages. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Flat $0.01 per call regardless of pages crawled (standard allows up to 100 pages, lite up to 5). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral token for the opt-in referral usage-credit program. Unique conversions earn usage credits (capped, 30-day reset)." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
+
+  // H-Phase-A cycle 8: allTools above hand-lists only 14 of the platform's
+  // 37 real MCP tools (missing the 13 WO-11 AXIS-owned tools, closer/deploy/
+  // ping_payment/prepare_agentic_purchasing_preview, the 5 WO-13 commerce
+  // engines, assemble_representment, and iliad_network_tokenization) — the
+  // same hand-duplicated-catalog-drift shape cycle 6 already fixed once for
+  // this endpoint's free-tool COUNT, just at the array-membership level
+  // instead of a single field. Derive the missing entries from the SAME
+  // real source discover_commerce_tools itself uses, rather than
+  // hand-typing 23 more prose descriptions that would just drift again;
+  // the 14 curated entries above keep their richer, hand-tuned descriptions
+  // (better for the intent-scoring below) unchanged.
+  const knownToolNames = new Set(allTools.map(t => t.name));
+  for (const entry of deriveMcpToolCatalog()) {
+    if (knownToolNames.has(entry.name)) continue;
+    allTools.push({
+      name: entry.name,
+      auth: entry.auth_required,
+      description: entry.description,
+      ...(entry.pricing !== "free" ? { x_payment: { ...PAYMENT_META, price_usd: entry.pricing } } : {}),
+    });
+  }
 
   // If intent is provided, filter/rank tools by relevance
   const intentLower = intent.toLowerCase();

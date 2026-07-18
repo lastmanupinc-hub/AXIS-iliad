@@ -2219,13 +2219,26 @@ const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
 // reachable with zero auth, when they aren't.
 const FREE_TOOLS_REQUIRING_AUTH = new Set(["get_referral_code", "get_referral_credits", "iliad_network_tokenization"]);
 
-export function runDiscoverAgenticCommerceTools(): string {
-  // Distribution-facing surface — advertises the full 27-tool catalog
-  // (revised catalog-honesty policy: build-not-redact). Each
-  // planned-capability stub gets converted to an owned implementation
-  // over the v1 push; the name set stays stable so external integrations
-  // don't need to refresh their schemas.
-  const tools = MCP_TOOLS.map(t => {
+export interface McpToolCatalogEntry {
+  name: string;
+  description: string;
+  auth_required: boolean;
+  pricing: string;
+}
+
+// H-Phase-A cycle 8: GET /for-agents (handlers.ts's handleForAgents) hand-
+// maintained a SECOND, separate 14-entry tool list that drifted to cover
+// less than half the real 37-tool catalog (missing all 13 WO-11 AXIS-owned
+// tools, closer/deploy/ping_payment/prepare_agentic_purchasing_preview, the
+// 5 WO-13 commerce engines, assemble_representment, and
+// iliad_network_tokenization) — the same "hand-duplicated catalog drifts"
+// shape cycle 6 already fixed once for this function's own free-tool count,
+// just at the array-membership level instead of a single field. Exported so
+// handleForAgents can derive its OWN full-catalog entries from the same
+// real source instead of re-declaring them, without disturbing this
+// function's own richer, deterministic full response shape.
+export function deriveMcpToolCatalog(): McpToolCatalogEntry[] {
+  return MCP_TOOLS.map(t => {
     const free = FREE_TOOL_NAMES.has(t.name);
     // Real per-tool price for tools METERED_MCP_TOOLS confirms are actually
     // charged at runtime — NOT just "has a PRICING_TIERS row" (that object also
@@ -2247,6 +2260,15 @@ export function runDiscoverAgenticCommerceTools(): string {
           : "included in plan",
     };
   });
+}
+
+export function runDiscoverAgenticCommerceTools(): string {
+  // Distribution-facing surface — advertises the full 27-tool catalog
+  // (revised catalog-honesty policy: build-not-redact). Each
+  // planned-capability stub gets converted to an owned implementation
+  // over the v1 push; the name set stays stable so external integrations
+  // don't need to refresh their schemas.
+  const tools = deriveMcpToolCatalog();
   const freeTools = tools.filter(t => t.pricing === "free").map(t => t.name);
 
   return JSON.stringify({
