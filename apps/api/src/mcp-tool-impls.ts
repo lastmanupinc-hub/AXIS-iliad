@@ -2372,8 +2372,22 @@ export async function runImproveMyAgent(
     requested_outputs: freeOutputs,
     source_files: snapshot.files,
   });
-  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
-  await maybeRunQualityGate(generated, ctxMap, req);
+  // H-Phase-A cycle 7: maybeAppendLivingArchitecture/maybeRunQualityGate gate
+  // their paid engineer-mode enrichment (real LLM inference: the Living
+  // Architecture pass + the AI Design Judge verdict) on resolveAgentMode(req)
+  // alone, with NO entitlement/charge check inside either helper — their
+  // other 3 call sites (runAnalyzeFiles/runAnalyzeRepo/runPreparePurchasing)
+  // are safe only because each of THOSE call sites charges/gates before
+  // calling them. This tool never charges anything (always free-tier-only,
+  // by design), so forwarding the real req let ANY authenticated account —
+  // including a brand-new, zero-entitlement free account — get the paid
+  // engineer tier's premium verdict for $0 by simply sending
+  // X-Agent-Mode: engineer. Pass a header-only override instead of the real
+  // req so this tool stays free-tier-only regardless of what mode the
+  // caller requests (req isn't read for anything else below this point).
+  const freeOnlyReq = { headers: { ...req.headers, "x-agent-mode": "standard" } } as unknown as IncomingMessage;
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, freeOnlyReq);
+  await maybeRunQualityGate(generated, ctxMap, freeOnlyReq);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 

@@ -2242,6 +2242,52 @@ describe("POST /mcp — tools/call improve_my_agent_with_axis (success path)", (
     expect(parsed.call_again.purchasing.tool).toBe("prepare_agentic_purchasing");
   });
 
+  // H-Phase-A cycle 7: maybeAppendLivingArchitecture/maybeRunQualityGate's
+  // paid engineer-mode enrichment (real LLM inference: Living Architecture +
+  // the AI Design Judge verdict) used to be gated on resolveAgentMode(req)
+  // alone with no entitlement check inside either helper — this tool never
+  // charges anything, so a brand-new free account sending
+  // X-Agent-Mode: engineer got the paid engineer tier's premium verdict for
+  // $0. Even with no local LLM configured in this test environment,
+  // maybeAppendLivingArchitecture still always appends a labeled
+  // living-architecture.md placeholder in real engineer mode ("degrades to
+  // a labeled doc when no model is configured") — so its mere PRESENCE in
+  // the response is the observable signal this test pins against.
+  it("stays free-tier-only even when the caller sends X-Agent-Mode: engineer", async () => {
+    // A fresh account — free tier allows only 1 project, and improveKey's
+    // account already used its one project in the success-path test above.
+    const create = await post("/v1/accounts", { name: "Engineer Bypass Test", email: `improve-eng-${Date.now()}@test.com` });
+    const key = (create.data as Record<string, unknown>).api_key as Record<string, string>;
+    const engineerBypassKey = key.raw_key;
+
+    const r = await postWithHeaders(
+      "/mcp",
+      {
+        jsonrpc: "2.0",
+        id: 113,
+        method: "tools/call",
+        params: {
+          name: "improve_my_agent_with_axis",
+          arguments: {
+            project_name: "engineer-mode-bypass-test",
+            files: [
+              { path: "src/index.ts", content: "console.log('hi');" },
+              { path: "package.json", content: JSON.stringify({ name: "test" }) },
+            ],
+          },
+        },
+      },
+      { Authorization: `Bearer ${engineerBypassKey}`, "X-Agent-Mode": "engineer" },
+    );
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    const artifactPrograms = (parsed.analysis.artifacts as Array<{ program: string }>).map((a) => a.program);
+    expect(artifactPrograms).not.toContain("living-architecture");
+  });
+
   it("validates project_name is required", async () => {
     const r = await post("/mcp", {
       jsonrpc: "2.0",
