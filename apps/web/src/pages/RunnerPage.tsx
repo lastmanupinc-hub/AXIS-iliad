@@ -465,6 +465,17 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
           </button>
           {!target && <p className="text-muted text-sm mt-2">Pick a project above first.</p>}
           {target && !target.snapshot_id && <p className="text-muted text-sm mt-2">This project has no snapshot yet.</p>}
+          {/* H-Phase-A cycle 6: the picker above renders every program the LIVE
+              catalog reports, including one PROGRAM_DEFS hasn't caught up to
+              yet — canRun requires programMeta (it carries the run endpoint,
+              which the catalog itself doesn't expose), so the button used to
+              go silently disabled with neither of the two hints above
+              applying, no explanation at all. */}
+          {target && target.snapshot_id && selectedProgram && !programMeta && (
+            <p className="text-muted text-sm mt-2">
+              This program isn't runnable from here yet — try again shortly, or run it via the MCP API directly.
+            </p>
+          )}
 
           {tierBlock ? (
             <div className="mt-4" style={{ textAlign: "center" }}>

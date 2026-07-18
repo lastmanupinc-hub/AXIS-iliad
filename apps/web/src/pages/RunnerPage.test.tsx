@@ -247,6 +247,28 @@ describe("RunnerPage — running a program (free + honest staged status + result
     await screen.findByText("boom");
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
+
+  // H-Phase-A cycle 6: PROGRAM_DEFS (components/ProgramLauncher.tsx) is a
+  // hand-maintained list the live GET /v1/programs catalog can outpace — the
+  // picker already falls back to titleCaseProgram(p.name) for a program
+  // catalog-only, but the Run button used to go silently disabled with
+  // neither the "pick a project"/"no snapshot" hint applying, no
+  // explanation at all.
+  it("a catalog program not (yet) in PROGRAM_DEFS shows an honest reason instead of a silently-disabled Run button", async () => {
+    const CATALOG_WITH_DRIFT = {
+      programs: [...CATALOG.programs, { name: "future-program", outputs: ["x.md"], generator_count: 1 }],
+      total_generators: 9,
+    };
+    stubFetch([["/v1/programs", CATALOG_WITH_DRIFT]]);
+    render(<RunnerPage loggedIn={false} currentProjectId="proj_anon" anonResult={makeAnonResult()} onNavigate={noop} onRequireLogin={noop} />);
+
+    await waitFor(() => expect(screen.getByText("Future Program")).toBeTruthy());
+    fireEvent.click(screen.getByText("Future Program").closest("button")!);
+
+    const runButton = screen.getByRole("button", { name: /Run future-program/ }) as HTMLButtonElement;
+    expect(runButton.disabled).toBe(true);
+    expect(screen.getByText(/isn't runnable from here yet/)).toBeTruthy();
+  });
 });
 
 describe("RunnerPage — pro-program gating (WO-P7 acceptance)", () => {
