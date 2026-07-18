@@ -32,11 +32,18 @@ export interface PlannedCapability {
 export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [];
 export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map((c) => c.name));
 
-function toolAnnotations(title: string, readOnly: boolean, idempotent: boolean) {
+// H-Phase-A cycle 7: destructiveHint was hardcoded false for every tool —
+// iliad_object_storage's engineer-mode `delete` and iliad_web_search's
+// `delete`/`delete_namespace` (the latter wipes an entire namespace's
+// indexed corpus in one call) are genuinely irreversible, so they need the
+// real signal an MCP client/orchestrator uses to require extra confirmation
+// before invoking a data-destroying tool. Defaults to false (unchanged for
+// every other call site) so only these two need updating.
+function toolAnnotations(title: string, readOnly: boolean, idempotent: boolean, destructive = false) {
   return {
     title,
     readOnlyHint: readOnly,
-    destructiveHint: false,
+    destructiveHint: destructive,
     idempotentHint: idempotent,
   };
 }
@@ -856,7 +863,7 @@ export const MCP_TOOLS = [
         operation: { type: "string", description: "PUT or GET — what the URL was signed for." },
       },
     },
-    annotations: toolAnnotations("Object Storage (signed URLs)", false, false),
+    annotations: toolAnnotations("Object Storage (signed URLs)", false, false, true),
     examples: [
       {
         name: "Pre-sign an upload URL",
@@ -1246,7 +1253,7 @@ export const MCP_TOOLS = [
         total: { type: "number", description: "Document count (count mode)." },
       },
     },
-    annotations: toolAnnotations("Web Search (Owned Corpus)", false, false),
+    annotations: toolAnnotations("Web Search (Owned Corpus)", false, false, true),
     examples: [
       {
         name: "Index a single document",

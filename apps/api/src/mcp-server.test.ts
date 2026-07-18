@@ -403,6 +403,22 @@ describe("POST /mcp — tools/list", () => {
     }
   });
 
+  // H-Phase-A cycle 7: destructiveHint was hardcoded false for EVERY tool,
+  // including these two, which have genuinely irreversible delete
+  // capability (iliad_object_storage's engineer-mode `delete` permanently
+  // removes an R2 object; iliad_web_search's `delete_namespace` wipes an
+  // entire namespace's indexed corpus in one call) — misrepresenting the
+  // real risk to any client/orchestrator that uses this hint to decide
+  // whether to ask for confirmation before invoking a tool.
+  it("marks the 2 genuinely destructive tools destructiveHint:true, and leaves every other tool false", async () => {
+    const destructiveByDesign = new Set(["iliad_object_storage", "iliad_web_search"]);
+    for (const tool of MCP_TOOLS as Array<Record<string, unknown>>) {
+      const annotations = tool.annotations as Record<string, unknown>;
+      const expected = destructiveByDesign.has(tool.name as string);
+      expect(annotations.destructiveHint, `${String(tool.name)}.destructiveHint`).toBe(expected);
+    }
+  });
+
   it("every tool outputSchema has top-level object type, except get_artifact (raw file content, not JSON)", async () => {
     for (const tool of MCP_TOOLS as Array<Record<string, unknown>>) {
       const outputSchema = tool.outputSchema as Record<string, unknown>;
