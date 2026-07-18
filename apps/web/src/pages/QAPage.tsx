@@ -149,7 +149,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Can I cancel or downgrade?",
-    answer: "Yes. Change your plan at any time from the Usage page. Downgrading takes effect at the end of your current billing period — you keep Pro access until then. Your generated files and project history remain accessible on the new plan (within its project limits).",
+    answer: "Self-serve plan changes aren't available yet — email support@jonathanarvay.com to cancel or change your plan. Don't start a new checkout for a different plan on your own: it creates a second, separate subscription rather than replacing your current one. Your generated files and project history remain accessible regardless of plan changes (within the new plan's project limits).",
   },
   {
     category: "billing",

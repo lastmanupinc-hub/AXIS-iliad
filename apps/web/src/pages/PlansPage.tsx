@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getPlans, getPaidConfig, type PlanDefinition, type PlanFeature } from "../api.ts";
+import { getPlans, getPaidConfig, getAccount, type PlanDefinition, type PlanFeature, type BillingTier } from "../api.ts";
 import { Callout } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { PROGRAM_COUNT } from "../config.ts";
@@ -24,6 +24,13 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [fallbackPricing, setFallbackPricing] = useState(false);
+  // H-Phase-A cycle 7: PAI'D is the only live checkout path and has no
+  // cancel/modify API — starting a new checkout while already on a paid
+  // plan creates a SECOND, separate subscription rather than replacing the
+  // first (nothing in this codebase can ever cancel it afterward). Best-
+  // effort, not gating the button: an account this reads wrong for still
+  // sees a real checkout, just without the warning.
+  const [accountTier, setAccountTier] = useState<BillingTier | null>(null);
 
   async function handlePlanSelect(planId: string) {
     if (planId === "free") {
@@ -86,6 +93,13 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!loggedIn) return;
+    getAccount()
+      .then((account) => setAccountTier(account.tier))
+      .catch(() => {}); // best-effort warning only — never blocks checkout on a failed read
+  }, [loggedIn]);
+
   if (loading) {
     return (
       <div className="empty-state">
@@ -114,6 +128,18 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
           <Callout tone="warning" title="Showing standard pricing">
             Live plan data is unavailable right now — these are our standard published prices.
             Refresh to retry live pricing.
+          </Callout>
+        </div>
+      )}
+      {/* H-Phase-A cycle 7: PAI'D has no cancel/modify API — starting a new
+          checkout below while already on a paid plan creates a SECOND,
+          separate subscription rather than replacing the current one. */}
+      {accountTier && accountTier !== "free" && (
+        <div style={{ maxWidth: 640, margin: "0 auto 16px" }}>
+          <Callout tone="warning" title="You're already on a paid plan">
+            Choosing a plan below starts a brand-new subscription — it does NOT replace or
+            cancel your current one, and you'd be billed for both. Email support@jonathanarvay.com
+            to change or cancel your existing plan first.
           </Callout>
         </div>
       )}
@@ -230,7 +256,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
               <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                 By subscribing you agree to our{" "}
                 <a href="#terms" style={{ color: "var(--accent)" }}>Terms of Service</a>.
-                Payments processed securely by PAI'D. Cancel any time.
+                Payments processed securely by PAI'D. To cancel or change your plan, email support@jonathanarvay.com.
               </p>
             )}          </div>
         ))}

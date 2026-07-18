@@ -283,6 +283,21 @@ export function UsagePage() {
       </div>
 
       {/* Subscription */}
+      {/* H-Phase-A cycle 7: PAI'D (the only live checkout path) never writes
+          the stripe_subscriptions table this card's data comes from — so
+          has_active_subscription reads false for every real PAI'D
+          subscriber, and this whole card (including the only Cancel button
+          in the app) silently never rendered for a real paying customer.
+          A full fix needs a real PAI'D-side subscription read; this closes
+          the "silently shows nothing" gap for the concrete symptom instead. */}
+      {!subscription?.has_active_subscription && account.tier !== "free" && (
+        <div className="card">
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Subscription</h2>
+          <p className="text-muted text-sm">
+            To manage or cancel your subscription, email support@jonathanarvay.com.
+          </p>
+        </div>
+      )}
       {subscription?.has_active_subscription && subscription.active_subscription && (
         <div className="card">
           <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Subscription</h2>

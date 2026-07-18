@@ -200,6 +200,31 @@ describe("UsagePage — subscription & credits", () => {
     expect(screen.getByRole("button", { name: "Cancel Subscription" })).toBeTruthy();
   });
 
+  // H-Phase-A cycle 7: PAI'D never writes stripe_subscriptions (the table
+  // /v1/account/subscription reads from), so a real PAI'D subscriber always
+  // gets has_active_subscription: false — this card used to render nothing
+  // at all for them, the only Cancel button in the app included.
+  it("a real paying account with no stripe_subscriptions row (the PAI'D case) sees a manage-by-email fallback, not silence", async () => {
+    // Built explicitly (not via baseHandlers' overrides-then-defaults merge)
+    // so the bare "/v1/account" match is the LAST entry overall — stubFetch
+    // matches by substring, and every other /v1/account/* path (quota,
+    // usage, timeseries, subscription, credits) contains "/v1/account" as a
+    // prefix, so a generic entry earlier in the array would swallow them.
+    stubFetch([
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 5, max_snapshots_per_month: 200, project_count: 2, max_projects: 20, max_files_per_snapshot: 1000 } }],
+      ["/v1/account/usage/timeseries", TIMESERIES],
+      ["/v1/account/usage", { ...USAGE, tier: "paid" }],
+      ["/v1/account/subscription", {}, 404],
+      ["/v1/account/credits", {}, 404],
+      ["/v1/account", { ...ACCOUNT, tier: "paid" as const }],
+    ]);
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText("Subscription")).toBeTruthy());
+    expect(screen.getByText(/email support@jonathanarvay\.com/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Cancel Subscription" })).toBeNull();
+  });
+
   it("credit packs render and a top-up click calls the PAI'D topup endpoint, showing a busy label while redirecting", async () => {
     let resolveTopup!: () => void;
     const topupPromise = new Promise<void>((resolve) => { resolveTopup = resolve; });
