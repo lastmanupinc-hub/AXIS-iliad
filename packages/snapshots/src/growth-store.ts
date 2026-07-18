@@ -112,9 +112,15 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
     [monthKey],
   ))?.oc ?? 0);
 
-  const activeSubs = Number((await sql.one<{ n: string | number }>(
-    "SELECT COUNT(*) as n FROM stripe_subscriptions WHERE status IN ('active', 'trialing')",
-  ))?.n ?? 0);
+  // H-Phase-A cycle 7: this used to count stripe_subscriptions rows only —
+  // PAI'D (the only live checkout path) never writes that table (same root
+  // cause estimated_mrr_cents was already fixed for, cycle 2, in this same
+  // file), so it read persistently near-zero even while accounts/paid and
+  // estimated_mrr_cents correctly showed real revenue — an internally
+  // inconsistent snapshot. `paid`/`suite` above are already the real,
+  // tier-derived counts; a real subscriber is exactly an account on a
+  // paying tier, so no separate query is needed at all.
+  const activeSubs = paid + suite;
 
   // ── Settled revenue (WO-19) ───────────────────────────────────────
   // Real, settled money ONLY — payment_receipts rows, written by

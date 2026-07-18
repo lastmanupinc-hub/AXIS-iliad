@@ -42,6 +42,12 @@ describe("getGrowthSnapshot", () => {
     // Zero settled payments — the live figure stays $0 even though the estimate is non-zero.
     expect(s.revenue.settled_mrr_cents).toBe(0);
     expect(s.revenue.payment_conversion_rate).toBe(0);
+    // H-Phase-A cycle 7: active_subscriptions used to count ONLY
+    // stripe_subscriptions rows — PAI'D (the only live checkout path) never
+    // writes that table, so this read 0 even here despite 2 real paying
+    // accounts (paid + suite) and a nonzero estimated_mrr_cents right above —
+    // an internally inconsistent revenue snapshot.
+    expect(s.revenue.active_subscriptions).toBe(2);
   });
 
   // H-Phase-A cycle 2: Starter and Pro both collapse into tier==='paid', so
