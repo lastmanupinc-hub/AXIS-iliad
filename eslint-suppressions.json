@@ -239,7 +239,7 @@
   },
   "apps/api/src/stripe.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
-      "count": 2
+      "count": 1
     },
     "@typescript-eslint/require-await": {
       "count": 1
