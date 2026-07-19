@@ -665,7 +665,7 @@ function AccountGuideSection() {
       <div className="card">
         <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Usage Meters</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Track your usage on the Usage page. Each meter resets at the start of your billing cycle.
+          Track your usage on the Usage page. Each meter resets at the start of each calendar month.
         </p>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Referral rewards lower your effective dollars per call as referrals grow (up to 0.02% benefit),

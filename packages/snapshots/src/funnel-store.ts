@@ -51,9 +51,10 @@ export async function inviteSeat(
   // limit could both read a count under the limit and both insert,
   // exceeding the plan's seat entitlement. Same per-account advisory-lock
   // pattern already established for the other append-only-ledger races in
-  // this codebase. Namespace 4: 1=persistence_credits, 2=usage_credit_monthly,
-  // 3=suite_monthly_grant — cycle 7 originally picked 2 here too without
-  // checking it was already claimed by usage-credit-metering.ts, which
+  // this codebase. Namespace 4: 1=persistence_credits (incl. the suite
+  // monthly grant, moved here from a never-actually-blocking namespace 3 in
+  // cycle 9), 2=usage_credit_monthly — cycle 7 originally picked 2 here too
+  // without checking it was already claimed by usage-credit-metering.ts, which
   // would've needlessly serialized seat invites against unrelated credit
   // grants for the same account (harmless — same key space, not a
   // correctness bug — but sloppy; caught and fixed in cycle 8).

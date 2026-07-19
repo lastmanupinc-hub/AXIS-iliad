@@ -1,4 +1,21 @@
 import type { BillingTier, ProgramName } from "./billing-types.js";
+import { MARKETED_TIERS } from "./pricing-constants.js";
+
+// H-Phase-A cycle 10: PLAN_CATALOG's price_annual_cents used to be a
+// hand-typed literal per tier with no cross-check against price_monthly_cents
+// — a 4th recurrence of the hand-duplicated-price-table shape (cycles 1, 6,
+// 8, 9 each found and fixed one). "Annual billing saves 20%" is already
+// stated in every paid tier's own highlights, so the relationship is exact
+// and derivable: 12 months at 20% off. Not used for enterprise (custom/
+// negotiated pricing — -1 is a real sentinel, not a derivable number).
+function annualPriceCents(monthlyPriceCents: number): number {
+  return Math.round(monthlyPriceCents * 12 * 0.8);
+}
+
+/** MARKETED_TIERS' monthly_credits, keyed by the marketing-facing plan id PLAN_FEATURES uses. */
+function marketedCredits(planId: "free" | "starter" | "pro" | "growth"): number {
+  return MARKETED_TIERS.find((t) => t.plan_id === planId)!.monthly_credits;
+}
 
 // ─── Funnel Event Tracking ──────────────────────────────────────
 
@@ -162,7 +179,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     name: "Starter",
     tagline: "Best for solo builders and small agent workflows",
     price_monthly_cents: 2900,
-    price_annual_cents: 27840,
+    price_annual_cents: annualPriceCents(2900),
     highlights: [
       "75,000 monthly credits",
       "All 20 programs",
@@ -175,7 +192,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     name: "Pro",
     tagline: "Higher credits for teams that ship frequently",
     price_monthly_cents: 9900,
-    price_annual_cents: 95040,
+    price_annual_cents: annualPriceCents(9900),
     highlights: [
       "300,000 monthly credits",
       "All 20 programs",
@@ -188,7 +205,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     name: "Growth",
     tagline: "For production teams and heavy usage",
     price_monthly_cents: 29900,
-    price_annual_cents: 287040,
+    price_annual_cents: annualPriceCents(29900),
     highlights: [
       "1,200,000 monthly credits",
       "All 20 programs",
@@ -211,7 +228,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
 ];
 
 export const PLAN_FEATURES: PlanFeature[] = [
-  { name: "Monthly credits", free: 10000, starter: 75000, pro: 300000, growth: 1200000, enterprise: "Custom" },
+  { name: "Monthly credits", free: marketedCredits("free"), starter: marketedCredits("starter"), pro: marketedCredits("pro"), growth: marketedCredits("growth"), enterprise: "Custom" },
   { name: "Programs available", free: "3 core", starter: "All 20", pro: "All 20", growth: "All 20", enterprise: "All 20" },
   { name: "Overage", free: "$0.0018 / credit", starter: "$0.0018 / credit", pro: "$0.0018 / credit", growth: "$0.0018 / credit", enterprise: "Custom" },
   { name: "Annual savings", free: false, starter: "20%", pro: "20%", growth: "20%", enterprise: "Custom" },

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { resetTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
 import { createAccount } from "./billing-store.js";
-import { PLAN_CATALOG } from "./funnel-types.js";
+import { PLAN_CATALOG, PLAN_FEATURES } from "./funnel-types.js";
 import { creditsFromUsdCents, getUsageCreditSummary, consumeUsageCredits } from "./usage-credit-metering.js";
 import { getReferralCredits, getReferralTokenUsageModifier } from "./referral-store.js";
 import {
@@ -59,6 +59,33 @@ describe("PLAN_CATALOG plane consistency", () => {
       expect(plan!.price_monthly_cents).toBe(t.price_monthly_cents);
       const creditsLabel = `${t.monthly_credits.toLocaleString("en-US")} monthly credits`;
       expect(plan!.highlights, `${t.plan_id} highlights missing "${creditsLabel}"`).toContain(creditsLabel);
+    }
+  });
+
+  // H-Phase-A cycle 10: price_annual_cents used to be a hand-typed literal
+  // per tier with no cross-check against price_monthly_cents — a 4th
+  // recurrence of the hand-duplicated-price-table shape. "Annual billing
+  // saves 20%" is stated in every paid tier's own highlights, so the
+  // relationship is exact: 12 months at 20% off.
+  it("PLAN_CATALOG's annual price is always exactly 12 months at the stated 20% discount off the monthly price", () => {
+    for (const plan of PLAN_CATALOG) {
+      if (plan.id === "enterprise") continue; // custom/negotiated pricing — -1 is a real sentinel
+      expect(plan.price_annual_cents, `${plan.id}'s annual price`).toBe(Math.round(plan.price_monthly_cents * 12 * 0.8));
+    }
+  });
+
+  // PLAN_FEATURES' "Monthly credits" row is pure marketing copy (nothing
+  // programmatic reads it — unlike its "Team seats" row, which
+  // resolveSeatLimit genuinely treats as the source of truth) — it used to
+  // duplicate MARKETED_TIERS.monthly_credits by hand with no cross-check.
+  it("PLAN_FEATURES' Monthly credits row agrees with MARKETED_TIERS for every marketed tier", () => {
+    const row = PLAN_FEATURES.find((f) => f.name === "Monthly credits")!;
+    expect(row).toBeDefined();
+    const planIdToFeatureKey: Record<MarketedPlanId, "free" | "starter" | "pro" | "growth"> = {
+      free: "free", starter: "starter", pro: "pro", growth: "growth",
+    };
+    for (const t of MARKETED_TIERS) {
+      expect(row[planIdToFeatureKey[t.plan_id]], `Monthly credits.${t.plan_id}`).toBe(t.monthly_credits);
     }
   });
 });
@@ -134,7 +161,7 @@ describe("referral reduction rate cap — 0.02% (0.0002) per call", () => {
     await getReferralCredits(account.account_id);
 
     // Must also seed last_reset_at to the CURRENT month — otherwise
-    // getReferralCredits -> resetCreditsIfBillingCycleChanged sees a stale
+    // getReferralCredits -> resetCreditsIfCalendarMonthChanged sees a stale
     // month and zeroes earned_credits_millicents before the modifier is read.
     const now = new Date().toISOString();
     await sql.run(
