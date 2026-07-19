@@ -253,4 +253,16 @@ describe("pinned program totals in leaf packages match TOTAL_PROGRAMS (WO-F5)", 
       expect(Number(m[2])).toBe(TOTAL_PROGRAMS);
     }
   });
+
+  // H-Phase-A cycle 14: this "enumerate all N programs" phrasing is a
+  // SEPARATE literal from the "(N of M programs)" pattern above, in the
+  // universal 402 negotiation body returned for every metered tool call
+  // (build402NegotiationBody's free_alternatives) — it drifted to 18 (stale)
+  // while the check above, matching a different regex, never saw it.
+  it("@axis/mpp's 402-body program count (\"enumerate all N programs\") is current", () => {
+    const src = readFileSync(join(ROOT, "packages", "mpp", "src", "index.ts"), "utf8");
+    const rows = [...src.matchAll(/enumerate all (\d+) programs/g)];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const m of rows) expect(Number(m[1])).toBe(TOTAL_PROGRAMS);
+  });
 });

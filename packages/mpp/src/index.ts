@@ -507,7 +507,7 @@ export function build402NegotiationBody(
       upgrade_path: "Upgrade to Pro for 300,000 monthly credits covering full-bundle calls — a one-time $99 charge, not a recurring subscription (overage billed per-call beyond that).",
     },
     free_alternatives: [
-      "list_programs — enumerate all 18 programs",
+      "list_programs — enumerate all 20 programs",
       "search_and_discover_tools — keyword search (no auth)",
       "discover_commerce_tools — full ecosystem overview (no auth)",
       "discover_agentic_purchasing_needs — intent-based tool matching (no auth)",
