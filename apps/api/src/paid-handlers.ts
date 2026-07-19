@@ -454,13 +454,19 @@ export async function handlePaidWebhook(
     }
     const granted = await markPurchaseSucceeded(sessionId, paymentIntentId);
     if (granted) {
-      await trackEvent(granted.account_id, "upgrade_completed", "conversion", {
+      // H-Phase-A cycle 12: analytics-only, and NOT retry-safe like the rest
+      // of this handler — markPurchaseSucceeded is idempotent and returns
+      // null on a webhook retry for an already-granted purchase, so an
+      // awaited trackEvent failure here would both false-fail this delivery
+      // AND permanently lose the upgrade_completed event (a retry would
+      // never re-enter this branch to try again).
+      void trackEvent(granted.account_id, "upgrade_completed", "conversion", {
         kind: "credit_topup",
         pack_id: granted.pack_id,
         credits: String(granted.credits),
         price_cents: String(granted.price_cents),
         session_id: sessionId,
-      });
+      }).catch(() => {});
     }
     sendJSON(res, 200, {
       received: true,

@@ -687,12 +687,14 @@ export async function handleUpdateTier(
   // Log tier change to audit trail
   await logTierChange(ctx.account!.account_id, previousTier, tier, "user_request", { source: "api" });
 
-  // Track tier change funnel event
+  // Track tier change funnel event. H-Phase-A cycle 12: analytics-only — the
+  // tier update above already committed, so a trackEvent failure must never
+  // turn an already-successful tier change into a 500 for the caller.
   const isUpgrade = (tier === "paid" && ctx.account!.tier === "free") || (tier === "suite");
-  await trackEvent(ctx.account!.account_id, isUpgrade ? "upgrade_completed" : "downgrade_completed",
+  void trackEvent(ctx.account!.account_id, isUpgrade ? "upgrade_completed" : "downgrade_completed",
     isUpgrade ? "conversion" : "signup",
     { from_tier: ctx.account!.tier, to_tier: tier },
-  );
+  ).catch(() => {});
 
   sendJSON(res, 200, { account: updated });
 }

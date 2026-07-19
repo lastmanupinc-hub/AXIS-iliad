@@ -214,12 +214,15 @@ async function syncTierFromStripeSubscription(
   // this, an account tier-synced here would silently fall back to Starter's
   // allowance even if actually paying Pro.
   await updateAccountPaidPlanId(accountId, newTier === "free" ? null : priceToPlanId(priceId));
-  await trackEvent(
+  // H-Phase-A cycle 12: analytics-only — a transient trackEvent failure must
+  // never turn an already-committed tier sync into a failed webhook delivery
+  // (which would make Stripe retry an event that already succeeded here).
+  void trackEvent(
     accountId,
     newTier === "free" ? "downgrade_completed" : "upgrade_completed",
     newTier === "free" ? "signup" : "conversion",
     { from_tier: previousTier, to_tier: newTier, source: "stripe" },
-  );
+  ).catch(() => {});
 
   if (newTier !== "free") {
     const planName = resolvePlanNameFromPriceId(priceId) ?? (newTier === "suite" ? "Growth" : "Starter");
@@ -637,10 +640,14 @@ export async function handleCancelSubscription(
     }
 
     // The actual tier change will happen via webhook when Stripe confirms cancellation
-    await trackEvent(ctx.account!.account_id, "cancellation_requested", "conversion", {
+    // H-Phase-A cycle 12: analytics-only — Stripe already accepted the
+    // cancellation above (response.ok), so a trackEvent failure must never
+    // fall through to the catch block below and false-fail an
+    // already-successful cancellation.
+    void trackEvent(ctx.account!.account_id, "cancellation_requested", "conversion", {
       subscription_id: active.subscription_id,
       source: "stripe",
-    });
+    }).catch(() => {});
 
     sendJSON(res, 200, {
       subscription_id: active.subscription_id,
