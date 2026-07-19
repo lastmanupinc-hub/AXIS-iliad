@@ -552,9 +552,13 @@ describe("tier-audit (direct import)", () => {
     expect(result.direction).toBe("upgrade");
   });
 
-  it("calculateProration computes downgrade amount", () => {
+  // H-Phase-A cycle 10: proration_amount is never negative anymore — PAI'D
+  // has no billing period to prorate within, so a downgrade costs to_tier's
+  // full price (here: free, i.e. 0), never a fabricated "credit" for time
+  // already paid on the higher tier (see calculateProration's own comment).
+  it("calculateProration computes downgrade amount (to free = 0, never negative)", () => {
     const result = calculateProration("suite", "free");
-    expect(result.proration_amount).toBeLessThan(0);
+    expect(result.proration_amount).toBe(0);
     expect(result.direction).toBe("downgrade");
   });
 

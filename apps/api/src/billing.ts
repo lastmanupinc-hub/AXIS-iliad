@@ -927,7 +927,7 @@ export async function handleProrationPreview(
   // account's actual current plan so a real Pro subscriber's proration isn't
   // computed off Starter's $29 price (H-Phase-A cycle 2).
   const fromPaidPlanId = await getAccountPaidPlanId(ctx.account!.account_id);
-  const proration = calculateProration(ctx.account!.tier, targetTier as BillingTier, undefined, undefined, fromPaidPlanId);
+  const proration = calculateProration(ctx.account!.tier, targetTier as BillingTier, fromPaidPlanId);
 
   sendJSON(res, 200, {
     current_tier: ctx.account!.tier,

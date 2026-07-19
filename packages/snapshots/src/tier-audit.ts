@@ -21,9 +21,7 @@ export interface TierChange {
 export interface ProrationResult {
   from_tier: BillingTier;
   to_tier: BillingTier;
-  days_remaining_in_period: number;
-  days_in_period: number;
-  proration_amount: number;  // cents
+  proration_amount: number;  // cents — see calculateProration's own comment
   direction: "upgrade" | "downgrade" | "none";
 }
 
@@ -51,34 +49,45 @@ const TIER_PRICES: Record<BillingTier, number> = {
   suite: resolveAccountMonthlyPriceCents("suite", null),
 };
 
+// H-Phase-A cycle 10: this used to compute a day-fraction-blended "credit
+// for unused time on the old plan, charge for the new plan's remaining
+// time" (daysRemainingInPeriod/daysInPeriod defaulting to 30/30) — entirely
+// fictional under PAI'D's one-time-charge model, which has no billing
+// period to prorate within (cycle 9 found and fixed the same fabrication
+// in UsagePage.tsx's now-deleted proration-preview widget; this function
+// was the ROOT of that bug and had 3 other live consumers cycle 9 missed:
+// this table's own logTierChange — which permanently wrote the fictional
+// amount to every tier_changes audit row — plus GET /v1/billing/proration
+// and GET /v1/billing/history, both of which surfaced it to real callers).
+// For a downgrade, the old day-fraction math could return a NEGATIVE
+// "credit" — directly contradicting TermsPage.tsx's own already-corrected
+// "we do not provide refunds for unused time" clause. The honest answer to
+// "what does switching to to_tier cost" is simply to_tier's full one-time
+// price — no credit for time already paid on from_tier, matching
+// UsagePage.tsx's own established disclosure ("switching plans charges the
+// full price of the new plan... there's no prorated credit for time
+// remaining on your current plan").
 export function calculateProration(
   from_tier: BillingTier,
   to_tier: BillingTier,
-  daysRemainingInPeriod: number = 30,
-  daysInPeriod: number = 30,
-  // The account's actual current plan (starter/pro), when known — Starter
-  // and Pro both collapse into `from_tier === "paid"`, so without this a
-  // real Pro subscriber's proration was always computed off Starter's $29
-  // price (H-Phase-A cycle 2). Omit for a fresh-tier preview with no
-  // account context; defaults to Starter, matching resolvePlanForAccount.
+  // The account's actual current plan (starter/pro), when known — only
+  // affects `direction` now (today's tier prices never disagree on
+  // direction between the Starter/Pro defaults, since a same-coarse-tier
+  // switch always hits the early return above; kept for correctness
+  // against the account's real price rather than an assumed default).
+  // Omit for a fresh-tier preview with no account context; defaults to
+  // Starter, matching resolvePlanForAccount.
   fromPaidPlanId?: string | null,
 ): ProrationResult {
   if (from_tier === to_tier) {
-    return { from_tier, to_tier, days_remaining_in_period: daysRemainingInPeriod, days_in_period: daysInPeriod, proration_amount: 0, direction: "none" };
+    return { from_tier, to_tier, proration_amount: 0, direction: "none" };
   }
 
   const fromPrice = resolveAccountMonthlyPriceCents(from_tier, fromPaidPlanId);
   const toPrice = TIER_PRICES[to_tier];
-  const fraction = daysRemainingInPeriod / daysInPeriod;
-
-  // Credit for unused time on old plan, charge for new plan's remaining time
-  const credit = Math.round(fromPrice * fraction);
-  const charge = Math.round(toPrice * fraction);
-  const proration_amount = charge - credit;
-
   const direction = toPrice > fromPrice ? "upgrade" : "downgrade";
 
-  return { from_tier, to_tier, days_remaining_in_period: daysRemainingInPeriod, days_in_period: daysInPeriod, proration_amount, direction };
+  return { from_tier, to_tier, proration_amount: toPrice, direction };
 }
 
 // ─── Store functions ────────────────────────────────────────────
@@ -98,7 +107,7 @@ export async function logTierChange(
   // Stripe webhook) permanently logged a Pro subscriber's proration as if
   // they were on Starter (H-Phase-A cycle 2).
   const fromPaidPlanId = await getAccountPaidPlanId(account_id);
-  const proration = calculateProration(from_tier, to_tier, undefined, undefined, fromPaidPlanId);
+  const proration = calculateProration(from_tier, to_tier, fromPaidPlanId);
 
   const change: TierChange = {
     change_id: randomUUID(),

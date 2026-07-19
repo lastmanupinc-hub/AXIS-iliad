@@ -1508,13 +1508,14 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/billing/proration": {
         get: {
-          summary: "Preview proration for a tier change",
+          summary: "Preview the one-time cost of switching tiers",
           operationId: "prorationPreview",
           tags: ["Billing"],
           security: [{ apiKey: [] }],
-          parameters: [queryParam("target_tier", "Target tier to preview (paid | suite)")],
+          parameters: [queryParam("tier", "Target tier to preview (free | paid | suite)")],
           responses: {
-            200: { description: "Proration preview", content: jsonContent(ref("ProrationPreviewResponse")) },
+            200: { description: "Tier-switch cost preview", content: jsonContent(ref("ProrationPreviewResponse")) },
+            400: { description: "Missing or invalid tier query parameter" },
             401: { description: "Authentication required" },
           },
         },
@@ -2147,13 +2148,16 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
         ProrationPreviewResponse: {
           type: "object",
+          description:
+            "PAI'D is one-time-charge only — there is no billing period to prorate within. proration_amount " +
+            "is the full one-time price of to_tier (no credit for time remaining on from_tier).",
           properties: {
             current_tier: { type: "string" },
             target_tier: { type: "string" },
-            current_price: { type: "number" },
-            target_price: { type: "number" },
-            proration_amount: { type: "number" },
-            effective_date: { type: "string", format: "date-time" },
+            from_tier: { type: "string" },
+            to_tier: { type: "string" },
+            proration_amount: { type: "number", description: "Full one-time price of to_tier, in cents." },
+            direction: { type: "string", enum: ["upgrade", "downgrade", "none"] },
           },
         },
         CreditsResponse: {

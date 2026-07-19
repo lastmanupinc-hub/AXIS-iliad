@@ -177,33 +177,42 @@ describe("Tier Audit", () => {
     expect(parsed.campaign).toBe("spring2026");
   });
 
-  // ─── H-Phase-A cycle 2: a real Pro subscriber's tier change must be ──
-  // logged at Pro's price, not Starter's — Starter/Pro both collapse into
-  // from_tier === "paid", so logTierChange previously always priced the
-  // "from" side at Starter's $29 regardless of which plan the account
-  // actually held, permanently under-pricing every real Pro→Growth (or
-  // Pro→cancel) proration in the audit trail.
-  it("logs a Pro subscriber's tier change at Pro's $99 price, not Starter's $29", async () => {
-    const acct = await createAccount("ProChange", "pro-change@example.com", "paid");
-    await updateAccountPaidPlanId(acct.account_id, "pro");
+  // H-Phase-A cycle 2 originally fixed logTierChange's Pro-vs-Starter plan
+  // resolution for the "from" side of the (now-removed) day-fraction delta.
+  // H-Phase-A cycle 10 removed the delta itself (PAI'D has no billing
+  // period to prorate within — see calculateProration's own comment) —
+  // proration_amount is now always to_tier's full one-time price, so both
+  // a Pro and a Starter subscriber log the SAME amount for the same
+  // to_tier; only `direction` could still depend on the "from" plan (and
+  // doesn't, for any of today's real tier/plan combinations — see the
+  // calculateProration describe block above).
+  it("logs the same to_tier price for a Pro and a Starter subscriber alike (no more per-plan delta to distinguish)", async () => {
+    const proAcct = await createAccount("ProChange", "pro-change@example.com", "paid");
+    await updateAccountPaidPlanId(proAcct.account_id, "pro");
+    const starterAcct = await createAccount("StarterChange", "starter-change@example.com", "paid");
+    await updateAccountPaidPlanId(starterAcct.account_id, "starter");
 
-    const change = await logTierChange(acct.account_id, "paid", "suite", "user_request");
-    // $299 - $99 = $200, full month (logTierChange's own default period).
-    expect(change.proration_amount).toBe(20000);
-  });
-
-  it("logs a Starter subscriber's tier change at Starter's $29 price (unchanged default)", async () => {
-    const acct = await createAccount("StarterChange", "starter-change@example.com", "paid");
-    await updateAccountPaidPlanId(acct.account_id, "starter");
-
-    const change = await logTierChange(acct.account_id, "paid", "suite", "user_request");
-    // $299 - $29 = $270.
-    expect(change.proration_amount).toBe(27000);
+    const proChange = await logTierChange(proAcct.account_id, "paid", "suite", "user_request");
+    const starterChange = await logTierChange(starterAcct.account_id, "paid", "suite", "user_request");
+    // Full $299 one-time price either way — no credit for time already
+    // paid on Pro's $99 or Starter's $29.
+    expect(proChange.proration_amount).toBe(29900);
+    expect(starterChange.proration_amount).toBe(29900);
+    expect(proChange.from_tier).toBe("paid");
+    expect(proChange.to_tier).toBe("suite");
   });
 });
 
 // ─── Proration Calculation ──────────────────────────────────────
 
+// H-Phase-A cycle 10: PAI'D is one-time-charge only — there is no billing
+// period to prorate within, so calculateProration no longer takes day-count
+// args and no longer computes a fictional day-fraction "credit" for unused
+// time (which, for a downgrade, used to return a NEGATIVE amount directly
+// contradicting TermsPage.tsx's own "we do not provide refunds for unused
+// time" clause). proration_amount is now simply to_tier's full one-time
+// price — what a real switch actually costs, with zero credit for time
+// already paid on from_tier.
 describe("calculateProration", () => {
   it("returns zero for same tier", () => {
     const result = calculateProration("paid", "paid");
@@ -211,45 +220,40 @@ describe("calculateProration", () => {
     expect(result.direction).toBe("none");
   });
 
-  it("calculates upgrade proration (free → paid, full month)", () => {
-    const result = calculateProration("free", "paid", 30, 30);
+  it("upgrading free → paid costs paid's full price", () => {
+    const result = calculateProration("free", "paid");
     expect(result.direction).toBe("upgrade");
-    expect(result.proration_amount).toBe(2900); // $29 full month
+    expect(result.proration_amount).toBe(2900); // $29
   });
 
-  it("calculates upgrade proration (free → paid, half month)", () => {
-    const result = calculateProration("free", "paid", 15, 30);
+  it("upgrading paid → suite costs suite's FULL price, not a delta", () => {
+    const result = calculateProration("paid", "suite");
     expect(result.direction).toBe("upgrade");
-    expect(result.proration_amount).toBe(1450); // $14.50
+    expect(result.proration_amount).toBe(29900); // full $299 — no credit for the $29 already paid
   });
 
-  it("calculates upgrade proration (paid → suite, full month)", () => {
-    const result = calculateProration("paid", "suite", 30, 30);
-    expect(result.direction).toBe("upgrade");
-    expect(result.proration_amount).toBe(27000); // $299 - $29 = $270
-  });
-
-  it("calculates downgrade proration (suite → free, half month)", () => {
-    const result = calculateProration("suite", "free", 15, 30);
+  it("downgrading suite → free costs nothing (free tier), never a negative 'credit'", () => {
+    const result = calculateProration("suite", "free");
     expect(result.direction).toBe("downgrade");
-    expect(result.proration_amount).toBe(-14950); // credit of $149.50
+    expect(result.proration_amount).toBe(0);
+    expect(result.proration_amount).toBeGreaterThanOrEqual(0); // no refund/credit is ever fabricated
   });
 
-  it("calculates downgrade proration (paid → free)", () => {
-    const result = calculateProration("paid", "free", 20, 30);
+  it("downgrading paid → free costs nothing", () => {
+    const result = calculateProration("paid", "free");
     expect(result.direction).toBe("downgrade");
-    const expectedCredit = -Math.round(2900 * (20 / 30));
-    expect(result.proration_amount).toBe(expectedCredit);
+    expect(result.proration_amount).toBe(0);
   });
 
-  it("a Pro fromPaidPlanId prices the 'from' side at $99, not Starter's $29 default (H-Phase-A cycle 2)", () => {
-    const result = calculateProration("paid", "suite", 30, 30, "pro");
+  it("a Pro fromPaidPlanId still affects direction correctly (H-Phase-A cycle 2's real concern), but proration_amount is fromPrice-independent now", () => {
+    const result = calculateProration("paid", "suite", "pro");
     expect(result.direction).toBe("upgrade");
-    expect(result.proration_amount).toBe(20000); // $299 - $99 = $200
+    expect(result.proration_amount).toBe(29900); // full $299 regardless of the $29-vs-$99 'from' price
   });
 
-  it("no fromPaidPlanId (undefined) still defaults to Starter's $29 (unchanged default)", () => {
-    const result = calculateProration("paid", "suite", 30, 30);
-    expect(result.proration_amount).toBe(27000); // $299 - $29 = $270
+  it("no fromPaidPlanId (undefined) still defaults to Starter's $29 for direction purposes", () => {
+    const result = calculateProration("paid", "suite");
+    expect(result.direction).toBe("upgrade");
+    expect(result.proration_amount).toBe(29900);
   });
 });

@@ -226,11 +226,14 @@ describe("GET /v1/billing/proration", () => {
     expect(res.status).toBe(400);
   });
 
-  // ─── H-Phase-A cycle 2: a Pro subscriber previewing an upgrade must be ──
-  // priced from Pro's $99, not Starter's $29 default — both collapse into
-  // the same "paid" tier query param, so the endpoint has no way to know
-  // which plan the caller is actually on except by reading paid_plan_id.
-  it("prices a Pro subscriber's upgrade preview off $99, not Starter's $29", async () => {
+  // H-Phase-A cycle 10: proration_amount is now always to_tier's full
+  // one-time price (PAI'D has no billing period to prorate within) — a
+  // Pro subscriber's fromPaidPlanId no longer changes the AMOUNT (it did
+  // under the old day-fraction "credit" math H-Phase-A cycle 2 fixed for),
+  // only whether `direction` reads upgrade/downgrade. This still exercises
+  // the Pro-vs-Starter plan resolution path, just against the field it
+  // actually affects now.
+  it("a Pro subscriber's upgrade preview still resolves direction correctly; proration_amount is suite's full price either way", async () => {
     const created = await req("POST", "/v1/accounts", {
       name: `pro-preview-${Date.now()}`,
       email: `pro-preview-${Date.now()}@test.com`,
@@ -244,7 +247,9 @@ describe("GET /v1/billing/proration", () => {
     expect(res.status).toBe(200);
     expect(res.data.current_tier).toBe("paid");
     expect(res.data.target_tier).toBe("suite");
-    // $299 - $99 = $200 (full-period default), not $299 - $29 = $270.
-    expect(res.data.proration_amount).toBe(20000);
+    expect(res.data.direction).toBe("upgrade");
+    // Full $299 one-time price — not a $200 delta off Pro's $99, and not
+    // the old $270 delta off Starter's $29 either. No credit is computed.
+    expect(res.data.proration_amount).toBe(29900);
   });
 });
