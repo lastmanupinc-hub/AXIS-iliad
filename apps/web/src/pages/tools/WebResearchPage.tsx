@@ -5,8 +5,13 @@
 // markdown they can read inline, copy, or download.
 //
 // Backend: POST /v1/research/scrape (Firecrawl proxy). Auth required.
-// Pricing: $0.01/page after the 100-page monthly free pool is exhausted,
-// or $0 on a 24h cache hit.
+// Pricing: $0.10/page standard, $0.05/page lite (iliad_web_research in
+// packages/mpp/src/index.ts's PRICING_TIERS), or $0 on a 24h cache hit —
+// there is no separate free-page pool for this endpoint (that only exists
+// on the multi-page crawl tool, iliad_web_research_crawl, wired to a
+// different backend handler). H-Phase-A cycle 15: this comment (and every
+// user-facing string derived from it below) previously claimed "$0.01/page
+// after 100 free pages/month" -- both numbers were wrong.
 
 import { useState, useCallback, type FormEvent } from "react";
 import { ToolPage } from "../../components/ToolPage.tsx";
@@ -61,7 +66,7 @@ export function WebResearchPage({ onBack }: Props) {
         return;
       }
       if (!isLoggedIn) {
-        setError("Sign in to scrape URLs — the first 100 pages each month are free.");
+        setError("Sign in to scrape URLs — $0.10/page, or $0 on a 24h cache hit.");
         return;
       }
 
@@ -78,7 +83,7 @@ export function WebResearchPage({ onBack }: Props) {
           if (err.status === 401) {
             setError("Your session expired — sign in again.");
           } else if (err.status === 402) {
-            setError("Free pool exhausted for this month. Subsequent scrapes are $0.01 each.");
+            setError("Payment required — $0.10 per page scraped.");
           } else {
             setError(err.message);
           }
@@ -114,9 +119,9 @@ export function WebResearchPage({ onBack }: Props) {
       name="Web Research"
       description="Scrape a single URL and get clean markdown back. Powered by Firecrawl, cached for 24h across the network so popular URLs come back instantly at no cost."
       pricing={{
-        perUnitUsd: "0.01",
+        perUnitUsd: "0.10",
         perUnitLabel: "page",
-        note: "First 100 pages/month free per account. Cached pages are $0.",
+        note: "$0.05/page in lite mode. Cached pages (24h, shared network-wide) are $0.",
       }}
       mcpToolName="iliad_web_research"
       restEndpoint="POST /v1/research/scrape"
