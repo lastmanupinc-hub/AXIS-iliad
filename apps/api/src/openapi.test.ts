@@ -225,9 +225,13 @@ describe("buildOpenApiSpec", () => {
   it("includes Stripe payment endpoints", () => {
     const paths = Object.keys(spec.paths);
     expect(paths).toContain("/v1/webhooks/stripe");
-    expect(paths).toContain("/v1/checkout");
     expect(paths).toContain("/v1/account/subscription");
     expect(paths).toContain("/v1/account/subscription/cancel");
+  });
+
+  it("does not document the removed legacy /v1/checkout endpoint (H-Phase-A cycle 11 — PAI'D is the only checkout)", () => {
+    const paths = Object.keys(spec.paths);
+    expect(paths).not.toContain("/v1/checkout");
   });
 
   it("Stripe webhook endpoint has correct responses", () => {
@@ -238,11 +242,6 @@ describe("buildOpenApiSpec", () => {
     expect(responses["400"]).toBeDefined();
     expect(responses["401"]).toBeDefined();
     expect(responses["503"]).toBeDefined();
-  });
-
-  it("checkout endpoint requires authentication", () => {
-    const co = spec.paths["/v1/checkout"] as Record<string, Record<string, unknown>>;
-    expect(co.post.security).toBeDefined();
   });
 
   it("includes GitHub token management endpoints", () => {
@@ -271,8 +270,6 @@ describe("buildOpenApiSpec", () => {
     const schemas = Object.keys(spec.components.schemas);
     expect(schemas).toContain("StripeWebhookPayload");
     expect(schemas).toContain("WebhookAckResponse");
-    expect(schemas).toContain("CreateCheckoutRequest");
-    expect(schemas).toContain("CheckoutResponse");
     expect(schemas).toContain("SubscriptionResponse");
     expect(schemas).toContain("CancellationResponse");
     expect(schemas).toContain("SaveGitHubTokenRequest");

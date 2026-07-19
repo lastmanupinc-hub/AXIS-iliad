@@ -33,7 +33,6 @@ import {
   indexSnapshot,
   searchSymbols,
   getFunnelStatus,
-  createCheckout,
   getSubscription,
   cancelSubscription,
   getPaidConfig,
@@ -1085,25 +1084,6 @@ describe("searchSymbols", () => {
   });
 });
 
-// ─── createCheckout ──────────────────────────────────────────────
-
-describe("createCheckout", () => {
-  it("POSTs to /v1/checkout with tier and default billing cycle in body", async () => {
-    const response = { checkout_url: "https://checkout.stripe.com/pay/cs_test_123", tier: "paid", session_id: "cs_test_123", price_id: "price_paid_123" };
-    const fetchFn = mockFetch(response);
-    vi.stubGlobal("fetch", fetchFn);
-
-    const result = await createCheckout("paid");
-
-    expect(result.checkout_url).toBe("https://checkout.stripe.com/pay/cs_test_123");
-    expect(result.tier).toBe("paid");
-    expect(result.session_id).toBe("cs_test_123");
-    const [url, init] = fetchFn.mock.calls[0];
-    expect(url).toBe("/v1/checkout");
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(init.body)).toEqual({ plan_id: "paid", billing_cycle: "monthly" });
-  });
-});
 
 // ─── getSubscription ─────────────────────────────────────────────
 

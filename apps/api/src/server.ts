@@ -117,7 +117,7 @@ import { handleGetFleet } from "./fleet-handlers.js";
 import { handleListProjects, handleListProjectSnapshots } from "./projects-handlers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
-import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
+import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
 import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
@@ -527,7 +527,6 @@ router.get("/v1/account/webhooks/:webhook_id/deliveries", handleWebhookDeliverie
 
 // Lemon Squeezy Payments
 router.post("/v1/webhooks/stripe", handleStripeWebhook);
-router.post("/v1/checkout", handleCreateCheckout);
 router.get("/v1/account/subscription", handleGetSubscription);
 router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 

@@ -34,6 +34,7 @@ import {
   type StripeSubscriptionStatus,
 } from "@axis/snapshots";
 import { checkoutIdempotencyKey } from "./paid-client.js";
+import { PROGRAM_COUNT } from "./counts.js";
 import {
   handleDisputeCreated,
   handleDisputeUpdated,
@@ -157,54 +158,9 @@ function tsToISO(ts: unknown): string | null {
   return new Date(ts * 1000).toISOString();
 }
 
-function parseStripeErrorBody(raw: string): {
-  message?: string;
-  param?: string;
-  request_log_url?: string;
-  type?: string;
-} {
-  try {
-    const parsed = JSON.parse(raw) as {
-      error?: {
-        message?: string;
-        param?: string;
-        request_log_url?: string;
-        type?: string;
-      };
-    };
-    return parsed.error ?? {};
-  } catch {
-    return {};
-  }
-}
-
-function resolveCheckoutBaseUrl(req?: IncomingMessage): string {
-  const candidates = [
-    process.env.AXIS_WEB_URL,
-    process.env.CORS_ORIGIN,
-  ];
-
-  for (const raw of candidates) {
-    if (!raw) continue;
-    const trimmed = raw.trim();
-    if (!trimmed || trimmed === "*") continue;
-    try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        return parsed.origin;
-      }
-    } catch {
-      // ignore invalid candidate
-    }
-  }
-
-  // In production, default to the known web frontend rather than the API host.
-  if (process.env.NODE_ENV === "production") {
-    return "https://iliad.trustfabric.ai";
-  }
-
-  return "http://localhost:5173";
-}
+// H-Phase-A cycle 11: resolveCheckoutBaseUrl (the redirect-URL helper for the
+// removed legacy Stripe-direct checkout below) was deleted along with
+// handleCreateCheckout — it had no other caller.
 
 // ─── Sync tier from subscription status ────────────────────────
 
@@ -265,10 +221,14 @@ async function syncTierFromStripeSubscription(
 
   if (newTier !== "free") {
     const planName = resolvePlanNameFromPriceId(priceId) ?? (newTier === "suite" ? "Growth" : "Starter");
+    // H-Phase-A cycle 11: programs was a hand-typed "19", stale against the
+    // real, CI-guarded PROGRAM_COUNT (20) — the same hand-duplicated-count
+    // drift shape this loop has fixed in a new location almost every cycle.
+    const programs = String(PROGRAM_COUNT);
     const limits: Record<string, { snaps: string; projects: string; programs: string }> = {
-      Starter: { snaps: "200", projects: "20", programs: "19" },
-      Pro: { snaps: "200", projects: "20", programs: "19" },
-      Growth: { snaps: "Unlimited", projects: "Unlimited", programs: "19" },
+      Starter: { snaps: "200", projects: "20", programs },
+      Pro: { snaps: "200", projects: "20", programs },
+      Growth: { snaps: "Unlimited", projects: "Unlimited", programs },
     };
     /* v8 ignore next */
     const l = limits[planName] ?? limits.Starter;
@@ -568,178 +528,21 @@ export async function handleStripeWebhook(
   });
 }
 
-// ─── POST /v1/checkout ──────────────────────────────────────────
-
-/** H8.1b: bound the checkout-session-creation call — synchronous and user-facing, so it should fail fast rather than hang the request. */
-const CHECKOUT_SESSION_TIMEOUT_MS = 15_000;
-
-export async function handleCreateCheckout(
-  req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
-  const ctx = await requireAuth(req, res);
-  if (!ctx) return;
-
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Stripe not configured");
-    return;
-  }
-
-  const raw = await readBody(req);
-  let body: Record<string, unknown>;
-  try {
-    body = JSON.parse(raw);
-  } catch {
-    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
-    return;
-  }
-
-  const planId = normalizeCheckoutPlanId(body.plan_id ?? body.tier);
-  if (!planId) {
-    sendError(res, 400, ErrorCode.INVALID_FORMAT, "plan_id must be starter, pro, or growth");
-    return;
-  }
-
-  const billingCycleRaw = body.billing_cycle;
-  if (billingCycleRaw !== undefined && billingCycleRaw !== "monthly" && billingCycleRaw !== "annual") {
-    sendError(res, 400, ErrorCode.INVALID_FORMAT, "billing_cycle must be monthly or annual");
-    return;
-  }
-
-  const billingCycle = billingCycleRaw === "annual" ? "annual" : "monthly";
-
-  const priceId = resolveCheckoutPriceId(planId, billingCycle);
-
-  if (!priceId) {
-    const priceLabel = `${planId} ${billingCycle}`;
-    sendError(res, 503, ErrorCode.INTERNAL_ERROR, `No Stripe price ID configured for ${priceLabel} tier`);
-    return;
-  }
-
-  // Check if account already has an active subscription
-  const existingSub = await getActiveSubscriptionByAccount(ctx.account!.account_id);
-  if (existingSub) {
-    sendError(res, 409, ErrorCode.CONFLICT, "Account already has an active subscription. Use the customer portal to manage it.");
-    return;
-  }
-
-  // Determine redirect URLs
-  const webUrl = resolveCheckoutBaseUrl(req);
-  const successUrl = `${webUrl}/#account`;
-  const cancelUrl = `${webUrl}/#plans`;
-
-  // Build Stripe Checkout Session
-  const params = new URLSearchParams();
-  params.append("mode", "subscription");
-  params.append("line_items[0][price]", priceId);
-  params.append("line_items[0][quantity]", "1");
-  params.append("success_url", successUrl);
-  params.append("cancel_url", cancelUrl);
-  params.append("client_reference_id", ctx.account!.account_id);
-  if (ctx.account!.email) {
-    params.append("customer_email", ctx.account!.email);
-  }
-  params.append("metadata[account_id]", ctx.account!.account_id);
-  params.append("metadata[plan_id]", planId);
-  params.append("metadata[tier]", planId === "growth" ? "suite" : "paid");
-  params.append("metadata[billing_cycle]", billingCycle);
-  params.append("subscription_data[metadata][account_id]", ctx.account!.account_id);
-  params.append("subscription_data[metadata][plan_id]", planId);
-  params.append("subscription_data[metadata][tier]", planId === "growth" ? "suite" : "paid");
-  params.append("subscription_data[metadata][billing_cycle]", billingCycle);
-
-  try {
-    // H0.6: a network retry / double-submit inside the key window reuses the
-    // SAME checkout session instead of creating a second charge surface —
-    // exactly checkoutIdempotencyKey's designed purpose (human checkout dedupe).
-    const idempotencyKey = checkoutIdempotencyKey(ctx.account!.account_id, `stripe-checkout:${planId}:${billingCycle}`);
-    // H8.1b: bound the call so a stalled Stripe response can't hang the request forever.
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), CHECKOUT_SESSION_TIMEOUT_MS);
-    let response: Response;
-    try {
-      response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${stripeKey}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Stripe-Version": STRIPE_API_VERSION,
-          "Idempotency-Key": idempotencyKey,
-        },
-        body: params.toString(),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (!response.ok) {
-      const errBody = await response.text();
-      const stripeErr = parseStripeErrorBody(errBody);
-      const msg = (stripeErr.message ?? "").toLowerCase();
-
-      // Stripe catalog misconfiguration: price exists but linked product is inactive.
-      if (msg.includes("not available to be purchased") || msg.includes("product is not active")) {
-        sendError(
-          res,
-          503,
-          ErrorCode.UPSTREAM_ERROR,
-          `Stripe price is not purchasable for ${planId} plan. Activate the product in Stripe or update the matching STRIPE_PRICE_ID_* env var.`,
-          {
-            stripe_error: errBody.slice(0, 1200),
-            stripe_error_message: stripeErr.message,
-            stripe_error_param: stripeErr.param,
-            stripe_request_log_url: stripeErr.request_log_url,
-            configured_price_id: priceId,
-            configured_price_env: `STRIPE_PRICE_ID_${planId.toUpperCase()}`,
-            success_url: successUrl,
-            cancel_url: cancelUrl,
-          },
-        );
-        return;
-      }
-
-      sendError(
-        res,
-        502,
-        ErrorCode.UPSTREAM_ERROR,
-        `Stripe API error: ${response.status}`,
-        {
-          stripe_error: errBody.slice(0, 1200),
-          stripe_error_message: stripeErr.message,
-          stripe_error_param: stripeErr.param,
-          stripe_request_log_url: stripeErr.request_log_url,
-          success_url: successUrl,
-          cancel_url: cancelUrl,
-        },
-      );
-      return;
-    }
-
-    const session = await response.json() as { id: string; url: string };
-
-    await trackEvent(ctx.account!.account_id, "checkout_started", "conversion", {
-      plan_id: planId,
-      tier: planId === "growth" ? "suite" : "paid",
-      billing_cycle: billingCycle,
-      source: "stripe",
-    });
-
-    sendJSON(res, 201, {
-      checkout_url: session.url,
-      plan_id: planId,
-      tier: planId === "growth" ? "suite" : "paid",
-      billing_cycle: billingCycle,
-      price_id: priceId,
-      variant_id: priceId, // backward-compat for older web clients
-      session_id: session.id,
-    });
-  } catch (err) {
-    sendError(res, 502, ErrorCode.INTERNAL_ERROR, `Failed to create checkout: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
+// H-Phase-A cycle 11 [SECURITY/COMPLIANCE]: handleCreateCheckout (POST
+// /v1/checkout — a Stripe-direct, subscription-mode checkout session
+// creator) was removed. Rule 7 of this loop's own constitution says PAI'D is
+// the ONLY checkout and to never resurrect this endpoint; it had been left
+// registered and fully functional, gated only by whether the
+// STRIPE_PRICE_ID_* env vars happened to be unset in prod — i.e. an operator
+// following STRIPE_CHANGES_REQUIRED.md's own instructions would have
+// silently reactivated real recurring Stripe billing, contradicting every
+// "$99 once, not a subscription" claim this codebase makes elsewhere.
+// normalizeCheckoutPlanId/resolveCheckoutPriceId below are KEPT — the
+// checkout.session.completed webhook handler (syncTierFromStripeSubscription)
+// still needs them to interpret metadata on events from pre-existing,
+// legacy (pre-PAI'D) subscriptions; handleGetSubscription/
+// handleCancelSubscription below are also kept for the same reason. Only
+// the ability to CREATE a new Stripe-direct subscription is gone.
 // ─── GET /v1/account/subscription ──────────────────────────────
 
 export async function handleGetSubscription(

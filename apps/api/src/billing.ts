@@ -251,8 +251,9 @@ export async function handleCreateAccount(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
       paymentMessage,
       {
-        // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
-        // endpoint is unconfigured in prod (503) and must not be advertised.
+        // PAI'D is the only checkout path — the legacy Stripe-direct
+        // /v1/checkout endpoint was removed (H-Phase-A cycle 11) and must
+        // not be advertised.
         checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
         // H2.5: additive canonical fields alongside the pair above.
@@ -665,8 +666,9 @@ export async function handleUpdateTier(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
       paymentMessage,
       {
-        // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
-        // endpoint is unconfigured in prod (503) and must not be advertised.
+        // PAI'D is the only checkout path — the legacy Stripe-direct
+        // /v1/checkout endpoint was removed (H-Phase-A cycle 11) and must
+        // not be advertised.
         checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
         // H2.5: additive canonical fields alongside the pair above.
@@ -1019,8 +1021,9 @@ export async function handleAddCredits(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
       paymentMessage,
       {
-        // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
-        // endpoint is unconfigured in prod (503) and must not be advertised.
+        // PAI'D is the only checkout path — the legacy Stripe-direct
+        // /v1/checkout endpoint was removed (H-Phase-A cycle 11) and must
+        // not be advertised.
         checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
         // H2.5: additive canonical fields alongside the pair above.

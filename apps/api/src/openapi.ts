@@ -1275,22 +1275,6 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
-      "/v1/checkout": {
-        post: {
-          summary: "Create a Stripe checkout session",
-          operationId: "createCheckout",
-          tags: ["Payments"],
-          security: [{ apiKey: [] }],
-          requestBody: jsonBody(ref("CreateCheckoutRequest")),
-          responses: {
-            201: { description: "Checkout URL created", content: jsonContent(ref("CheckoutResponse")) },
-            400: { description: "Invalid tier" },
-            401: { description: "Authentication required" },
-            409: { description: "Account already has an active subscription" },
-            503: { description: "Stripe not configured" },
-          },
-        },
-      },
       "/v1/account/subscription": {
         get: {
           summary: "Get current subscription status",
@@ -2077,25 +2061,6 @@ export function buildOpenApiSpec(): OpenApiSpec {
             subscription_id: { type: "string" },
             status: { type: "string" },
             handled: { type: "boolean" },
-          },
-        },
-        CreateCheckoutRequest: {
-          type: "object",
-          required: ["plan_id"],
-          properties: {
-            plan_id: { type: "string", enum: ["starter", "pro", "growth"], description: "Target subscription plan" },
-            tier: { type: "string", enum: ["paid", "suite"], description: "Legacy subscription tier alias" },
-            billing_cycle: { type: "string", enum: ["monthly", "annual"], description: "Stripe billing cycle for the selected plan" },
-          },
-        },
-        CheckoutResponse: {
-          type: "object",
-          properties: {
-            checkout_url: { type: "string", format: "uri" },
-            plan_id: { type: "string" },
-            tier: { type: "string" },
-            billing_cycle: { type: "string", enum: ["monthly", "annual"] },
-            variant_id: { type: "string" },
           },
         },
         SubscriptionResponse: {

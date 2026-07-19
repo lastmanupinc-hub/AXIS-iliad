@@ -1,9 +1,27 @@
 # Stripe Changes Required (Exact)
 
+> **RETIRED — Section 1 ("Strategy-Faithful Migration Checklist") and Section
+> 1's "Stripe Dashboard: Create/Verify Prices" no longer apply (H-Phase-A
+> cycle 11, 2026-07-19).** `POST /v1/checkout` — the Stripe-direct,
+> subscription-mode checkout endpoint these sections instruct you to
+> activate — has been **removed from the code entirely**, not merely left
+> unconfigured. PAI'D is this platform's only checkout path (see
+> `HARDEN_POLISH_LOOP.md` rule 7); the endpoint had been left live and
+> functional, gated only by whether `STRIPE_PRICE_ID_*` env vars happened to
+> be unset in prod — meaning following the steps below as written would have
+> silently reactivated real recurring Stripe billing, contradicting every
+> "$99 once, not a subscription" claim this codebase makes elsewhere. **Do
+> not set the `STRIPE_PRICE_ID_*` env vars this doc lists, and do not expect
+> `POST /v1/checkout` to exist.** Section 2 (webhook endpoint), Section 3
+> (API key scope), and Section 1.1/4.1 (Firecrawl/MPP resold tools) remain
+> accurate and are kept below — the webhook still processes lifecycle events
+> for any pre-existing, pre-PAI'D legacy subscriptions, and `STRIPE_SECRET_KEY`
+> is still required for MPP/x402 charging.
+
 This runbook lists exactly what must be configured in Stripe and in deployment env vars for this repository.
 
 It now includes both billing surfaces:
-- Subscription checkout (Pro and Suite)
+- ~~Subscription checkout (Pro and Suite)~~ — **removed, see retirement notice above**
 - Per-call resold tools via x402/MPP (including new Firecrawl tools)
 
 ## Strategy-Faithful Migration Checklist (Blended Credit Model)

@@ -64,4 +64,4 @@ export const ARTIFACT_COUNT = 142;
 export const TOOL_COUNT = 37;
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
-export const ENDPOINT_COUNT = 157;
+export const ENDPOINT_COUNT = 156;

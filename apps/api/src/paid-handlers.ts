@@ -61,7 +61,7 @@ function planPriceCents(planId: string, cycle: PaidPlan): number | null {
 
 /**
  * Resolve the app base URL for hosted-checkout return links. Env-driven and
- * validated (mirrors stripe.ts resolveCheckoutBaseUrl) — deliberately does NOT
+ * validated — deliberately does NOT
  * trust the request `Origin` header, which is caller-controlled: a crafted
  * (non-browser) request could otherwise point PAI'D's post-checkout redirect at
  * an attacker-controlled origin (open-redirect via the payment processor).

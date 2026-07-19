@@ -184,7 +184,7 @@ Requires: Docker 20.10+ or Docker Desktop
 ```
 axis-iliad/
 ├── apps/
-│   ├── api/          → Zero-dependency HTTP server (port 4000, 157 endpoints)
+│   ├── api/          → Zero-dependency HTTP server (port 4000, 156 endpoints)
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/

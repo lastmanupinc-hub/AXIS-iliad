@@ -1701,16 +1701,6 @@ export interface SubscriptionInfo {
   subscription_count: number;
 }
 
-export async function createCheckout(
-  planId: "starter" | "pro" | "growth",
-  billingCycle: "monthly" | "annual" = "monthly",
-): Promise<{ checkout_url: string; plan_id: string; tier?: string; billing_cycle?: string; session_id: string; price_id?: string; variant_id?: string }> {
-  return fetchJSON("/v1/checkout", {
-    method: "POST",
-    body: JSON.stringify({ plan_id: planId, billing_cycle: billingCycle }),
-  });
-}
-
 export async function getSubscription(): Promise<SubscriptionInfo> {
   return fetchJSON("/v1/account/subscription");
 }

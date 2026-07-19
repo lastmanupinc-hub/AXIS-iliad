@@ -12,7 +12,7 @@ import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
 import { handleInviteSeat, handleListSeats, handleGetPlans } from "./funnel.js";
-import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
+import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { resetRateLimits } from "./rate-limiter.js";
 import { createHmac } from "node:crypto";
 
@@ -98,7 +98,6 @@ beforeAll(async () => {
   router.get("/v1/account/seats", handleListSeats);
   router.get("/v1/plans", handleGetPlans);
   router.post("/v1/webhooks/stripe", handleStripeWebhook);
-  router.post("/v1/checkout", handleCreateCheckout);
   router.get("/v1/account/subscription", handleGetSubscription);
   router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 
@@ -185,66 +184,6 @@ describe("Email notification wiring", () => {
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("welcome");
     expect(deliveries[0].status).toBe("pending");
-  });
-});
-
-describe("Checkout flow", () => {
-  it("requires auth for checkout", async () => {
-    const r = await req("POST", "/v1/checkout", { plan_id: "starter" });
-    expect(r.status).toBe(401);
-  });
-
-  it("rejects invalid plan", async () => {
-    process.env.STRIPE_SECRET_KEY = "sk_test_169";
-    process.env.STRIPE_PRICE_ID_STARTER = "price_test_starter";
-
-    const account = await createAccount("Tier Test", "tier-test-169@example.com", "free");
-    const { rawKey } = await createApiKey(account.account_id, "test");
-
-    const r = await req("POST", "/v1/checkout",
-      { plan_id: "free" },
-      { Authorization: `Bearer ${rawKey}` },
-    );
-    expect(r.status).toBe(400);
-    expect(r.data.error).toContain("plan_id must be starter, pro, or growth");
-
-    delete process.env.STRIPE_SECRET_KEY;
-    process.env.STRIPE_PRICE_ID_STARTER = "price_starter_169";
-  });
-
-  it("returns 503 when Stripe key not configured", async () => {
-    const account = await createAccount("NoStripe Test", "nostripe-169@example.com", "free");
-    const { rawKey } = await createApiKey(account.account_id, "test");
-
-    // Temporarily remove Stripe key
-    const saved = process.env.STRIPE_SECRET_KEY;
-    delete process.env.STRIPE_SECRET_KEY;
-
-    const r = await req("POST", "/v1/checkout",
-      { plan_id: "starter" },
-      { Authorization: `Bearer ${rawKey}` },
-    );
-    expect(r.status).toBe(503);
-
-    process.env.STRIPE_SECRET_KEY = saved;
-  });
-
-  it("checkout payload includes redirect URL", async () => {
-    // We can't test the actual LS API call, but we can verify the checkout handler
-    // requires auth and validates tier — the redirect URL is part of the payload
-    // construction which we verified by code review
-    const account = await createAccount("Redirect Test", "redirect-169@example.com", "free");
-    const { rawKey } = await createApiKey(account.account_id, "test");
-
-    // Without STRIPE_SECRET_KEY set, we get 503 — confirms we reach the checkout logic
-    delete process.env.STRIPE_SECRET_KEY;
-    const r = await req("POST", "/v1/checkout",
-      { plan_id: "starter" },
-      { Authorization: `Bearer ${rawKey}` },
-    );
-    expect(r.status).toBe(503);
-    expect(r.data.error).toContain("not configured");
-    process.env.STRIPE_SECRET_KEY = "sk_test_temp";
   });
 });
 
