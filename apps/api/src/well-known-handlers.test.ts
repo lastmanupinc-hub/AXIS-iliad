@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { resetTestDb } from "@axis/snapshots";
+import { MCP_TOOLS } from "./mcp-tools.js";
 import { Router } from "./router.js";
 import {
   handleAgentJson,
@@ -279,6 +280,20 @@ describe("GET /.well-known/capabilities.json", () => {
     expect(mcp).toBeDefined();
     expect(Array.isArray(mcp.tools)).toBe(true);
     expect((mcp.tools as string[]).length).toBeGreaterThan(0);
+  });
+
+  // H-Phase-A cycle 10: mcp.tools was a hand-typed array of 18 names,
+  // covering only 18 of the real 37 MCP tools — a 4th recurrence of the
+  // hand-duplicated-catalog-drift shape this endpoint's own sibling
+  // (GET /for-agents) already had fixed twice (cycles 6, 8/9). Derived from
+  // deriveMcpToolCatalog() now, so it can't independently drift again.
+  it("H-Phase-A cycle 10: mcp.tools names every real MCP tool, not a stale hand-typed subset", async () => {
+    const mcp = json.mcp as Record<string, unknown>;
+    const tools = mcp.tools as string[];
+    expect(tools.length).toBe(MCP_TOOLS.length);
+    for (const tool of MCP_TOOLS) {
+      expect(tools, `capabilities.json's mcp.tools is missing ${tool.name}`).toContain(tool.name);
+    }
   });
 
   it("contains keywords array", async () => {

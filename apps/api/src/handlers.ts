@@ -2456,14 +2456,14 @@ export async function handleCapabilities(
     mcp: {
       transport: "Streamable HTTP (2025-03-26 spec)",
       endpoint: "POST /mcp",
-      tools: [
-        "analyze_repo", "analyze_files", "get_snapshot", "get_artifact",
-        "list_programs", "prepare_agentic_purchasing", "search_and_discover_tools",
-        "discover_commerce_tools", "improve_my_agent_with_axis",
-        "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits",
-        "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence",
-        "build_ap2_mandate", "score_dispute_readiness", "assemble_representment",
-      ],
+      // H-Phase-A cycle 10: this was a hand-typed array of 18 names,
+      // covering only 18 of the real 37 MCP tools — a 4th recurrence of the
+      // hand-duplicated-catalog-drift shape (cycle 6: stale free-tool count;
+      // cycle 8/9: handleForAgents' own allTools/pricing_table missing
+      // members). Derived from the SAME deriveMcpToolCatalog() source
+      // handleForAgents already uses, so this list can't independently
+      // drift from the real MCP tool registration again.
+      tools: deriveMcpToolCatalog().map((t) => t.name),
     },
     security_txt: "https://axis-api-6c7z.onrender.com/.well-known/security.txt",
     examples_repo: "https://github.com/lastmanupinc-hub/axis-iliad-examples",
