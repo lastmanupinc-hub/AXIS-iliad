@@ -224,14 +224,25 @@ describe("runSpecificityPass (orchestrator)", () => {
     const art = await runSpecificityPass(ctx, symbols, notConfigured);
     expect(art.report.configured).toBe(false);
     expect(art.report.proposed).toBe(0);
+    expect(art.report.degraded_reason).toBe("not_configured");
     expect(art.content).toContain("no local model is configured");
   });
 
-  it("degrades gracefully if the completion throws", async () => {
+  it("degrades gracefully if the completion throws, distinctly from not-configured", async () => {
     const boom: CompletionFn = async () => {
       throw new Error("native load failed");
     };
     const art = await runSpecificityPass(ctx, symbols, boom);
     expect(art.report.configured).toBe(false);
+    expect(art.report.degraded_reason).toBe("completion_threw");
+    expect(art.content).not.toContain("no local model is configured");
+  });
+
+  it("degrades gracefully on a malformed completion response, distinctly from not-configured", async () => {
+    const malformed: CompletionFn = async () => ({});
+    const art = await runSpecificityPass(ctx, symbols, malformed);
+    expect(art.report.configured).toBe(false);
+    expect(art.report.degraded_reason).toBe("malformed_response");
+    expect(art.content).not.toContain("no local model is configured");
   });
 });

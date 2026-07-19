@@ -71,6 +71,14 @@ export interface NotConfiguredResult {
     | "ffmpeg_static_missing"
     | "audio_download_failed"
     | "audio_decode_failed";
+  /**
+   * Distinguishes an operator-configuration gap ("whisper isn't installed here") from a
+   * problem with the caller's own audio_url/audio_base64 ("this file/URL didn't work"), so
+   * a caller can tell whether retrying with different input could help (H-Phase-A cycle 16 —
+   * does not change billing: every `_not_configured` envelope skips capture regardless of
+   * category).
+   */
+  category: "not_configured" | "bad_input";
   detail: string;
   remediation: string;
 }
@@ -465,6 +473,7 @@ export async function runTranscription(
     return {
       _not_configured: true,
       reason: "model_file_not_found",
+      category: "not_configured",
       detail: `No GGML model at ${modelPath}`,
       remediation:
         "Operator must download a GGML whisper model (recommended: ggml-base.en.bin ~142 MB from " +
@@ -477,6 +486,7 @@ export async function runTranscription(
     return {
       _not_configured: true,
       reason: "whisper_cli_not_found",
+      category: "not_configured",
       detail: `Could not invoke '${cli}' — not on PATH or not executable`,
       remediation:
         "Operator must install whisper.cpp so the 'whisper-cli' binary is on PATH (brew install " +
@@ -489,6 +499,7 @@ export async function runTranscription(
     return {
       _not_configured: true,
       reason: "ffmpeg_static_missing",
+      category: "not_configured",
       detail: "ffmpeg-static did not resolve to an executable binary on this host",
       remediation:
         "ffmpeg-static is a runtime dependency. Run `pnpm install --filter @axis/api` to fetch the prebuilt binary, or set up your own ffmpeg on PATH (this module currently requires ffmpeg-static for resampling).",
@@ -511,6 +522,7 @@ export async function runTranscription(
         return {
           _not_configured: true,
           reason: "audio_download_failed",
+          category: "bad_input",
           detail: err instanceof Error ? err.message : String(err),
           remediation:
             "audio_url must return a 200 response with audio bytes under 100 MiB within 60 seconds. " +
@@ -524,6 +536,7 @@ export async function runTranscription(
         return {
           _not_configured: true,
           reason: "audio_decode_failed",
+          category: "bad_input",
           detail: err instanceof Error ? err.message : String(err),
           remediation: "audio_base64 must be a valid base64-encoded audio payload under 100 MiB decoded.",
         };

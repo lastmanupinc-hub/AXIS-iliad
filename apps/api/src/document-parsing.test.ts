@@ -167,6 +167,7 @@ describe("document-parsing — runDocumentParsing format dispatch", () => {
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("unsupported_format");
+      expect(r.category).toBe("bad_input");
       expect(r.format_detected).toBe("unknown");
       expect(r.remediation).toContain("mime_type");
     }
@@ -177,6 +178,7 @@ describe("document-parsing — runDocumentParsing format dispatch", () => {
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("document_decode_failed");
+      expect(r.category).toBe("bad_input");
     }
   });
 
@@ -415,6 +417,7 @@ describe("document-parsing — document_url download failures (safeFetch integra
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("document_download_failed");
+      expect(r.category).toBe("bad_input");
       expect(r.detail).toMatch(/abort/i);
       expect(r.remediation).toMatch(/60 seconds/);
     }
@@ -426,6 +429,7 @@ describe("document-parsing — document_url download failures (safeFetch integra
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("document_download_failed");
+      expect(r.category).toBe("bad_input");
       expect(r.detail).toMatch(/ECONNRESET/);
     }
   });

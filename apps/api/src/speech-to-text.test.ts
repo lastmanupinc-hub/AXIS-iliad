@@ -233,6 +233,7 @@ describe("speech-to-text — runTranscription _not_configured envelopes", () => 
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("model_file_not_found");
+      expect(r.category).toBe("not_configured");
       expect(r.detail).toContain("missing.bin");
       expect(r.remediation).toContain("GGML");
     }
@@ -326,6 +327,7 @@ describe("speech-to-text — audio_url download failures (safeFetch integration)
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("audio_download_failed");
+      expect(r.category).toBe("bad_input");
       expect(r.detail).toMatch(/abort/i);
       expect(r.remediation).toMatch(/100 MiB/);
     }
@@ -337,6 +339,7 @@ describe("speech-to-text — audio_url download failures (safeFetch integration)
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("audio_download_failed");
+      expect(r.category).toBe("bad_input");
       expect(r.detail).toMatch(/ECONNRESET/);
     }
   }, 15_000);

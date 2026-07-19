@@ -194,6 +194,7 @@ describe("text-to-speech — runSynthesis _not_configured envelopes", () => {
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("piper_cli_not_found");
+      expect(r.category).toBe("not_configured");
       expect(r.detail).toContain("definitely-not-piper");
       expect(r.remediation).toContain("Piper");
     }
@@ -229,7 +230,10 @@ describe("text-to-speech — voice-dir + voice-missing envelopes", () => {
     process.env.AXIS_PIPER_VOICE_DIR = path.join(tmpDir, "no-such-dir");
     const r = await runSynthesis({ text: "hello" });
     expect(isNotConfigured(r)).toBe(true);
-    if (isNotConfigured(r)) expect(r.reason).toBe("voice_dir_missing");
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("voice_dir_missing");
+      expect(r.category).toBe("not_configured");
+    }
   });
 
   it("returns no_voices_available when the dir is empty", async () => {
@@ -238,10 +242,13 @@ describe("text-to-speech — voice-dir + voice-missing envelopes", () => {
     process.env.AXIS_PIPER_VOICE_DIR = voiceDir;
     const r = await runSynthesis({ text: "hello" });
     expect(isNotConfigured(r)).toBe(true);
-    if (isNotConfigured(r)) expect(r.reason).toBe("no_voices_available");
+    if (isNotConfigured(r)) {
+      expect(r.reason).toBe("no_voices_available");
+      expect(r.category).toBe("not_configured");
+    }
   });
 
-  it("returns voice_model_not_found when requested slug isn't present", async () => {
+  it("returns voice_model_not_found (category bad_input — other voices ARE available) when requested slug isn't present", async () => {
     const voiceDir = path.join(tmpDir, "voices-some");
     await fs.mkdir(voiceDir);
     await fs.writeFile(path.join(voiceDir, "en_US-amy-medium.onnx"), "fake");
@@ -251,6 +258,7 @@ describe("text-to-speech — voice-dir + voice-missing envelopes", () => {
     expect(isNotConfigured(r)).toBe(true);
     if (isNotConfigured(r)) {
       expect(r.reason).toBe("voice_model_not_found");
+      expect(r.category).toBe("bad_input");
       expect(r.detail).toContain("does-not-exist");
       expect(r.detail).toContain("en_US-amy-medium");
     }

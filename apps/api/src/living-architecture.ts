@@ -347,6 +347,14 @@ export interface CompletionLike {
   _not_configured?: boolean;
 }
 
+/**
+ * Why the specificity pass degraded to the no-op doc — distinguishes a genuine
+ * operator-configuration gap from a transient completion failure or an unexpected
+ * response shape, so the paid artifact's description doesn't call every one of
+ * these "no local model configured" (H-Phase-A cycle 16).
+ */
+export type DegradedReason = "not_configured" | "completion_threw" | "malformed_response";
+
 export type CompletionFn = (opts: {
   prompt: string;
   system?: string;
@@ -358,7 +366,7 @@ export type CompletionFn = (opts: {
 export interface SpecificityArtifact {
   path: string;
   content: string;
-  report: { configured: boolean; proposed: number; kept: number; dropped: number };
+  report: { configured: boolean; proposed: number; kept: number; dropped: number; degraded_reason?: DegradedReason };
 }
 
 /**
@@ -376,6 +384,7 @@ export async function runSpecificityPass(
 ): Promise<SpecificityArtifact> {
   const name = ctx.project_identity.name;
   let res: CompletionLike;
+  let completionThrew = false;
   try {
     res = await completion({
       prompt: buildClaimPrompt(buildFactDigest(ctx, symbols)),
@@ -386,13 +395,19 @@ export async function runSpecificityPass(
     });
   } catch {
     res = {};
+    completionThrew = true;
   }
 
   if (!res || res._not_configured === true || typeof res.text !== "string") {
+    const degraded_reason: DegradedReason = completionThrew
+      ? "completion_threw"
+      : res?._not_configured === true
+        ? "not_configured"
+        : "malformed_response";
     return {
       path: "living-architecture.md",
-      content: notConfiguredDoc(name),
-      report: { configured: false, proposed: 0, kept: 0, dropped: 0 },
+      content: notConfiguredDoc(name, degraded_reason),
+      report: { configured: false, proposed: 0, kept: 0, dropped: 0, degraded_reason },
     };
   }
 
@@ -406,13 +421,34 @@ export async function runSpecificityPass(
   };
 }
 
-function notConfiguredDoc(name: string): string {
+/** Why runSpecificityPass fell back to the degraded doc — see DegradedReason. */
+function degradedNotice(reason: DegradedReason): string {
+  if (reason === "completion_threw") {
+    return (
+      "> Engineer-mode specificity pass failed: the local completion call raised an unexpected\n" +
+      "> error (not a configuration issue — this may be transient). The deterministic analysis\n" +
+      "> artifacts are unaffected."
+    );
+  }
+  if (reason === "malformed_response") {
+    return (
+      "> Engineer-mode specificity pass failed: the local completion call returned an unexpected\n" +
+      "> response shape (not a configuration issue — this may be a bug). The deterministic\n" +
+      "> analysis artifacts are unaffected."
+    );
+  }
+  return (
+    "> Engineer-mode specificity pass is available, but no local model is configured on\n" +
+    "> this AXIS instance (set AXIS_LLM_MODEL_PATH to a GGUF model). The deterministic\n" +
+    "> analysis artifacts are unaffected."
+  );
+}
+
+function notConfiguredDoc(name: string, reason: DegradedReason): string {
   return [
     `# Living Architecture — ${name}`,
     "",
-    "> Engineer-mode specificity pass is available, but no local model is configured on",
-    "> this AXIS instance (set AXIS_LLM_MODEL_PATH to a GGUF model). The deterministic",
-    "> analysis artifacts are unaffected.",
+    degradedNotice(reason),
     "",
     // A Verification block so the drift parser reads a clean empty insight set
     // (not "the whole architecture vanished") if a degraded doc is ever committed.

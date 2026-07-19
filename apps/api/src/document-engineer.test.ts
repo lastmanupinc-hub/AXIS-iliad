@@ -58,12 +58,22 @@ describe("extractToSchema", () => {
     const r = await extractToSchema("doc", schema, async () => ({ _not_configured: true }));
     expect(r.configured).toBe(false);
     expect(r.valid).toBe(false);
+    expect(r.degraded_reason).toBe("not_configured");
   });
 
-  it("degrades when the completion throws", async () => {
+  it("degrades when the completion throws (distinct from not-configured — may be transient)", async () => {
     const r = await extractToSchema("doc", schema, async () => {
       throw new Error("native load failed");
     });
     expect(r.configured).toBe(false);
+    expect(r.degraded_reason).toBe("completion_threw");
+    expect(r.errors[0]).not.toMatch(/no local model configured/);
+  });
+
+  it("degrades when the completion returns a malformed response (distinct from not-configured — may be a bug)", async () => {
+    const r = await extractToSchema("doc", schema, async () => ({}) as { text?: string });
+    expect(r.configured).toBe(false);
+    expect(r.degraded_reason).toBe("malformed_response");
+    expect(r.errors[0]).not.toMatch(/no local model configured/);
   });
 });

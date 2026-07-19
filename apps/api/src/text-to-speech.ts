@@ -59,6 +59,17 @@ export interface SynthesisResult {
 
 export interface NotConfiguredResult {
   _not_configured: true;
+  /**
+   * Distinguishes an operator-configuration gap ("piper/a voice isn't set up here") from
+   * a problem with the caller's own request ("that voice slug doesn't exist — pick one of
+   * the ones listed") or a retryable synthesis failure, so a caller can tell whether
+   * retrying with different input could help (H-Phase-A cycle 16 — does not change
+   * billing: every `_not_configured` envelope skips capture regardless of category). Note:
+   * `voice_model_not_found` is reused for two distinct situations below (an unknown
+   * caller-requested slug vs. a file missing on disk for an already-validated slug) —
+   * `category` is set per call site, not derived from `reason` alone.
+   */
+  category: "not_configured" | "bad_input";
   reason:
     | "piper_cli_not_found"
     | "voice_dir_missing"
@@ -351,6 +362,7 @@ async function pickVoice(requested: string | undefined): Promise<string | NotCon
     return {
       _not_configured: true,
       reason: "no_voices_available",
+      category: "not_configured",
       detail: `${resolveVoiceDir()} contains no paired .onnx + .onnx.json voice files`,
       remediation:
         "Download a Piper voice from https://huggingface.co/rhasspy/piper-voices " +
@@ -362,6 +374,8 @@ async function pickVoice(requested: string | undefined): Promise<string | NotCon
     return {
       _not_configured: true,
       reason: "voice_model_not_found",
+      // Caller-facing: other voices ARE available, this one just isn't a valid slug.
+      category: "bad_input",
       detail: `voice slug "${wanted}" not found in ${resolveVoiceDir()}. Available: ${voices.join(", ")}`,
       remediation:
         "Pick one of the listed voices or download the requested .onnx + .onnx.json pair into AXIS_PIPER_VOICE_DIR.",
@@ -380,6 +394,7 @@ export async function runSynthesis(
     return {
       _not_configured: true,
       reason: "piper_cli_not_found",
+      category: "not_configured",
       detail: `Could not invoke '${cli}' — not on PATH or not executable`,
       remediation:
         "Operator must install Piper (https://github.com/rhasspy/piper/releases) so 'piper' is on PATH " +
@@ -393,6 +408,7 @@ export async function runSynthesis(
     return {
       _not_configured: true,
       reason: "voice_dir_missing",
+      category: "not_configured",
       detail: `Voice directory '${dir}' does not exist`,
       remediation:
         "Create AXIS_PIPER_VOICE_DIR (default models/piper/ in process cwd) and drop voice .onnx + .onnx.json files into it.",
@@ -412,6 +428,7 @@ export async function runSynthesis(
       return {
         _not_configured: true,
         reason: "ffmpeg_static_missing",
+        category: "not_configured",
         detail: "ffmpeg-static did not resolve to an executable binary on this host",
         remediation:
           "format='mp3' or 'opus' requires ffmpeg-static. Reinstall apps/api deps (postinstall fetches the binary), or call with format='wav' to bypass the transcode.",
@@ -427,6 +444,9 @@ export async function runSynthesis(
     return {
       _not_configured: true,
       reason: "voice_model_not_found",
+      // Operator-facing: pickVoice already validated this slug against the catalog — a
+      // missing file here means the on-disk voice set doesn't match the catalog listing.
+      category: "not_configured",
       detail: `Voice model file missing: ${modelPath}`,
       remediation: "Download the .onnx file for the requested voice into AXIS_PIPER_VOICE_DIR.",
     };
@@ -437,6 +457,7 @@ export async function runSynthesis(
     return {
       _not_configured: true,
       reason: "voice_config_not_found",
+      category: "not_configured",
       detail: `Voice config file missing: ${configPath}`,
       remediation: "Download the .onnx.json config alongside the .onnx model.",
     };
@@ -454,6 +475,9 @@ export async function runSynthesis(
       return {
         _not_configured: true,
         reason: "synthesis_failed",
+        // Mixed-cause (malformed model / bad text / timeout); the common actionable case is
+        // the caller's own input text, so this leans bad_input rather than not_configured.
+        category: "bad_input",
         detail: err instanceof Error ? err.message : String(err),
         remediation:
           "Piper itself failed mid-synthesis. Common causes: malformed voice model (re-download), unsupported text characters, or hitting the 5-minute wall-clock cap. Check the operator's piper install with `piper --help`.",

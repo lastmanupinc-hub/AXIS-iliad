@@ -1697,7 +1697,11 @@ async function maybeAppendLivingArchitecture(
       program: "living-architecture",
       description: art.report.configured
         ? `Engineer: ${art.report.kept}/${art.report.proposed} architectural claims verified against the repo`
-        : "Engineer: Living Architecture (no local model configured on this instance)",
+        : art.report.degraded_reason === "completion_threw"
+          ? "Engineer: Living Architecture (the local model call failed unexpectedly — may be transient)"
+          : art.report.degraded_reason === "malformed_response"
+            ? "Engineer: Living Architecture (the local model returned an unexpected response — may be a bug)"
+            : "Engineer: Living Architecture (no local model configured on this instance)",
     });
   } catch {
     // Best-effort; the deterministic core already succeeded.

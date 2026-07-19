@@ -66,6 +66,14 @@ export interface CompletionLike {
   _not_configured?: boolean;
 }
 
+/**
+ * Why extractToSchema degraded to configured:false — distinguishes a genuine
+ * operator-configuration gap from a transient completion failure or an unexpected
+ * response shape, so the paid artifact's error message doesn't call every one of
+ * these "no local model configured" (H-Phase-A cycle 16).
+ */
+export type DegradedReason = "not_configured" | "completion_threw" | "malformed_response";
+
 export type CompletionFn = (opts: {
   prompt: string;
   system?: string;
@@ -79,6 +87,7 @@ export interface ExtractResult {
   valid: boolean;
   parsed: unknown;
   errors: string[];
+  degraded_reason?: DegradedReason;
 }
 
 /**
@@ -103,6 +112,7 @@ export async function extractToSchema(
   ].join("\n");
 
   let res: CompletionLike;
+  let completionThrew = false;
   try {
     res = await completion({
       prompt,
@@ -113,10 +123,22 @@ export async function extractToSchema(
     });
   } catch {
     res = {};
+    completionThrew = true;
   }
 
   if (!res || res._not_configured === true || typeof res.text !== "string") {
-    return { configured: false, valid: false, parsed: undefined, errors: ["no local model configured for extraction"] };
+    const degraded_reason: DegradedReason = completionThrew
+      ? "completion_threw"
+      : res?._not_configured === true
+        ? "not_configured"
+        : "malformed_response";
+    const errors =
+      degraded_reason === "completion_threw"
+        ? ["the completion call raised an unexpected error (not a configuration issue — this may be transient)"]
+        : degraded_reason === "malformed_response"
+          ? ["the completion call returned an unexpected response shape (not a configuration issue — this may be a bug)"]
+          : ["no local model configured for extraction"];
+    return { configured: false, valid: false, parsed: undefined, errors, degraded_reason };
   }
 
   const { valid, parsed, errors } = validateStructuredOutput(res.text, schema);

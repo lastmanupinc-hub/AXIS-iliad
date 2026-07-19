@@ -130,6 +130,7 @@ describe("code-sandbox — runCodeSandbox not-configured envelope", () => {
       expect(isNotConfigured(r)).toBe(true);
       if (isNotConfigured(r)) {
         expect(r.reason).toBe("disabled");
+        expect(r.category).toBe("not_configured");
         expect(typeof r.detail).toBe("string");
         expect(r.remediation.length).toBeGreaterThan(20);
       }

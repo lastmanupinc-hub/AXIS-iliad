@@ -55,6 +55,13 @@ export interface SandboxResult {
 export interface NotConfiguredResult {
   _not_configured: true;
   reason: "docker_daemon_unreachable" | "dockerode_import_failed" | "disabled" | "sandbox_busy";
+  /**
+   * Distinguishes an operator-configuration gap from a retryable capacity limit, so a
+   * caller can tell "the sandbox isn't set up here" from "try again shortly" without
+   * parsing `reason`/`detail` prose (H-Phase-A cycle 16 — does not change billing: every
+   * `_not_configured` envelope skips capture regardless of category).
+   */
+  category: "not_configured" | "capacity";
   detail: string;
   remediation: string;
 }
@@ -295,6 +302,7 @@ export async function runCodeSandbox(
     return {
       _not_configured: true,
       reason: "disabled",
+      category: "not_configured",
       detail: "Code sandbox disabled via AXIS_CODE_SANDBOX_DISABLED=1.",
       remediation: "Unset AXIS_CODE_SANDBOX_DISABLED to re-enable Docker-backed execution.",
     };
@@ -306,6 +314,7 @@ export async function runCodeSandbox(
     return {
       _not_configured: true,
       reason: "dockerode_import_failed",
+      category: "not_configured",
       detail: err instanceof Error ? err.message : String(err),
       remediation:
         "The dockerode native bindings failed to load. Run `pnpm approve-builds` to allow its post-install scripts, then reinstall.",
@@ -315,6 +324,7 @@ export async function runCodeSandbox(
     return {
       _not_configured: true,
       reason: "dockerode_import_failed",
+      category: "not_configured",
       detail: "dockerode module loaded but Docker instance is null",
       remediation: "Reinstall apps/api dependencies.",
     };
@@ -325,6 +335,7 @@ export async function runCodeSandbox(
     return {
       _not_configured: true,
       reason: "docker_daemon_unreachable",
+      category: "not_configured",
       detail: err instanceof Error ? err.message : String(err),
       remediation:
         "iliad_code_sandbox requires a reachable Docker daemon. On dev: start Docker Desktop. On prod (e.g. Render standard services): /var/run/docker.sock is not exposed — move the API to a Render Private Service running docker-in-docker or a self-hosted runner that mounts the daemon socket.",
@@ -347,6 +358,7 @@ export async function runCodeSandbox(
     return {
       _not_configured: true,
       reason: "sandbox_busy",
+      category: "capacity",
       detail: `Too many concurrent sandbox runs (limit ${SANDBOX_MAX_CONCURRENT}).`,
       remediation: "Retry shortly, or raise AXIS_SANDBOX_MAX_CONCURRENT.",
     };

@@ -59,6 +59,14 @@ export interface NotConfiguredResult {
     | "parse_failed"
     | "pdf_runtime_missing"
     | "docx_runtime_missing";
+  /**
+   * Distinguishes an operator-configuration gap ("the PDF/DOCX runtime isn't available
+   * here") from a problem with the caller's own document_url/document_base64 ("this
+   * document/URL didn't work"), so a caller can tell whether retrying with different input
+   * could help (H-Phase-A cycle 16 — does not change billing: every `_not_configured`
+   * envelope skips capture regardless of category).
+   */
+  category: "not_configured" | "bad_input";
   detail: string;
   remediation: string;
   format_detected?: DetectedFormat;
@@ -391,6 +399,7 @@ export async function runDocumentParsing(
       return {
         _not_configured: true,
         reason: "document_download_failed",
+        category: "bad_input",
         detail: err instanceof Error ? err.message : String(err),
         remediation:
           `document_url must return a 200 response with document bytes under ${maxDocBytes / 1_048_576} MiB within 60 seconds.`,
@@ -403,6 +412,7 @@ export async function runDocumentParsing(
       return {
         _not_configured: true,
         reason: "document_decode_failed",
+        category: "bad_input",
         detail: err instanceof Error ? err.message : String(err),
         remediation: `document_base64 must be a valid base64-encoded payload under ${maxDocBytes / 1_048_576} MiB decoded.`,
       };
@@ -414,6 +424,7 @@ export async function runDocumentParsing(
     return {
       _not_configured: true,
       reason: "unsupported_format",
+      category: "bad_input",
       detail: "Document is not recognized as PDF, DOCX, HTML, Markdown, or plain text",
       remediation:
         "Pass `mime_type` explicitly (e.g. 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/html') or provide a URL with a recognized file extension.",
@@ -474,6 +485,7 @@ export async function runDocumentParsing(
       return {
         _not_configured: true,
         reason: "pdf_runtime_missing",
+        category: "not_configured",
         detail: msg.slice("pdf_runtime_missing: ".length),
         remediation:
           "pdfjs-dist failed to load. Reinstall apps/api dependencies — the package is part of the standard apps/api install.",
@@ -484,6 +496,7 @@ export async function runDocumentParsing(
       return {
         _not_configured: true,
         reason: "docx_runtime_missing",
+        category: "not_configured",
         detail: msg.slice("docx_runtime_missing: ".length),
         remediation: "mammoth failed to load. Reinstall apps/api dependencies.",
         format_detected: format,
@@ -492,6 +505,7 @@ export async function runDocumentParsing(
     return {
       _not_configured: true,
       reason: "parse_failed",
+      category: "bad_input",
       detail: msg.slice(0, 800),
       remediation:
         "The parser ran but the document was malformed or unsupported by the upstream library. " +
