@@ -105,12 +105,12 @@ export function AdminPage() {
           </h2>
           <div className="grid grid-3">
             <div>
-              <div className="stat-label">Settled MRR (live)</div>
-              <div>${(revenue.revenue.settled_mrr_cents / 100).toLocaleString()}/mo</div>
+              <div className="stat-label">Settled revenue (30d)</div>
+              <div>${(revenue.revenue.settled_mrr_cents / 100).toLocaleString()}</div>
             </div>
             <div>
-              <div className="stat-label">Estimated MRR</div>
-              <div>${(revenue.revenue.estimated_mrr_cents / 100).toLocaleString()}/mo</div>
+              <div className="stat-label">Estimated monthly revenue</div>
+              <div>${(revenue.revenue.estimated_mrr_cents / 100).toLocaleString()}</div>
             </div>
             <div>
               <div className="stat-label">Settled revenue (all-time)</div>
@@ -142,13 +142,18 @@ export function AdminPage() {
             </div>
           </div>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 8 }}>
-            "Settled MRR (live)" and "Settled revenue (all-time)" are derived from actual settled
-            payments (metered overage collection + card/USDC receipts) — a true $0 until the first
-            dollar settles, then it rises on its own
+            Neither figure is predictable recurring revenue in the traditional SaaS-metric sense —
+            PAI'D (the only live checkout rail) is one-time-charge only, so a paying account is not
+            billed again next month unless they manually repurchase. "Settled revenue (30d)" and
+            "Settled revenue (all-time)" are derived from actual settled payments (metered overage
+            collection + card/USDC receipts) — a true $0 until the first dollar settles, then it
+            rises on its own
             {revenue.revenue.first_paid_call_at ? ` (first settled: ${new Date(revenue.revenue.first_paid_call_at).toLocaleDateString()})` : ""}.
-            "Estimated MRR" is a separate, transparent plan-count estimate (starter×$
+            "Estimated monthly revenue" is a separate, transparent snapshot — today's paid-tier
+            count × each plan's one-time price (starter×$
             {revenue.revenue.mrr_basis_cents.starter / 100} + pro×${revenue.revenue.mrr_basis_cents.pro / 100} + suite×$
-            {revenue.revenue.mrr_basis_cents.suite / 100}) — never conflate the two.
+            {revenue.revenue.mrr_basis_cents.suite / 100}) — not a forecast of next month's collections. Never
+            conflate the two.
           </p>
         </div>
       )}

@@ -111,6 +111,32 @@ describe("AdminPage — empty-state guards + TableWrap (H5.1b(f))", () => {
   });
 });
 
+// H-Phase-A cycle 10: "Settled MRR (live)"/"Estimated MRR", both rendered as
+// "$X/mo", asserted a predictable RECURRING revenue stream that doesn't
+// exist — PAI'D (the only live checkout rail) is one-time-charge only, so
+// no paying account is ever billed again without manually repurchasing.
+// Relabeled away from "MRR" entirely and made the disclaimer say so
+// explicitly, rather than only explaining the arithmetic.
+describe("AdminPage — honest revenue labeling (not fabricated recurring revenue)", () => {
+  it("does not call either revenue figure MRR, and discloses PAI'D has no recurring billing", async () => {
+    const responses = emptyAdminResponses();
+    const revenue = responses["/v1/admin/revenue"] as Record<string, unknown>;
+    revenue.revenue = {
+      ...(revenue.revenue as Record<string, unknown>),
+      estimated_mrr_cents: 9900, settled_mrr_cents: 5000,
+      mrr_basis_cents: { starter: 2900, pro: 9900, suite: 29900 },
+    };
+    stubAdminFetch(responses);
+    render(<AdminPage />);
+
+    await waitFor(() => expect(screen.getByText("Settled revenue (30d)")).toBeTruthy());
+    expect(screen.getByText("Estimated monthly revenue")).toBeTruthy();
+    expect(screen.queryByText(/MRR/)).toBeNull();
+    expect(screen.getByText(/PAI'D.*one-time-charge only/)).toBeTruthy();
+    expect(screen.getByText(/not a forecast of next month's collections/)).toBeTruthy();
+  });
+});
+
 // H-Phase-A cycle 8: loadAdminData is triggered both on mount AND by the
 // Refresh button, sharing the exact dual-trigger shape MyAnalyticsPage.tsx's
 // load() had (cycle 6) before its requestId guard — with no guard here, an
