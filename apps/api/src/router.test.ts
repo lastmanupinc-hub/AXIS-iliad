@@ -4,6 +4,7 @@ import { resetTestDb } from "@axis/snapshots";
 import { Router, sendJSON, sendError, readBody } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { resetRateLimits } from "./rate-limiter.js";
+import { getMetricsSnapshot } from "./metrics.js";
 import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
@@ -304,6 +305,23 @@ describe("Router — middleware pipeline (security + CORS + request-id)", () => 
     const res = await req("OPTIONS", "/echo");
     expect(res.status).toBe(204);
     expect(res.headers["access-control-allow-origin"]).toBe("*");
+  });
+
+  it("OPTIONS preflights are still counted in request metrics (H-Phase-A cycle 11)", async () => {
+    // The "finish" listener that drives recordRequest used to be registered
+    // AFTER the OPTIONS early-return — an OPTIONS response's res.end() had
+    // already fired before that listener ever attached, so it silently never
+    // incremented statusCounts. Moved the registration ahead of every early
+    // return; assert the delta, not an absolute count, since these counters
+    // are module-level cumulative across the whole suite.
+    const before = getMetricsSnapshot();
+    const res = await req("OPTIONS", "/echo");
+    expect(res.status).toBe(204);
+    // Yield past the microtask the "finish" listener's IIFE runs on.
+    await new Promise((resolve) => setImmediate(resolve));
+    const after = getMetricsSnapshot();
+    expect(after.requestCount).toBe(before.requestCount + 1);
+    expect(after.statusCounts["2xx"] ?? 0).toBe((before.statusCounts["2xx"] ?? 0) + 1);
   });
 
   it("rate limit headers present", async () => {

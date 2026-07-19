@@ -307,6 +307,58 @@ export function createApp(router: Router, port: number): Server {
     const requestId = initRequest(res);
     res.setHeader("X-Request-Id", requestId);
 
+    // H-Phase-A cycle 11: `auth` is only resolved further down (after the
+    // OPTIONS/rate-limit/MCP-method early-returns below), but the "finish"
+    // listener that drives recordRequest/recordLatency/the access-log line
+    // must be registered BEFORE any of those early returns can fire — a
+    // response that already called res.end() never reaches a listener
+    // registered afterward, so OPTIONS preflights, 429s, and 405s were
+    // invisible to both metrics and the access log. `let` + a null default
+    // lets the listener close over whatever `auth` ends up being (still
+    // null for an early-returned request) without a TDZ crash.
+    let auth: Awaited<ReturnType<typeof resolveAuth>> | null = null;
+    // Log after response completes
+    /* v8 ignore start — V8 quirk: finish callback ternaries for duration/status/level */
+    // `.on()` listeners are typed to return void; wrapping the async body in
+    // an IIFE (invoked via `void ...catch(...)`) keeps this a sync callback
+    // instead of handing EventEmitter a Promise it never awaits.
+    res.on("finish", () => {
+      void (async () => {
+        const start = getRequestStart(res);
+        const duration = start ? Date.now() - start : undefined;
+        const status = res.statusCode ?? 200;
+        recordRequest(status);
+        if (duration !== undefined && req.method && req.url) {
+          recordLatency(req.method, req.url, duration);
+        }
+        if (auth?.account && req.method && req.url) {
+          // Persist per-account endpoint usage for MyAnalytics recommendations.
+          try {
+            await recordApiCall(auth.account.account_id, req.method, req.url, status);
+          } catch {
+            // Never fail request handling due to analytics write errors.
+          }
+        }
+        // Suppress health/liveness/readiness probes from info logs — only log on error
+        const path = req.url ?? "";
+        const isProbe = path === "/v1/health" || path === "/v1/health/live" || path === "/v1/health/ready";
+        const level = status >= 500 ? "error" as const
+          : status >= 400 ? "warn" as const
+          : "info" as const;
+        if (isProbe && level === "info") return;
+        log(level, "request", {
+          request_id: requestId,
+          method: req.method,
+          path: req.url,
+          status: res.statusCode,
+          duration_ms: duration,
+        });
+      })().catch((err: unknown) => {
+        log("error", "finish_handler_crashed", { error: err instanceof Error ? err.message : String(err) });
+      });
+    });
+    /* v8 ignore stop */
+
     // Security headers (OWASP)
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
@@ -337,7 +389,7 @@ export function createApp(router: Router, port: number): Server {
     }
 
     // Rate limiting (before route handling — auth-aware)
-    const auth = await resolveAuth(req);
+    auth = await resolveAuth(req);
     if (!checkRateLimit(req, res, { authenticated: !auth.anonymous && auth.account !== null })) return;
 
     // Axis agent headers — quota and tier info injected on every authenticated response
@@ -366,48 +418,6 @@ export function createApp(router: Router, port: number): Server {
       res.end();
       return;
     }
-
-    // Log after response completes
-    /* v8 ignore start — V8 quirk: finish callback ternaries for duration/status/level */
-    // `.on()` listeners are typed to return void; wrapping the async body in
-    // an IIFE (invoked via `void ...catch(...)`) keeps this a sync callback
-    // instead of handing EventEmitter a Promise it never awaits.
-    res.on("finish", () => {
-      void (async () => {
-        const start = getRequestStart(res);
-        const duration = start ? Date.now() - start : undefined;
-        const status = res.statusCode ?? 200;
-        recordRequest(status);
-        if (duration !== undefined && req.method && req.url) {
-          recordLatency(req.method, req.url, duration);
-        }
-        if (auth.account && req.method && req.url) {
-          // Persist per-account endpoint usage for MyAnalytics recommendations.
-          try {
-            await recordApiCall(auth.account.account_id, req.method, req.url, status);
-          } catch {
-            // Never fail request handling due to analytics write errors.
-          }
-        }
-        // Suppress health/liveness/readiness probes from info logs — only log on error
-        const path = req.url ?? "";
-        const isProbe = path === "/v1/health" || path === "/v1/health/live" || path === "/v1/health/ready";
-        const level = status >= 500 ? "error" as const
-          : status >= 400 ? "warn" as const
-          : "info" as const;
-        if (isProbe && level === "info") return;
-        log(level, "request", {
-          request_id: requestId,
-          method: req.method,
-          path: req.url,
-          status: res.statusCode,
-          duration_ms: duration,
-        });
-      })().catch((err: unknown) => {
-        log("error", "finish_handler_crashed", { error: err instanceof Error ? err.message : String(err) });
-      });
-    });
-    /* v8 ignore stop */
 
     // Cache-Control for static/semi-static GET endpoints
     if (req.method === "GET" || req.method === "HEAD") {
