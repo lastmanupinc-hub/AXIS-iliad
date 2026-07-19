@@ -599,11 +599,17 @@ export async function handleCreateSnapshot(
         const programFiles = generated.files.filter(f => f.program === program);
         await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
       }
-      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+      // H-Phase-A cycle 15: analytics-only, must never sit inside this try
+      // block unguarded — the snapshot is already saved and "ready" above, so
+      // an unguarded throw here would fall to the catch below, flip the
+      // ALREADY-successful snapshot's status back to "failed", and 500 a
+      // caller whose work genuinely succeeded. Same fix already applied to
+      // this handler's MCP-tool twin (mcp-tool-impls.ts's analyze_files).
+      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         files: files.length,
-      });
+      }).catch(() => {});
     }
 
     sendJSON(res, 201, {
@@ -1111,12 +1117,15 @@ export async function handleGitHubAnalyze(
         const programFiles = generated.files.filter(f => f.program === program);
         await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
       }
-      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+      // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
+      // risk as handleCreateSnapshot above — must never sit unguarded between
+      // an already-"ready" snapshot and the response.
+      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         source: "github",
         github_url: githubUrl,
-      });
+      }).catch(() => {});
     }
 
     sendJSON(res, 201, {
@@ -1733,12 +1742,14 @@ export async function handleAnalyze(
         const programFiles = generated.files.filter(f => f.program === program);
         await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
       }
-      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+      // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
+      // risk as handleCreateSnapshot above.
+      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         source: "analyze",
         ...(githubUrl ? { github_url: githubUrl } : {}),
-      });
+      }).catch(() => {});
     }
 
     const enrichedFiles = generated.files
@@ -2115,20 +2126,31 @@ export async function handlePreparePurchasing(
         const pFiles = generated.files.filter(f => f.program === program);
         await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
       }
-      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+      // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
+      // risk as handleCreateSnapshot above.
+      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         source: "prepare_agentic_purchasing",
         focus: typeof focus === "string" ? focus : "purchasing",
         ...(typeof agent_type === "string" ? { agent_type } : {}),
-      });
+      }).catch(() => {});
 
-      // â”€â”€ Referral tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      if (typeof referral_token === "string" && referral_token.length > 0) {
-        const referral = await lookupReferralCode(referral_token as string);
-        if (referral && referral.account_id !== auth.account.account_id) {
-          await recordReferralConversion(referral.account_id, auth.account.account_id);
+      // Referral tracking. H-Phase-A cycle 15: wrapped best-effort, same
+      // reasoning as trackEvent above — the second call depends on the
+      // first's result, so this is a try/catch rather than two independent
+      // void calls. Matches the fix already applied to this handler's
+      // MCP-tool twin (mcp-tool-impls.ts's prepare_agentic_purchasing).
+      try {
+        if (typeof referral_token === "string" && referral_token.length > 0) {
+          const referral = await lookupReferralCode(referral_token as string);
+          if (referral && referral.account_id !== auth.account.account_id) {
+            await recordReferralConversion(referral.account_id, auth.account.account_id);
+          }
         }
+      } catch {
+        // best-effort — must never block the caller's already-fully-generated
+        // result or corrupt the already-"ready" snapshot's status.
       }
     }
 
@@ -2358,7 +2380,13 @@ export async function handleWellKnown(
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
       purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0â€“100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence requirements + SCA exemption paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
-      mcp_discovery: `GET /mcp (Streamable HTTP transport, 2025-03-26 spec). ${MCP_TOOL_COUNT} tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits.`,
+      // H-Phase-A cycle 15: a 10th hand-typed-catalog-drift recurrence — this
+      // name list was frozen from a 12-tool era and never grew with the real
+      // catalog (25 of the real 37 tools were invisible here), while
+      // handleCapabilities' own `tools` field 100+ lines below already
+      // derives from deriveMcpToolCatalog(). Same source now, so this can't
+      // independently drift again.
+      mcp_discovery: `GET /mcp (Streamable HTTP transport, 2025-03-26 spec). ${MCP_TOOL_COUNT} tools including ${deriveMcpToolCatalog().slice(0, 12).map((t) => t.name).join(", ")}, and more.`,
       search_tools: `GET /v1/mcp/tools?q=<keyword>  -  search all ${PROGRAM_COUNT} programs and ${ARTIFACT_COUNT} generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.`,
       intent_probe: "POST /probe-intent  -  lightweight intent matching. Send {intent: 'your need'} and get ranked AXIS tool recommendations. Free, no auth, no API key needed.",
       registry_metadata: "GET /v1/mcp/server.json  -  MCP registry metadata for mcp-publisher CLI and registry crawlers (Glama.ai, Smithery.ai).",
@@ -3967,7 +3995,11 @@ interface FirecrawlCrawlResponse {
 /**
  * POST /v1/research/scrape â€” Proxy to Firecrawl /scrape endpoint
  * Scrapes a single URL and returns markdown + structured data
- * Pricing: 1.5 credits per page (~$0.0018)
+ * Pricing: iliad_web_research's real tier (packages/mpp/src/index.ts's
+ * PRICING_TIERS) — $0.10/page standard, $0.05/page lite, $0 on a 24h cache
+ * hit. H-Phase-A cycle 15: this comment previously said "1.5 credits per
+ * page (~$0.0018)", a stale figure from an earlier credits-based pricing
+ * model superseded by the cents-based getPricingTier() charge below.
  */
 export async function handleFirecrawlScrape(
   req: IncomingMessage,

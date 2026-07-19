@@ -7,6 +7,7 @@ import { createServer, type Server } from "node:http";
 import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
+import { MCP_TOOLS } from "./mcp-tools.js";
 import {
   handleAnalyze,
   handleWellKnown,
@@ -568,5 +569,20 @@ describe("GET /.well-known/axis.json", () => {
     expect(fa.mcp_discovery).toContain("GET /mcp");
     expect(fa.purchasing).toContain("/v1/prepare-for-agentic-purchasing");
     expect(fa.note).toBeTruthy();
+  });
+
+  // H-Phase-A cycle 15: mcp_discovery's example tool names used to be a
+  // hand-typed list frozen from a 12-tool era (a 10th hand-typed-catalog-drift
+  // recurrence) — every name it mentions must now be a REAL, current tool
+  // (derived from MCP_TOOLS), not a stale/removed one.
+  it("mcp_discovery's example tool names are all real, current MCP tools", () => {
+    const fa = manifest.for_agents as Record<string, string>;
+    const realNames = new Set(MCP_TOOLS.map((t) => t.name));
+    const mentioned = fa.mcp_discovery.match(/\b[a-z][a-z0-9_]*\b/g) ?? [];
+    const mentionedToolLike = mentioned.filter((w) => realNames.has(w) || w.includes("_"));
+    expect(mentionedToolLike.length).toBeGreaterThan(0);
+    for (const name of mentionedToolLike) {
+      expect(realNames.has(name), `mcp_discovery mentions "${name}", not a real current MCP tool name`).toBe(true);
+    }
   });
 });
