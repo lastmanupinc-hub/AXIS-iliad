@@ -31,12 +31,12 @@ export function UpsellModal({ blocked, allowed, onGoFree, onClose, pricing, mode
   const contentRef = useRef<HTMLDivElement>(null);
   const titleId = "upsell-modal-title";
 
-  // Dialog semantics: nothing here traps focus, closes on Escape, or
-  // restores focus to the trigger on close — a keyboard user could Tab
-  // straight out into the page behind the (still-visible) overlay. Focus
-  // moves to the dialog container itself (not a specific button) so the
-  // first real Tab press lands on a real control, not an accidental Enter
-  // on whatever happened to be focused first.
+  // Dialog semantics (H-Phase-A cycle 16: comment corrected — it previously
+  // claimed the opposite of what this effect does): Escape closes the dialog,
+  // Tab/Shift+Tab is trapped within it, and closing restores focus to whatever
+  // was focused before the dialog opened. Focus moves to the dialog container
+  // itself (not a specific button) so the first real Tab press lands on a real
+  // control, not an accidental Enter on whatever happened to be focused first.
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     contentRef.current?.focus();

@@ -132,8 +132,8 @@ export function SearchTab({ snapshotId }: Props) {
         <div className="flex" style={{ gap: 8 }}>
           {stats && (
             <span className="badge" style={{ fontSize: "0.75rem" }}>
-              {stats.files} files Â· {stats.lines.toLocaleString()} lines
-              {stats.symbols > 0 ? ` Â· ${stats.symbols.toLocaleString()} symbols` : ""}
+              {stats.files} files · {stats.lines.toLocaleString()} lines
+              {stats.symbols > 0 ? ` · ${stats.symbols.toLocaleString()} symbols` : ""}
             </span>
           )}
           <button
@@ -158,7 +158,7 @@ export function SearchTab({ snapshotId }: Props) {
           placeholder={
             mode === "text"
               ? "Search files by content (full-text search)..."
-              : "Symbol name prefix (e.g. handle, Userâ€¦)"
+              : "Symbol name prefix (e.g. handle, User…)"
           }
           style={{
             flex: 1,

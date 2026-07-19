@@ -66,3 +66,22 @@ describe("SearchTab — result rows can shrink/truncate instead of overflowing (
     expect(location.style.flexShrink).toBe("0");
   });
 });
+
+describe("SearchTab — no mojibake in user-visible text (H-Phase-A cycle 16)", () => {
+  it("symbol mode's placeholder uses a real ellipsis character, not a double-encoded artifact", () => {
+    render(<SearchTab snapshotId="snap1" />);
+    fireEvent.click(screen.getByRole("button", { name: "Symbols" }));
+    const input = screen.getByPlaceholderText(/Symbol name prefix/);
+    expect(input.getAttribute("placeholder")).toContain("…");
+    expect(input.getAttribute("placeholder")).not.toContain("â€¦");
+  });
+
+  it("the indexed-stats badge uses a real middle dot, not a double-encoded artifact", async () => {
+    stubSearchFetch({ snapshot_id: "snap1", indexed_files: 5, indexed_lines: 100, indexed_symbols: 12 });
+    render(<SearchTab snapshotId="snap1" />);
+    fireEvent.click(screen.getByRole("button", { name: /Index Files/ }));
+    const badge = await waitFor(() => screen.getByText(/files ·/));
+    expect(badge.textContent).toContain("·");
+    expect(badge.textContent).not.toContain("Â·");
+  });
+});
