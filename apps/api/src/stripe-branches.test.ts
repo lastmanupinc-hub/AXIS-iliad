@@ -1,7 +1,9 @@
 /**
  * eq_171: Stripe handler branch coverage — targets all branches
- * in stripe.ts (handleCreateCheckout, handleCancelSubscription,
- * syncTierFromStripeSubscription, verifyStripeSignature edge cases).
+ * in stripe.ts (handleCancelSubscription, syncTierFromStripeSubscription,
+ * verifyStripeSignature edge cases). handleCreateCheckout was removed in
+ * H-Phase-A cycle 11 — see the "handleCreateCheckout branches" comment
+ * below for where its describe block used to live.
  * Uses vi.stubGlobal('fetch') to mock Stripe API responses.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, afterEach } from "vitest";

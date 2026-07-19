@@ -206,10 +206,12 @@ async function syncTierFromStripeSubscription(
   // Starter/Pro both collapse into newTier==='paid' — persist the specific
   // plan so resolvePlanForAccount can tell them apart, same as the PAI'D
   // checkout webhook (H-Phase-A cycle 1). This path predates PAI'D and the
-  // live web UI never reaches it (PAI'D is the only checkout it calls), but
-  // it's still a live, tested route (POST /v1/checkout + this webhook) any
-  // direct API caller or pre-PAI'D legacy subscriber can hit — without this,
-  // an account tier-synced here would silently fall back to Starter's
+  // live web UI never reaches it (PAI'D is the only checkout it calls); the
+  // Stripe-direct checkout route that used to feed it was removed entirely
+  // in cycle 11 (see STRIPE_CHANGES_REQUIRED.md's retirement notice), but
+  // this webhook itself is still live and still reachable by any
+  // pre-existing, pre-PAI'D legacy subscriber's lifecycle events — without
+  // this, an account tier-synced here would silently fall back to Starter's
   // allowance even if actually paying Pro.
   await updateAccountPaidPlanId(accountId, newTier === "free" ? null : priceToPlanId(priceId));
   await trackEvent(

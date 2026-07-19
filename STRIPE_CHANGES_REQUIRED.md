@@ -1,22 +1,40 @@
 # Stripe Changes Required (Exact)
 
-> **RETIRED — Section 1 ("Strategy-Faithful Migration Checklist") and Section
-> 1's "Stripe Dashboard: Create/Verify Prices" no longer apply (H-Phase-A
-> cycle 11, 2026-07-19).** `POST /v1/checkout` — the Stripe-direct,
-> subscription-mode checkout endpoint these sections instruct you to
-> activate — has been **removed from the code entirely**, not merely left
-> unconfigured. PAI'D is this platform's only checkout path (see
-> `HARDEN_POLISH_LOOP.md` rule 7); the endpoint had been left live and
-> functional, gated only by whether `STRIPE_PRICE_ID_*` env vars happened to
-> be unset in prod — meaning following the steps below as written would have
-> silently reactivated real recurring Stripe billing, contradicting every
-> "$99 once, not a subscription" claim this codebase makes elsewhere. **Do
-> not set the `STRIPE_PRICE_ID_*` env vars this doc lists, and do not expect
-> `POST /v1/checkout` to exist.** Section 2 (webhook endpoint), Section 3
-> (API key scope), and Section 1.1/4.1 (Firecrawl/MPP resold tools) remain
-> accurate and are kept below — the webhook still processes lifecycle events
-> for any pre-existing, pre-PAI'D legacy subscriptions, and `STRIPE_SECRET_KEY`
-> is still required for MPP/x402 charging.
+> **RETIRED — the checkout-CREATION flow is gone; price-id env vars are
+> still live for a different reason (H-Phase-A cycle 11-12, 2026-07-19).**
+> `POST /v1/checkout` — the Stripe-direct, subscription-mode checkout
+> endpoint most of this document instructs you to activate — has been
+> **removed from the code entirely**, not merely left unconfigured. PAI'D
+> is this platform's only checkout path (see `HARDEN_POLISH_LOOP.md` rule
+> 7); the endpoint had been left live and functional, gated only by whether
+> `STRIPE_PRICE_ID_*` env vars happened to be unset in prod — meaning
+> following the steps below as written would have silently reactivated real
+> recurring Stripe billing, contradicting every "$99 once, not a
+> subscription" claim this codebase makes elsewhere.
+>
+> **Retired in full** (all describe building or configuring the now-deleted
+> route): the entire "Strategy-Faithful Migration Checklist (Blended Credit
+> Model)" section directly below — it's an even older draft of the same
+> checkout flow, predating and superseded by "## 1) Stripe Dashboard:
+> Create/Verify Prices" (also retired) — plus "## 5) Redirect URLs Used by
+> Checkout" (cites `resolveCheckoutBaseUrl`, deleted in the same commit as
+> the route) and steps 2-5 of "## 6) Quick Validation Steps".
+>
+> **Still accurate:** "## 1.1", "## 2" (webhook), "## 4"'s non-price-id
+> vars, and "## 3" minus its "create checkout session" bullet.
+>
+> **The one real nuance — do not blanket-unset `STRIPE_PRICE_ID_*`.** These
+> vars can no longer gate or restore `POST /v1/checkout` (that code path
+> doesn't exist to gate anymore), but `resolveCheckoutPriceId` /
+> `resolvePlanNameFromPriceId` (`apps/api/src/stripe.ts`) still read them on
+> every `checkout.session.completed` / `customer.subscription.*` webhook
+> delivery, to map a pre-existing, pre-PAI'D legacy subscriber's Stripe
+> price id back to a tier. Unset these and that reverse lookup silently
+> returns null for a real legacy subscriber on their next lifecycle event,
+> misattributing their tier. Only the ability to CREATE a new
+> Stripe-direct subscription is gone — the ability to correctly interpret
+> an EXISTING one's webhook events still depends on these exact vars, so
+> keep them set if any legacy subscriber remains active.
 
 This runbook lists exactly what must be configured in Stripe and in deployment env vars for this repository.
 
@@ -25,6 +43,13 @@ It now includes both billing surfaces:
 - Per-call resold tools via x402/MPP (including new Firecrawl tools)
 
 ## Strategy-Faithful Migration Checklist (Blended Credit Model)
+
+> **Retired in full — see the notice at the top of this file.** This whole
+> section describes building the now-deleted checkout-creation flow; the
+> credit/tier numbers below are still accurate as pricing facts (they're
+> the live `pricing-constants.ts` values) but the checklist framing (as if
+> this needs building) is stale — the blended credit model is already
+> built and live, independent of checkout.
 
 Use this checklist to align Stripe with the pricing strategy:
 - Free: $0 / 10,000 monthly credits
@@ -188,7 +213,7 @@ After creating webhook endpoint:
 Set `STRIPE_SECRET_KEY` to a valid secret key (`sk_live_...` in production).
 
 The current code uses Stripe API directly for:
-- Create checkout session: `POST https://api.stripe.com/v1/checkout/sessions`
+- ~~Create checkout session: `POST https://api.stripe.com/v1/checkout/sessions`~~ — retired, see notice at top of file
 - Cancel subscription at period end: `POST https://api.stripe.com/v1/subscriptions/{id}`
 
 And also uses Stripe through x402/MPP runtime for per-call tool charges:
@@ -204,17 +229,15 @@ Code reference:
 Set these in Render service env vars:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_ID_STARTER`
-- `STRIPE_PRICE_ID_STARTER_ANNUAL`
-- `STRIPE_PRICE_ID_PRO`
-- `STRIPE_PRICE_ID_PRO_ANNUAL`
-- `STRIPE_PRICE_ID_GROWTH`
-- `STRIPE_PRICE_ID_GROWTH_ANNUAL`
-- optional legacy aliases for older deployments:
-	- `STRIPE_PRICE_ID_PAID`
-	- `STRIPE_PRICE_ID_PAID_ANNUAL`
-	- `STRIPE_PRICE_ID_SUITE`
-- `AXIS_WEB_URL` (already used for checkout success/cancel redirects)
+- `STRIPE_PRICE_ID_STARTER` / `STRIPE_PRICE_ID_STARTER_ANNUAL` / `STRIPE_PRICE_ID_PRO` /
+  `STRIPE_PRICE_ID_PRO_ANNUAL` / `STRIPE_PRICE_ID_GROWTH` / `STRIPE_PRICE_ID_GROWTH_ANNUAL`
+  (+ optional legacy aliases `STRIPE_PRICE_ID_PAID` / `STRIPE_PRICE_ID_PAID_ANNUAL` /
+  `STRIPE_PRICE_ID_SUITE`) — **not for checkout creation (that route is gone); keep these
+  set only so the webhook's legacy-subscriber tier lookup keeps working, see notice at
+  top of file**
+- `AXIS_WEB_URL` (not used by anything in `stripe.ts` anymore; still required by PAI'D's
+  own checkout redirect and OAuth — `apps/api/src/paid-handlers.ts`,
+  `apps/api/src/credit-pack-handlers.ts`, `apps/api/src/oauth.ts`)
 - `MPP_SECRET_KEY` (strongly recommended for stable x402 challenge signing across restarts)
 
 Current state note:
@@ -241,30 +264,30 @@ Expected behavior:
 
 ## 5) Redirect URLs Used by Checkout
 
-The checkout session currently uses:
-- success URL: `${AXIS_WEB_URL}/#account` (or CORS_ORIGIN fallback)
-- cancel URL: `${AXIS_WEB_URL}/#plans`
-
-Code reference:
-- `resolveCheckoutBaseUrl` + URL assembly in `apps/api/src/stripe.ts`
+> **Retired — see notice at top of file.** `resolveCheckoutBaseUrl` (the function
+> this section pointed to) was deleted in the same commit that removed
+> `POST /v1/checkout`. PAI'D's own checkout redirect (a separate, still-live code
+> path) is configured independently — see `AXIS_WEB_URL` in Section 4 above.
 
 ## 6) Quick Validation Steps
 
 1. Create account and API key:
 - `POST /v1/accounts`
 
-2. Start checkout:
-- `POST /v1/checkout` with body `{ "plan_id": "starter" }`
-- Expect `201` + `checkout_url`
+2. ~~Start checkout: `POST /v1/checkout` with body `{ "plan_id": "starter" }` —
+   expect `201` + `checkout_url`~~ — retired, route no longer exists
 
-3. Repeat with `plan_id: pro` and `plan_id: growth` to validate all plan/cycle combinations.
+3. ~~Repeat with `plan_id: pro` and `plan_id: growth` to validate all plan/cycle
+   combinations.~~ — retired, same reason
 
-4. Complete Stripe checkout in browser.
+4. ~~Complete Stripe checkout in browser.~~ — retired, same reason
 
-5. Verify webhook delivery in Stripe dashboard:
+5. Verify webhook delivery in Stripe dashboard (only reachable today via a
+   pre-existing, pre-PAI'D legacy subscription's own lifecycle events — nothing
+   in this codebase creates a new `checkout.session.completed` event anymore):
 - Endpoint should receive `checkout.session.completed` and `customer.subscription.*`
 
-6. Verify subscription API:
+6. Verify subscription API (legacy subscribers only):
 - `GET /v1/account/subscription` should show active subscription
 
 7. Verify new resold tool charges:
