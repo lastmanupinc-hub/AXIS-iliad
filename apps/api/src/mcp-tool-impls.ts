@@ -38,16 +38,12 @@ import {
 } from "./code-sandbox.js";
 import {
   tokenizationCapabilities,
-  readStripeNetworkToken,
-  provisionNetworkToken,
-  isNetworkTokenNotConfigured,
   newLifecycle,
   transition,
   applyTokenEvent,
   TOKEN_EVENTS,
   type TokenEvent,
   type TokenLifecycle,
-  type TokenProvider,
 } from "./network-token.js";
 import {
   runTranscription,
@@ -808,17 +804,20 @@ export async function runLlmInference(args: Record<string, unknown>, req: Incomi
 
 // ─── iliad_network_tokenization (WO-14 — owned capability, free) ─
 //
-// Exposes the network-token module: `read` (live Stripe network-token read
-// adapter), `provision` (stripe delegates to read; vts/mdes capability-gated),
-// `lifecycle` (pure executable state machine), `capabilities` (config probe).
-// Auth-required but UNMETERED: the lifecycle machine is pure compute and the
-// Stripe read is a single lightweight API call — not listed in MeteredMcpTool,
-// so decideInbandGate resolves it not_in_scope by design.
+// Exposes the network-token module: `lifecycle` (pure executable state
+// machine) and `capabilities` (config probe) are live. `read`/`provision`
+// (the Stripe network-token read adapter, and stripe/vts/mdes provisioning)
+// are DISABLED as of H-Phase-A cycle 10 — see the SECURITY comment on
+// runNetworkTokenization below: both took a caller-supplied id with no
+// check it belongs to the calling account. Auth-required but UNMETERED:
+// the lifecycle machine is pure compute — not listed in MeteredMcpTool, so
+// decideInbandGate resolves it not_in_scope by design.
 
 const NETWORK_TOKENIZATION_HONESTY =
-  "Stripe read adapter is live (is_network_token is true only when Stripe reports a provisioned network token — a bare card PaymentMethod is false). " +
-  "Direct VTS/MDES provisioning is capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID) " +
-  "plus network onboarding, and returns a structured _not_configured envelope until then — it never fakes a token.";
+  "The underlying Stripe read adapter is fully implemented (is_network_token is true only when Stripe reports a provisioned network token — a bare card PaymentMethod is false), " +
+  "but this tool's read/provision operations are currently DISABLED pending an account<->payment-method ownership check (H-Phase-A cycle 10) — calling either always returns _not_configured. " +
+  "Direct VTS/MDES provisioning is additionally capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID) " +
+  "plus network onboarding — it never fakes a token.";
 
 function isTokenEvent(v: unknown): v is TokenEvent {
   return typeof v === "string" && (TOKEN_EVENTS as readonly string[]).includes(v);
@@ -877,54 +876,39 @@ export async function runNetworkTokenization(args: Record<string, unknown>, req:
     }, null, 2);
   }
 
-  if (operation === "read") {
-    if (!caps.stripe) {
-      // Structured envelope mirrors runLlmInference: agents branch on
-      // `_not_configured === true` without parsing free text.
-      return JSON.stringify({
-        _not_configured: true,
-        tool: "iliad_network_tokenization",
-        provider_checked: "stripe" as const,
-        reason: "No tokenization provider is configured (STRIPE_SECRET_KEY is unset — the live read path is the Stripe adapter).",
-        remediation:
-          "Operator must set STRIPE_SECRET_KEY for the live Stripe network-token read adapter. " +
-          "Direct VTS/MDES additionally require AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID (network-issued Token Requestor IDs).",
-        capabilities: caps,
-      }, null, 2);
-    }
-    if (typeof args.payment_method_id !== "string" || args.payment_method_id.trim().length === 0) {
-      throw new Error("iliad_network_tokenization: read requires `payment_method_id` (a Stripe pm_… id).");
-    }
-    const result = await readStripeNetworkToken(args.payment_method_id);
-    if (isNetworkTokenNotConfigured(result)) {
-      return JSON.stringify({ ...result, tool: "iliad_network_tokenization" }, null, 2);
-    }
+  // H-Phase-A cycle 10 [SECURITY]: `read`/`provision` took a caller-supplied
+  // payment_method_id/pan_source and resolved it via the platform's OWN
+  // STRIPE_SECRET_KEY with NO check that it belongs to `auth.account` —
+  // unlike disputes.ts's handleAssembleRepresentment (which checks
+  // `stored.accountId !== accountId` against a row this system itself
+  // wrote), there is no stored mapping anywhere in this codebase between
+  // an AXIS account and a Stripe customer/PaymentMethod for the current,
+  // live PAI'D-routed customer base (the legacy stripe_subscriptions.
+  // customer_id column is never populated by PAI'D — checking it would be
+  // security theater, not a real fix). Any authenticated account — this
+  // tool is UNMETERED, so even a brand-new free-tier signup — could read
+  // another party's card brand/last4/network-token status, or provision a
+  // network token against another party's pan_source, by supplying its id.
+  // Disabled rather than shipped with a check that can't actually verify
+  // ownership: closing this for real needs a stored account<->payment-
+  // method association created at legitimate checkout/setup time, which is
+  // new data-model scope, not a same-cycle patch. `capabilities`/
+  // `lifecycle` are untouched — both are pure/account-agnostic (env-derived
+  // booleans; a state-machine with no I/O), so neither has this exposure.
+  if (operation === "read" || operation === "provision") {
     return JSON.stringify({
+      _not_configured: true,
       tool: "iliad_network_tokenization",
-      operation,
-      token: result,
-      honesty: NETWORK_TOKENIZATION_HONESTY,
-    }, null, 2);
-  }
-
-  if (operation === "provision") {
-    const provider = args.provider;
-    if (provider !== "stripe" && provider !== "vts" && provider !== "mdes") {
-      throw new Error("iliad_network_tokenization: provision requires `provider` (stripe | vts | mdes).");
-    }
-    const panSource = typeof args.pan_source === "string" ? args.pan_source : typeof args.payment_method_id === "string" ? args.payment_method_id : "";
-    if (panSource.trim().length === 0) {
-      throw new Error("iliad_network_tokenization: provision requires `pan_source` — an opaque reference such as a Stripe pm_… id (NEVER a raw PAN).");
-    }
-    const result = await provisionNetworkToken({ pan_source: panSource, provider: provider as TokenProvider });
-    if (isNetworkTokenNotConfigured(result)) {
-      return JSON.stringify({ ...result, tool: "iliad_network_tokenization", capabilities: caps }, null, 2);
-    }
-    return JSON.stringify({
-      tool: "iliad_network_tokenization",
-      operation,
-      token: result,
-      honesty: NETWORK_TOKENIZATION_HONESTY,
+      provider_checked: "stripe" as const,
+      reason:
+        `The '${operation}' operation is temporarily disabled: it would resolve a caller-supplied ` +
+        "payment_method_id/pan_source against the platform's Stripe account with no verification that " +
+        "it belongs to the calling AXIS account, since no such ownership record exists in this system yet.",
+      remediation:
+        "Use 'capabilities' (config probe) or 'lifecycle' (pure state-machine simulation) instead — " +
+        "neither requires resolving a real payment method. 'read'/'provision' will return real data once " +
+        "an account<->payment-method ownership check is built.",
+      capabilities: caps,
     }, null, 2);
   }
 

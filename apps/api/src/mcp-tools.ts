@@ -1779,21 +1779,25 @@ export const MCP_TOOLS = [
     ],
   },
   // ─── iliad_network_tokenization (WO-14 — owned capability, free) ─
-  // Backs the "VTS/MDES network tokenization" claim honestly: an executable
-  // lifecycle state machine + a LIVE Stripe network-token read adapter, with
-  // direct VTS/MDES behind a Token-Requestor-ID capability gate that returns
-  // a structured _not_configured envelope until network onboarding exists.
+  // `lifecycle` (executable state machine) and `capabilities` (config
+  // probe) are live. `read`/`provision` are DISABLED as of H-Phase-A
+  // cycle 10 — see the SECURITY comment on runNetworkTokenization
+  // (mcp-tool-impls.ts): both resolved a caller-supplied id against the
+  // platform's own Stripe key with no check it belongs to the calling
+  // account, letting any authenticated caller read or provision against
+  // another party's payment method. Re-enable only once a real
+  // account<->payment-method ownership check exists.
   {
     name: "iliad_network_tokenization",
     description:
-      "Network-tokenization capability with three honest parts. (1) `lifecycle`: an EXECUTABLE TAP-style token-lifecycle state machine (provision → activate → suspend → resume → delete; deleted is terminal; illegal transitions are rejected with an error, not silently accepted). (2) `read` — the LIVE default: reads a Stripe PaymentMethod (GET /v1/payment_methods/{id} with the operator's STRIPE_SECRET_KEY) and maps it to a provider-agnostic NetworkToken; `is_network_token` is true ONLY when Stripe reports a provisioned network token (card.network_token.used) — a bare card PM honestly reads false, and co-badging metadata (card.networks.available) is never treated as a tokenization signal. (3) `provision` with provider vts|mdes: capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID); returns a structured `_not_configured: true` envelope naming the exact missing gate until Visa/Mastercard onboarding exists — it NEVER fakes a token (provider stripe delegates to `read`). `capabilities` reports which providers are configured. Raw PANs are never accepted (pan_source is an opaque reference), keeping PCI-DSS scope out of this service. Free (unmetered); requires Authorization: Bearer <api_key>.",
+      "Network-tokenization capability. (1) `lifecycle`: an EXECUTABLE TAP-style token-lifecycle state machine (provision → activate → suspend → resume → delete; deleted is terminal; illegal transitions are rejected with an error, not silently accepted) — pure simulation, no real payment method involved. (2) `capabilities` reports which providers are configured (env-derived). (3) `read` and (4) `provision` are TEMPORARILY DISABLED: both would resolve a caller-supplied payment_method_id/pan_source against the platform's Stripe account, and this service has no way yet to verify that id belongs to the calling AXIS account — calling either always returns a structured `_not_configured: true` envelope explaining this, never real payment-method data. (For context once re-enabled: `read`'s underlying Stripe adapter is fully implemented; direct VTS/MDES `provision` is additionally capability-gated behind a network-issued Token Requestor ID — AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID — plus network onboarding, and NEVER fakes a token.) Raw PANs are never accepted even when disabled (pan_source is documented as an opaque reference only). Free (unmetered); requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
-        operation: { type: "string", description: "read (default) | provision | lifecycle | capabilities.", enum: ["read", "provision", "lifecycle", "capabilities"] },
-        payment_method_id: { type: "string", description: "read: the Stripe PaymentMethod id (pm_…) to read the network-token status of." },
-        provider: { type: "string", description: "provision: stripe | vts | mdes. stripe delegates to read (Stripe provisions tokens itself); vts/mdes are capability-gated.", enum: ["stripe", "vts", "mdes"] },
-        pan_source: { type: "string", description: "provision: an OPAQUE payment-credential reference (e.g. a Stripe pm_… id). NEVER a raw PAN — raw card numbers are rejected by policy." },
+        operation: { type: "string", description: "read (default, disabled) | provision (disabled) | lifecycle | capabilities.", enum: ["read", "provision", "lifecycle", "capabilities"] },
+        payment_method_id: { type: "string", description: "read: ignored — this operation is disabled and always returns _not_configured." },
+        provider: { type: "string", description: "provision: ignored — this operation is disabled and always returns _not_configured.", enum: ["stripe", "vts", "mdes"] },
+        pan_source: { type: "string", description: "provision: ignored — this operation is disabled and always returns _not_configured. NEVER a raw PAN in any case." },
         events: { type: "array", description: "lifecycle: ordered TokenEvent list (provision|activate|suspend|resume|delete), max 100. Must start from provision; illegal transitions throw." },
         event: { type: "string", description: "lifecycle: single-event shorthand for `events: [event]`." },
       },
@@ -1803,14 +1807,13 @@ export const MCP_TOOLS = [
       properties: {
         tool: { type: "string", description: "Always 'iliad_network_tokenization'." },
         operation: { type: "string", description: "The operation that ran." },
-        token: { type: "object", description: "read/provision success: { token_ref, provider, is_network_token, network, last4, token_state }. token_ref is opaque — never a PAN." },
         lifecycle: { type: "object", description: "lifecycle: { state, history: [{from, event, to}] } after applying every event." },
         capabilities: { type: "object", description: "{ stripe, vts, mdes } — which providers are configured (env-derived)." },
-        honesty: { type: "string", description: "The stripe-live / VTS-MDES-gated honesty statement (always present on success)." },
-        _not_configured: { type: "boolean", description: "True when the targeted provider is not configured (or, for vts/mdes, network onboarding is incomplete)." },
-        provider_checked: { type: "string", description: "Which provider the _not_configured envelope refers to (only when _not_configured=true)." },
+        honesty: { type: "string", description: "The stripe-live / VTS-MDES-gated honesty statement (capabilities only)." },
+        _not_configured: { type: "boolean", description: "True for every read/provision call (disabled) and for capability-gated states." },
+        provider_checked: { type: "string", description: "Always 'stripe' for the disabled read/provision envelope; the real provider gate name otherwise." },
         reason: { type: "string", description: "Why the call returned _not_configured (only when true)." },
-        remediation: { type: "string", description: "The exact env var / onboarding step required (names AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID / STRIPE_SECRET_KEY)." },
+        remediation: { type: "string", description: "What to use instead, or the exact env var / onboarding step required." },
       },
     },
     annotations: toolAnnotations("Network Tokenization", true, true),
@@ -1821,14 +1824,14 @@ export const MCP_TOOLS = [
         output: '{"tool":"iliad_network_tokenization","operation":"lifecycle","lifecycle":{"state":"deleted","history":[{"from":null,"event":"provision","to":"provisioned"},{"from":"provisioned","event":"activate","to":"active"},{"from":"active","event":"suspend","to":"suspended"},{"from":"suspended","event":"resume","to":"active"},{"from":"active","event":"delete","to":"deleted"}]}}',
       },
       {
-        name: "Read a Stripe PaymentMethod's network-token status",
+        name: "Attempt to read a Stripe PaymentMethod's network-token status (disabled)",
         input: { operation: "read", payment_method_id: "pm_1NXYZ" },
-        output: '{"tool":"iliad_network_tokenization","operation":"read","token":{"token_ref":"pm_1NXYZ","provider":"stripe","is_network_token":true,"network":"visa","last4":"4242","token_state":"active"},"honesty":"Stripe read adapter is live..."}',
+        output: '{"_not_configured":true,"tool":"iliad_network_tokenization","provider_checked":"stripe","reason":"The \'read\' operation is temporarily disabled: it would resolve a caller-supplied payment_method_id/pan_source against the platform\'s Stripe account with no verification that it belongs to the calling AXIS account, since no such ownership record exists in this system yet.","remediation":"Use \'capabilities\' (config probe) or \'lifecycle\' (pure state-machine simulation) instead..."}',
       },
       {
-        name: "Probe direct VTS before onboarding",
-        input: { operation: "provision", provider: "vts", pan_source: "pm_1NXYZ" },
-        output: '{"_not_configured":true,"tool":"iliad_network_tokenization","provider_checked":"vts","reason":"Direct VTS (Visa Token Service) provisioning requires a Visa-issued Token Requestor ID, and AXIS_VTS_TOKEN_REQUESTOR_ID is not set.","remediation":"Complete Visa network onboarding to obtain a Token Requestor ID, then set AXIS_VTS_TOKEN_REQUESTOR_ID..."}',
+        name: "Probe capabilities before attempting provision",
+        input: { operation: "capabilities" },
+        output: '{"tool":"iliad_network_tokenization","operation":"capabilities","capabilities":{"stripe":true,"vts":false,"mdes":false},"honesty":"Stripe read adapter is live..."}',
       },
     ],
   },

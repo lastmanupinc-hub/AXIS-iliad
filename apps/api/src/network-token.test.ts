@@ -324,14 +324,38 @@ describe("runNetworkTokenization (MCP impl)", () => {
     await expect(runNetworkTokenization({}, unauthedReq)).rejects.toThrow(/Authentication required/);
   });
 
-  it("authed + no provider configured returns _not_configured:true with tool:'iliad_network_tokenization'", async () => {
+  // H-Phase-A cycle 10 [SECURITY]: no operation defaults to "read", which is
+  // now unconditionally disabled — see the 3 tests below this one. This
+  // replaces the old "no provider configured" framing (that gap no longer
+  // matters since read/provision never reach the provider check at all).
+  it("authed + no operation (defaults to 'read') returns the disabled envelope, regardless of provider config", async () => {
     stubAllProviderEnvsUnset();
     const text = await runNetworkTokenization({}, authedReq);
     const parsed = JSON.parse(text);
     expect(parsed._not_configured).toBe(true);
     expect(parsed.tool).toBe("iliad_network_tokenization");
-    expect(String(parsed.remediation)).toContain("STRIPE_SECRET_KEY");
+    expect(String(parsed.reason)).toMatch(/no verification that/);
     expect(parsed.capabilities).toEqual({ stripe: false, vts: false, mdes: false });
+  });
+
+  // The actual vulnerability this closes: a caller-supplied payment_method_id
+  // resolved via the platform's own Stripe key with no check it belongs to
+  // the calling account. Stripe IS configured here (unlike every other test
+  // in this describe block) — proving the gate fires on the real security-
+  // relevant path, not just the already-unconfigured case.
+  it("operation=read is disabled even when Stripe IS configured, for ANY payment_method_id (no cross-tenant read)", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_real_looking_key");
+    const parsed = JSON.parse(await runNetworkTokenization({
+      operation: "read",
+      payment_method_id: "pm_belongs_to_a_different_account",
+    }, authedReq));
+    expect(parsed._not_configured).toBe(true);
+    expect(parsed.tool).toBe("iliad_network_tokenization");
+    expect(parsed.provider_checked).toBe("stripe");
+    expect(String(parsed.reason)).toMatch(/no verification that/);
+    // capabilities still honestly reports stripe:true — this is a same-cycle
+    // safety gate, not a claim that Stripe itself is unconfigured.
+    expect(parsed.capabilities.stripe).toBe(true);
   });
 
   it("operation=capabilities reports the config gate without needing a provider", async () => {
@@ -366,15 +390,21 @@ describe("runNetworkTokenization (MCP impl)", () => {
     }, authedReq)).rejects.toThrow(/illegal transition/);
   });
 
-  it("operation=provision provider=vts returns the gated envelope through the tool surface", async () => {
-    stubAllProviderEnvsUnset();
+  // H-Phase-A cycle 10 [SECURITY]: provision took a caller-supplied
+  // pan_source (an opaque reference such as a Stripe pm_… id) with no check
+  // it belongs to the calling account — same gap as `read`, now disabled
+  // BEFORE the provider arg is even consulted (provider_checked is always
+  // "stripe" here, not "vts", proving the gate fires ahead of that branch).
+  it("operation=provision is disabled regardless of provider/pan_source — no ownership check exists to verify pan_source belongs to the caller", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_real_looking_key");
+    vi.stubEnv("AXIS_VTS_TOKEN_REQUESTOR_ID", "trid_visa_1");
     const parsed = JSON.parse(await runNetworkTokenization({
-      operation: "provision", provider: "vts", pan_source: "pm_1",
+      operation: "provision", provider: "vts", pan_source: "pm_belongs_to_a_different_account",
     }, authedReq));
     expect(parsed._not_configured).toBe(true);
     expect(parsed.tool).toBe("iliad_network_tokenization");
-    expect(parsed.provider_checked).toBe("vts");
-    expect(String(parsed.remediation)).toMatch(/Token Requestor ID/);
+    expect(parsed.provider_checked).toBe("stripe"); // the gate's own fixed value — provider arg never reached
+    expect(String(parsed.reason)).toMatch(/no verification that/);
   });
 });
 
