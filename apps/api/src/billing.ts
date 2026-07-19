@@ -371,10 +371,11 @@ export async function handlePatchAccount(
   }
 
   if (result.nameChanged || result.emailChanged) {
-    await trackEvent(ctx.account!.account_id, "account_profile_updated", "engagement", {
+    // H-Phase-A cycle 13: analytics-only, after the profile change already committed.
+    void trackEvent(ctx.account!.account_id, "account_profile_updated", "engagement", {
       name_changed: result.nameChanged,
       email_changed: result.emailChanged,
-    });
+    }).catch(() => {});
   }
 
   sendJSON(res, 200, {
@@ -416,9 +417,11 @@ export async function handleDeleteAccount(
 
   // Written against the now-anonymized account row, which still exists —
   // this is why funnel_events is on the RETAINED list, not hard-deleted.
-  await trackEvent(account_id, "account_deleted", "churned", {
+  // H-Phase-A cycle 13: analytics-only, after the (irreversible) deletion
+  // already committed — must never turn a successful deletion into a 500.
+  void trackEvent(account_id, "account_deleted", "churned", {
     projects_deleted: result.projects_deleted,
-  });
+  }).catch(() => {});
 
   sendJSON(res, 200, {
     deleted: true,
@@ -740,16 +743,19 @@ export async function handleUpdatePrograms(
     return;
   }
 
+  // H-Phase-A cycle 13: analytics-only, after each program's enable/disable
+  // already committed — an unguarded throw mid-loop used to both false-fail
+  // the response AND abort processing of any remaining program in the array.
   if (enable) {
     for (const prog of enable) {
       await enableProgram(ctx.account!.account_id, prog);
-      await trackEvent(ctx.account!.account_id, "program_added", "expansion", { program: prog });
+      void trackEvent(ctx.account!.account_id, "program_added", "expansion", { program: prog }).catch(() => {});
     }
   }
   if (disable) {
     for (const prog of disable) {
       await disableProgram(ctx.account!.account_id, prog);
-      await trackEvent(ctx.account!.account_id, "program_removed", "conversion", { program: prog });
+      void trackEvent(ctx.account!.account_id, "program_removed", "conversion", { program: prog }).catch(() => {});
     }
   }
 

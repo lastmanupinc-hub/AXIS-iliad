@@ -1857,12 +1857,17 @@ export async function runAnalyzeFiles(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
-  await trackEvent(
+  // H-Phase-A cycle 13: analytics-only — must never sit between "work done"
+  // and "charge captured" as an `await`. An unguarded trackEvent throw here
+  // used to abort the handler BEFORE captureMcpToolCredits ran, meaning a
+  // transient analytics-write failure let the caller keep the fully-generated
+  // (already-saved) snapshot for free.
+  void trackEvent(
     auth.account.account_id,
     "snapshot_created",
     await resolveStage(auth.account.account_id),
     { snapshot_id: snapshot.snapshot_id, programs: [...programs], files: files.length, source: "mcp" },
-  );
+  ).catch(() => {});
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
   // file-limit guard / generation, so a failed analyze_files debits nothing.
@@ -3220,7 +3225,11 @@ export async function runPreparePurchasing(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
-  await trackEvent(
+  // H-Phase-A cycle 13: same analytics-only fix as analyze_files above — this
+  // sat between the fully-saved snapshot and captureMcpToolCredits further
+  // below, so an unguarded throw here would have delivered the paid artifact
+  // bundle without ever capturing the charge.
+  void trackEvent(
     auth.account.account_id,
     "snapshot_created",
     await resolveStage(auth.account.account_id),
@@ -3232,7 +3241,7 @@ export async function runPreparePurchasing(
       focus: typeof focus === "string" ? focus : "purchasing",
       ...(typeof agent_type === "string" ? { agent_type } : {}),
     },
-  );
+  ).catch(() => {});
 
   // â”€â”€ Referral tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (typeof referral_token === "string" && referral_token.length > 0) {
