@@ -131,6 +131,58 @@ describe("VersionsTab — compare versions + diff", () => {
     expect(screen.getByText("AGENTS.md")).toBeTruthy();
   });
 
+  it("a stale versions response from a de-selected snapshot cannot overwrite the currently-viewed one (H-Phase-A cycle 11)", async () => {
+    // Reproduces the audit's exact scenario without any navigation: click
+    // "View" on the older snapshot, then quickly click back to the current
+    // one before the older request resolves. If the older (now-stale)
+    // response arrives AFTER the current one, it must be discarded — not
+    // overwrite the fresher data the picker is actually showing.
+    const olderVersions = {
+      snapshot_id: OLDER_SNAPSHOT_ID,
+      count: 2,
+      versions: [
+        { version_id: "ov2", snapshot_id: OLDER_SNAPSHOT_ID, version_number: 2, program: "STALE-debug", file_count: 1, created_at: "" },
+        { version_id: "ov1", snapshot_id: OLDER_SNAPSHOT_ID, version_number: 1, program: "STALE-search", file_count: 1, created_at: "" },
+      ],
+    };
+    let resolveOlder!: () => void;
+    const olderGate = new Promise<void>((resolve) => { resolveOlder = resolve; });
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const respond = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } }) as unknown as Response;
+      if (url.includes(`/v1/snapshots/${OLDER_SNAPSHOT_ID}/versions`)) {
+        await olderGate; // held open until the test explicitly releases it, below
+        return respond(olderVersions);
+      }
+      if (url.includes(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}/versions`)) return respond(VERSIONS_RESPONSE);
+      if (url.includes(`/v1/projects/${PROJECT_ID}/snapshots`)) return respond(SNAPSHOTS_RESPONSE);
+      if (url.includes("/memory")) return respond({ project_id: PROJECT_ID, entries: [], count: 0, total: 0 });
+      return respond({ error: "unhandled in test" });
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(
+      <VersionsTab projectId={PROJECT_ID} currentSnapshotId={CURRENT_SNAPSHOT_ID} loggedIn={false} onSnapshotDeleted={() => {}} onProjectDeleted={() => {}} onNeedCredits={() => {}} />,
+    );
+    await screen.findAllByText("ready"); // snapshot table loaded
+    await screen.findByRole("button", { name: "Compare" }); // current snapshot's versions loaded first
+
+    const rows = screen.getAllByRole("row");
+    const olderRow = rows.find((r) => within(r).queryByText("10") !== null)!;
+    const currentRow = rows.find((r) => within(r).queryByText("latest") !== null)!;
+
+    fireEvent.click(within(olderRow).getByRole("button", { name: "View" })); // older's versions fetch now held open on olderGate
+    await waitFor(() => expect(within(currentRow).getByRole("button", { name: "View" })).toBeTruthy());
+    fireEvent.click(within(currentRow).getByRole("button", { name: "View" })); // switches back before older resolves
+    await waitFor(() => expect(within(olderRow).getByRole("button", { name: "View" })).toBeTruthy());
+
+    resolveOlder(); // now let the stale older response land, after the fresh current one already did
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(screen.queryAllByText("STALE", { exact: false }).length).toBe(0);
+    expect(screen.getAllByText("theme", { exact: false }).length).toBeGreaterThan(0);
+  });
+
   it("fewer than 2 versions shows an explanatory empty state instead of the picker", async () => {
     renderTab({
       routes: baseRoutes({

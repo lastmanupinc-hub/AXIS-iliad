@@ -85,12 +85,23 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>(currentSnapshotId);
   const [deletingSnapshot, setDeletingSnapshot] = useState<string | null>(null);
 
+  // H-Phase-A cycle 11 (8th recurrence of this session's async-stale-state
+  // shape): VersionsTab isn't remounted across a browser back/forward
+  // between two different projects while parked on this tab (only keyed by
+  // activeTab in ProjectPage, per its own cycle-9 fix comment) — a stale
+  // response from the OLD project could otherwise land after the new
+  // project's fresh one and overwrite it. One counter per independent loader.
+  const snapshotsRequestIdRef = useRef(0);
+
   const loadSnapshots = useCallback(async () => {
+    const requestId = ++snapshotsRequestIdRef.current;
     setSnapshotsError(null);
     try {
       const res = await listProjectSnapshots(projectId);
+      if (requestId !== snapshotsRequestIdRef.current) return;
       setSnapshots(res.snapshots);
     } catch (err) {
+      if (requestId !== snapshotsRequestIdRef.current) return;
       setSnapshotsError({ message: err instanceof Error ? err.message : "Failed to load snapshot history", details: apiErrorDetails(err) });
     }
   }, [projectId]);
@@ -132,7 +143,16 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffError, setDiffError] = useState<{ message: string; details: string | null; needsCredits: boolean } | null>(null);
 
+  // The most directly reproducible instance of the class above: the
+  // Snapshot History table's "View" button changes selectedSnapshotId while
+  // this component stays mounted (no navigation involved at all) — clicking
+  // "View" on snapshot A then quickly on snapshot B before A's response
+  // resolves could let A's stale versions overwrite B's, while the picker
+  // still reads "B" (and silently mispair a subsequent Compare).
+  const versionsRequestIdRef = useRef(0);
+
   const loadVersions = useCallback(async (snapshotId: string) => {
+    const requestId = ++versionsRequestIdRef.current;
     setVersions(null);
     setVersionsError(null);
     setDiff(null);
@@ -141,6 +161,7 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
     setNewVersion("");
     try {
       const res = await getSnapshotVersions(snapshotId);
+      if (requestId !== versionsRequestIdRef.current) return;
       setVersions(res.versions);
       // Default the pair to the two most recent versions, newest first per the API.
       if (res.versions.length >= 2) {
@@ -148,6 +169,7 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
         setOldVersion(res.versions[1].version_number);
       }
     } catch (err) {
+      if (requestId !== versionsRequestIdRef.current) return;
       setVersionsError(err instanceof Error ? err.message : "Failed to load version history");
     }
   }, []);
@@ -182,7 +204,10 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
   const [newSource, setNewSource] = useState("");
   const [addingMemory, setAddingMemory] = useState(false);
 
+  const memoryRequestIdRef = useRef(0);
+
   const loadMemory = useCallback(async () => {
+    const requestId = ++memoryRequestIdRef.current;
     if (!loggedIn) {
       setMemoryDenied("signed-out");
       return;
@@ -191,8 +216,10 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
     setMemoryError(null);
     try {
       const res = await listProjectMemory(projectId, { limit: 50 });
+      if (requestId !== memoryRequestIdRef.current) return;
       setMemoryEntries(res.entries);
     } catch (err) {
+      if (requestId !== memoryRequestIdRef.current) return;
       if (err instanceof ApiError && err.status === 403) {
         setMemoryDenied("anonymous-project");
       } else if (err instanceof ApiError && err.status === 401) {
