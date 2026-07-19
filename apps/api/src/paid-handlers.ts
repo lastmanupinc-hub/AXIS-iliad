@@ -173,11 +173,16 @@ export async function handlePaidSubscribe(
       },
       config,
     );
-    await trackEvent(account.account_id, "checkout_started", "conversion", {
+    // H-Phase-A cycle 11: a real, payable checkout_url already exists
+    // server-side by this point — a transient failure in this best-effort
+    // analytics write must never surface as a customer-facing "checkout
+    // failed" 500 (same fix as credit-pack-handlers.ts's identical shape,
+    // found in the same audit).
+    void trackEvent(account.account_id, "checkout_started", "conversion", {
       processor: "paid",
       plan,
       session_id: session.id,
-    });
+    }).catch(() => {});
     sendJSON(res, 200, {
       checkout_url: session.url,
       session_id: session.id,

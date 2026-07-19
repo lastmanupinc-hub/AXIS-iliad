@@ -113,13 +113,20 @@ export async function handleCreateCreditTopup(
       paid_session_id: session.id,
     });
 
-    await trackEvent(account.account_id, "checkout_started", "conversion", {
+    // H-Phase-A cycle 11: H6's lint-driven `await` here (previously a floating
+    // promise) fixed one bug but introduced another — a real checkout_url
+    // already exists server-side by this point (recordPendingPurchase above
+    // already landed durably), so a transient failure in this best-effort
+    // analytics write must never surface as a customer-facing "checkout
+    // failed" 500. void+catch matches paid-handlers.ts's own established
+    // idiom for exactly this class of write.
+    void trackEvent(account.account_id, "checkout_started", "conversion", {
       processor: "paid",
       kind: "credit_topup",
       pack_id: pack.pack_id,
       credits: String(pack.credits),
       session_id: session.id,
-    });
+    }).catch(() => {});
 
     sendJSON(res, 200, {
       checkout_url: session.url,
