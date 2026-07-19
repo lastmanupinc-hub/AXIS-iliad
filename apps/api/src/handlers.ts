@@ -44,6 +44,7 @@ import {
   consumeFreeScrapes,
   getFreeScrapePoolStatus,
   getUsageCreditSummary,
+  recordCompensationOwed,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -4117,7 +4118,24 @@ export async function handleFirecrawlScrape(
           status: firecrawlRes.status,
           error: errorText.slice(0, 200),
         });
-        sendError(res, firecrawlRes.status >= 500 ? 502 : 400, ErrorCode.UPSTREAM_ERROR, `Firecrawl error: ${firecrawlRes.statusText}`);
+        // H-Phase-A cycle 16: when the quota-exceeded branch above already collected
+        // real cash for this call (preCharged), an upstream Firecrawl failure here
+        // used to leave that charge completely unaccounted for — no refund, no
+        // ledger entry, nothing. Same "settled_then_error" shape the in-band MCP
+        // gate (mcp-server.ts) and cashier.ts already handle for every other paid
+        // call that fails after settlement; this REST proxy was the one path that
+        // never wired it up.
+        const compensation = preCharged
+          ? await recordCompensationOwed({
+              account_id: auth.account.account_id,
+              tool: "iliad_web_research",
+              amount_cents: amountCents,
+              reason: "settled_then_error",
+            })
+          : null;
+        sendError(res, firecrawlRes.status >= 500 ? 502 : 400, ErrorCode.UPSTREAM_ERROR, `Firecrawl error: ${firecrawlRes.statusText}`, {
+          ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
+        });
         return;
       }
 
@@ -4170,7 +4188,19 @@ export async function handleFirecrawlScrape(
         url,
         error: message,
       });
-      sendError(res, 500, ErrorCode.INTERNAL_ERROR, `Firecrawl request failed: ${message}`);
+      // H-Phase-A cycle 16: same make-whole obligation as the non-ok branch above —
+      // a thrown/aborted fetch after a real pre-charge must not silently keep the money.
+      const compensation = preCharged
+        ? await recordCompensationOwed({
+            account_id: auth.account.account_id,
+            tool: "iliad_web_research",
+            amount_cents: amountCents,
+            reason: "settled_then_error",
+          })
+        : null;
+      sendError(res, 500, ErrorCode.INTERNAL_ERROR, `Firecrawl request failed: ${message}`, {
+        ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
+      });
     }
 }
 
@@ -4313,7 +4343,22 @@ export async function handleFirecrawlCrawl(
         status: firecrawlRes.status,
         error: errorText.slice(0, 200),
       });
-      sendError(res, firecrawlRes.status >= 500 ? 502 : 400, ErrorCode.UPSTREAM_ERROR, `Firecrawl error: ${firecrawlRes.statusText}`);
+      // H-Phase-A cycle 16: when the quota-exceeded branch above already collected
+      // a real cash estimate for this call (preCharged), an upstream Firecrawl
+      // failure here used to leave that charge completely unaccounted for — no
+      // refund, no ledger entry. Same "settled_then_error" shape cashier.ts and
+      // mcp-server.ts already handle elsewhere; this REST proxy never wired it up.
+      const compensation = preCharged
+        ? await recordCompensationOwed({
+            account_id: auth.account.account_id,
+            tool: "iliad_web_research_crawl",
+            amount_cents: estimatedAmountCents,
+            reason: "settled_then_error",
+          })
+        : null;
+      sendError(res, firecrawlRes.status >= 500 ? 502 : 400, ErrorCode.UPSTREAM_ERROR, `Firecrawl error: ${firecrawlRes.statusText}`, {
+        ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
+      });
       return;
     }
 
@@ -4380,6 +4425,18 @@ export async function handleFirecrawlCrawl(
       url,
       error: message,
     });
-    sendError(res, 500, ErrorCode.INTERNAL_ERROR, `Firecrawl request failed: ${message}`);
+    // H-Phase-A cycle 16: same make-whole obligation as the non-ok branch above —
+    // a thrown/aborted fetch after a real pre-charge must not silently keep the money.
+    const compensation = preCharged
+      ? await recordCompensationOwed({
+          account_id: auth.account.account_id,
+          tool: "iliad_web_research_crawl",
+          amount_cents: estimatedAmountCents,
+          reason: "settled_then_error",
+        })
+      : null;
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, `Firecrawl request failed: ${message}`, {
+      ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
+    });
   }
 }

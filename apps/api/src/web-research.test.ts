@@ -444,6 +444,41 @@ describe("POST /v1/research/scrape — quota-exceeded charges exactly once", () 
     const after = await getUsageCreditSummary(accountId, "paid");
     expect(after.included_credits_used - before.included_credits_used).toBe(perScrapeCredits);
   });
+
+  it("H-Phase-A cycle 16: records a compensation entry when Firecrawl fails AFTER a real pre-charge (quota-exceeded path)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("upstream exploded", { status: 500 })),
+    );
+    const { getCompensationSummary } = await import("@axis/snapshots");
+
+    const before = await getCompensationSummary(accountId);
+    expect(before.owed_cents).toBe(0);
+
+    const r = await post("https://example.com/quota-test-compensation", apiKey);
+    expect(r.status).toBe(502);
+    expect(typeof r.data.compensation_entry_id).toBe("string");
+
+    const after = await getCompensationSummary(accountId);
+    expect(after.owed_cents).toBeGreaterThan(0);
+  });
+
+  it("never records compensation when quota was NOT exceeded (no pre-charge happened)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("upstream exploded", { status: 500 })),
+    );
+    const { getCompensationSummary, createAccount: mkAccount, createApiKey: mkKey } = await import("@axis/snapshots");
+    const acct = await mkAccount("ScrapeNoPrecharge", "scrape-no-precharge@test.com", "paid");
+    const key = (await mkKey(acct.account_id)).rawKey;
+
+    const r = await post("https://example.com/quota-test-no-precharge", key);
+    expect(r.status).toBe(502);
+    expect(r.data.compensation_entry_id).toBeUndefined();
+
+    const after = await getCompensationSummary(acct.account_id);
+    expect(after.owed_cents).toBe(0);
+  });
 });
 
 describe("POST /v1/research/crawl — quota-exceeded charges exactly once", () => {
@@ -529,6 +564,24 @@ describe("POST /v1/research/crawl — quota-exceeded charges exactly once", () =
     // The response's own reported cost must reflect what was actually
     // billed (the pre-charge estimate), not a misleading $0.00.
     expect(r.data.cost).not.toBe("$0.00");
+  });
+
+  it("H-Phase-A cycle 16: records a compensation entry when Firecrawl fails AFTER a real pre-charge (quota-exceeded path)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("upstream exploded", { status: 500 })),
+    );
+    const { getCompensationSummary } = await import("@axis/snapshots");
+
+    const before = await getCompensationSummary(accountId);
+    expect(before.owed_cents).toBe(0);
+
+    const r = await postCrawl({ url: "https://example.com", limit: 2 }, apiKey);
+    expect(r.status).toBe(502);
+    expect(typeof r.data.compensation_entry_id).toBe("string");
+
+    const after = await getCompensationSummary(accountId);
+    expect(after.owed_cents).toBeGreaterThan(0);
   });
 });
 
