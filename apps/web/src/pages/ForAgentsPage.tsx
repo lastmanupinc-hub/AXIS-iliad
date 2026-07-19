@@ -197,6 +197,7 @@ export function ForAgentsPage() {
           <li>discover_agentic_purchasing_needs, discover_commerce_tools, search_and_discover_tools</li>
           <li>closer, deploy</li>
           <li>improve_my_agent_with_axis</li>
+          <li>ping_payment (free — exercises the real x402 payment loop at $0)</li>
           <li>get_referral_code, get_referral_credits</li>
           <li>sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness (free commerce decision engines — deterministic, no auth)</li>
           <li>assemble_representment (metered — CE 3.0 → Stripe dispute evidence)</li>

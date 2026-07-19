@@ -122,7 +122,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 }
 ```
 
-**Free MCP tools** (no auth needed): `list_programs`, `search_and_discover_tools`, `discover_commerce_tools`, `discover_agentic_purchasing_needs`, `get_referral_code`, `get_referral_credits`, plus the deterministic commerce decision engines: `sca_exemption_decision`, `grade_compliance`, `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness` (evidence-capture readiness — not a dispute-win prediction)
+**Free MCP tools** (no auth needed): `list_programs`, `search_and_discover_tools`, `discover_commerce_tools`, `discover_agentic_purchasing_needs`, `prepare_agentic_purchasing_preview`, `ping_payment` (exercises the real x402 payment loop at $0), plus the deterministic commerce decision engines: `sca_exemption_decision`, `grade_compliance`, `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness` (evidence-capture readiness — not a dispute-win prediction). `get_referral_code`, `get_referral_credits`, and `iliad_network_tokenization` are also free (no charge) but, unlike the tools above, **do require auth**.
 
 ---
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 import { TIER_LIMITS } from "@axis/snapshots";
 import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
+import { deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -114,6 +115,29 @@ describe("count honesty — docs/UI match the code (A4)", () => {
       for (const n of programClaims(visible(text))) if (n !== TOTAL_PROGRAMS) bad.push(`${name}: ${n} (expected ${TOTAL_PROGRAMS})`);
     }
     expect(bad).toEqual([]);
+  });
+
+  // H-Phase-A cycle 12: a numeric count matching MCP_TOOL_COUNT (the check above)
+  // doesn't catch a hand-typed NAME list quietly drifting from the real catalog —
+  // this exact "correct total, incomplete enumeration" shape hit README.md's
+  // "Free MCP tools" line (wrong on 2 tools' auth requirement, missing 2 others)
+  // and ForAgentsPage.tsx's "Your 37 MCP Tools" list (36 names for a 37 header) in
+  // the same cycle. Both now checked directly against deriveMcpToolCatalog(), the
+  // same real source cycles 8/10/11 already made every other tool-list surface
+  // derive from — so a 38th tool or a changed auth/pricing flag fails CI here
+  // instead of waiting for the next audit cycle to notice.
+  it("README.md's free-tools line names every tool that is actually free AND no-auth", () => {
+    const readme = docs().find((d) => d.name === "README.md")!.text;
+    const trulyFreeNoAuth = deriveMcpToolCatalog().filter((t) => t.pricing === "free" && !t.auth_required);
+    const missing = trulyFreeNoAuth.filter((t) => !readme.includes(t.name)).map((t) => t.name);
+    expect(missing, `README.md's free-tools line is missing: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("ForAgentsPage.tsx's tool list names every one of the real MCP tools", () => {
+    const page = docs().find((d) => d.name === "apps/web/src/pages/ForAgentsPage.tsx")!.text;
+    const all = deriveMcpToolCatalog();
+    const missing = all.filter((t) => !page.includes(t.name)).map((t) => t.name);
+    expect(missing, `ForAgentsPage.tsx's tool list is missing: ${missing.join(", ")}`).toEqual([]);
   });
 });
 
