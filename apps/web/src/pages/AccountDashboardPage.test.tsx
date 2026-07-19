@@ -7,6 +7,7 @@
 // badge-utils.test.ts (H-Phase-A cycle 9 — extracted the shared
 // implementation this page, ProjectsPage.tsx, and VersionsTab.tsx all use).
 
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AccountDashboardPage } from "./AccountDashboardPage.tsx";
@@ -82,5 +83,43 @@ describe("AccountDashboardPage — quick actions", () => {
     expect(onNavigate).toHaveBeenCalledWith("runner");
     fireEvent.click(screen.getByRole("button", { name: /Open MCP config/ }));
     expect(onNavigate).toHaveBeenCalledWith("mcp");
+  });
+});
+
+// H-Phase-A cycle 10: load() is triggered from the mount effect AND two
+// independent Retry buttons, neither disabled while loading — an older
+// in-flight load's response landing after a newer one would silently win
+// with no guard, same shape MyAnalyticsPage.tsx/AdminPage.tsx already had
+// fixed. The real app (main.tsx) mounts under <StrictMode>, which
+// double-invokes a no-cleanup mount effect exactly once in development —
+// a genuinely reachable trigger for two overlapping load() calls on the
+// same instance, matching AdminPage's own established reachability
+// argument for this exact race shape.
+describe("AccountDashboardPage — stale-response race guard", () => {
+  it("shows the NEWER load's data even when an older (StrictMode double-invoked) request resolves after it", async () => {
+    let callCount = 0;
+    let resolveFirst!: (v: Response) => void;
+    const firstPending = new Promise<Response>((resolve) => { resolveFirst = resolve; });
+
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/projects")) {
+        callCount++;
+        if (callCount === 1) return firstPending; // StrictMode's first (discarded) effect invocation
+        return { ok: true, status: 200, json: async () => ({ projects: [], total: 999 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "{}", headers: { get: () => null } } as unknown as Response;
+    }));
+
+    render(<StrictMode><AccountDashboardPage onOpenProject={onOpenProject} onNavigate={onNavigate} /></StrictMode>);
+
+    await waitFor(() => expect(screen.getByText("999")).toBeTruthy());
+
+    // Release the STALE first (StrictMode-discarded) request — it must be
+    // ignored, not overwrite the already-displayed newer total.
+    resolveFirst({ ok: true, status: 200, json: async () => ({ projects: [], total: 111 }), text: async () => "", headers: { get: () => null } } as unknown as Response);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("111")).toBeNull();
+    expect(screen.getByText("999")).toBeTruthy();
   });
 });

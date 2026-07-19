@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   listProjects,
   getQuota,
@@ -51,7 +51,15 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
   const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
   const [promptDismissed, setPromptDismissed] = useState(false);
 
+  // H-Phase-A cycle 10: load() is triggered from the mount effect AND two
+  // independent Retry buttons below, neither disabled while loading — with
+  // no guard, an older in-flight load's response landing after a newer
+  // one would silently win the race, same shape as MyAnalyticsPage.tsx/
+  // AdminPage.tsx's own fixed dual-trigger loads.
+  const requestIdRef = useRef(0);
+
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -61,6 +69,7 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
         getUsageTimeseries({ sinceDays: TIMESERIES_DAYS }),
         getUpgradePrompt().catch(() => ({ prompt: null })), // non-critical — page works without it
       ]);
+      if (requestId !== requestIdRef.current) return;
       setData({
         projects: projectsRes.projects ?? [],
         total: projectsRes.total ?? 0,
@@ -69,12 +78,13 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
         upgradePrompt: upgrade.prompt ?? null,
       });
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError({
         message: err instanceof Error ? err.message : "Failed to load your dashboard",
         details: apiErrorDetails(err),
       });
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, []);
 

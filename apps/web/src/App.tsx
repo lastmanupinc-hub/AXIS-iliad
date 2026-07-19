@@ -463,8 +463,14 @@ export function App() {
   // reload) got bounced before the async admin probe ever had a chance to
   // resolve (H-Phase-A cycle 4).
   useEffect(() => {
+    // H-Phase-A cycle 10: this branch only runs when loggedIn is already
+    // true, so navigate("account") always immediately re-bounced through
+    // AccountPage.tsx's own redirect effect to Settings (routes.tsx's own
+    // comment: "account" survives only as the OAuth redirect target) — an
+    // unconditional extra render-then-redirect hop, the same shape cycle 9
+    // fixed for AccountDashboardPage's "Invite teammate" quick action.
     if (routeForPage(route.page).adminOnly && loggedIn && privateAccessResolved && !privateAccess) {
-      navigate("account");
+      navigate("settings");
     }
   }, [route.page, privateAccess, privateAccessResolved, loggedIn, navigate]);
 
