@@ -270,8 +270,12 @@ export async function handleCreateAccount(
   // Auto-generate an API key for the new account
   const { apiKey, rawKey } = await createApiKey(account.account_id, "default");
 
-  // Track signup funnel event
-  await trackEvent(account.account_id, "account_created", "signup", { tier, source: "api" });
+  // Track signup funnel event. H-Phase-A cycle 14: analytics-only, must
+  // never sit between the committed account+key and the ONE response that
+  // ever shows rawKey — an unguarded throw here would orphan the account
+  // (created, but the caller never sees their key, and can't retry signup
+  // with the same email since it's already taken).
+  void trackEvent(account.account_id, "account_created", "signup", { tier, source: "api" }).catch(() => {});
 
   // Send welcome email (fire-and-forget — log failures for observability)
   sendWelcomeEmail(email, name, tier).catch((err: unknown) => {
