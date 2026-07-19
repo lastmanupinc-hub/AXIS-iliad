@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
 import {
   analyzeQuick,
   getQuota,
@@ -67,10 +67,17 @@ export function PlaygroundPage({ loggedIn, onRequireLogin }: Props) {
     }
   }, []);
 
+  // H-Phase-A cycle 12: loadQuota fires on mount and again after a
+  // successful run() — guard against the mount call's response landing
+  // after the post-run call's fresher one and overwriting it.
+  const quotaRequestIdRef = useRef(0);
   const loadQuota = useCallback(() => {
     // The rate-limit meter is a nice-to-have, not load-bearing — a failed
     // fetch just leaves it unrendered rather than blocking the page.
-    getQuota().then(setQuota).catch(() => {});
+    const requestId = ++quotaRequestIdRef.current;
+    getQuota()
+      .then((q) => { if (requestId === quotaRequestIdRef.current) setQuota(q); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { loadQuota(); }, [loadQuota]);

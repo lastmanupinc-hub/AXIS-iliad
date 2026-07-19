@@ -196,6 +196,45 @@ describe("PlaygroundPage — result persistence across a refresh", () => {
   });
 });
 
+describe("PlaygroundPage — quota meter race (H-Phase-A cycle 12)", () => {
+  it("a slow mount-time quota response cannot overwrite the fresher post-run one", async () => {
+    // loadQuota() fires on mount AND again after a successful run(). Hold the
+    // mount call open, let the post-run call resolve first (with a DIFFERENT,
+    // fresher remaining count), then release the stale mount call and confirm
+    // it's discarded rather than overwriting the fresher number.
+    let resolveMountQuota!: (v: unknown) => void;
+    const mountQuotaGate = new Promise((resolve) => { resolveMountQuota = resolve; });
+    let quotaCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const respond = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } }) as unknown as Response;
+      if (url.includes("/v1/account/quota")) {
+        quotaCallCount++;
+        if (quotaCallCount === 1) {
+          const body = await mountQuotaGate; // held open until the test explicitly releases it, below
+          return respond(body);
+        }
+        return respond({ rate_limit: { limit: 60, remaining: 44, count: 16, reset_in_seconds: 30, window_ms: 60000 }, authenticated: false });
+      }
+      if (url.includes("/v1/analyze")) return respond(ANALYZE_RESPONSE);
+      return respond({});
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
+    // Mount's quota call is now held open on mountQuotaGate (quotaCallCount === 1).
+
+    fireEvent.click(screen.getByText("Hello World")); // runs analyze, then fires loadQuota() again (call #2)
+    expect(await screen.findByText(/44 \/ 60 requests remaining/)).toBeTruthy(); // fresh post-run quota lands first
+
+    resolveMountQuota({ rate_limit: { limit: 60, remaining: 45, count: 15, reset_in_seconds: 30, window_ms: 60000 }, authenticated: false }); // now let the stale mount response land
+    for (let i = 0; i < 5; i++) await new Promise((resolve) => setImmediate(resolve));
+
+    expect(screen.queryByText(/45 \/ 60 requests remaining/)).toBeNull();
+    expect(screen.getByText(/44 \/ 60 requests remaining/)).toBeTruthy();
+  });
+});
+
 describe("PlaygroundPage — signup CTA", () => {
   it("shows the signup CTA for a logged-out visitor after a result, and wires the click through", async () => {
     stubFetch(DEFAULT_HANDLERS);
