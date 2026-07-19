@@ -177,7 +177,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       const result = await createApiKey(newKeyLabel.trim() || "default");
       setRevealedKey(result.raw_key);
       setNewKeyLabel("");
-      setKeys((await listApiKeys()).keys);
+      setKeys((await listApiKeys()).keys ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to create key", details: apiErrorDetails(err) });
     }
@@ -188,7 +188,7 @@ export function SettingsPage({ onAuthChange }: Props) {
     setRevokingKeyId(keyId);
     try {
       await revokeApiKey(keyId);
-      setKeys((await listApiKeys()).keys);
+      setKeys((await listApiKeys()).keys ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to revoke key", details: apiErrorDetails(err) });
     } finally {
@@ -207,7 +207,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       await saveGitHubToken(newToken.trim(), newTokenLabel.trim() || "default");
       setNewToken("");
       setNewTokenLabel("");
-      setTokens((await listGitHubTokens()).tokens);
+      setTokens((await listGitHubTokens()).tokens ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to save token", details: apiErrorDetails(err) });
     }
@@ -218,7 +218,7 @@ export function SettingsPage({ onAuthChange }: Props) {
     setDeletingTokenId(tokenId);
     try {
       await deleteGitHubToken(tokenId);
-      setTokens((await listGitHubTokens()).tokens);
+      setTokens((await listGitHubTokens()).tokens ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete token", details: apiErrorDetails(err) });
     } finally {
@@ -243,7 +243,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       await createWebhook(newWebhookUrl.trim(), newWebhookEvents);
       setNewWebhookUrl("");
       setNewWebhookEvents([]);
-      setWebhooks((await listWebhooks()).webhooks);
+      setWebhooks((await listWebhooks()).webhooks ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to create webhook", details: apiErrorDetails(err) });
     }
@@ -254,7 +254,7 @@ export function SettingsPage({ onAuthChange }: Props) {
     setDeletingWebhookId(webhookId);
     try {
       await deleteWebhook(webhookId);
-      setWebhooks((await listWebhooks()).webhooks);
+      setWebhooks((await listWebhooks()).webhooks ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete webhook", details: apiErrorDetails(err) });
     } finally {
@@ -265,7 +265,7 @@ export function SettingsPage({ onAuthChange }: Props) {
   async function handleToggleWebhook(webhookId: string, active: boolean) {
     try {
       await toggleWebhook(webhookId, active);
-      setWebhooks((await listWebhooks()).webhooks);
+      setWebhooks((await listWebhooks()).webhooks ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to update webhook", details: apiErrorDetails(err) });
     }
@@ -278,7 +278,7 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
     try {
       const result = await getWebhookDeliveries(webhookId);
-      setDeliveries(result.deliveries);
+      setDeliveries(result.deliveries ?? []);
       setOpenDeliveries(webhookId);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to load deliveries", details: apiErrorDetails(err) });
@@ -320,7 +320,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       const result = enabled
         ? await updateProgramEntitlements({ enable: [program] })
         : await updateProgramEntitlements({ disable: [program] });
-      setEntitlements(result.programs);
+      setEntitlements(result.programs ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to update program", details: apiErrorDetails(err) });
     } finally {
