@@ -326,7 +326,7 @@ axis-iliad/
 - **Backend**: Zero-dependency custom HTTP router, Neon Postgres (`pg`, async pooled)
 - **Frontend**: Vite 6 + React 19, CSS design system (dark theme)
 - **Testing**: Vitest 4 — ~4,900 tests across ~190 files, run against Postgres 16
-- **Benchmarks**: Vitest bench — parseRepo 200 files in ~21ms; deterministic 142-artifact generation in ~300ms
+- **Benchmarks**: Vitest bench harness (`packages/repo-parser/src/perf.bench.ts`, `npx vitest bench`) covers `parseRepo` at 200-file scale; no specific latency number is pinned here — this repo's own honesty policy (see `packages/generator-core/src/perf-compliance.test.ts`) bans citing a perf figure unless it's sourced from a checked-in, machine-generated results file, which doesn't yet exist for this bench. The 7 agentic-purchasing engines DO have one: `packages/generator-core/perf-results.json` (regenerate via `pnpm bench:compliance`).
 - **Build**: pnpm workspaces, tsc per package
 - **CI**: GitHub Actions (Node 20/22 matrix, coverage, dep audit, Docker build)
 
