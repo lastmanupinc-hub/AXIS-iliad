@@ -3,6 +3,7 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 import { TIER_LIMITS } from "@axis/snapshots";
 import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
 import { deriveMcpToolCatalog } from "./mcp-tool-impls.js";
+import { PRICING_TIERS } from "@axis/mpp";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -168,6 +169,22 @@ describe("server.json (MCP registry manifest) matches the live code", () => {
     const realFree = deriveMcpToolCatalog().filter((t) => t.pricing === "free").map((t) => t.name);
     const missing = realFree.filter((name) => !meta.free_tools.includes(name));
     expect(missing, `server.json's free_tools is missing: ${missing.join(", ")}`).toEqual([]);
+  });
+});
+
+// H-Phase-A cycle 14: ExamplesPage.tsx hand-duplicates analyze_repo's
+// engineer-tier price (AXIS_PKG_COST = 25) with no cross-check — currently
+// correct, but the same unguarded-duplicate-source-of-truth shape fixed for
+// pricing-constants.test.ts's 6 web pages in cycle 13, on a 7th page that
+// mirrors @axis/mpp's PRICING_TIERS instead of MARKETED_TIERS.
+describe("ExamplesPage.tsx drift guard vs @axis/mpp PRICING_TIERS", () => {
+  it("AXIS_PKG_COST matches analyze_repo's real engineer-tier price", () => {
+    const page = readFileSync(join(ROOT, "apps", "web", "src", "pages", "ExamplesPage.tsx"), "utf8");
+    const m = /AXIS_PKG_COST = (\d+)/.exec(page);
+    expect(m, "ExamplesPage.tsx: AXIS_PKG_COST constant not found").not.toBeNull();
+    const engineerCents = PRICING_TIERS.analyze_repo.engineer_cents;
+    expect(engineerCents, "PRICING_TIERS.analyze_repo.engineer_cents is not set").toBeDefined();
+    expect(Number(m![1])).toBe(engineerCents! / 100);
   });
 });
 
