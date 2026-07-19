@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SnapshotResponse, ProjectSummary, GeneratedFile, MppPricing } from "../api.ts";
 import {
   listProjects,
@@ -103,7 +103,14 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
   const generateButtonRef = useFocusRetention<HTMLButtonElement>(generating);
   const [genError, setGenError] = useState<{ message: string; details: string | null } | null>(null);
   const [tierBlock, setTierBlock] = useState<TierBlockState | null>(null);
+  const [checkFailed, setCheckFailed] = useState(false);
   const { toast } = useToast();
+  // H-Phase-A cycle 10: checkExisting is triggered by a project-target
+  // switch (the <select> below, not a route/hashchange) with no guard
+  // against an older in-flight check landing after a newer one — the same
+  // async-resolved-state-misread-as-false family this session has fixed 8
+  // times elsewhere, just via a local <select> instead of a route param.
+  const checkRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (!loggedIn) { setProjects([]); return; }
@@ -132,15 +139,23 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
   }, [loggedIn, anonResult, projects, targetId]);
 
   const checkExisting = useCallback(async (projectId: string) => {
+    const requestId = ++checkRequestIdRef.current;
     setCheckingExisting(true);
+    setCheckFailed(false);
     try {
       const res = await getGeneratedFiles(projectId);
+      if (requestId !== checkRequestIdRef.current) return; // a newer switch has already superseded this
       const kit = Array.isArray(res.files) ? res.files.filter((f) => f.program === "agentic-purchasing") : [];
       setFiles(kit.length > 0 ? kit : null);
     } catch {
+      if (requestId !== checkRequestIdRef.current) return;
+      // A failed existence check is NOT "no kit yet" — the empty state's own
+      // Generate button would trigger a real, billable regenerate for a
+      // project that may already have a kit, just unreachable right now.
       setFiles(null);
+      setCheckFailed(true);
     } finally {
-      setCheckingExisting(false);
+      if (requestId === checkRequestIdRef.current) setCheckingExisting(false);
     }
   }, []);
 
@@ -264,7 +279,17 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
 
           {checkingExisting && <div className="mt-4" role="status" aria-busy="true"><Skeleton lines={3} height={40} /></div>}
 
-          {!checkingExisting && !files && (
+          {!checkingExisting && checkFailed && (
+            <div className="card mt-4">
+              <Callout tone="danger" title="Couldn't check for an existing purchasing kit">
+                This may be a temporary connection issue — if you already generated a kit for this project, it is not
+                lost.{" "}
+                <button type="button" className="btn text-sm" onClick={() => void checkExisting(target.project_id)}>Retry</button>
+              </Callout>
+            </div>
+          )}
+
+          {!checkingExisting && !checkFailed && !files && (
             <div className="card mt-4">
               <EmptyState icon="scan" title="No purchasing kit yet" message="No purchasing kit generated yet for this project.">
                 <button ref={generateButtonRef} type="button" className="btn btn-primary" disabled={generating || !target.snapshot_id} onClick={() => void handleGenerate()}>

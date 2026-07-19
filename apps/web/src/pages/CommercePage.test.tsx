@@ -92,6 +92,10 @@ describe("CommercePage — no project loaded", () => {
 
 describe("CommercePage — generate flow (anon guest project)", () => {
   it("clicking Generate while signed out calls onRequireLogin instead of round-tripping (every paid program 401s anon callers)", async () => {
+    // H-Phase-A cycle 10: the mount-time existence check (checkExisting)
+    // fires even for an anon guest project — must be stubbed now that a
+    // failed check renders a genuinely different UI than "no kit yet".
+    stubFetch([["/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: [], skipped: [] }]]);
     render(<CommercePage loggedIn={false} currentProjectId={null} anonResult={anonResult()} onNavigate={onNavigate} onRequireLogin={onRequireLogin} />);
 
     const btn = await screen.findByRole("button", { name: "Generate Purchasing Kit" });
@@ -184,6 +188,64 @@ describe("CommercePage — generate flow (logged in)", () => {
     expect(screen.getByText("Validate Intent")).toBeTruthy();
     expect(screen.getByText("Confirm")).toBeTruthy();
     expect(screen.getByText(/not a live or executable checkout/)).toBeTruthy();
+  });
+
+  it("H-Phase-A cycle 10: switching the project <select> twice — an older in-flight check must not overwrite a newer one", async () => {
+    const projects = [
+      { project_id: "proj_a", name: "project-a", github_url: null, created_at: "2026-07-01T00:00:00Z", latest_snapshot: { snapshot_id: "snap_a", status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 1, compliance_grade: null }, snapshot_count: 1 },
+      { project_id: "proj_b", name: "project-b", github_url: null, created_at: "2026-07-01T00:00:00Z", latest_snapshot: { snapshot_id: "snap_b", status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 1, compliance_grade: null }, snapshot_count: 1 },
+    ];
+    let resolveA!: (v: unknown) => void;
+    const pendingA = new Promise((resolve) => { resolveA = resolve; });
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/projects/proj_a/generated-files")) {
+        await pendingA; // held open — resolves AFTER proj_b's response below
+        return { ok: true, status: 200, json: async () => ({ snapshot_id: "snap_a", project_id: "proj_a", generated_at: "", files: KIT_FILES, skipped: [] }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/projects/proj_b/generated-files")) {
+        return { ok: true, status: 200, json: async () => ({ snapshot_id: "snap_b", project_id: "proj_b", generated_at: "", files: [], skipped: [] }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/projects")) {
+        return { ok: true, status: 200, json: async () => ({ projects, total: 2 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<CommercePage loggedIn={true} currentProjectId="proj_a" anonResult={null} onNavigate={onNavigate} onRequireLogin={onRequireLogin} />);
+    const select = await screen.findByLabelText("Project") as HTMLSelectElement;
+
+    fireEvent.change(select, { target: { value: "proj_b" } });
+    await waitFor(() => expect(screen.getByText("No purchasing kit yet")).toBeTruthy());
+
+    resolveA(undefined); // proj_a's stale response lands AFTER proj_b's fresher one
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Must still show proj_b's (empty) result, not proj_a's kit re-appearing.
+    expect(screen.getByText("No purchasing kit yet")).toBeTruthy();
+    expect(screen.queryByText("Purchasing Playbook")).toBeNull();
+  });
+
+  it("H-Phase-A cycle 10: a failed existence check shows an honest error, not the same empty state a genuinely-kit-less project gets", async () => {
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/generated-files")) {
+        return { ok: false, status: 500, json: async () => ({ error: "boom" }), text: async () => "boom", headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/projects")) {
+        const body = { projects: [{ project_id: "proj_fx", name: "fixture-repo", github_url: null, created_at: "2026-07-01T00:00:00Z", latest_snapshot: { snapshot_id: "snap_fx", status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 1, compliance_grade: null }, snapshot_count: 1 }], total: 1 };
+        return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<CommercePage loggedIn={true} currentProjectId="proj_fx" anonResult={null} onNavigate={onNavigate} onRequireLogin={onRequireLogin} />);
+
+    expect(await screen.findByText("Couldn't check for an existing purchasing kit")).toBeTruthy();
+    expect(screen.queryByText("No purchasing kit yet")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Generate Purchasing Kit" })).toBeNull();
   });
 
   it("a 402 response shows the UpsellModal instead of a generic error", async () => {
