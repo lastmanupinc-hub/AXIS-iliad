@@ -183,6 +183,56 @@ describe("VersionsTab — compare versions + diff", () => {
     expect(screen.getAllByText("theme", { exact: false }).length).toBeGreaterThan(0);
   });
 
+  it("a stale diff from a de-selected snapshot's Compare cannot overwrite the currently-viewed one (H-Phase-A cycle 12)", async () => {
+    // Same class of bug as the test above, one function over: click Compare
+    // on the current snapshot (its diff fetch held open), then switch to the
+    // older snapshot before that diff resolves. The stale diff must not
+    // repopulate the panel once the view has moved on to a snapshot that
+    // never asked for it.
+    const olderVersions = {
+      snapshot_id: OLDER_SNAPSHOT_ID,
+      count: 2,
+      versions: [
+        { version_id: "ov2", snapshot_id: OLDER_SNAPSHOT_ID, version_number: 2, program: "older-b", file_count: 1, created_at: "2026-07-01T01:00:00Z" },
+        { version_id: "ov1", snapshot_id: OLDER_SNAPSHOT_ID, version_number: 1, program: "older-a", file_count: 1, created_at: "2026-07-01T00:00:00Z" },
+      ],
+    };
+    let resolveCurrentDiff!: () => void;
+    const currentDiffGate = new Promise<void>((resolve) => { resolveCurrentDiff = resolve; });
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const respond = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } }) as unknown as Response;
+      if (url.includes(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}/diff`)) {
+        await currentDiffGate; // held open until the test explicitly releases it, below
+        return respond(DIFF_RESPONSE);
+      }
+      if (url.includes(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}/versions`)) return respond(VERSIONS_RESPONSE);
+      if (url.includes(`/v1/snapshots/${OLDER_SNAPSHOT_ID}/versions`)) return respond(olderVersions);
+      if (url.includes(`/v1/projects/${PROJECT_ID}/snapshots`)) return respond(SNAPSHOTS_RESPONSE);
+      if (url.includes("/memory")) return respond({ project_id: PROJECT_ID, entries: [], count: 0, total: 0 });
+      return respond({ error: "unhandled in test" });
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(
+      <VersionsTab projectId={PROJECT_ID} currentSnapshotId={CURRENT_SNAPSHOT_ID} loggedIn={false} onSnapshotDeleted={() => {}} onProjectDeleted={() => {}} onNeedCredits={() => {}} />,
+    );
+    await screen.findAllByText("ready"); // snapshot table loaded
+    const compareBtn = await screen.findByRole("button", { name: "Compare" }); // current snapshot's versions loaded first
+    fireEvent.click(compareBtn); // getDiff(current) now held open on currentDiffGate
+
+    const rows = screen.getAllByRole("row");
+    const olderRow = rows.find((r) => within(r).queryByText("10") !== null)!;
+    fireEvent.click(within(olderRow).getByRole("button", { name: "View" })); // switches away before the diff resolves
+    await waitFor(() => expect(within(olderRow).getByRole("button", { name: "Viewing" })).toBeTruthy());
+
+    resolveCurrentDiff(); // now let the stale diff land, after the view already moved on
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(screen.queryByText("theme.css")).toBeNull();
+    expect(screen.queryByText("1 added")).toBeNull();
+  });
+
   it("fewer than 2 versions shows an explanatory empty state instead of the picker", async () => {
     renderTab({
       routes: baseRoutes({

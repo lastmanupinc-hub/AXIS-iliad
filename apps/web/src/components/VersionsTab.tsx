@@ -150,13 +150,22 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
   // resolves could let A's stale versions overwrite B's, while the picker
   // still reads "B" (and silently mispair a subsequent Compare).
   const versionsRequestIdRef = useRef(0);
+  // H-Phase-A cycle 12: handleCompare is a 4th independent async op in this
+  // component that cycle 11's requestIdRef sweep missed. Bumped both here
+  // (so a snapshot switch invalidates any in-flight compare for the
+  // snapshot being left) and inside handleCompare itself (so a second
+  // Compare click for the SAME snapshot invalidates the first's response
+  // too) — one ref covers both races.
+  const compareRequestIdRef = useRef(0);
 
   const loadVersions = useCallback(async (snapshotId: string) => {
     const requestId = ++versionsRequestIdRef.current;
+    ++compareRequestIdRef.current;
     setVersions(null);
     setVersionsError(null);
     setDiff(null);
     setDiffError(null);
+    setDiffLoading(false);
     setOldVersion("");
     setNewVersion("");
     try {
@@ -178,20 +187,23 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
 
   async function handleCompare() {
     if (oldVersion === "" || newVersion === "" || oldVersion === newVersion) return;
+    const requestId = ++compareRequestIdRef.current;
     setDiffLoading(true);
     setDiffError(null);
     setDiff(null);
     try {
       const res = await getDiff(selectedSnapshotId, oldVersion, newVersion);
+      if (requestId !== compareRequestIdRef.current) return;
       setDiff(res.diff);
     } catch (err) {
+      if (requestId !== compareRequestIdRef.current) return;
       setDiffError({
         message: isPersistenceCreditsError(err) ? "This diff requires a persistence credit." : (err instanceof Error ? err.message : "Failed to compute diff"),
         details: apiErrorDetails(err),
         needsCredits: isPersistenceCreditsError(err),
       });
     } finally {
-      setDiffLoading(false);
+      if (requestId === compareRequestIdRef.current) setDiffLoading(false);
     }
   }
 
