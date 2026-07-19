@@ -72,6 +72,22 @@ describe("getGrowthSnapshot", () => {
     expect(s.revenue.metered_overage_cents_this_month).toBeGreaterThan(0);
   });
 
+  // H-Phase-A cycle 15 mutation-lite: the test above only asserts >0, which
+  // can't distinguish Math.ceil from Math.floor rounding (a real mutant
+  // survived here — both round a positive number to a positive number).
+  // Assert the EXACT cents value against the SAME overage_credits the charge
+  // itself produced (no hardcoded magic number), which only matches when the
+  // real Math.ceil rounding is used — this amount's overage lands on a
+  // non-exact cent boundary (2112 credits * 18 / 100 = 380.16), so ceil (381)
+  // and floor (380) genuinely differ.
+  it("rounds metered_overage_cents_this_month up (ceil), not down, to the next cent", async () => {
+    const acct = await createAccount("OverExact", "overexact@x.com", "free");
+    const charge = await consumeUsageCredits(acct.account_id, "free", "analyze_repo", 2000);
+    expect(charge.overage_credits).toBeGreaterThan(0);
+    const s = await getGrowthSnapshot();
+    expect(s.revenue.metered_overage_cents_this_month).toBe(Math.ceil((charge.overage_credits * 18) / 100));
+  });
+
   // ─── WO-19: settled revenue (payment_receipts ONLY — cash actually collected) ──
 
   it("does NOT count unpaid ledger overage as settled revenue (billed != collected)", async () => {
