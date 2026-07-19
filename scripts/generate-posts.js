@@ -285,7 +285,7 @@ function generatePosts() {
 
 // Main execution
 async function main() {
-  console.log('🚀 Axis' Iliad Free Tier Content Generator & Poster\n');
+  console.log("🚀 Axis' Iliad Free Tier Content Generator & Poster\n");
 
   const posts = generatePosts();
   console.log(`📝 Generated ${posts.length} posts across ${[...new Set(posts.map(p => p.platform))].length} platforms\n`);

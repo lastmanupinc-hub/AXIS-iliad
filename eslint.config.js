@@ -1,11 +1,128 @@
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+
+// H6 (lint-gate-standup): tsc --noEmit is already a CI gate (ci.yml's own
+// "Type-check" step, pnpm -r exec tsc --noEmit) but that only checks types —
+// it never ran ESLint's own rule set, so every lint-catchable defect class
+// (chiefly @typescript-eslint/no-floating-promises: an unawaited async call
+// silently drops its rejection) was ungated. This is that missing gate.
+//
+// Scope: TypeScript source under apps/*/src and packages/*/src — the exact
+// same scope tsc's own gate already covers (every package's own tsconfig.json
+// "include": ["src"]). Root-level scripts (scripts/*.mjs, config files) were
+// never part of that existing typecheck gate either; keeping lint's scope
+// identical avoids inventing a new, previously-ungated class of failures on
+// files the "clean" claim never covered.
+//
+// *.test.ts/*.test.tsx (and iliad-md's *.test-helper.ts) are excluded from
+// type-aware linting for the same reason: every package's own tsconfig.json
+// excludes them too (e.g. apps/api/tsconfig.json's "exclude":
+// ["src/**/*.test.ts"]; packages/iliad-md/tsconfig.json also excludes
+// "src/**/*.test-helper.ts"), so typescript-eslint's projectService can't
+// find a home for them (each one throws "was not found by the project
+// service") — the tsc "clean" claim never covered these files either.
+// DISCLOSED scope gap, not silently narrowed: this gate does not yet catch a
+// floating promise inside a test file. Giving tests their own lint-only
+// tsconfig is a reasonable follow-up, out of scope for standing the gate up.
+//
+// apps/web/vite.config.ts is excluded for the identical reason: apps/web's
+// own tsconfig.json "include" is ["src"] only, so vite.config.ts (which
+// lives one level up) was never part of tsc's gate either.
+const TS_SOURCE_FILES = ["apps/**/*.{ts,tsx}", "packages/**/*.{ts,tsx}"];
+const TS_TEST_FILES = ["**/*.test.{ts,tsx}", "**/*.test-helper.ts"];
+const TS_UNCOVERED_CONFIG_FILES = ["apps/web/vite.config.ts"];
+
 export default [
+  // Global ignores — build output, coverage, generated example artifacts
+  // (this product's OWN generator programs write example MCP configs/output
+  // dirs checked in as fixtures, not real source), and the git-worktree
+  // copies under .claude/ (each a full nested checkout with its own
+  // node_modules — never real source to lint).
   {
-    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
-    ignores: ["**/dist/**", "**/coverage/**", "**/.ai-output*/**"],
+    ignores: [
+      "**/dist/**",
+      "**/coverage/**",
+      "**/.ai-output*/**",
+      ".dogfood-closer-output/**",
+      "mcp/**",
+      ".claude/**",
+      // Excluded from type-aware linting — see TS_TEST_FILES/
+      // TS_UNCOVERED_CONFIG_FILES comment above.
+      ...TS_TEST_FILES,
+      ...TS_UNCOVERED_CONFIG_FILES,
+    ],
+  },
+
+  // Plain JS/config files (scripts/, *.config.js, etc.) — basic recommended
+  // rules only; no type-aware linting (no tsconfig backs these files). Node
+  // globals declared by hand (no `globals` package — H6's dep approval was
+  // exactly eslint/@eslint/js/typescript-eslint, nothing else) so
+  // @eslint/js's recommended no-undef rule doesn't false-positive on every
+  // console/process/require call in these Node-run scripts. This bucket also
+  // covers a few root-level browser-context sketches (generative-sketch.js)
+  // that run via <script>/canvas rather than Node, hence the DOM globals
+  // mixed in alongside the Node ones below.
+  {
+    files: ["**/*.{js,mjs,cjs}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        require: "readonly",
+        module: "readonly",
+        exports: "writable",
+        __dirname: "readonly",
+        __filename: "readonly",
+        global: "readonly",
+        globalThis: "readonly",
+        Buffer: "readonly",
+        fetch: "readonly",
+        AbortController: "readonly",
+        AbortSignal: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        TextEncoder: "readonly",
+        TextDecoder: "readonly",
+        setTimeout: "readonly",
+        setInterval: "readonly",
+        clearTimeout: "readonly",
+        clearInterval: "readonly",
+        setImmediate: "readonly",
+        document: "readonly",
+        window: "readonly",
+        requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+      },
     },
-    rules: {},
+    rules: js.configs.recommended.rules,
+  },
+
+  // TypeScript source — type-aware linting via typescript-eslint's
+  // recommended-type-checked preset. `files` is re-applied on every preset
+  // config object (not just appended once) so type-aware rules can never
+  // reach outside TS_SOURCE_FILES regardless of the preset's own internal
+  // matchers.
+  ...tseslint.configs.recommendedTypeChecked.map((config) => ({
+    ...config,
+    files: TS_SOURCE_FILES,
+  })),
+  {
+    files: TS_SOURCE_FILES,
+    languageOptions: {
+      parserOptions: {
+        // Auto-discovers each file's own nearest tsconfig.json (every
+        // package under apps/*, packages/* has its own) — the modern
+        // equivalent of hand-listing all 13 package tsconfig paths.
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
   },
 ];

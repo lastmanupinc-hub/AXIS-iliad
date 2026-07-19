@@ -113,7 +113,7 @@ export async function handleCreateCreditTopup(
       paid_session_id: session.id,
     });
 
-    trackEvent(account.account_id, "checkout_started", "conversion", {
+    await trackEvent(account.account_id, "checkout_started", "conversion", {
       processor: "paid",
       kind: "credit_topup",
       pack_id: pack.pack_id,

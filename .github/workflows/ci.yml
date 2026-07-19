@@ -71,6 +71,9 @@ jobs:
       - name: Type-check
         run: pnpm -r exec tsc --noEmit
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Artifact freshness gate
         run: npx tsx scripts/check-artifact-freshness.ts
 

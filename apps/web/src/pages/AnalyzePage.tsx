@@ -439,7 +439,7 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={(e) => { void handleSubmit(e); }}>
         {mode === "github" ? (
           <div className="card" style={{ marginBottom: 16, padding: "24px" }}>
             <label>GitHub Repository URL</label>
@@ -505,7 +505,7 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
             setDragOver(true);
           }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
+          onDrop={(e) => { void handleDrop(e); }}
         >
           <input
             ref={fileInputRef}
@@ -513,14 +513,14 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
             style={{ display: "none" }}
             {...({ webkitdirectory: "", directory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
             multiple
-            onChange={handleFileInputChange}
+            onChange={(e) => { void handleFileInputChange(e); }}
           />
           <input
             ref={zipInputRef}
             type="file"
             style={{ display: "none" }}
             accept=".zip,application/zip,application/x-zip-compressed"
-            onChange={handleZipInputChange}
+            onChange={(e) => { void handleZipInputChange(e); }}
           />
           {files.length === 0 ? (
             <>
@@ -529,10 +529,10 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
                 Drag &amp; drop a folder or .zip file here
               </p>
               <div className="flex" style={{ gap: 8, justifyContent: "center", marginTop: 12 }}>
-                <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); handleFolderSelect(); }} style={{ fontSize: "0.8125rem" }}>
+                <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); void handleFolderSelect(); }} style={{ fontSize: "0.8125rem" }}>
                   Select Folder
                 </button>
-                <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); handleZipSelect(); }} style={{ fontSize: "0.8125rem" }}>
+                <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); void handleZipSelect(); }} style={{ fontSize: "0.8125rem" }}>
                   Upload .zip
                 </button>
               </div>

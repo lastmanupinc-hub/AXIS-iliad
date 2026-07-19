@@ -85,7 +85,7 @@ export function AuthButtons({ onEmailSuccess }: { onEmailSuccess?: () => void })
           </button>
         </div>
       ) : (
-        <form onSubmit={handleEmail} style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <form onSubmit={(e) => { void handleEmail(e); }} style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
           <label htmlFor="auth-name" style={{ fontSize: "0.8125rem" }}>Name</label>
           <input id="auth-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" style={{ marginBottom: 8 }} autoFocus />
           <label htmlFor="auth-email" style={{ fontSize: "0.8125rem" }}>Email</label>

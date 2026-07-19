@@ -380,7 +380,7 @@ export function SettingsPage({ onAuthChange }: Props) {
           <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Profile</h2>
           <button type="button" className="btn text-sm" onClick={handleLogout}>Log Out</button>
         </div>
-        <form onSubmit={handleSaveProfile} className="stack gap-2" style={{ maxWidth: 420 }}>
+        <form onSubmit={(e) => void handleSaveProfile(e)} className="stack gap-2" style={{ maxWidth: 420 }}>
           <label className="text-sm text-muted" htmlFor="settings-name">Name</label>
           <input id="settings-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
           <label className="text-sm text-muted" htmlFor="settings-email">Email</label>
@@ -400,7 +400,7 @@ export function SettingsPage({ onAuthChange }: Props) {
               <h2 style={{ color: "var(--yellow)", fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Save your API key — it won&apos;t be shown again</h2>
               <code className="mono text-sm" style={{ wordBreak: "break-all" }}>{revealedKey}</code>
             </div>
-            <button type="button" className="btn" onClick={() => navigator.clipboard.writeText(revealedKey)}>Copy</button>
+            <button type="button" className="btn" onClick={() => void navigator.clipboard.writeText(revealedKey)}>Copy</button>
           </div>
         </div>
       )}
@@ -409,7 +409,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       <div className="card">
         <div className="flex-between mb-2">
           <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>API Keys</h2>
-          <form onSubmit={handleCreateKey} className="flex gap-2">
+          <form onSubmit={(e) => void handleCreateKey(e)} className="flex gap-2">
             <input value={newKeyLabel} onChange={(e) => setNewKeyLabel(e.target.value)} placeholder="Key label (optional)" aria-label="API key label" style={{ width: 200 }} />
             <button type="submit" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>+ New Key</button>
           </form>
@@ -447,7 +447,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       <div className="card">
         <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>GitHub Tokens</h2>
         <p className="text-muted text-sm mb-2">Stored tokens are used automatically for private-repo analysis. Only a prefix is ever shown again.</p>
-        <form onSubmit={handleSaveToken} className="flex gap-2 mb-4" style={{ flexWrap: "wrap" }}>
+        <form onSubmit={(e) => void handleSaveToken(e)} className="flex gap-2 mb-4" style={{ flexWrap: "wrap" }}>
           <input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="ghp_..." type="password" aria-label="GitHub token value" style={{ width: 240 }} required minLength={10} />
           <input value={newTokenLabel} onChange={(e) => setNewTokenLabel(e.target.value)} placeholder="Label (optional)" aria-label="GitHub token label" style={{ width: 160 }} />
           <button type="submit" className="btn btn-primary">+ Add Token</button>
@@ -484,7 +484,7 @@ export function SettingsPage({ onAuthChange }: Props) {
       {/* Webhooks */}
       <div className="card">
         <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Webhooks</h2>
-        <form onSubmit={handleCreateWebhook} className="stack gap-2 mb-4" style={{ maxWidth: 480 }}>
+        <form onSubmit={(e) => void handleCreateWebhook(e)} className="stack gap-2 mb-4" style={{ maxWidth: 480 }}>
           <input value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} placeholder="https://example.com/hook" type="url" aria-label="Webhook URL" required />
           <div
             className="flex gap-2"
@@ -568,18 +568,20 @@ export function SettingsPage({ onAuthChange }: Props) {
         ) : (
           <>
             <form
-              onSubmit={async (e: FormEvent) => {
+              onSubmit={(e: FormEvent) => {
                 e.preventDefault();
                 const form = e.currentTarget as HTMLFormElement;
                 const email = (new FormData(form).get("email") as string) ?? "";
                 setError(null);
-                try {
-                  await inviteSeat(email.trim());
-                  form.reset();
-                  setSeats(await listSeats());
-                } catch (err) {
-                  setError({ message: err instanceof Error ? err.message : "Failed to invite", details: apiErrorDetails(err) });
-                }
+                void (async () => {
+                  try {
+                    await inviteSeat(email.trim());
+                    form.reset();
+                    setSeats(await listSeats());
+                  } catch (err) {
+                    setError({ message: err instanceof Error ? err.message : "Failed to invite", details: apiErrorDetails(err) });
+                  }
+                })();
               }}
               className="flex gap-2 mb-2"
             >

@@ -233,7 +233,7 @@ export function ArtifactExplorer({ files, projectId }: Props) {
             onSelect={selectFile}
             projectId={projectId}
             downloadingProgram={downloadingProgram}
-            onDownloadProgram={handleDownloadProgram}
+            onDownloadProgram={(program) => { void handleDownloadProgram(program); }}
           />
           {previewPane}
         </div>

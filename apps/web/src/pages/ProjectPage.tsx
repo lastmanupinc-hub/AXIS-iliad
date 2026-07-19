@@ -218,7 +218,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
                 className="btn btn-primary"
                 style={{ fontSize: "0.8125rem", padding: "4px 12px" }}
                 disabled={downloading}
-                onClick={handleDownloadAll}
+                onClick={() => { void handleDownloadAll(); }}
               >
                 {downloading ? <><span className="spinner" /> Zipping...</> : "⬇ Download All"}
               </button>
@@ -246,7 +246,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
         </Callout>
       )}
 
-      <NextStepsCard fileCount={generatedFiles.length} onDownload={handleDownloadAll} downloading={downloading} />
+      <NextStepsCard fileCount={generatedFiles.length} onDownload={() => { void handleDownloadAll(); }} downloading={downloading} />
 
       <div className="tabs">
         {TABS.map((tab, idx) => (

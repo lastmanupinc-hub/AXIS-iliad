@@ -240,7 +240,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
             <button
               className={`btn ${plan.id === "pro" ? "btn-primary" : ""}`}
               style={{ width: "100%", justifyContent: "center" }}
-              onClick={() => handlePlanSelect(plan.id)}
+              onClick={() => { void handlePlanSelect(plan.id); }}
               disabled={checkoutLoading === plan.id}
             >
               {checkoutLoading === plan.id

@@ -134,7 +134,7 @@ export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) 
               program={p}
               fileCount={filesPerProgram.get(p.name) ?? 0}
               running={running === p.name}
-              onRun={() => handleRun(p)}
+              onRun={() => { void handleRun(p); }}
               onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
             />
           ))}
@@ -154,7 +154,7 @@ export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) 
               fileCount={filesPerProgram.get(p.name) ?? 0}
               running={running === p.name}
               locked={tierResolved && tier === "free"}
-              onRun={() => handleRun(p)}
+              onRun={() => { void handleRun(p); }}
               onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
             />
           ))}

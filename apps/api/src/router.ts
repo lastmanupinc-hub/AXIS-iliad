@@ -279,7 +279,15 @@ export function createApp(router: Router, port: number): Server {
   _shuttingDown = false;
   const requestTimeoutMs = parseInt(process.env.REQUEST_TIMEOUT_MS ?? "120000", 10);
 
-  const server = createServer(async (req, res) => {
+  // Node's http createServer callback is typed `(req, res) => void` — an async
+  // callback passed directly here is a Promise the http module never awaits,
+  // so any rejection (an unguarded throw anywhere below) becomes an unhandled
+  // rejection. Since this file's own unhandledRejection handler responds to
+  // that by shutting the whole server down, a single bad request could take
+  // down every in-flight connection. handleRequest is invoked via `void
+  // ...catch(...)` below so a per-request failure degrades to one 500, not a
+  // process-wide shutdown.
+  async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     // Store request ref for gzip negotiation in sendJSON
     REQUEST_REF.set(res, req);
     // Per-request timeout
@@ -361,35 +369,42 @@ export function createApp(router: Router, port: number): Server {
 
     // Log after response completes
     /* v8 ignore start — V8 quirk: finish callback ternaries for duration/status/level */
-    res.on("finish", async () => {
-      const start = getRequestStart(res);
-      const duration = start ? Date.now() - start : undefined;
-      const status = res.statusCode ?? 200;
-      recordRequest(status);
-      if (duration !== undefined && req.method && req.url) {
-        recordLatency(req.method, req.url, duration);
-      }
-      if (auth.account && req.method && req.url) {
-        // Persist per-account endpoint usage for MyAnalytics recommendations.
-        try {
-          await recordApiCall(auth.account.account_id, req.method, req.url, status);
-        } catch {
-          // Never fail request handling due to analytics write errors.
+    // `.on()` listeners are typed to return void; wrapping the async body in
+    // an IIFE (invoked via `void ...catch(...)`) keeps this a sync callback
+    // instead of handing EventEmitter a Promise it never awaits.
+    res.on("finish", () => {
+      void (async () => {
+        const start = getRequestStart(res);
+        const duration = start ? Date.now() - start : undefined;
+        const status = res.statusCode ?? 200;
+        recordRequest(status);
+        if (duration !== undefined && req.method && req.url) {
+          recordLatency(req.method, req.url, duration);
         }
-      }
-      // Suppress health/liveness/readiness probes from info logs — only log on error
-      const path = req.url ?? "";
-      const isProbe = path === "/v1/health" || path === "/v1/health/live" || path === "/v1/health/ready";
-      const level = status >= 500 ? "error" as const
-        : status >= 400 ? "warn" as const
-        : "info" as const;
-      if (isProbe && level === "info") return;
-      log(level, "request", {
-        request_id: requestId,
-        method: req.method,
-        path: req.url,
-        status: res.statusCode,
-        duration_ms: duration,
+        if (auth.account && req.method && req.url) {
+          // Persist per-account endpoint usage for MyAnalytics recommendations.
+          try {
+            await recordApiCall(auth.account.account_id, req.method, req.url, status);
+          } catch {
+            // Never fail request handling due to analytics write errors.
+          }
+        }
+        // Suppress health/liveness/readiness probes from info logs — only log on error
+        const path = req.url ?? "";
+        const isProbe = path === "/v1/health" || path === "/v1/health/live" || path === "/v1/health/ready";
+        const level = status >= 500 ? "error" as const
+          : status >= 400 ? "warn" as const
+          : "info" as const;
+        if (isProbe && level === "info") return;
+        log(level, "request", {
+          request_id: requestId,
+          method: req.method,
+          path: req.url,
+          status: res.statusCode,
+          duration_ms: duration,
+        });
+      })().catch((err: unknown) => {
+        log("error", "finish_handler_crashed", { error: err instanceof Error ? err.message : String(err) });
       });
     });
     /* v8 ignore stop */
@@ -401,7 +416,16 @@ export function createApp(router: Router, port: number): Server {
       if (cc) res.setHeader("Cache-Control", cc);
     }
 
-    router.handle(req, res);
+    await router.handle(req, res);
+  }
+
+  const server = createServer((req, res) => {
+    void handleRequest(req, res).catch((err: unknown) => {
+      log("error", "request_handler_crashed", { error: err instanceof Error ? err.message : String(err) });
+      if (!res.headersSent && !res.writableEnded) {
+        sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Internal server error");
+      }
+    });
   });
 
   server.on("connection", (socket: Socket) => {
@@ -483,20 +507,24 @@ export function createApp(router: Router, port: number): Server {
   // Register signal handlers (skip in test environments)
   /* v8 ignore start — signal/crash handlers only fire outside test */
   if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
-    const onSignal = () => { shutdown().then(() => process.exit(0)); };
+    // shutdown() itself has no unguarded await left to reject on today, but a
+    // dangling `.then()`/`.finally()` chain would silently swallow it if that
+    // ever changes — worst possible place for a process-exit path to itself
+    // throw unnoticed. The trailing .catch ensures we still exit even then.
+    const onSignal = () => { shutdown().then(() => process.exit(0)).catch(() => process.exit(1)); };
     process.on("SIGTERM", onSignal);
     process.on("SIGINT", onSignal);
 
     // Crash resilience: log + graceful shutdown on unhandled errors
     process.on("uncaughtException", (err) => {
       log("error", "uncaught_exception", { error: err.message, stack: err.stack });
-      shutdown().finally(() => process.exit(1));
+      shutdown().finally(() => process.exit(1)).catch(() => process.exit(1));
     });
     process.on("unhandledRejection", (reason) => {
       const msg = reason instanceof Error ? reason.message : String(reason);
       const stack = reason instanceof Error ? reason.stack : undefined;
       log("error", "unhandled_rejection", { error: msg, stack });
-      shutdown().finally(() => process.exit(1));
+      shutdown().finally(() => process.exit(1)).catch(() => process.exit(1));
     });
   }
   /* v8 ignore stop */

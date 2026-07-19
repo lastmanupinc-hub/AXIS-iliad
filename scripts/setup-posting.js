@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-console.log('🚀 Axis' Iliad Content Posting Setup\n');
+console.log("🚀 Axis' Iliad Content Posting Setup\n");
 
 console.log('📋 What you need to get started:\n');
 

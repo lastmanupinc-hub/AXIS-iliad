@@ -113,7 +113,7 @@ Frontend audits, SEO analysis, brand systems, marketing campaigns, and 11 more s
 ];
 
 async function main() {
-  console.log('🚀 Axis' Iliad Content Poster\n');
+  console.log("🚀 Axis' Iliad Content Poster\n");
 
   let posted = 0;
 

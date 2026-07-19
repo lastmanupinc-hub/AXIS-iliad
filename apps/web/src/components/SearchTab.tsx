@@ -90,7 +90,7 @@ export function SearchTab({ snapshotId }: Props) {
   const handleSearch = mode === "text" ? handleTextSearch : handleSymbolSearch;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSearch();
+    if (e.key === "Enter") void handleSearch();
   };
 
   // Theme-aware symbol palette: semantic vars swap automatically between the
@@ -140,7 +140,7 @@ export function SearchTab({ snapshotId }: Props) {
             className="btn"
             style={{ fontSize: "0.8125rem", padding: "4px 12px" }}
             disabled={indexing}
-            onClick={handleIndex}
+            onClick={() => { void handleIndex(); }}
           >
             {indexing ? <><span className="spinner" /> Indexing...</> : indexed ? "Re-index" : "Index Files"}
           </button>
@@ -192,7 +192,7 @@ export function SearchTab({ snapshotId }: Props) {
           className="btn btn-primary"
           style={{ padding: "8px 16px", fontSize: "0.875rem" }}
           disabled={loading || (mode === "text" && !query.trim())}
-          onClick={handleSearch}
+          onClick={() => { void handleSearch(); }}
         >
           {loading ? <><span className="spinner" /> Searching...</> : "Search"}
         </button>

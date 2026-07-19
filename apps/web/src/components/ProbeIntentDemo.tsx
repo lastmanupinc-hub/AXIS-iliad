@@ -37,7 +37,7 @@ export function ProbeIntentDemo() {
       <p className="text-muted text-sm mb-3">
         Public, no signup — <code className="mono">POST /probe-intent</code> routes free text to the right tool.
       </p>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={(e) => { void handleSubmit(e); }}>
         <label htmlFor="probe-intent-input">What are you trying to do?</label>
         <textarea
           id="probe-intent-input"

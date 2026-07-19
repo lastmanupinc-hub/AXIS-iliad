@@ -134,7 +134,7 @@ export function WebResearchPage({ onBack }: Props) {
                     Cache hit · {result.cache.age_seconds != null ? `${Math.floor(result.cache.age_seconds / 60)}m old` : "fresh"}
                   </span>
                 )}
-                <button className="btn" onClick={() => handleCopy(markdown)} style={{ padding: "4px 12px", fontSize: "0.85rem" }}>
+                <button className="btn" onClick={() => { void handleCopy(markdown); }} style={{ padding: "4px 12px", fontSize: "0.85rem" }}>
                   Copy markdown
                 </button>
                 <button
@@ -178,7 +178,7 @@ export function WebResearchPage({ onBack }: Props) {
         ) : null
       }
     >
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={(e) => { void handleSubmit(e); }}>
         <div style={{ marginBottom: 12 }}>
           <label htmlFor="web-research-url">URL</label>
           <input
