@@ -141,6 +141,36 @@ describe("count honesty — docs/UI match the code (A4)", () => {
   });
 });
 
+// H-Phase-A cycle 13: server.json (repo root) is the LIVE MCP registry publish
+// manifest read by `mcp-publisher publish` (see LAUNCH_RUNBOOK.md's Step 6),
+// and is crawled directly by Smithery/Glama — an 8th hand-typed-catalog-drift
+// surface, this one externally visible on the real registry, not just an
+// internal doc. Its "programs"/"generators"/"tools" counts and "free_tools"
+// array are all hand-maintained; guard them the same way README.md and
+// ForAgentsPage.tsx were locked down in cycle 12.
+describe("server.json (MCP registry manifest) matches the live code", () => {
+  function serverJsonMeta(): { programs: number; generators: number; tools: number; free_tools: string[] } {
+    const raw = JSON.parse(readFileSync(join(ROOT, "server.json"), "utf8")) as {
+      _meta: Record<string, { programs: number; generators: number; tools: number; free_tools: string[] }>;
+    };
+    return raw._meta["io.github.lastmanupinc-hub/axis-iliad"];
+  }
+
+  it("programs/generators/tools counts match TOTAL_PROGRAMS/TOTAL_GENERATORS/MCP_TOOL_COUNT", () => {
+    const meta = serverJsonMeta();
+    expect(meta.programs).toBe(TOTAL_PROGRAMS);
+    expect(meta.generators).toBe(TOTAL_GENERATORS);
+    expect(meta.tools).toBe(MCP_TOOL_COUNT);
+  });
+
+  it("free_tools names every tool that is actually free", () => {
+    const meta = serverJsonMeta();
+    const realFree = deriveMcpToolCatalog().filter((t) => t.pricing === "free").map((t) => t.name);
+    const missing = realFree.filter((name) => !meta.free_tools.includes(name));
+    expect(missing, `server.json's free_tools is missing: ${missing.join(", ")}`).toEqual([]);
+  });
+});
+
 // ─── WO-F5: web single-source config + pinned package copy ──────────────────
 // apps/web/src/config.ts is the ONE module web pages may take catalog counts
 // and API origins from. Its counts are pinned (importing the API package would
