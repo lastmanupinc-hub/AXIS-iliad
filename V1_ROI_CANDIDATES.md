@@ -68,8 +68,27 @@ numbered candidates — capturing them here so the candidate list holds *all* re
 | H3 | paid-client-parse | `paid-client.ts` `JSON.parse` on a 200 response isn't wrapped → a malformed PAI'D body throws raw instead of `PaidError`. (+ `import-resolver.ts` root-relative `resolveImportPath`; `applyReferralDiscount` dead-returns-0.) | LOW | partial |
 | H4 | metrics-alerting | No automated threshold ALERTING on the metrics already emitted (error-rate / p99 / health to a channel). Scorecard PI-01 — "cheapest real gain." | MED | not-started |
 | H5 | abuse-detection | No per-IP / per-account spike/anomaly DETECTION layer on top of the rate limiter (limits are enforced; spikes aren't flagged). Scorecard PI-03. | LOW | partial |
+| H6 | lint-gate-standup | ESLint is configured to **nothing** and unwired: root `eslint.config.js` has `rules: {}`, **no package defines a `lint` script** (so the root `"lint": "pnpm -r lint"` fails `ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT`), and `ci.yml` never lints — every lint-catchable class is ungated, chiefly `@typescript-eslint/no-floating-promises` (an unawaited async write silently drops its rejection: the TS-native swallowed-error). `tsc --noEmit` is clean + already CI-gated (`ci.yml:72`); this is its missing sibling gate. See ### H6. | MED | not-started · deterministic scan 2026-07-18 (tsc 0 errors / 14 pkgs; lint absent) |
 
-**Tier H build order (risk-ranked):** H1 (auth/XSS exposure) → H4 (ops blind spot) → H2 (sandbox correctness) → H5 → H3.
+**Tier H build order (risk-ranked):** H1 (auth/XSS exposure) → H4 (ops blind spot) → H6 (missing lint gate) → H2 (sandbox correctness) → H5 → H3.
+
+### H6 — lint-gate standup (ESLint exists in name only)
+
+**Found (deterministic scan, 2026-07-18).** Ran the two TS deterministic gates across all 14 workspace packages:
+- `pnpm -r exec tsc --noEmit` → **0 errors** (clean), already a CI gate (`ci.yml:72`). The typecheck layer is solid.
+- The **lint layer does not exist in practice**: root `eslint.config.js` declares `rules: {}` (empty), **no package has a `lint` script** (the root `pnpm -r lint` errors `ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT`), and `ci.yml` never runs lint. Every lint-catchable defect class is therefore ungated — the headline being `@typescript-eslint/no-floating-promises`: an unawaited async call (a fire-and-forget audit/metrics/DB write) silently drops its rejection.
+
+**Honest sizing — this is a *missing gate*, not a bug pile.** Current exposure is probably small: `tsc` is clean and promise-chaining is rare (1 `.then` chain repo-wide — the code is async/await throughout). The value is the **standing gate** that stops the class from regressing, not clearing a backlog. The exact `no-floating-promises` count is **unknown today** — the rule needs type-aware linting, which needs a dep (step 1); establishing the count is step 2.
+
+**Build (3 steps, each shippable; mirrors this repo's own baselined-gate shape — cf. the diff-scoped `secret-scan` job in `ci.yml`).**
+
+1. **DEP DECISION (founder — per CLAUDE.md "do not add dependencies without discussion").** The gate needs `eslint`, `@eslint/js`, and `typescript-eslint` as root devDeps (type-aware linting for `no-floating-promises`/`no-misused-promises`). These are the standard permissively-licensed TS lint toolchain (the allowed OSS-import exception to own-the-stack). Do **not** add them silently — get the go-ahead, then proceed. If declined, H6 stops here (documented, not half-built).
+2. **Populate + wire the config.** Replace `rules: {}` with a real flat config: `@eslint/js` recommended + `typescript-eslint` recommended-type-checked, `parserOptions.project` per package tsconfig. Enable at minimum `@typescript-eslint/no-floating-promises` (error), `no-misused-promises` (error), `no-unused-vars` (warn). Add a root `"lint": "eslint ."` (or per-package `lint` scripts) so `pnpm lint` actually runs. **Baseline the repo's way:** capture current findings; if the count is small, fix them; if not, land an advisory `eslint-baseline` and fail only on NEW — never a flag-day red CI.
+3. **Gate it in CI.** Add a `lint` step to `ci.yml`'s `build-and-test` job, right after the `Type-check` step (its natural sibling), running `pnpm lint`. tsc is already gated at line 72; lint joins it. Failing-on-baseline once step 2's baseline is clean.
+
+**Verify (repo order — `HARDEN_POLISH_LOOP.md` §0.3):** `npx tsc -b` stays clean → the new CI lint step is green on the baseline → a deliberately-seeded floating promise (an un-awaited async call in a scratch file) makes the lint step FAIL, then removing it passes → guard suites (`counts-consistency`/`count-honesty`/`launch-claims`) untouched → `pnpm run build` green → push. One unit, one commit.
+
+**Iliad-native + self-contained.** TS/ESLint, this repo's own `ci.yml`, `eslint.config.js`, and dep-discussion rule. No external repo's code, tooling, files, or IDs are referenced or imported — H6 stands entirely on this codebase's own scan evidence.
 
 
 ---
