@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey, getUsageCreditSummary } from "@axis/snapshots";
 import { Router } from "./router.js";
 import {
   handlePreparePurchasing,
@@ -16,6 +16,7 @@ import {
   PURCHASING_READINESS_WEIGHTS,
 } from "./handlers.js";
 import { MCP_TOOLS, dispatch } from "./mcp-server.js";
+import { runPreparePurchasing } from "./mcp-tool-impls.js";
 
 // ─── HTTP helper ─────────────────────────────────────────────────
 
@@ -694,5 +695,53 @@ describe("dispatch — lite mode's withheld bundle cannot be retrieved via get_s
       fakeReq(),
     );
     expect((artifactResult as { result: { isError: boolean } }).result.isError).toBe(true);
+  });
+});
+
+// ─── H-Phase-A cycle 16: entitlement gate no longer hard-blocks a fresh
+// paid-tier account that has no program_entitlements row ────────────────
+describe("runPreparePurchasing — entitlement gate matches REST parity", () => {
+  function reqWithKey(rawKey: string): import("node:http").IncomingMessage {
+    return { headers: { authorization: `Bearer ${rawKey}` } } as unknown as import("node:http").IncomingMessage;
+  }
+
+  it("a fresh 'paid' account with NO program_entitlements row still succeeds (matches the REST twin, doesn't hard-block on an unset entitlement)", async () => {
+    const acc = await createAccount("Prep Paid Fresh", "prep-paid-fresh@test.local", "paid");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    const before = await getUsageCreditSummary(acc.account_id, "paid");
+    const text = await runPreparePurchasing(
+      {
+        project_name: "prep-paid-fresh",
+        project_type: "web_application",
+        frameworks: ["react"],
+        goals: ["enable purchasing agents"],
+        files: minFiles,
+      },
+      reqWithKey(rawKey),
+    );
+    const after = await getUsageCreditSummary(acc.account_id, "paid");
+    expect(after.included_credits_used).toBeGreaterThan(before.included_credits_used);
+    const parsed = JSON.parse(text) as { snapshot_id: string };
+    expect(typeof parsed.snapshot_id).toBe("string");
+  });
+
+  it("a genuinely free-tier account is still rejected before any charge", async () => {
+    const acc = await createAccount("Prep Free", "prep-free@test.local", "free");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    const before = await getUsageCreditSummary(acc.account_id, "free");
+    await expect(
+      runPreparePurchasing(
+        {
+          project_name: "prep-free",
+          project_type: "web_application",
+          frameworks: ["react"],
+          goals: ["enable purchasing agents"],
+          files: minFiles,
+        },
+        reqWithKey(rawKey),
+      ),
+    ).rejects.toThrow("prepare_agentic_purchasing requires");
+    const after = await getUsageCreditSummary(acc.account_id, "free");
+    expect(after.included_credits_used).toBe(before.included_credits_used);
   });
 });

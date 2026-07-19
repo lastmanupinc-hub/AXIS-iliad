@@ -2764,6 +2764,12 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(result.isError).toBe(false);
     const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     expect(after).toBeGreaterThan(before);
+    // H-Phase-A cycle 16: total_in_namespace is now counted BEFORE capture (same
+    // fallible-work-after-capture fix as cycle 15's runVectorDatabase) — still
+    // reports the correct count on the happy path.
+    const content = result.content as Array<{ text: string }>;
+    const parsed = JSON.parse(content[0].text) as { total_in_namespace: number };
+    expect(parsed.total_in_namespace).toBe(1);
   });
 
   it("iliad_hygiene mode=scan is FREE (no credit decrement) and returns a grade", async () => {

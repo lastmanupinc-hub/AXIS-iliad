@@ -1111,6 +1111,14 @@ export async function runWebSearch(args: Record<string, unknown>, req: IncomingM
     // BM25-ranking CPU that the search op pays for.
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = await searchDocuments(scopedNs, opts);
+    // H-Phase-A cycle 16: countSearchDocuments (a real DB read) used to run AFTER
+    // captureMcpToolCredits had already committed the charge — the same
+    // fallible-work-after-capture shape cycle 15 fixed for runVectorDatabase's
+    // countVectors. A transient DB error here would throw past an already-paid,
+    // already-successful search, and a retry would re-authorize+re-capture a
+    // FRESH charge with no dedup. Moved before capture so a failure here never
+    // loses the charge behind it.
+    const totalInNamespace = await countSearchDocuments(scopedNs);
     await captureMcpToolCredits(auth.account, charge);
     // Engineer mode (Answer Engine): a grounded extractive answer with citation
     // spans over the hits, or a refusal on weak evidence. Charged at the engineer
@@ -1120,7 +1128,7 @@ export async function runWebSearch(args: Record<string, unknown>, req: IncomingM
       operation: "search",
       namespace: scopedNs,
       query: args.query,
-      total_in_namespace: await countSearchDocuments(scopedNs),
+      total_in_namespace: totalInNamespace,
       hits,
       ...(answer
         ? { answer: answer.answer, citations: answer.citations, refused: answer.refused, reason: answer.reason }
@@ -2908,8 +2916,17 @@ export async function runCloser(
     throw new Error("Snapshot not found");
   }
 
-  if (!(await isProgramEnabled(auth.account.account_id, "closer"))) {
-    throw new Error("closer requires a paid plan or entitlement. Upgrade account program access first.");
+  // H-Phase-A cycle 16: this used to hard-block on isProgramEnabled regardless of
+  // tier — but a free→paid upgrade never auto-populates program_entitlements (only a
+  // suite upgrade bulk-enables every program; see updateAccountTier), so a brand-new
+  // Starter/Pro subscriber with ample credits was unconditionally rejected here, while
+  // the REST twin (handleCloserGenerate, via makeProgramHandler) only ever uses
+  // isProgramEnabled for 402 WORDING and always lets a paid/suite account through to
+  // the charge. Only genuinely free-tier callers are blocked now, matching REST's own
+  // isPro auth-gate — a paid/suite account with a manually-disabled entitlement still
+  // pays for and gets the run, exactly like calling the REST endpoint directly does.
+  if (auth.account.tier === "free") {
+    throw new Error("closer requires a paid plan. Upgrade at iliad.trustfabric.ai/billing.");
   }
 
   // H-Phase-A cycle 3: the REST twin (handleCloserGenerate, via
@@ -3024,8 +3041,12 @@ export async function runDeploy(
     throw new Error("Snapshot not found");
   }
 
-  if (!(await isProgramEnabled(auth.account.account_id, "deploy"))) {
-    throw new Error("deploy requires a paid plan or entitlement. Upgrade account program access first.");
+  // H-Phase-A cycle 16: only genuinely free-tier callers are blocked here now — see
+  // runCloser's identical comment above for the full rationale (program_entitlements
+  // is never auto-populated on a free→paid upgrade, so this used to hard-reject a
+  // brand-new paid subscriber the REST twin would have happily charged and served).
+  if (auth.account.tier === "free") {
+    throw new Error("deploy requires a paid plan. Upgrade at iliad.trustfabric.ai/billing.");
   }
 
   // H-Phase-A cycle 3: the REST twin (handleDeployGenerate, via
@@ -3139,16 +3160,17 @@ export async function runPreparePurchasing(
   });
 
   const generators = listAvailableGenerators();
-  // Check entitlements for purchasing programs BEFORE quota â€”
-  // entitlement failures tell the user to pay, quota is rate limiting.
-  const _purchasingEnabled = new Map(
-    await Promise.all(
-      PURCHASING_PROGRAMS.map(async p => [p, await isProgramEnabled(auth.account!.account_id, p)] as const),
-    ),
-  );
-  const purchasingBlocked = PURCHASING_PROGRAMS.filter(
-    p => !MCP_FREE_PROGRAMS.has(p) && !_purchasingEnabled.get(p),
-  );
+  // H-Phase-A cycle 16: this used to gate on isProgramEnabled per purchasing program,
+  // which (like runCloser/runDeploy above) hard-blocked every non-free purchasing
+  // program for any account whose program_entitlements table was never populated —
+  // true for every free→paid upgrade (only a suite upgrade bulk-enables; see
+  // updateAccountTier). A brand-new Starter/Pro subscriber with ample credits was
+  // unconditionally rejected here, while the REST twin only ever uses isProgramEnabled
+  // for 402 WORDING, never as a hard gate. Only genuinely free-tier callers are
+  // blocked now, matching REST parity — same fix as runCloser/runDeploy.
+  const purchasingBlocked = auth.account.tier === "free"
+    ? PURCHASING_PROGRAMS.filter(p => !MCP_FREE_PROGRAMS.has(p))
+    : [];
   if (purchasingBlocked.length > 0) {
     throw new Error(await buildMcpPaymentRequiredError(
       "prepare_agentic_purchasing",
