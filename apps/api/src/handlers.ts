@@ -2746,7 +2746,11 @@ export async function handleSkillsIndex(
         tags: ["mcp", "ai-agents", "protocol", "integration"],
         endpoint: "POST /mcp",
         auth_required: false,
-        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits", "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence", "build_ap2_mandate", "score_dispute_readiness", "assemble_representment", "iliad_network_tokenization"],
+        // H-Phase-A cycle 11: was a hand-typed 21-entry array, missing 16 real
+        // tools (the same hand-duplicated-catalog-drift shape as capabilities.json's
+        // mcp.tools, fixed cycle 10) -- derived from the same
+        // deriveMcpToolCatalog() source so it can't independently drift again.
+        tools: deriveMcpToolCatalog().map((t) => t.name),
       },
     ],
   });
@@ -2827,7 +2831,7 @@ List all programs with generator counts and output paths. No auth required.
 
 - \`POST /mcp\`  -  Streamable HTTP transport (2025-03-26 spec)
 - \`GET /mcp\`  -  SSE stream for long-running operations
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits, sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness, assemble_representment
+- ${MCP_TOOL_COUNT} tools: ${deriveMcpToolCatalog().map((t) => t.name).join(", ")}
 
 ## Search & Indexing
 

@@ -12,7 +12,7 @@ import { resetTestDb, TIER_LIMITS } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { MCP_TOOL_COUNT } from "./counts.js";
 import { MCP_TOOLS } from "./mcp-tools.js";
-import { FREE_MCP_TOOL_COUNT } from "./mcp-tool-impls.js";
+import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 import {
   handleLlmsTxt,
   handleSkillsIndex,
@@ -300,12 +300,17 @@ describe("GET /.well-known/skills/index.json", () => {
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists the 21 highlighted tools (incl. WO-14 network tokenization)", async () => {
-    // Was pinned at a stale 14 (pre-WO-13) — red at HEAD before WO-14 touched it.
+  it("axis-mcp skill lists all real MCP tools, not a hand-typed subset (H-Phase-A cycle 11)", async () => {
+    // Was a hand-typed 21-entry array missing 16 real tools — the same
+    // hand-duplicated-catalog-drift shape cycles 6/8/9/10 each found on a
+    // different surface. This test used to PIN the drift as correct
+    // ("lists the 21 highlighted tools"); it now asserts completeness
+    // against the same live source (deriveMcpToolCatalog) the fix derives
+    // from, so it can't silently regress to a stale hand-typed list again.
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
-    expect(mcp!.tools!.length).toBe(21);
+    expect(mcp!.tools!.length).toBe(MCP_TOOL_COUNT);
     expect(mcp!.tools).toContain("iliad_network_tokenization");
   });
 
@@ -352,6 +357,15 @@ describe("GET /v1/docs.md", () => {
 
   it("contains MCP section", async () => {
     expect(body).toContain("POST /mcp");
+  });
+
+  it("MCP tool list mentions every real tool, not a hand-typed subset (H-Phase-A cycle 11)", async () => {
+    // Was a hand-typed 20-name list (no hedge word — read as exhaustive)
+    // missing 17 real tools, incl. iliad_network_tokenization — the same
+    // hand-duplicated-catalog-drift shape as the skills-index fix above.
+    for (const tool of deriveMcpToolCatalog()) {
+      expect(body).toContain(tool.name);
+    }
   });
 
   it("contains the programs table with 18 programs", async () => {
