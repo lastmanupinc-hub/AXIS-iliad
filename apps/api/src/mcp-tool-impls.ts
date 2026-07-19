@@ -3244,11 +3244,23 @@ export async function runPreparePurchasing(
   ).catch(() => {});
 
   // â”€â”€ Referral tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  if (typeof referral_token === "string" && referral_token.length > 0) {
-    const referral = await lookupReferralCode(referral_token);
-    if (referral && referral.account_id !== auth.account!.account_id) {
-      await recordReferralConversion(referral.account_id, auth.account!.account_id);
+  // H-Phase-A cycle 14: wrapped best-effort, same reasoning as the
+  // trackEvent fix above — this sits between the fully-saved snapshot and
+  // captureMcpToolCredits further below, so an unguarded throw here (a
+  // transient DB hiccup, or a UNIQUE-constraint race on
+  // referral_conversions) would deliver the paid artifact bundle without
+  // ever capturing the charge, reachable by any caller-supplied
+  // referral_token.
+  try {
+    if (typeof referral_token === "string" && referral_token.length > 0) {
+      const referral = await lookupReferralCode(referral_token);
+      if (referral && referral.account_id !== auth.account!.account_id) {
+        await recordReferralConversion(referral.account_id, auth.account!.account_id);
+      }
     }
+  } catch {
+    // best-effort — must never block the caller's already-fully-generated
+    // result or skip charge capture below.
   }
   const artifactPaths = generated.files.map(f => f.path);
   const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
