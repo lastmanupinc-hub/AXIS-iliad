@@ -77,7 +77,7 @@ The 16 pages are functionally complete. Real work needed:
 
 - [ ] **MUST · S** — Publish `@axis/mpp` to npm (README + LICENSE prepped in session 101). `pnpm --filter @axis/mpp publish --access public`.
 - [ ] **MUST · S** — Publish `@axis/sdk` to npm (test suite landed session 097). Same flow.
-- [ ] **MUST · S** — Submit to MCP registry. `mcp-publisher publish` using `apps/api/mcp-server.json` (manifest enriched in session 095). Requires GitHub auth.
+- [ ] **MUST · S** — Submit to MCP registry. `mcp-publisher publish` (run from repo root) reads `server.json` at the repo root — see `LAUNCH_RUNBOOK.md`'s Step 6. Requires GitHub auth. (H-Phase-A cycle 14: this line previously named `apps/api/mcp-server.json`, a second, stale, unread manifest from the same day server.json was created; deleted as dead weight — `mcp-publisher` has no mechanism to pick up a differently-pathed/named file.)
 - [ ] **MUST · S** — Register the GitHub App at `github.com/settings/apps/new` using `.github/app-manifest.json` (manifest prepped session 103). Without this, `/v1/github/webhook` never receives events.
 - [ ] **MUST · S** — Set `GITHUB_WEBHOOK_SECRET` in production env (currently returns 503 until set — GitHub auto-retries, no message loss, but no installs work either).
 - [ ] **SHOULD · S** — Publish the compliance-check Action to GitHub Marketplace. `axis-iliad/compliance-check@v1` listing.
