@@ -1,5 +1,6 @@
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
+export { GENERATOR_PROGRAMS } from "./program-manifest.js";
 // Package Quality Judge (deterministic floors). Lives here so BOTH the API and the
 // fully-offline CLI can grade + append the quality report from the shared core.
 export {

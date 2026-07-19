@@ -60,6 +60,15 @@ export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
 /** Generated artifacts per full run (= TOTAL_GENERATORS). */
 export const ARTIFACT_COUNT = 142;
 
+/**
+ * Artifacts produced by the FREE_PROGRAM_NAMES programs alone (search+skills+debug) —
+ * mirrors packages/generator-core/src/program-manifest.ts's GENERATOR_PROGRAMS, which
+ * apps/web can't import directly (it's a Node-only package). Guarded against drift by
+ * count-honesty.test.ts in apps/api (H-Phase-A cycle 16 — ExamplesPage.tsx previously
+ * hand-typed 12/89 here, both wrong, plus a reference to a file that doesn't exist).
+ */
+export const FREE_FILE_COUNT = 16;
+
 /** Public MCP tools (= MCP_TOOL_COUNT). */
 export const TOOL_COUNT = 37;
 

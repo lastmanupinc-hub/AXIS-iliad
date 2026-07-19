@@ -1,6 +1,6 @@
 import { useState } from "react";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { ARTIFACT_COUNT, PROGRAM_COUNT } from "../config.ts";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, FREE_PROGRAM_COUNT, PRO_PROGRAM_COUNT, FREE_FILE_COUNT } from "../config.ts";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -617,15 +617,15 @@ export function ExamplesPage() {
         <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 10 }}>What AXIS generates for every repo</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <div>
-            <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6, color: "var(--green)" }}>Free (3 programs, 12 files)</p>
+            <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6, color: "var(--green)" }}>Free ({FREE_PROGRAM_COUNT} programs, {FREE_FILE_COUNT} files)</p>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-              AGENTS.md · CLAUDE.md · .cursorrules · context-map.json · copilot-instructions.md · debug-playbook.md · incident-template.md · tracing-rules.md
+              AGENTS.md · CLAUDE.md · .cursorrules · context-map.json · debug-playbook.md · incident-template.md · tracing-rules.md · root-cause-checklist.md · and {FREE_FILE_COUNT - 8} more
             </div>
           </div>
           <div>
-            <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6, color: "var(--accent)" }}>Pro (16 programs, 89 files)</p>
+            <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6, color: "var(--accent)" }}>Pro ({PRO_PROGRAM_COUNT} programs, {ARTIFACT_COUNT - FREE_FILE_COUNT} files)</p>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-              frontend-rules.md · component-guidelines.md · seo-rules.md · schema-recommendations.json · optimization-rules.md · theme.css · design-tokens.json · brand-guidelines.md · mcp-config.json · superpower-pack.md · and 77 more
+              frontend-rules.md · component-guidelines.md · seo-rules.md · schema-recommendations.json · optimization-rules.md · theme.css · design-tokens.json · brand-guidelines.md · mcp-config.json · superpower-pack.md · and {ARTIFACT_COUNT - FREE_FILE_COUNT - 10} more
             </div>
           </div>
           <div>

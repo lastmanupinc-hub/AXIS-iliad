@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
+import { TOTAL_GENERATORS, TOTAL_PROGRAMS, GENERATOR_PROGRAMS } from "@axis/generator-core";
 import { TIER_LIMITS } from "@axis/snapshots";
 import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
 import { deriveMcpToolCatalog } from "./mcp-tool-impls.js";
@@ -31,7 +31,7 @@ function docs(): Array<{ name: string; text: string }> {
 // and reversed ("Programs (20)"). Interposed words are an ALLOWLIST of real adjectives so a
 // distant number can't bind to "programs" (the table pattern needs 3+ cells, not prose).
 // Legit partial counts are the 3 free-tier programs, the 17-program Pro tier (20 − 3 free),
-// and a per-example "Pro (16 programs)" — all < 18. The stale GLOBAL totals were 18/19, so a
+// and a per-example "Pro (17 programs)" — all < 18. The stale GLOBAL totals were 18/19, so a
 // >= 18 floor isolates a wrong global total from those legitimate tier/example counts.
 const PROG_ADJ = "(?:specialized|axis|public|separately|billable|free|pro|distinct|total|additional)";
 function programClaims(v: string): number[] {
@@ -236,6 +236,17 @@ describe("web config.ts is the single source and matches the code (WO-F5)", () =
 
   it("web FREE_PROGRAM_COUNT equals the free tier's program list", () => {
     expect(webConfigConst("FREE_PROGRAM_COUNT")).toBe(TIER_LIMITS.free.programs.length);
+  });
+
+  // H-Phase-A cycle 16: ExamplesPage.tsx hand-typed "12 files" for the free tier (real:
+  // 16) and "89 files" for Pro (real: 126, off both the free-file miscount AND its own
+  // separate 16-vs-17-program error) — plus named a file, copilot-instructions.md, that
+  // doesn't exist in GENERATOR_PROGRAMS at all. FREE_FILE_COUNT is now pinned here
+  // against the real manifest so neither side of that split can drift again.
+  it("web FREE_FILE_COUNT equals the real artifact count of the free-tier programs", () => {
+    const freePrograms = new Set(TIER_LIMITS.free.programs);
+    const realFreeFileCount = Object.values(GENERATOR_PROGRAMS).filter((p) => freePrograms.has(p)).length;
+    expect(webConfigConst("FREE_FILE_COUNT")).toBe(realFreeFileCount);
   });
 
   it("the legacy onrender API host appears nowhere in apps/web/src", () => {
