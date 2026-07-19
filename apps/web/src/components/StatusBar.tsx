@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { healthCheck, type SnapshotResponse } from "../api.ts";
 import { APP_VERSION } from "../version.ts";
 
@@ -12,13 +12,20 @@ interface Props {
 
 export function StatusBar({ snapshot, fileCount, onOpenStatus }: Props) {
   const [online, setOnline] = useState<boolean | null>(null);
+  // H-Phase-A cycle 11: `cancelled` only guards against an update after
+  // UNMOUNT — a slow tick N response landing after a faster tick N+1 could
+  // still overwrite fresher state with a stale one (e.g. showing "down"
+  // briefly right after a real recovery). tickRef adds per-invocation
+  // ordering on top of the existing unmount guard.
+  const tickRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const check = () => {
+      const tick = ++tickRef.current;
       healthCheck()
-        .then(() => { if (!cancelled) setOnline(true); })
-        .catch(() => { if (!cancelled) setOnline(false); });
+        .then(() => { if (!cancelled && tick === tickRef.current) setOnline(true); })
+        .catch(() => { if (!cancelled && tick === tickRef.current) setOnline(false); });
     };
     check();
     const interval = setInterval(check, 30_000);

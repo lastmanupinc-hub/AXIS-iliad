@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { healthCheck, healthLive, healthReady, getStats, apiErrorDetails, type ReadinessResponse, type ApiStats } from "../api.ts";
 import { SectionHeader, StatTile, Callout, Skeleton, Pill } from "../components/primitives/index.ts";
 
@@ -58,28 +58,39 @@ export function StatusPage() {
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [statsError, setStatsError] = useState<AsyncError | null>(null);
   const sessionElapsed = useSessionTicker();
+  // H-Phase-A cycle 11: runProbes fires on mount AND every 30s tick with no
+  // per-tick ordering guard — a slow tick N response could land after a
+  // faster tick N+1 and show stale probe state right after a real recovery.
+  // One counter per runProbes invocation, checked before every state update.
+  const tickRef = useRef(0);
 
   const runProbes = useCallback(() => {
+    const tick = ++tickRef.current;
+    const current = () => tick === tickRef.current;
+
     setHealth((p) => ({ ...p, state: "checking" }));
     void timeProbe(healthCheck).then(({ ok, result, latencyMs }) => {
+      if (!current()) return;
       if (ok && result) setVersion(result.version);
       setHealth({ label: "API", state: ok ? "up" : "down", latencyMs });
     });
 
     setLive((p) => ({ ...p, state: "checking" }));
     void timeProbe(healthLive).then(({ ok, latencyMs }) => {
+      if (!current()) return;
       setLive({ label: "Liveness", state: ok ? "up" : "down", latencyMs });
     });
 
     setReady((p) => ({ ...p, state: "checking" }));
     void timeProbe(healthReady).then(({ result, latencyMs }) => {
+      if (!current()) return;
       setReady({ label: "Readiness", state: result?.status === "ready" ? "up" : "down", latencyMs });
       setChecks(result?.checks ?? null);
     });
 
     getStats()
-      .then((s) => { setStats(s); setStatsError(null); })
-      .catch((err) => setStatsError({ message: err instanceof Error ? err.message : "Failed to load call stats", details: apiErrorDetails(err) }));
+      .then((s) => { if (!current()) return; setStats(s); setStatsError(null); })
+      .catch((err) => { if (!current()) return; setStatsError({ message: err instanceof Error ? err.message : "Failed to load call stats", details: apiErrorDetails(err) }); });
   }, []);
 
   useEffect(() => {
