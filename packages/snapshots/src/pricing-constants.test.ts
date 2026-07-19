@@ -21,6 +21,16 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const byId = (id: MarketedPlanId) => MARKETED_TIERS.find((t) => t.plan_id === id)!;
 
+// H-Phase-A cycle 13: a plain `text.toContain("$29")` false-positives on
+// "$299" (Growth's real, correct price) being present anywhere on the same
+// page — "$299".includes("$29") is true — silently satisfying Starter's
+// price check regardless of whether Starter's own mention is right. Anchor
+// on a non-digit boundary so "$29" can never match inside "$299"/"$290"/etc.
+function containsPrice(text: string, priceMonthlyCents: number): boolean {
+  const dollars = priceMonthlyCents / 100;
+  return new RegExp(`\\$${dollars}(?!\\d)`).test(text);
+}
+
 // ─── Pure constant shape (no DB) ─────────────────────────────────
 
 describe("MARKETED_TIERS — monthly credit grants", () => {
@@ -183,20 +193,59 @@ describe("ForAgentsPage.tsx drift guard vs MARKETED_TIERS", () => {
 
     for (const t of MARKETED_TIERS) {
       if (t.price_monthly_cents > 0) {
-        const priceLabel = `$${t.price_monthly_cents / 100}`;
-        expect(page, `ForAgentsPage.tsx missing "${priceLabel}"`).toContain(priceLabel);
+        expect(containsPrice(page, t.price_monthly_cents), `ForAgentsPage.tsx missing "$${t.price_monthly_cents / 100}"`).toBe(true);
       }
       const creditsLabel = t.monthly_credits.toLocaleString("en-US");
       expect(page, `ForAgentsPage.tsx missing "${creditsLabel}"`).toContain(creditsLabel);
     }
 
-    expect(page).toContain("$29");
-    expect(page).toContain("75,000");
-    expect(page).toContain("$99");
-    expect(page).toContain("300,000");
-    expect(page).toContain("$299");
-    expect(page).toContain("1,200,000");
     expect(page).toContain(`$${OVERAGE_USD_PER_CREDIT} per credit`);
     expect(page).toContain(`${(REFERRAL_MAX_REDUCTION_RATE * 100).toFixed(2)}% per call`);
+  });
+});
+
+// H-Phase-A cycle 13: the SAME "$29/75,000, $99/300,000, $299/1,200,000"
+// prose is hand-typed in 4 more web pages, flagged (not fixed) as a drift
+// risk by both cycle 12's and cycle 13's audits — currently correct, but
+// with zero guard against the next price change landing in some but not
+// all of these. Same idiom as the ForAgentsPage guard above, applied to
+// every file that repeats the marketed price+credits as prose.
+describe("Other marketed-price mentions drift guard vs MARKETED_TIERS (no DB)", () => {
+  // Each file mentions a different subset of tiers (UsagePage.tsx, for
+  // instance, only ever upsells the two tiers above the reader's current
+  // one) — check only the plan_ids each file actually names, not every tier.
+  const FILES: Array<{ file: string; plan_ids: MarketedPlanId[] }> = [
+    { file: "HelpPage.tsx", plan_ids: ["free", "starter", "pro", "growth"] },
+    { file: "QAPage.tsx", plan_ids: ["free", "starter", "pro", "growth"] },
+    { file: "TermsPage.tsx", plan_ids: ["starter", "pro", "growth"] },
+    { file: "UsagePage.tsx", plan_ids: ["starter", "growth"] },
+  ];
+
+  it.each(FILES)("every marketed price+credits number on $file matches the live constants", ({ file, plan_ids }) => {
+    const page = readFileSync(join(ROOT, "apps", "web", "src", "pages", file), "utf8");
+    for (const id of plan_ids) {
+      const t = byId(id);
+      if (t.price_monthly_cents > 0) {
+        expect(containsPrice(page, t.price_monthly_cents), `${file} missing "$${t.price_monthly_cents / 100}"`).toBe(true);
+      }
+      const creditsLabel = t.monthly_credits.toLocaleString("en-US");
+      expect(page, `${file} missing "${creditsLabel}"`).toContain(creditsLabel);
+    }
+  });
+
+  // PlansPage.tsx's fallback tier data stores price_monthly_cents as a number
+  // (not a "$X" string), so it's checked numerically instead of by substring.
+  it("PlansPage.tsx's fallback pricing data matches the live constants", () => {
+    const page = readFileSync(join(ROOT, "apps", "web", "src", "pages", "PlansPage.tsx"), "utf8");
+    for (const t of MARKETED_TIERS) {
+      if (t.price_monthly_cents > 0) {
+        // Boundary-anchored: "9900" (Pro) is a raw substring of "29900" (Growth),
+        // so a plain .toContain would false-pass Pro's cents check off Growth's.
+        const found = new RegExp(`(?<!\\d)${t.price_monthly_cents}(?!\\d)`).test(page);
+        expect(found, `PlansPage.tsx missing price_monthly_cents: ${t.price_monthly_cents}`).toBe(true);
+      }
+      const creditsLabel = t.monthly_credits.toLocaleString("en-US");
+      expect(page, `PlansPage.tsx missing "${creditsLabel}"`).toContain(creditsLabel);
+    }
   });
 });
