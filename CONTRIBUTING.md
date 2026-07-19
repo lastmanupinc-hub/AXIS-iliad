@@ -119,14 +119,14 @@ npx vitest bench
 1. **Run full regression before every significant commit or PR** — Don't skip this gate for shared work.
 2. **Always run full regression before any release or schema changes** — Especially when you update tool registry or domain models.
 3. **Automate in CI/CD** — Use GitHub Actions (or equivalent) to run full regression on every push to `main`. You don't have to do it manually every time once it's wired.
-4. **Keep your test suite fast** — The current 58 passing tests are very manageable. Aim to keep full runs under 2 minutes.
+4. **Keep your test suite fast** — Run `pnpm test` to see the current count (it's grown substantially since this doc was written; check README.md's badge for a recent snapshot). Aim to keep full runs fast even as the count grows.
 5. **Don't run full suite after every tiny edit during active development** — That kills velocity. Use smoke tests / focused runs, then full regression before sharing.
 
 ### Cost of Testing
 
 - **Local tests**: Zero cost. `npx vitest run` uses only your CPU. No AI rate limit consumption, no API calls, no external services.
 - **CI tests**: Only cloud resource costs (GitHub Actions free tier covers most indie/small-team usage). No AI rate limits.
-- **Scaling**: At 58 tests, you're well under the performance ceiling. Adding more tests scales linearly.
+- **Scaling**: Well under the performance ceiling. Adding more tests scales linearly.
 
 ## Adding a New Generator
 
