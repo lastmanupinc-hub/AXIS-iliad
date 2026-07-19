@@ -750,12 +750,17 @@ describe("Settings (WO-P12)", () => {
   it("sidebar 'Settings' item navigates to #settings when signed in", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
     stubApiFetch([
-      ["/v1/account", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }, entitlements: [] }],
+      // H-Phase-A cycle 13: stubApiFetch's matcher is a first-match substring
+      // .includes() check — "/v1/account" must sort AFTER every more-specific
+      // "/v1/account/*" entry below, or it silently wins those requests too
+      // (e.g. "/v1/account/keys".includes("/v1/account") is true), handing
+      // SettingsPage the wrong response shape and crashing on keys.length.
       ["/v1/account/keys", { keys: [] }],
       ["/v1/account/seats", { seats: [], count: 0, limit: 0, remaining: 0 }],
       ["/v1/account/github-token", { tokens: [] }],
       ["/v1/account/webhooks", { webhooks: [], count: 0 }],
       ["/v1/programs", { programs: [], total_generators: 0 }],
+      ["/v1/account", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }, entitlements: [] }],
     ]);
     window.location.hash = "#dashboard";
 
@@ -770,12 +775,17 @@ describe("Settings (WO-P12)", () => {
   it("an already-authenticated visit to #account redirects straight to Settings", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
     stubApiFetch([
-      ["/v1/account", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }, entitlements: [] }],
+      // H-Phase-A cycle 13: stubApiFetch's matcher is a first-match substring
+      // .includes() check — "/v1/account" must sort AFTER every more-specific
+      // "/v1/account/*" entry below, or it silently wins those requests too
+      // (e.g. "/v1/account/keys".includes("/v1/account") is true), handing
+      // SettingsPage the wrong response shape and crashing on keys.length.
       ["/v1/account/keys", { keys: [] }],
       ["/v1/account/seats", { seats: [], count: 0, limit: 0, remaining: 0 }],
       ["/v1/account/github-token", { tokens: [] }],
       ["/v1/account/webhooks", { webhooks: [], count: 0 }],
       ["/v1/programs", { programs: [], total_generators: 0 }],
+      ["/v1/account", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }, entitlements: [] }],
     ]);
     window.location.hash = "#account";
 

@@ -110,11 +110,14 @@ export function SettingsPage({ onAuthChange }: Props) {
       ]);
       setAccount(acct);
       setEntitlements(ents);
-      setKeys(keysData.keys);
+      // H-Phase-A cycle 13: defense-in-depth against a malformed API response
+      // missing its expected array field (matches getAccountEntitlements's own
+      // `?? []` above) — every list.length read below assumes an array.
+      setKeys(keysData.keys ?? []);
       setSeats(seatsData);
-      setTokens(tokensData.tokens);
-      setWebhooks(webhooksData.webhooks);
-      setPrograms(programsData.programs);
+      setTokens(tokensData.tokens ?? []);
+      setWebhooks(webhooksData.webhooks ?? []);
+      setPrograms(programsData.programs ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to load settings", details: apiErrorDetails(err) });
     } finally {
