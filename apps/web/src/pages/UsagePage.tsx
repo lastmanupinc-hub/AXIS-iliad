@@ -25,9 +25,11 @@ import { PROGRAM_COUNT } from "../config.ts";
 // Billing/usage half of the former AccountPage (split per the build plan;
 // the profile/keys/seats half moved to Settings in WO-P12). New here: usage
 // graphs (runs/day + credits-spent/day, 30d,
-// GET /v1/account/usage/timeseries — WO-A3) and a tier-change proration
-// preview (GET /v1/billing/proration). PAI'D remains the only checkout path
-// for both the tier-upgrade banner and credit top-ups.
+// GET /v1/account/usage/timeseries — WO-A3). PAI'D remains the only
+// checkout path for both the tier-upgrade banner and credit top-ups; a
+// tier switch is a fresh one-time charge, not a prorated change — see the
+// warning below the tier stat tile (H-Phase-A cycle 9 removed the
+// fabricated proration-preview widget that used to live here).
 
 /** Click once to arm, click again to confirm — same pattern as
  *  VersionsTab.tsx/ProjectsPage.tsx/SettingsPage.tsx's DangerButton (each a
@@ -211,7 +213,7 @@ export function UsagePage() {
         </div>
       )}
 
-      {/* Tier + proration preview */}
+      {/* Tier + one-time-charge warning (H-Phase-A cycle 9 removed the fabricated proration preview) */}
       <div className="card">
         <div className="flex-between mb-2">
           <div>

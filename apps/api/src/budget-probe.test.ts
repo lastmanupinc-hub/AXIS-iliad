@@ -143,10 +143,15 @@ describe("getPricingTier", () => {
     expect(tier.lite_cents).toBe(15);
   });
 
-  it("returns correct tier for improve_my_agent_with_axis", async () => {
+  // H-Phase-A cycle 10: improve_my_agent_with_axis's own PRICING_TIERS row
+  // was removed (dead — the tool is unconditionally free, never in
+  // METERED_MCP_TOOL_SET, never calls getPricingTier for its own name in
+  // real code) — this test was pinning inert configuration data, not real
+  // behavior. getPricingTier now correctly falls through to the same
+  // "default tier for unknown tool" case the test below already covers.
+  it("falls through to the default tier for improve_my_agent_with_axis (unconditionally free — never priced in real code)", async () => {
     const tier = getPricingTier("improve_my_agent_with_axis");
-    expect(tier.standard_cents).toBe(50);
-    expect(tier.lite_cents).toBe(20);
+    expect(tier.tool).toBe("default");
   });
 
   it("returns default tier for unknown tool", async () => {

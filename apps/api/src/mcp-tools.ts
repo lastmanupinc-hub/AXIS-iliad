@@ -1039,7 +1039,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_llm_inference",
     description:
-      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference runs in-process — no upstream LLM provider call — but this AXIS tool call is still billed: $0.02 standard, $0.01 lite. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope and is not billed. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
+      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (threaded through for more deterministic output — NOT a proven byte-identical guarantee; thread count isn't pinned and GGML's multi-threaded matmul reduction order isn't guaranteed bit-exact across runs), `stop` (string[]). Inference runs in-process — no upstream LLM provider call — but this AXIS tool call is still billed: $0.02 standard, $0.01 lite. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope and is not billed. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1050,7 +1050,7 @@ export const MCP_TOOLS = [
         temperature: { type: "number", description: "Sampling temperature in [0, 2]. Defaults 0.7." },
         top_k: { type: "number", description: "Top-k sampling (positive integer). Defaults 40." },
         top_p: { type: "number", description: "Top-p nucleus sampling in (0, 1]. Defaults 0.95." },
-        seed: { type: "number", description: "Optional seed for reproducible output." },
+        seed: { type: "number", description: "Optional seed, threaded through with temperature for more deterministic output. Not a proven byte-identical guarantee (thread count/matmul reduction order isn't pinned) — see the tool description." },
         stop: { type: "array", description: "Stop sequences. Generation halts when any string in the array is produced." },
         json_schema: { type: "object", description: "Engineer mode (required): a JSON Schema. Decoding is grammar-constrained to it and the output is validated against it; returns a `structured` block." },
       },
@@ -1082,7 +1082,7 @@ export const MCP_TOOLS = [
         output: '{"text":"Blue.","model_used":"Phi-3-mini-4k-instruct-q4.gguf","prompt_tokens":24,"completion_tokens":2}',
       },
       {
-        name: "Reproducible output via seed",
+        name: "More deterministic output via seed + temperature 0 (not a proven byte-identical guarantee)",
         input: { prompt: "Pick a random number 1-100:", max_tokens: 8, seed: 42, temperature: 0 },
         output: '{"text":"42","model_used":"Phi-3-mini-4k-instruct-q4.gguf"}',
       },

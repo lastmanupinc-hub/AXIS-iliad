@@ -113,12 +113,13 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 25,
     lite_description: "Lite mode: reduced per-call price (deploy bundle scope unchanged)",
   },
-  improve_my_agent_with_axis: {
-    tool: "improve_my_agent_with_axis",
-    standard_cents: 50,
-    lite_cents: 20,
-    lite_description: "Lite mode: improvement plan only (no full artifact generation)",
-  },
+  // H-Phase-A cycle 10: removed a dead improve_my_agent_with_axis entry here
+  // (standard_cents: 50, lite_cents: 20) — that tool is unconditionally free
+  // (not in METERED_MCP_TOOL_SET; runImproveMyAgent never calls a charge
+  // function or reads a PRICING_TIERS row for its own name), so the entry
+  // was inert: no live code path ever read it. Flagged by this cycle's own
+  // audit as "structurally identical to the seed data that produced 3 of
+  // the last 9 cycles' bugs" — deleted outright rather than left as bait.
   // WO-08 dispute lifecycle: CE 3.0 qualification over the caller's supplied
   // transaction history + Stripe representment-evidence assembly + state-machine
   // bookkeeping. Priced like the other high-value commerce calls; assembly is

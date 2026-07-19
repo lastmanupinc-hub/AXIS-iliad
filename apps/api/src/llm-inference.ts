@@ -33,7 +33,12 @@ export interface CompletionOptions {
   top_k?: number;
   /** Top-p nucleus sampling. Defaults 0.95. */
   top_p?: number;
-  /** Optional seed for reproducible output. */
+  /** Optional seed, threaded through to the model runner (with temperature)
+   *  for more deterministic output. NOT a proven byte-identical guarantee:
+   *  thread count is never pinned when loading the model, and GGML's
+   *  default multi-threaded CPU matmul does not guarantee bit-exact
+   *  floating-point reduction order across runs (same disclosed, unproven
+   *  gap as Living Architecture's identical seed/temperature-0 usage). */
   seed?: number;
   /** Stop sequences. Generation halts when any string in the array is produced. */
   stop?: string[];
