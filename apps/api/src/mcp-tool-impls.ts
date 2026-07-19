@@ -526,12 +526,18 @@ export async function runVectorDatabase(args: Record<string, unknown>, req: Inco
     }
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
     await upsertVectors(scopedNs, toWrite);
+    // H-Phase-A cycle 15: countVectors moved before captureMcpToolCredits — it
+    // used to run after the charge was captured, so a transient DB error here
+    // (pool exhaustion, timeout) would throw past an already-successful,
+    // already-charged upsert, and a client retry would authorize+capture a
+    // SECOND charge for the same upsert (no dedup on this path).
+    const totalInNamespace = await countVectors(scopedNs);
     await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "upsert",
       namespace: scopedNs,
       upserted: toWrite.length,
-      total_in_namespace: await countVectors(scopedNs),
+      total_in_namespace: totalInNamespace,
       ...(engineer ? { semantic_dedup: { dropped: dedupDropped } } : {}),
     }, null, 2);
   }
