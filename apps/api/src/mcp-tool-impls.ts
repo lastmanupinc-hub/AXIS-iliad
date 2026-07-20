@@ -135,7 +135,7 @@ import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
 import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
-import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
+import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS, PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
@@ -2666,14 +2666,22 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
     scoring_methodology: {
       name: "Purchasing Readiness Score",
       range: "0-100",
+      // H-Phase-A cycle 17: these weights used to be hand-typed here and had
+      // drifted from PURCHASING_READINESS_WEIGHTS (handlers.ts) — the actual
+      // weights computePurchasingReadinessScore uses to grade a real call.
+      // commerce_artifacts was understated by 5 points and onboarding_docs was
+      // overstated by 2x; both category sets happened to sum to 100, so a naive
+      // "adds up right" check wouldn't have caught it. Deriving from the same
+      // constant handleCapabilities' score_rubric already uses closes the drift
+      // permanently instead of re-typing a third copy that can drift again.
       categories: {
-        commerce_artifacts: { weight: 20, description: "Product schema, checkout rules, commerce registry" },
-        mcp_configs: { weight: 20, description: "MCP server config, self-onboarding manifest" },
-        compliance_checklist: { weight: 15, description: "AP2/UCP/Visa IC compliance verification" },
-        negotiation_playbook: { weight: 15, description: "Autonomous negotiation rules and boundaries" },
-        debug_playbook: { weight: 10, description: "Error triage and incident response context" },
-        optimization_rules: { weight: 10, description: "Performance and cost optimization" },
-        onboarding_docs: { weight: 10, description: "Agent onboarding and integration context" },
+        commerce_artifacts: { weight: PURCHASING_READINESS_WEIGHTS.commerce_artifacts, description: "Product schema, checkout rules, commerce registry" },
+        mcp_configs: { weight: PURCHASING_READINESS_WEIGHTS.mcp_configs, description: "MCP server config, self-onboarding manifest" },
+        compliance_checklist: { weight: PURCHASING_READINESS_WEIGHTS.compliance_checklist, description: "AP2/UCP/Visa IC compliance verification" },
+        negotiation_playbook: { weight: PURCHASING_READINESS_WEIGHTS.negotiation_playbook, description: "Autonomous negotiation rules and boundaries" },
+        debug_playbook: { weight: PURCHASING_READINESS_WEIGHTS.debug_playbook, description: "Error triage and incident response context" },
+        optimization_rules: { weight: PURCHASING_READINESS_WEIGHTS.optimization_rules, description: "Performance and cost optimization" },
+        onboarding_docs: { weight: PURCHASING_READINESS_WEIGHTS.onboarding_docs, description: "Agent onboarding and integration context" },
       },
     },
     recommended_next_step: {

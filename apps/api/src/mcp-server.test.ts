@@ -7,6 +7,7 @@ import {
   handleCreateAccount,
   handleCreateApiKey,
 } from "./billing.js";
+import { PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
 let server: Server;
@@ -1898,6 +1899,19 @@ describe("POST /mcp — tools/call discover_agentic_purchasing_needs", () => {
     const content = result.content as Array<{ type: string; text: string }>;
     const parsed = JSON.parse(content[0].text);
     expect(parsed.scoring_methodology).toBeDefined();
+    // H-Phase-A cycle 17: these weights previously drifted from
+    // PURCHASING_READINESS_WEIGHTS (the real weights computePurchasingReadinessScore
+    // uses) — commerce_artifacts understated by 5, onboarding_docs overstated by 2x.
+    // Both category sets summed to 100 either way, so pin every individual weight,
+    // not just the total.
+    const categories = parsed.scoring_methodology.categories as Record<string, { weight: number }>;
+    expect(categories.commerce_artifacts.weight).toBe(PURCHASING_READINESS_WEIGHTS.commerce_artifacts);
+    expect(categories.mcp_configs.weight).toBe(PURCHASING_READINESS_WEIGHTS.mcp_configs);
+    expect(categories.compliance_checklist.weight).toBe(PURCHASING_READINESS_WEIGHTS.compliance_checklist);
+    expect(categories.negotiation_playbook.weight).toBe(PURCHASING_READINESS_WEIGHTS.negotiation_playbook);
+    expect(categories.debug_playbook.weight).toBe(PURCHASING_READINESS_WEIGHTS.debug_playbook);
+    expect(categories.optimization_rules.weight).toBe(PURCHASING_READINESS_WEIGHTS.optimization_rules);
+    expect(categories.onboarding_docs.weight).toBe(PURCHASING_READINESS_WEIGHTS.onboarding_docs);
   });
 
   it("returns fewer capabilities for unrelated task", async () => {
