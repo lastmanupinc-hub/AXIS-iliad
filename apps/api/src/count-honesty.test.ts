@@ -200,6 +200,47 @@ describe("ExamplesPage.tsx drift guard vs @axis/mpp PRICING_TIERS", () => {
   });
 });
 
+// H-Phase-A cycle 18: DocsPage.tsx's hand-maintained PROGRAM_DOCS table had
+// drifted from the real manifest across 5 of 20 programs (search/skills/
+// superpowers/mcp/artifacts all understated their real generatorCount, one
+// — skills — additionally naming output files that don't exist at all). The
+// page's own OutputsSection separately claims "all {ARTIFACT_COUNT}
+// generators", which the table's own counts summed to 129, not 142 —
+// self-contradicting on the live page. Guarded here (not in a web-side test)
+// since @axis/generator-core can't be imported from the web bundle.
+describe("DocsPage.tsx PROGRAM_DOCS drift guard vs @axis/generator-core", () => {
+  function realOutputCounts(): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const program of Object.values(GENERATOR_PROGRAMS)) counts[program] = (counts[program] ?? 0) + 1;
+    return counts;
+  }
+
+  it("every program's generatorCount matches its real output-file count", () => {
+    const page = readFileSync(join(ROOT, "apps", "web", "src", "pages", "DocsPage.tsx"), "utf8");
+    const realCounts = realOutputCounts();
+    const entryPattern = /name: "([a-z-]+)",[\s\S]{0,1000}?generatorCount: (\d+),/g;
+    const found: Record<string, number> = {};
+    let m: RegExpExecArray | null;
+    while ((m = entryPattern.exec(page)) !== null) found[m[1]] = Number(m[2]);
+
+    expect(Object.keys(found).length, "DocsPage.tsx: no PROGRAM_DOCS entries matched").toBeGreaterThan(0);
+    expect(Object.keys(found).length, "DocsPage.tsx: PROGRAM_DOCS entry count doesn't match the real program count").toBe(Object.keys(realCounts).length);
+    for (const [program, count] of Object.entries(found)) {
+      expect(realCounts[program], `DocsPage.tsx: "${program}" is not a real program in GENERATOR_PROGRAMS`).toBeDefined();
+      expect(count, `DocsPage.tsx: "${program}" generatorCount is ${count}, real count is ${realCounts[program]}`).toBe(realCounts[program]);
+    }
+  });
+
+  it("PROGRAM_DOCS's generatorCount values sum to TOTAL_GENERATORS", () => {
+    const page = readFileSync(join(ROOT, "apps", "web", "src", "pages", "DocsPage.tsx"), "utf8");
+    const entryPattern = /generatorCount: (\d+),/g;
+    let sum = 0;
+    let m: RegExpExecArray | null;
+    while ((m = entryPattern.exec(page)) !== null) sum += Number(m[1]);
+    expect(sum).toBe(TOTAL_GENERATORS);
+  });
+});
+
 // ─── WO-F5: web single-source config + pinned package copy ──────────────────
 // apps/web/src/config.ts is the ONE module web pages may take catalog counts
 // and API origins from. Its counts are pinned (importing the API package would

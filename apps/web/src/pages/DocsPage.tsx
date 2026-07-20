@@ -30,9 +30,9 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     name: "search", label: "Axis Search", icon: "search", category: "Repo Intelligence",
     promise: "Understand the repo faster",
     description: "Search and map codebases, docs, prompts, and architecture context from a project snapshot.",
-    tier: "free", generatorCount: 5,
+    tier: "free", generatorCount: 6,
     endpoints: ["POST /v1/search/analyze", "POST /v1/search/export"],
-    outputFiles: [".ai/context-map.json", ".ai/repo-profile.yaml", "architecture-summary.md", "dependency-hotspots.md", ".ai/symbol-index.json"],
+    outputFiles: [".ai/context-map.json", ".ai/repo-profile.yaml", "architecture-summary.md", "dependency-hotspots.md", ".ai/symbol-index.json", "repo-run-stats.json"],
     freeFeatures: ["Limited snapshot runs", "Basic repo map", "Preview results"],
     paidFeatures: ["Full repo index", "Saved indexes", "Cross-project search", "Export context map", "API access"],
   },
@@ -40,9 +40,9 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     name: "skills", label: "Axis Skills", icon: "skills", category: "Governance",
     promise: "Generate project-specific AI governance files",
     description: "Generate root-level guidance, workflows, and AI control files tailored to the project.",
-    tier: "free", generatorCount: 5,
+    tier: "free", generatorCount: 6,
     endpoints: ["POST /v1/skills/generate", "POST /v1/skills/export"],
-    outputFiles: ["AGENTS.md", "CLAUDE.md", "CURSOR.md", ".cursorrules", ".ai/workflows/", ".ai/policies/"],
+    outputFiles: ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md", "model-cascade.md"],
     freeFeatures: ["Limited file previews", "Basic skill generation"],
     paidFeatures: ["Full file exports", "Versioned governance", "Workflow library", "Reusable templates", "API access"],
     notes: "Framework-aware (TS/JS/Python-specific rules)",
@@ -115,9 +115,9 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     name: "superpowers", label: "Axis Superpowers", icon: "superpowers", category: "Engineering Delivery",
     promise: "Give builders reusable high-leverage development workflows",
     description: "Package debugging, planning, testing, and refactoring actions into repeatable, project-aware tools.",
-    tier: "pro", generatorCount: 5,
+    tier: "pro", generatorCount: 8,
     endpoints: ["POST /v1/superpowers/generate", "POST /v1/superpowers/export"],
-    outputFiles: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"],
+    outputFiles: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml", "verify.sh", "verify-full.sh", ".githooks/pre-push"],
     freeFeatures: ["Utility-level functions", "Limited runs"],
     paidFeatures: ["Project workflows", "Pipeline automation", "Team playbooks", "Reusable actions", "API access"],
   },
@@ -155,9 +155,9 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     name: "mcp", label: "Axis MCP", icon: "mcp", category: "Engineering Delivery",
     promise: "Connect tools and services through a hosted protocol layer",
     description: "Provide private, hosted MCP endpoints and capability orchestration for build workflows.",
-    tier: "pro", generatorCount: 17,
+    tier: "pro", generatorCount: 19,
     endpoints: ["POST /v1/mcp/provision", "POST /v1/mcp/configure", "GET /v1/mcp/registry"],
-    outputFiles: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"],
+    outputFiles: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "mcp/fintech-mcp-surface-package.md", "mcp/fintech-domain-schema.yaml", "server-manifest.yaml"],
     freeFeatures: ["Sandbox server", "Limited connections"],
     paidFeatures: ["Hosted private endpoints", "Persistent configs", "Auth management", "Usage logs", "Webhooks"],
   },
@@ -165,9 +165,9 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     name: "artifacts", label: "Axis Artifacts", icon: "artifacts", category: "Engineering Delivery",
     promise: "Generate drop-in web artifacts for the active project",
     description: "Create dashboards, widgets, calculators, and mini-apps that match the project stack and style.",
-    tier: "pro", generatorCount: 5,
+    tier: "pro", generatorCount: 11,
     endpoints: ["POST /v1/artifacts/generate", "POST /v1/artifacts/export"],
-    outputFiles: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json"],
+    outputFiles: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json", "prd.md", "design.md", "tasks.md", "context.md", "index.html", "capability-map.yaml"],
     freeFeatures: ["Preview artifacts", "Limited generations"],
     paidFeatures: ["Export code", "Save templates", "Deploy support", "Embed outputs", "API access"],
   },
@@ -233,6 +233,11 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     paidFeatures: ["Dockerfiles and compose configs", "Render blueprint", "Deploy scripts (bash + PowerShell)", "Cloudflare Worker/Pages config", "API access"],
   },
 ];
+
+// Derived, not hand-typed — cannot drift from the categories actually used above
+// (H-Phase-A cycle 18: a hardcoded "7" here disagreed with two other hardcoded
+// "8 categories" mentions on this same page).
+const PROGRAM_CATEGORY_COUNT = new Set(PROGRAM_DOCS.map(p => p.category)).size;
 
 interface Props {
   onNavigate: (page: PageId) => void;
@@ -302,7 +307,7 @@ function OverviewSection() {
           Axis is the umbrella platform for AI-native development — a multi-program system
           that turns project snapshots into diagnostics, governed outputs, and build-integrated
           tooling. It provides shared identity, snapshot intake, project context, and a unified
-          design system across {PROGRAM_COUNT} separately billable programs organized into 8 categories:
+          design system across {PROGRAM_COUNT} separately billable programs organized into {PROGRAM_CATEGORY_COUNT} categories:
           Repo Intelligence, Governance, Engineering Delivery, Growth &amp; Content,
           Knowledge &amp; Context, Design System, Creative Generation, and Agentic Commerce.
         </p>
@@ -356,7 +361,7 @@ function OverviewSection() {
             <div className="stat-label">{PRO_PROGRAM_COUNT} Pro</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">7</div>
+            <div className="stat-value">{PROGRAM_CATEGORY_COUNT}</div>
             <div className="stat-label">Categories</div>
           </div>
         </div>
@@ -433,7 +438,7 @@ function OverviewSection() {
       <div className="card">
         <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Program Categories</h2>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
-          The {PROGRAM_COUNT} programs are organized into 8 functional categories. Each category addresses
+          The {PROGRAM_COUNT} programs are organized into {PROGRAM_CATEGORY_COUNT} functional categories. Each category addresses
           a different dimension of the development lifecycle.
         </p>
         <div className="grid grid-3" style={{ gap: 12 }}>
