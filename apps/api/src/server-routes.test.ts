@@ -48,7 +48,14 @@ beforeAll(async () => {
 
   const mod = await import("./server.js");
   appServer = mod.app as Server & { shutdown?: (t?: number) => Promise<void> };
-  await new Promise<void>((r) => setTimeout(r, 200));
+  // H-Phase-A cycle 19: a fixed 200ms sleep is the exact ECONNREFUSED-prone
+  // pattern H1.1 already deflaked elsewhere (production-startup.test.ts) —
+  // this file was apparently never updated to match. Wait for the ACTUAL
+  // "listening" event instead of guessing a delay long enough for CI-load
+  // conditions this test can't predict.
+  if (!appServer.listening) {
+    await new Promise<void>((resolve) => appServer.once("listening", () => resolve()));
+  }
 }, 300_000);
 
 afterAll(async () => {
