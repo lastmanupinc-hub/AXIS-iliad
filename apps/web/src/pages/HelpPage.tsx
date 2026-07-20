@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Icon } from "../components/AxisIcons";
 import { useTabList } from "../useTabList.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { FREE_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
+import { FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
 type HelpSection = "getting-started" | "upload" | "programs" | "dashboard" | "account" | "troubleshooting";
 
@@ -314,12 +314,12 @@ function ProgramsGuideSection() {
             </tr>
             <tr>
               <td><span className="badge badge-accent">Pro</span></td>
-              <td style={{ fontWeight: 600 }}>16</td>
+              <td style={{ fontWeight: 600 }}>{PRO_PROGRAM_COUNT}</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
                 <Icon name="frontend" /> Frontend &nbsp;·&nbsp; <Icon name="seo" /> SEO &nbsp;·&nbsp; <Icon name="optimization" /> Optimization &nbsp;·&nbsp; <Icon name="theme" /> Theme &nbsp;·&nbsp;
                 <Icon name="brand" /> Brand &nbsp;·&nbsp; <Icon name="superpowers" /> Superpowers &nbsp;·&nbsp; <Icon name="marketing" /> Marketing &nbsp;·&nbsp; <Icon name="notebook" /> Notebook &nbsp;·&nbsp;
                 <Icon name="obsidian" /> Obsidian &nbsp;·&nbsp; <Icon name="mcp" /> MCP &nbsp;·&nbsp; <Icon name="artifacts" /> Artifacts &nbsp;·&nbsp; <Icon name="remotion" /> Remotion &nbsp;·&nbsp;
-                <Icon name="canvas" /> Canvas &nbsp;·&nbsp; <Icon name="algorithmic" /> Algorithmic &nbsp;·&nbsp; Agentic Purchasing &nbsp;·&nbsp; Closer
+                <Icon name="canvas" /> Canvas &nbsp;·&nbsp; <Icon name="algorithmic" /> Algorithmic &nbsp;·&nbsp; Agentic Purchasing &nbsp;·&nbsp; Closer &nbsp;·&nbsp; <Icon name="rocket" /> Deploy
               </td>
             </tr>
           </tbody>
@@ -329,17 +329,18 @@ function ProgramsGuideSection() {
       <div className="card">
         <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Program Categories</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Programs are grouped into 7 categories. Each addresses a different part of the development lifecycle.
+          Programs are grouped into 8 categories. Each addresses a different part of the development lifecycle.
         </p>
         <div className="grid grid-2" style={{ gap: 10 }}>
           {[
             { cat: "Repo Intelligence", icon: "search", programs: "Search, Debug, Optimization" },
             { cat: "Governance", icon: "skills", programs: "Skills" },
-            { cat: "Engineering Delivery", icon: "frontend", programs: "Frontend, Superpowers, MCP, Artifacts" },
+            { cat: "Engineering Delivery", icon: "frontend", programs: "Frontend, Superpowers, MCP, Artifacts, Closer, Deploy" },
             { cat: "Growth & Content", icon: "seo", programs: "SEO, Brand, Marketing" },
             { cat: "Knowledge & Context", icon: "notebook", programs: "Notebook, Obsidian" },
-            { cat: "Creative Generation", icon: "remotion", programs: "Theme, Remotion, Canvas, Algorithmic" },
-            { cat: "Agentic Commerce", icon: "credit-card", programs: "Agentic Purchasing, Closer" },
+            { cat: "Design System", icon: "theme", programs: "Theme" },
+            { cat: "Creative Generation", icon: "remotion", programs: "Remotion, Canvas, Algorithmic" },
+            { cat: "Agentic Commerce", icon: "credit-card", programs: "Agentic Purchasing" },
           ].map((c) => (
             <div key={c.cat} style={{ padding: "8px 12px", background: "var(--bg)", borderRadius: "var(--radius)" }}>
               <div className="flex" style={{ gap: 6, marginBottom: 4 }}>
@@ -417,7 +418,7 @@ function DashboardGuideSection() {
             { tab: "Structure", key: "Alt+2", icon: "folder", desc: "File tree visualization showing directory layout, file sizes, and language distribution. Identifies large files and deep nesting." },
             { tab: "Dependencies", key: "Alt+3", icon: "api-link", desc: "Dependency graph with package counts, version ranges, and outdated/vulnerable package warnings from your manifest files." },
             { tab: "Artifacts", key: "Alt+4", icon: "file-doc", desc: "Search and filter every output file from programs you've run, by name, content, program, or file type. Preview (with rendered markdown), copy path/content, or download a file individually." },
-            { tab: "Programs", key: "Alt+5", icon: "programs", desc: "Program launcher — 17 cards organized by tier (Free / Pro). Click a card to generate output. Shows which programs have already been run." },
+            { tab: "Programs", key: "Alt+5", icon: "programs", desc: `Program launcher — ${PROGRAM_COUNT} cards organized by tier (Free / Pro). Click a card to generate output. Shows which programs have already been run.` },
             { tab: "Search", key: "Alt+6", icon: "search", desc: "Full-text search across your snapshot. Build the index first, then search by keyword, function name, or content pattern." },
             { tab: "Versions", key: "Alt+7", icon: "analyze", desc: "Snapshot history, generation-version diffs, project memory, and snapshot/project deletion." },
           ].map((t) => (
