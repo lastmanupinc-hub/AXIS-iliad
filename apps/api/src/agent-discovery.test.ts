@@ -13,6 +13,8 @@ import { Router } from "./router.js";
 import { MCP_TOOL_COUNT } from "./counts.js";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
+import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
+import { getPricingTier } from "./mpp.js";
 import {
   handleLlmsTxt,
   handleSkillsIndex,
@@ -468,6 +470,20 @@ describe("GET /for-agents", () => {
   it("includes first_action hint", async () => {
     expect(typeof data.first_action).toBe("string");
     expect(String(data.first_action)).toContain("search_and_discover_tools");
+  });
+
+  it("H-Phase-A cycle 21: payment.per_run reflects the real per-tool price range, not a stale flat pair", async () => {
+    const payment = data.payment as { per_run: string; budget_negotiation: { modes: { standard: string; lite: string } } };
+    const standardCents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+    const liteCents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).lite_cents);
+    const standardMin = (Math.min(...standardCents) / 100).toFixed(2);
+    const standardMax = (Math.max(...standardCents) / 100).toFixed(2);
+    const liteMin = (Math.min(...liteCents) / 100).toFixed(2);
+    const liteMax = (Math.max(...liteCents) / 100).toFixed(2);
+    expect(payment.per_run).toContain(`$${standardMin}-$${standardMax}`);
+    expect(payment.per_run).toContain(`$${liteMin}-$${liteMax}`);
+    expect(payment.budget_negotiation.modes.standard).toContain(`$${standardMin}-$${standardMax}`);
+    expect(standardMin).not.toBe(standardMax);
   });
 
   it("includes discovery URLs", async () => {

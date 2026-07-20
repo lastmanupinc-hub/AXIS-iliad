@@ -1,5 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IncomingMessage } from "node:http";
+
+const throwCacheWriteForRestUrl = "https://example.com/rest-cache-write-fails";
+vi.mock("@axis/snapshots", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@axis/snapshots")>();
+  return {
+    ...actual,
+    putCachedScrape: (...args: Parameters<typeof actual.putCachedScrape>) => {
+      if (args[0] === throwCacheWriteForRestUrl) {
+        return Promise.reject(new Error("simulated transient scrape-cache write failure"));
+      }
+      return actual.putCachedScrape(...args);
+    },
+  };
+});
+
 import { resetTestDb, createAccount, createApiKey, consumeFreeScrapes, recordUsage, TIER_LIMITS } from "@axis/snapshots";
 import type { Server } from "node:http";
 import { firecrawlScrape, firecrawlCrawl, isWebResearchNotConfigured } from "./web-research.js";
@@ -478,6 +493,28 @@ describe("POST /v1/research/scrape — quota-exceeded charges exactly once", () 
 
     const after = await getCompensationSummary(acct.account_id);
     expect(after.owed_cents).toBe(0);
+  });
+
+  it("a transient scrape-cache write failure never loses an already-charged, already-successful scrape (non-precharged path)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ data: { markdown: "# Still delivered" } }), { status: 200 })),
+    );
+    const { getUsageCreditSummary, createAccount: mkAccount, createApiKey: mkKey } = await import("@axis/snapshots");
+    const acct = await mkAccount("ScrapeCacheWriteFailRest", "scrape-cache-write-fail-rest@test.com", "paid");
+    const key = (await mkKey(acct.account_id)).rawKey;
+
+    const before = await getUsageCreditSummary(acct.account_id, "paid");
+    const r = await post(throwCacheWriteForRestUrl, key);
+
+    // Must still be a normal, successful response with the scraped content —
+    // not a 500 (the pre-fix behavior when putCachedScrape rejected here).
+    expect(r.status).toBe(200);
+    expect(r.data.data.markdown).toBe("# Still delivered");
+
+    // The charge (the non-preCharged branch) must still have been captured.
+    const after = await getUsageCreditSummary(acct.account_id, "paid");
+    expect(after.included_credits_used).toBeGreaterThan(before.included_credits_used);
   });
 });
 

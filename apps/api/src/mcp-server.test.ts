@@ -1262,6 +1262,22 @@ describe("GET /mcp/docs — human-readable HTML docs", () => {
     expect(body).not.toContain("referral_token");
     expect(body).not.toContain("5th paid call free");
   });
+
+  it("H-Phase-A cycle 21: Pricing section's dollar range matches the real per-tool pricing, not a stale flat pair", async () => {
+    const r = await get("/mcp/docs");
+    const body = String(r.data);
+    const standardCents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+    const liteCents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).lite_cents);
+    const standardMin = (Math.min(...standardCents) / 100).toFixed(2);
+    const standardMax = (Math.max(...standardCents) / 100).toFixed(2);
+    const liteMin = (Math.min(...liteCents) / 100).toFixed(2);
+    const liteMax = (Math.max(...liteCents) / 100).toFixed(2);
+    expect(body).toContain(`$${standardMin}-$${standardMax}`);
+    expect(body).toContain(`$${liteMin}-$${liteMax}`);
+    // A flat, single-number claim (the pre-fix "$0.50 ... $0.15") would have
+    // no dash in either figure — this proves it's genuinely a range now.
+    expect(standardMin).not.toBe(standardMax);
+  });
 });
 
 // ─── Branch coverage completeness tests ───────────────────────────
@@ -1614,6 +1630,30 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
   it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("search_and_discover_tools");
+  });
+});
+
+describe("POST /mcp — tools/call discover_commerce_tools", () => {
+  it("H-Phase-A cycle 21: first_paid_call_cta prices prepare_agentic_purchasing using ITS OWN pricing tier, not a copied analyze_repo/files figure", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 52,
+      method: "tools/call",
+      params: { name: "discover_commerce_tools", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as { conversion_triggers: { first_paid_call_cta: string } };
+    const pricing = getPricingTier("prepare_agentic_purchasing");
+    const standard = (pricing.standard_cents / 100).toFixed(2);
+    const lite = (pricing.lite_cents / 100).toFixed(2);
+    expect(parsed.conversion_triggers.first_paid_call_cta).toContain(`$${standard}`);
+    expect(parsed.conversion_triggers.first_paid_call_cta).toContain(`$${lite}`);
+    // The pre-fix bug specifically: this CTA claimed lite starts at $0.15,
+    // which is analyze_repo/analyze_files' lite price, not this tool's (25).
+    expect(lite).not.toBe("0.15");
   });
 });
 

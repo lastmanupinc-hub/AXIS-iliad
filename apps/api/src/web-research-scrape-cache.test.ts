@@ -11,6 +11,22 @@
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import type { IncomingMessage } from "node:http";
+
+const throwCacheWriteForUrl = "https://example.com/cache-write-fails";
+
+vi.mock("@axis/snapshots", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@axis/snapshots")>();
+  return {
+    ...actual,
+    putCachedScrape: (...args: Parameters<typeof actual.putCachedScrape>) => {
+      if (args[0] === throwCacheWriteForUrl) {
+        return Promise.reject(new Error("simulated transient scrape-cache write failure"));
+      }
+      return actual.putCachedScrape(...args);
+    },
+  };
+});
+
 import { resetTestDb, createAccount, createApiKey, getUsageCreditSummary, getCachedScrape } from "@axis/snapshots";
 
 beforeAll(async () => {
@@ -56,5 +72,23 @@ describe("runWebResearch — reads and writes the shared 24h scrape cache", () =
     const afterSecond = await getUsageCreditSummary(acc.account_id, "paid");
     expect(afterSecond.included_credits_used).toBe(afterFirst.included_credits_used);
     expect(mockSovereignScrape).toHaveBeenCalledTimes(1);
+  });
+
+  it("a transient scrape-cache write failure never throws away an already-charged, already-successful scrape", async () => {
+    const acc = await createAccount("ScrapeCacheWriteFail", "scrape-cache-write-fail@test.local", "paid");
+    const { rawKey } = await createApiKey(acc.account_id, "test");
+    mockSovereignScrape.mockResolvedValueOnce({ url: throwCacheWriteForUrl, markdown: "# Still delivered", metadata: {} });
+
+    const before = await getUsageCreditSummary(acc.account_id, "paid");
+    // Must not throw/reject even though putCachedScrape rejects internally.
+    const text = await runWebResearch({ url: throwCacheWriteForUrl }, reqWithKey(rawKey));
+    const parsed = JSON.parse(text) as { markdown: string };
+    expect(parsed.markdown).toBe("# Still delivered");
+
+    // The charge must still have been captured — a cache-population failure
+    // is not the caller's problem and must not roll back an already-successful,
+    // already-billed scrape.
+    const after = await getUsageCreditSummary(acc.account_id, "paid");
+    expect(after.included_credits_used).toBeGreaterThan(before.included_credits_used);
   });
 });

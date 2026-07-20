@@ -1407,7 +1407,19 @@ export async function runWebResearch(args: Record<string, unknown>, req: Incomin
       : await sovereignScrape(url, args.only_main_content !== false);
   await captureMcpToolCredits(auth.account, charge);
   if (!isWebResearchNotConfigured(result)) {
-    await putCachedScrape(url, result.markdown, result.metadata, 200);
+    // Best-effort: this scrape already succeeded and was charged — a
+    // transient cache-write failure must never throw away that already-paid-
+    // for result. Populating the cache only benefits the NEXT caller of this
+    // URL, unlike the scrape itself, which this caller has already received.
+    try {
+      await putCachedScrape(url, result.markdown, result.metadata, 200);
+    } catch (err) {
+      log("error", "scrape_cache_write_failed", {
+        account_id: auth.account.account_id,
+        url,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
   return JSON.stringify(result, null, 2);
 }
@@ -2402,7 +2414,15 @@ export function runDiscoverAgenticCommerceTools(): string {
     free_tools: freeTools,
     conversion_triggers: {
       first_paid_call: "prepare_agentic_purchasing returns a Purchasing Readiness Score (0-100) and the full commerce hardening bundle in one call.",
-      first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.50, lite mode starts at $0.15, and Pro is $99 once (a one-time charge, not a recurring subscription).`,
+      // H-Phase-A cycle 21: this CTA is specifically about prepare_agentic_
+      // purchasing (see first_paid_call above), but hardcoded "$0.15" for
+      // lite mode -- that's analyze_repo/analyze_files' lite price, not this
+      // tool's (its real lite_cents is 25, per PRICING_TIERS). Derived from
+      // this ONE tool's own pricing tier instead of a copied flat pair.
+      first_paid_call_cta: (() => {
+        const pricing = getPricingTier("prepare_agentic_purchasing");
+        return `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $${(pricing.standard_cents / 100).toFixed(2)}, lite mode starts at $${(pricing.lite_cents / 100).toFixed(2)}, and Pro is $99 once (a one-time charge, not a recurring subscription).`;
+      })(),
     },
     first_paid_action: FIRST_PAID_ACTION_CTA,
     tool_selection_guide: {

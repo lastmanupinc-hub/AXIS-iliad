@@ -14,6 +14,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { resetTestDb } from "@axis/snapshots";
 import { MCP_TOOLS } from "./mcp-tools.js";
+import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
+import { getPricingTier } from "./mpp.js";
 import { Router } from "./router.js";
 import {
   handleAgentJson,
@@ -166,6 +168,15 @@ describe("GET /.well-known/agent.json", () => {
     expect(String(monetization.pro)).not.toContain("unlimited");
     expect(String(monetization.pro)).toContain("300,000");
     expect(String(monetization.pro)).toContain("one-time");
+  });
+
+  it("H-Phase-A cycle 21: monetization.model reflects the real per-tool price range, not a stale flat $0.50", async () => {
+    const monetization = json.monetization as Record<string, unknown>;
+    const standardCents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+    const min = (Math.min(...standardCents) / 100).toFixed(2);
+    const max = (Math.max(...standardCents) / 100).toFixed(2);
+    expect(String(monetization.model)).toContain(`$${min}-$${max}`);
+    expect(min).not.toBe(max);
   });
 });
 

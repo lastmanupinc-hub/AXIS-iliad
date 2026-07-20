@@ -722,7 +722,7 @@ Authorization: Bearer &lt;api_key&gt;
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}</pre>
 <h2>Pricing</h2>
 <ul>
-<li>Standard paid calls are $0.50; lite mode is $0.15 (send <code>X-Agent-Budget</code> / <code>X-Agent-Mode: lite</code>).</li>
+<li>Standard price varies per tool: $${(METERED_STANDARD_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_STANDARD_CENTS_RANGE.max / 100).toFixed(2)}; lite mode: $${(METERED_LITE_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_LITE_CENTS_RANGE.max / 100).toFixed(2)} (send <code>X-Agent-Budget</code> / <code>X-Agent-Mode: lite</code>). See each tool's own description for its exact rate.</li>
 <li>Discovery tools (list_programs, search_and_discover_tools) are free and require no auth.</li>
 </ul>
 <h2>Links</h2>
@@ -758,6 +758,14 @@ Authorization: Bearer &lt;api_key&gt;
 // can't misrepresent the catalog even as individual tool prices change.
 const METERED_STANDARD_CENTS_RANGE = (() => {
   const cents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+  return { min: Math.min(...cents), max: Math.max(...cents) };
+})();
+
+// H-Phase-A cycle 21: same derivation for lite-mode pricing — the human
+// docs page (handleMcpDocs) hardcoded "lite mode is $0.15" as if that
+// applied catalog-wide, when it's only true for analyze_repo/analyze_files.
+const METERED_LITE_CENTS_RANGE = (() => {
+  const cents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).lite_cents);
   return { min: Math.min(...cents), max: Math.max(...cents) };
 })();
 

@@ -46,7 +46,7 @@ import {
   getUsageCreditSummary,
   recordCompensationOwed,
 } from "@axis/snapshots";
-import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier } from "@axis/snapshots";
+import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, gradeCompliance } from "@axis/generator-core";
@@ -55,7 +55,7 @@ import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
 import { requireAdmin } from "./admin.js";
 import { ErrorCode, ERROR_CODE_CATALOG, log, getRequestId } from "./logger.js";
-import { MCP_ERROR_CATEGORY_CATALOG } from "./mcp-runtime.js";
+import { MCP_ERROR_CATEGORY_CATALOG, METERED_MCP_TOOLS } from "./mcp-runtime.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
@@ -125,6 +125,46 @@ async function recordUsageBestEffort(
     });
   }
 }
+
+// H-Phase-A cycle 21: handleCreateSnapshot/handleGitHubAnalyze/handleAnalyze/
+// handlePreparePurchasing all charge (chargeWithDiscounts) BEFORE a real,
+// fallible persistence pipeline (createSnapshot/saveContextMap/saveRepoProfile/
+// saveGeneratorResult/updateSnapshotStatus) — if any of that throws, the
+// caller was charged real money/credits for a request that produced nothing,
+// and until now nothing recorded that anywhere. This mirrors the exact
+// "settled_then_error" shape handleFirecrawlScrape/-Crawl already handle via
+// recordCompensationOwed; only called when a charge actually fired for this
+// call (chargedAmountCents !== null) — most calls (free tier within quota,
+// paid tier already entitled) never charge here at all and owe nothing.
+async function compensateIfChargedBeforeFailure(
+  accountId: string | undefined,
+  chargedAmountCents: number | null,
+  tool: string,
+): Promise<{ entry_id: string } | null> {
+  if (!accountId || chargedAmountCents === null) return null;
+  return recordCompensationOwed({
+    account_id: accountId,
+    tool,
+    amount_cents: chargedAmountCents,
+    reason: "settled_then_error",
+  });
+}
+
+// H-Phase-A cycle 21: GET /for-agents and GET /agent.json both hardcoded a
+// flat "$0.50 standard" price (mirroring mcp-server.ts's own cycle-20 fix of
+// the identical shape) as if it applied to the whole 37-tool catalog these
+// same endpoints enumerate — only true for analyze_repo/analyze_files, a
+// large overestimate for 17 of 19 metered tools (most iliad_* tools are
+// 1-5c). Derived range instead of a hand-typed pair, so it can't misrepresent
+// the catalog again as individual tool prices change.
+const METERED_STANDARD_CENTS_RANGE = (() => {
+  const cents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+  return { min: Math.min(...cents), max: Math.max(...cents) };
+})();
+const METERED_LITE_CENTS_RANGE = (() => {
+  const cents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).lite_cents);
+  return { min: Math.min(...cents), max: Math.max(...cents) };
+})();
 
 async function buildPaymentRequiredPayload(
   tool: string,
@@ -446,6 +486,12 @@ export async function handleCreateSnapshot(
     sendError(res, 401, ErrorCode.INVALID_KEY, "Invalid or revoked API key");
     return;
   }
+  // H-Phase-A cycle 21: tracks the actual amount charged (if any), across
+  // whichever branch below fires it, so the post-charge pipeline's catch
+  // block can compensate on failure — see compensateIfChargedBeforeFailure's
+  // own comment. Declared here (not inside `if (auth.account)`) so it stays
+  // in scope at the try/catch far below.
+  let chargedAmountCents: number | null = null;
   // Check quota if authenticated
   if (auth.account) {
     // VALIDATE-FIRST (charge-integrity hybrid, phase 1): every deterministic
@@ -511,6 +557,7 @@ export async function handleCreateSnapshot(
         }
         if (mppResult === null || mppResult.status === 402) return;
         paidForThisCall = true;
+        chargedAmountCents = amountCents;
       }
     }
     /* v8 ignore stop */
@@ -560,6 +607,7 @@ export async function handleCreateSnapshot(
       }
       if (mppResult === null || mppResult.status === 402) return;
       // mppResult.status === 200 — payment accepted, continue to generation
+      chargedAmountCents = amountCents;
     }
   } else if (auth.anonymous) {
     // Anonymous uploads must still obey free-tier file count/size limits — the authenticated
@@ -610,10 +658,14 @@ export async function handleCreateSnapshot(
     }
   }
 
-  const snapshot = await createSnapshot(input, auth.account?.account_id);
-
+  // H-Phase-A cycle 21: createSnapshot moved INSIDE the try (was a bare
+  // `const` above it) — a real, fallible Postgres write that can throw after
+  // chargedAmountCents may already be set above. `snapshot` is declared
+  // nullable here so the catch below can tell whether it ever got created.
+  let snapshot: SnapshotRecord | undefined;
   // Process synchronously for v1 (production: queue to worker)
   try {
+    snapshot = await createSnapshot(input, auth.account?.account_id);
     const contextMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
 
@@ -668,20 +720,24 @@ export async function handleCreateSnapshot(
       generated_files: generated.files.map(f => ({ path: f.path, program: f.program, description: f.description })),
       compliance_grade: gradeCompliance(snapshot.files),
     });
-  /* v8 ignore start  -  requires internal processing function to throw */
   } catch (err) {
-    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    if (snapshot) {
+      await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    }
     log("error", "snapshot_processing_failed", {
       request_id: getRequestId(res),
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       error: err instanceof Error ? err.message : String(err),
     });
+    // H-Phase-A cycle 21: a charge may have already committed (chargedAmountCents)
+    // before this failure — record it as owed rather than silently keeping it.
+    const compensation = await compensateIfChargedBeforeFailure(auth.account?.account_id, chargedAmountCents, "analyze_repo");
     sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       status: "failed",
+      ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
     });
   }
-  /* v8 ignore stop */
 }
 
 export async function handleGetSnapshot(
@@ -1076,6 +1132,9 @@ export async function handleGitHubAnalyze(
     sendError(res, 401, ErrorCode.INVALID_KEY, "Invalid or revoked API key");
     return;
   }
+  // H-Phase-A cycle 21: tracks the actual amount charged (if any) so the
+  // post-charge pipeline's catch block below can compensate on failure.
+  let chargedAmountCents: number | null = null;
   if (auth.account) {
     const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore next 11  -  requires exhausting rate quota in tests */
@@ -1100,6 +1159,7 @@ export async function handleGitHubAnalyze(
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
+      chargedAmountCents = amountCents;
     }
   } else if (auth.anonymous) {
     // H-Phase-A cycle 9: anonymous callers skipped this whole quota block
@@ -1138,9 +1198,12 @@ export async function handleGitHubAnalyze(
     github_url: githubUrl,
   };
 
-  const snapshot = await createSnapshot(input, auth.account?.account_id);
-
+  // H-Phase-A cycle 21: createSnapshot moved INSIDE the try — a real,
+  // fallible Postgres write that can throw after chargedAmountCents may
+  // already be set above.
+  let snapshot: SnapshotRecord | undefined;
   try {
+    snapshot = await createSnapshot(input, auth.account?.account_id);
     const contextMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
 
@@ -1199,21 +1262,23 @@ export async function handleGitHubAnalyze(
         total_bytes: fetchResult.total_bytes,
       },
     });
-  /* v8 ignore start  -  requires internal function to throw during processing */
   } catch (err) {
-    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    if (snapshot) {
+      await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    }
     log("error", "github_snapshot_processing_failed", {
       request_id: getRequestId(res),
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       github_url: githubUrl,
       error: err instanceof Error ? err.message : String(err),
     });
+    const compensation = await compensateIfChargedBeforeFailure(auth.account?.account_id, chargedAmountCents, "analyze_repo");
     sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       status: "failed",
+      ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
     });
   }
-  /* v8 ignore stop */
 }
 
 // ─── File Content Search API ────────────────────────────────────
@@ -1633,6 +1698,10 @@ export async function handleAnalyze(
     return;
   }
 
+  // H-Phase-A cycle 21: tracks the actual amount charged (if any), across
+  // whichever branch below fires it, so the post-charge pipeline's catch
+  // block far below can compensate on failure.
+  let chargedAmountCents: number | null = null;
   if (auth.account) {
     // VALIDATE-FIRST (charge-integrity hybrid, phase 1): deterministic caps run
     // BEFORE any money movement — the old ordering charged via
@@ -1689,6 +1758,7 @@ export async function handleAnalyze(
         }
         if (mppResult === null || mppResult.status === 402) return;
         paidForThisCall = true;
+        chargedAmountCents = amountCents;
       }
     }
 
@@ -1715,6 +1785,7 @@ export async function handleAnalyze(
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
+      chargedAmountCents = amountCents;
     }
     /* v8 ignore stop */
     // File count/size caps already enforced ABOVE the charges (validate-first).
@@ -1771,9 +1842,12 @@ export async function handleAnalyze(
     ...(githubUrl ? { github_url: githubUrl } : {}),
   };
 
-  const snapshot = await createSnapshot(input, auth.account?.account_id);
-
+  // H-Phase-A cycle 21: createSnapshot moved INSIDE the try — a real,
+  // fallible Postgres write that can throw after chargedAmountCents may
+  // already be set above.
+  let snapshot: SnapshotRecord | undefined;
   try {
+    snapshot = await createSnapshot(input, auth.account?.account_id);
     const contextMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
 
@@ -1851,20 +1925,22 @@ export async function handleAnalyze(
       next_steps: nextSteps,
       ...(githubMeta ? { github: githubMeta } : {}),
     });
-  /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
-    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    if (snapshot) {
+      await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    }
     log("error", "analyze_failed", {
       request_id: getRequestId(res),
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       error: err instanceof Error ? err.message : String(err),
     });
+    const compensation = await compensateIfChargedBeforeFailure(auth.account?.account_id, chargedAmountCents, "analyze_repo");
     sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       status: "failed",
+      ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
     });
   }
-  /* v8 ignore stop */
 }
 
 // ─── POST /v1/prepare-for-agentic-purchasing ────────────────────
@@ -2057,6 +2133,10 @@ export async function handlePreparePurchasing(
   // branch so the second never re-charges (same shape/fix as the cycle-4
   // Firecrawl and cycle-5 handleCreateSnapshot/handleAnalyze double-charges).
   let paidForThisCall = false;
+  // H-Phase-A cycle 21: tracks the actual amount charged (if any), across
+  // whichever branch below fires it, so the post-charge pipeline's catch
+  // block far below can compensate on failure.
+  let chargedAmountCents: number | null = null;
 
   // Billing gate — the hardener runs pro programs, so require auth + entitlement
   const proPrograms = PURCHASING_PROGRAMS.filter(p => !FREE_PROGRAMS.has(p));
@@ -2099,6 +2179,7 @@ export async function handlePreparePurchasing(
       }
       if (mppResult === null || mppResult.status === 402) return;
       paidForThisCall = true;
+      chargedAmountCents = amountCents;
     }
   }
 
@@ -2125,6 +2206,7 @@ export async function handlePreparePurchasing(
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
+      chargedAmountCents = amountCents;
     }
     /* v8 ignore stop */
     const limits = TIER_LIMITS[auth.account.tier];
@@ -2147,12 +2229,15 @@ export async function handlePreparePurchasing(
     requested_outputs: allOutputs,
   };
 
-  const snapshot = await createSnapshot(
-    { input_method: "api_submission", manifest, files },
-    auth.account?.account_id,
-  );
-
+  // H-Phase-A cycle 21: createSnapshot moved INSIDE the try — a real,
+  // fallible Postgres write that can throw after chargedAmountCents may
+  // already be set above.
+  let snapshot: SnapshotRecord | undefined;
   try {
+    snapshot = await createSnapshot(
+      { input_method: "api_submission", manifest, files },
+      auth.account?.account_id,
+    );
     const ctxMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
     await saveContextMap(snapshot.snapshot_id, ctxMap);
@@ -2388,20 +2473,22 @@ export async function handlePreparePurchasing(
         },
       } : {}),
     });
-  /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
-    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    if (snapshot) {
+      await updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    }
     log("error", "prepare_purchasing_failed", {
       request_id: getRequestId(res),
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       error: err instanceof Error ? err.message : String(err),
     });
+    const compensation = await compensateIfChargedBeforeFailure(auth.account?.account_id, chargedAmountCents, "prepare_agentic_purchasing");
     sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
-      snapshot_id: snapshot.snapshot_id,
+      snapshot_id: snapshot?.snapshot_id,
       status: "failed",
+      ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
     });
   }
-  /* v8 ignore stop */
 }
 
 // ─── GET /.well-known/axis.json  -  agent discovery manifest ──────
@@ -3208,7 +3295,7 @@ export async function handleForAgents(
     first_action: "Call search_and_discover_tools with q=<your task keyword> to find the right program. No auth needed.",
     payment: {
       protocol: "mppx-0.5.12",
-      per_run: "$0.50 USD (standard) / $0.15-$0.25 USD (lite, tool-dependent)",
+      per_run: `$${(METERED_STANDARD_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_STANDARD_CENTS_RANGE.max / 100).toFixed(2)} USD (standard) / $${(METERED_LITE_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_LITE_CENTS_RANGE.max / 100).toFixed(2)} USD (lite) — varies per tool, see each tool's own description`,
       flow: "HTTP 402 ? parse WWW-Authenticate mppx challenge ? pay via Stripe ? retry with credential",
       budget_negotiation: {
         header: "X-Agent-Budget",
@@ -3220,8 +3307,8 @@ export async function handleForAgents(
           agent_type: "string — e.g. claude, cursor, custom_swarm",
         },
         modes: {
-          standard: "Full artifact bundle at $0.50/run",
-          lite: "Reduced output at $0.15-$0.25/run (tool-dependent)",
+          standard: `Full artifact bundle — $${(METERED_STANDARD_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_STANDARD_CENTS_RANGE.max / 100).toFixed(2)}/run depending on tool`,
+          lite: `Reduced output at $${(METERED_LITE_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_LITE_CENTS_RANGE.max / 100).toFixed(2)}/run (tool-dependent)`,
         },
         mode_header: "X-Agent-Mode: lite — explicitly request lite mode for lower price",
         example: 'curl -H \'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}\' -H \'X-Agent-Mode: lite\' ...',
@@ -3786,7 +3873,7 @@ export async function handleAgentJson(
     // fixed the same "$99/month" recurring-billing framing every other
     // surface needed this cycle — PAI'D's checkout is a one-time charge.
     monetization: {
-      model: "usage-based MPP ($0.50 per run)",
+      model: `usage-based MPP ($${(METERED_STANDARD_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_STANDARD_CENTS_RANGE.max / 100).toFixed(2)} per run, standard mode, varies per tool)`,
       pro: "$99 once for Pro (one-time charge, not a recurring subscription) — 300,000 monthly credits, all programs",
     },
     homepage: "https://iliad.trustfabric.ai",
@@ -4255,7 +4342,19 @@ export async function handleFirecrawlScrape(
       const scrapedMarkdown = firecrawlData.data?.markdown ?? "";
       const scrapedMetadata = (firecrawlData.data?.metadata ?? {}) as Record<string, unknown>;
       // Populate the 24h shared cache so the next caller of this URL pays $0.
-      await putCachedScrape(url, scrapedMarkdown, scrapedMetadata, 200);
+      // Best-effort: this caller's scrape already succeeded and was charged —
+      // a transient write failure here must never lose that already-paid-for
+      // result, and `preCharged`'s compensation branch below doesn't cover
+      // this (non-preCharged) path at all.
+      try {
+        await putCachedScrape(url, scrapedMarkdown, scrapedMetadata, 200);
+      } catch (err) {
+        log("error", "scrape_cache_write_failed", {
+          request_id: getRequestId(res),
+          url,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
       sendJSON(res, 200, {
         success: true,
