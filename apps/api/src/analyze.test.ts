@@ -137,7 +137,7 @@ describe("adoptionHint", () => {
     expect(hint.adoption_hint).toContain(".ai/");
   });
 
-  it("is deterministic (same input â†’ same output)", () => {
+  it("is deterministic (same input → same output)", () => {
     const a = adoptionHint("AGENTS.md");
     const b = adoptionHint("AGENTS.md");
     expect(a).toEqual(b);

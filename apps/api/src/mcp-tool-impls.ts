@@ -2335,7 +2335,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       what_it_does: `Analyzes any codebase and generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs — AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, design tokens, brand guidelines, AP2/Visa compliance, MCP configs, and more.`,
       why_your_agent_needs_it: [
         `${ARTIFACT_COUNT} artifacts from a single call — complete codebase context`,
-        "Deterministic: same input â†’ byte-identical output, safe for caching",
+        "Deterministic: same input → byte-identical output, safe for caching",
         "Free tier: search, skills, debug programs cost nothing",
         "Agentic commerce: purchasing readiness score, autonomous checkout rules, negotiation playbook",
       ],
@@ -2740,7 +2740,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
     },
     first_paid_action: FIRST_PAID_ACTION_CTA,
     self_onboarding: {
-      step_1: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"} â†’ get API key`,
+      step_1: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"} → get API key`,
       step_2: "Add AXIS as MCP server (see install section)",
       step_3: "Call prepare_agentic_purchasing with your source files",
       step_4: "Retrieve artifacts via get_artifact with snapshot_id",
@@ -3374,7 +3374,7 @@ export async function runPreparePurchasing(
     score >= 50 ? `${score - 5}%` :
     `${Math.max(10, score)}%`;
 
-  // ── Build keyed artifacts map (path â†’ content) for all files ──
+  // ── Build keyed artifacts map (path → content) for all files ──
   const artifactsMap: Record<string, string> = {};
   for (const f of generated.files) {
     artifactsMap[f.path] = typeof f.content === "string" ? f.content : "";

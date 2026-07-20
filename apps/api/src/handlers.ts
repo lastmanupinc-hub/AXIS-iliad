@@ -2422,7 +2422,7 @@ export async function handleWellKnown(
       { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens  -  import into Figma, CSS, or component library" },
     ],
     quick_start: {
-      step_1: "POST /v1/accounts with {email, name, tier: 'free'} â†’ get raw_key",
+      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key",
       step_2: "POST /v1/analyze with {github_url: 'https://github.com/your/repo'} and Authorization: Bearer <raw_key>",
       step_3: "Read adoption_hint on each returned file to know exactly where to place it",
       step_4: "Place AGENTS.md in repo root  -  AI assistants auto-load it immediately",
@@ -2572,7 +2572,7 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 ## Quick Start
 
 - POST /v1/accounts  -  create account, get API key (free tier available, no auth required)
-- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} â†’ returns ${ARTIFACT_COUNT} artifacts
+- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} → returns ${ARTIFACT_COUNT} artifacts
 - GET /.well-known/axis.json  -  machine-readable capability manifest
 - GET /v1/mcp/tools?q=  -  search programs by keyword (no auth required)
 
@@ -3044,7 +3044,7 @@ export async function handleForAgents(
   const PAYMENT_META = {
     price_usd: "0.50",
     lite_price_usd: "0.15",
-    flow: "Call â†’ 402 with payment_url/checkout_url â†’ pay at checkout_url â†’ retry identical request",
+    flow: "Call → 402 with payment_url/checkout_url → pay at checkout_url → retry identical request",
     on_402: "Parse response body: present checkout_url to user OR use autonomous payment if authorized. After payment, re-send original request unchanged.",
     budget_header: 'X-Agent-Budget: {"budget_per_run_cents":50,"spending_window":"per_call"}',
     lite_header: "X-Agent-Mode: lite",
@@ -3219,7 +3219,7 @@ export async function handleForAgents(
       custom_swarm: {
         description: "For multi-agent swarms: each sub-agent calls AXIS independently. Share snapshot_id to avoid duplicate analysis costs.",
         pattern: [
-          "Agent A calls analyze_repo â†’ gets snapshot_id",
+          "Agent A calls analyze_repo → gets snapshot_id",
           "Agent A shares snapshot_id with Agents B, C, D",
           "Agents B-D call get_artifact with snapshot_id to read specific artifacts",
           "Agent E calls prepare_agentic_purchasing for commerce hardening",
