@@ -1917,17 +1917,25 @@ export async function runAnalyzeFiles(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
-  // H-Phase-A cycle 13: analytics-only — must never sit between "work done"
+  // H-Phase-A cycle 13/18: analytics-only — must never sit between "work done"
   // and "charge captured" as an `await`. An unguarded trackEvent throw here
   // used to abort the handler BEFORE captureMcpToolCredits ran, meaning a
   // transient analytics-write failure let the caller keep the fully-generated
-  // (already-saved) snapshot for free.
-  void trackEvent(
-    auth.account.account_id,
-    "snapshot_created",
-    await resolveStage(auth.account.account_id),
-    { snapshot_id: snapshot.snapshot_id, programs: [...programs], files: files.length, source: "mcp" },
-  ).catch(() => {});
+  // (already-saved) snapshot for free. Cycle 18: the whole statement must be
+  // inside the try — `await resolveStage(...)` is evaluated as an ARGUMENT
+  // before trackEvent runs, so a resolveStage reject throws before a
+  // trailing `.catch()` ever attaches, which is exactly the "abort before
+  // capture" failure mode this comment already warns about.
+  try {
+    await trackEvent(
+      auth.account.account_id,
+      "snapshot_created",
+      await resolveStage(auth.account.account_id),
+      { snapshot_id: snapshot.snapshot_id, programs: [...programs], files: files.length, source: "mcp" },
+    );
+  } catch {
+    // best-effort — never let analytics block the charge capture below.
+  }
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
   // file-limit guard / generation, so a failed analyze_files debits nothing.
@@ -3301,23 +3309,30 @@ export async function runPreparePurchasing(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
-  // H-Phase-A cycle 13: same analytics-only fix as analyze_files above — this
-  // sat between the fully-saved snapshot and captureMcpToolCredits further
-  // below, so an unguarded throw here would have delivered the paid artifact
-  // bundle without ever capturing the charge.
-  void trackEvent(
-    auth.account.account_id,
-    "snapshot_created",
-    await resolveStage(auth.account.account_id),
-    {
-      snapshot_id: snapshot.snapshot_id,
-      programs: [...programs],
-      files: files.length,
-      source: "prepare_agentic_purchasing",
-      focus: typeof focus === "string" ? focus : "purchasing",
-      ...(typeof agent_type === "string" ? { agent_type } : {}),
-    },
-  ).catch(() => {});
+  // H-Phase-A cycle 13/18: same analytics-only fix as analyze_files above —
+  // this sits between the fully-saved snapshot and captureMcpToolCredits
+  // further below, so an unguarded throw here would have delivered the paid
+  // artifact bundle without ever capturing the charge. Cycle 18: the whole
+  // statement must be inside the try — `await resolveStage(...)` is
+  // evaluated as an ARGUMENT before trackEvent runs, so a resolveStage
+  // reject throws before a trailing `.catch()` ever attaches.
+  try {
+    await trackEvent(
+      auth.account.account_id,
+      "snapshot_created",
+      await resolveStage(auth.account.account_id),
+      {
+        snapshot_id: snapshot.snapshot_id,
+        programs: [...programs],
+        files: files.length,
+        source: "prepare_agentic_purchasing",
+        focus: typeof focus === "string" ? focus : "purchasing",
+        ...(typeof agent_type === "string" ? { agent_type } : {}),
+      },
+    );
+  } catch {
+    // best-effort — never let analytics block the charge capture below.
+  }
 
   // ── Referral tracking ─────────────────────────────────────────
   // H-Phase-A cycle 14: wrapped best-effort, same reasoning as the

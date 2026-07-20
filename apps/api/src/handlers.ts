@@ -637,17 +637,26 @@ export async function handleCreateSnapshot(
         const programFiles = generated.files.filter(f => f.program === program);
         await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
       }
-      // H-Phase-A cycle 15: analytics-only, must never sit inside this try
+      // H-Phase-A cycle 15/18: analytics-only, must never sit inside this try
       // block unguarded — the snapshot is already saved and "ready" above, so
       // an unguarded throw here would fall to the catch below, flip the
       // ALREADY-successful snapshot's status back to "failed", and 500 a
       // caller whose work genuinely succeeded. Same fix already applied to
       // this handler's MCP-tool twin (mcp-tool-impls.ts's analyze_files).
-      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
-        snapshot_id: snapshot.snapshot_id,
-        programs: [...programs],
-        files: files.length,
-      }).catch(() => {});
+      // Cycle 18: the whole statement must be inside the try, not just a
+      // trailing `.catch()` — `await resolveStage(...)` is evaluated as an
+      // ARGUMENT before trackEvent is ever called, so a resolveStage reject
+      // throws before `.catch()` ever attaches (matches the correct pattern
+      // already used in handleFirecrawlScrape/-Crawl below).
+      try {
+        await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+          snapshot_id: snapshot.snapshot_id,
+          programs: [...programs],
+          files: files.length,
+        });
+      } catch {
+        // best-effort — never fail an already-successful, already-saved snapshot on analytics.
+      }
     }
 
     sendJSON(res, 201, {
@@ -1155,15 +1164,22 @@ export async function handleGitHubAnalyze(
         const programFiles = generated.files.filter(f => f.program === program);
         await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
       }
-      // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
+      // H-Phase-A cycle 15/18: analytics-only, same false-fail/status-corruption
       // risk as handleCreateSnapshot above — must never sit unguarded between
-      // an already-"ready" snapshot and the response.
-      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
-        snapshot_id: snapshot.snapshot_id,
-        programs: [...programs],
-        source: "github",
-        github_url: githubUrl,
-      }).catch(() => {});
+      // an already-"ready" snapshot and the response. Cycle 18: the whole
+      // statement must be inside the try — `await resolveStage(...)` is
+      // evaluated as an ARGUMENT before trackEvent runs, so a resolveStage
+      // reject throws before a trailing `.catch()` ever attaches.
+      try {
+        await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+          snapshot_id: snapshot.snapshot_id,
+          programs: [...programs],
+          source: "github",
+          github_url: githubUrl,
+        });
+      } catch {
+        // best-effort — never fail an already-successful, already-saved snapshot on analytics.
+      }
     }
 
     sendJSON(res, 201, {
@@ -1780,14 +1796,21 @@ export async function handleAnalyze(
         const programFiles = generated.files.filter(f => f.program === program);
         await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
       }
-      // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
-      // risk as handleCreateSnapshot above.
-      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
-        snapshot_id: snapshot.snapshot_id,
-        programs: [...programs],
-        source: "analyze",
-        ...(githubUrl ? { github_url: githubUrl } : {}),
-      }).catch(() => {});
+      // H-Phase-A cycle 15/18: analytics-only, same false-fail/status-corruption
+      // risk as handleCreateSnapshot above. Cycle 18: the whole statement must
+      // be inside the try — `await resolveStage(...)` is evaluated as an
+      // ARGUMENT before trackEvent runs, so a resolveStage reject throws
+      // before a trailing `.catch()` ever attaches.
+      try {
+        await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+          snapshot_id: snapshot.snapshot_id,
+          programs: [...programs],
+          source: "analyze",
+          ...(githubUrl ? { github_url: githubUrl } : {}),
+        });
+      } catch {
+        // best-effort — never fail an already-successful, already-saved snapshot on analytics.
+      }
     }
 
     const enrichedFiles = generated.files
@@ -2164,15 +2187,22 @@ export async function handlePreparePurchasing(
         const pFiles = generated.files.filter(f => f.program === program);
         await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
       }
-      // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
-      // risk as handleCreateSnapshot above.
-      void trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
-        snapshot_id: snapshot.snapshot_id,
-        programs: [...programs],
-        source: "prepare_agentic_purchasing",
-        focus: typeof focus === "string" ? focus : "purchasing",
-        ...(typeof agent_type === "string" ? { agent_type } : {}),
-      }).catch(() => {});
+      // H-Phase-A cycle 15/18: analytics-only, same false-fail/status-corruption
+      // risk as handleCreateSnapshot above. Cycle 18: the whole statement must
+      // be inside the try — `await resolveStage(...)` is evaluated as an
+      // ARGUMENT before trackEvent runs, so a resolveStage reject throws
+      // before a trailing `.catch()` ever attaches.
+      try {
+        await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
+          snapshot_id: snapshot.snapshot_id,
+          programs: [...programs],
+          source: "prepare_agentic_purchasing",
+          focus: typeof focus === "string" ? focus : "purchasing",
+          ...(typeof agent_type === "string" ? { agent_type } : {}),
+        });
+      } catch {
+        // best-effort — never fail an already-successful, already-saved snapshot on analytics.
+      }
 
       // Referral tracking. H-Phase-A cycle 15: wrapped best-effort, same
       // reasoning as trackEvent above — the second call depends on the
