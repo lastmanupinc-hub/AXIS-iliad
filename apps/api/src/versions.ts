@@ -89,6 +89,30 @@ export async function handleDiffVersions(
     return;
   }
 
+  // H-Phase-A cycle 20: validate-first — confirm the diff actually exists
+  // BEFORE charging a persistence credit. This used to charge first and
+  // only THEN discover a bogus/stale version pair (typo, a version deleted
+  // since the client cached it) was a 404 — real credits spent for zero
+  // delivered work, with no refund or compensation path. Both version
+  // lookups inside diffGenerationVersions are cheap indexed reads (no
+  // external calls), so computing the diff first and reusing its result
+  // costs nothing extra — matches this codebase's own established
+  // validate-first principle (deterministic caps run before money moves).
+  // H-Phase-A cycle 20: validate-first — confirm the diff actually exists
+  // BEFORE charging a persistence credit. This used to charge first and
+  // only THEN discover a bogus/stale version pair (typo, a version deleted
+  // since the client cached it) was a 404 — real credits spent for zero
+  // delivered work, with no refund or compensation path. Both version
+  // lookups inside diffGenerationVersions are cheap indexed reads (no
+  // external calls), so computing the diff first and reusing its result
+  // costs nothing extra — matches this codebase's own established
+  // validate-first principle (deterministic caps run before money moves).
+  const diff = await diffGenerationVersions(snapshot_id, oldV, newV);
+  if (!diff) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, `One or both versions not found for snapshot ${snapshot_id}`);
+    return;
+  }
+
   // Economic activation: diffing consumes a persistence credit for paid/suite tiers.
   // Anonymous callers (no resolvable account) keep the pre-existing unmetered behavior.
   const auth = await resolveAuth(req);
@@ -112,12 +136,6 @@ export async function handleDiffVersions(
     } catch {
       // Best-effort KPI — never fail the request on analytics, even if resolveStage itself rejects.
     }
-  }
-
-  const diff = await diffGenerationVersions(snapshot_id, oldV, newV);
-  if (!diff) {
-    sendError(res, 404, ErrorCode.NOT_FOUND, `One or both versions not found for snapshot ${snapshot_id}`);
-    return;
   }
 
   sendJSON(res, 200, { diff });

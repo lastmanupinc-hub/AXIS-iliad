@@ -252,6 +252,24 @@ describe("GET /v1/snapshots/:snapshot_id/diff — persistence metering", () => {
     expect(events[0].metadata.snapshot_id).toBe(snapshotId);
   });
 
+  // H-Phase-A cycle 20: meterPersistenceOp used to run BEFORE
+  // diffGenerationVersions confirmed the versions actually exist — a bogus/
+  // stale version pair (typo, a version deleted since cached client-side)
+  // debited a real persistence credit for a 404, with no refund.
+  it("a paid account with credits is NOT charged when the requested versions don't exist (validate-first)", async () => {
+    const paid = await authHeaders("paid", "diff-paid-404");
+    await addPersistenceCredits(paid.account_id, 5);
+
+    const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=99`, paid.headers);
+    expect(r.status).toBe(404);
+
+    const ledger = await getPersistenceLedger(paid.account_id);
+    expect(ledger.filter((e) => e.operation === "diff_versions")).toHaveLength(0);
+
+    const events = await getEventsByType(paid.account_id, "persistence_metered");
+    expect(events).toHaveLength(0);
+  });
+
   it("paid account with zero credits gets 402 and does NOT fire persistence_metered", async () => {
     const paid = await authHeaders("paid", "diff-broke");
     const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=2`, paid.headers);
