@@ -102,6 +102,18 @@ describe("count honesty — docs/UI match the code (A4)", () => {
     expect(bad).toEqual([]);
   });
 
+  // H-Phase-A cycle 15 fixed WebResearchPage.tsx's pricing badge/error strings, which
+  // wrongly claimed a "100 free pages/month" pool for the single-page SCRAPE tool —
+  // that pool only exists for the separate multi-page CRAWL tool (iliad_web_research_crawl).
+  // Cycle 17 found the exact same false claim survived in the page's own signed-out
+  // banner, three lines the cycle-15 sweep didn't reach — this page had zero test
+  // coverage at the time, which is exactly how a sibling string like this slips through.
+  it("WebResearchPage.tsx makes no free-page-pool claim (that pool belongs only to the crawl tool)", () => {
+    const page = docs().find((d) => d.name === "apps/web/src/pages/tools/WebResearchPage.tsx")!.text;
+    expect(page).not.toMatch(/\d+\s+(?:free\s+)?pages?\s+(?:per|\/)\s+(?:month|account)/i);
+    expect(page).not.toMatch(/free per account/i);
+  });
+
   it("every GLOBAL generator/artifact/output total equals TOTAL_GENERATORS (split-markup, reversed, table)", () => {
     const bad: string[] = [];
     for (const { name, text } of docs()) {

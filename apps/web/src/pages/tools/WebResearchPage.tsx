@@ -218,7 +218,8 @@ export function WebResearchPage({ onBack }: Props) {
 
         {!isLoggedIn && (
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 12 }}>
-            <strong>You'll need to sign in first.</strong> The first 100 pages per month are free per account.
+            <strong>You'll need to sign in first.</strong> $0.10/page standard, $0.05/page lite — or $0 if
+            another AXIS agent scraped this exact URL in the last 24 hours.
           </p>
         )}
       </form>
