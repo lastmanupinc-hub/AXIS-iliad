@@ -167,9 +167,15 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
   }
 
-  const [revokingKeyId, setRevokingKeyId] = useState<string | null>(null);
+  // H-Phase-A cycle 20: a single shared string can't represent N independent
+  // concurrent per-row operations — revoking key A then key B before A
+  // resolved used to overwrite this to "B", re-enabling A's button while
+  // A's own revoke was still in flight, letting a second click fire a
+  // genuine duplicate request. Same fix shape as ProjectsPage.tsx's
+  // deletingIds/exportingIds and VersionsTab.tsx's deletingSnapshots.
+  const [revokingKeyIds, setRevokingKeyIds] = useState<Set<string>>(new Set());
   async function handleRevokeKey(keyId: string) {
-    setRevokingKeyId(keyId);
+    setRevokingKeyIds((prev) => new Set(prev).add(keyId));
     const requestId = ++keysRequestIdRef.current;
     try {
       await revokeApiKey(keyId);
@@ -178,7 +184,11 @@ export function SettingsPage({ onAuthChange }: Props) {
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to revoke key", details: apiErrorDetails(err) });
     } finally {
-      setRevokingKeyId(null);
+      setRevokingKeyIds((prev) => {
+        const next = new Set(prev);
+        next.delete(keyId);
+        return next;
+      });
     }
   }
 
@@ -201,9 +211,9 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
   }
 
-  const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
+  const [deletingTokenIds, setDeletingTokenIds] = useState<Set<string>>(new Set());
   async function handleDeleteToken(tokenId: string) {
-    setDeletingTokenId(tokenId);
+    setDeletingTokenIds((prev) => new Set(prev).add(tokenId));
     const requestId = ++tokensRequestIdRef.current;
     try {
       await deleteGitHubToken(tokenId);
@@ -212,7 +222,11 @@ export function SettingsPage({ onAuthChange }: Props) {
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete token", details: apiErrorDetails(err) });
     } finally {
-      setDeletingTokenId(null);
+      setDeletingTokenIds((prev) => {
+        const next = new Set(prev);
+        next.delete(tokenId);
+        return next;
+      });
     }
   }
 
@@ -241,9 +255,9 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
   }
 
-  const [deletingWebhookId, setDeletingWebhookId] = useState<string | null>(null);
+  const [deletingWebhookIds, setDeletingWebhookIds] = useState<Set<string>>(new Set());
   async function handleDeleteWebhook(webhookId: string) {
-    setDeletingWebhookId(webhookId);
+    setDeletingWebhookIds((prev) => new Set(prev).add(webhookId));
     const requestId = ++webhooksRequestIdRef.current;
     try {
       await deleteWebhook(webhookId);
@@ -252,7 +266,11 @@ export function SettingsPage({ onAuthChange }: Props) {
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete webhook", details: apiErrorDetails(err) });
     } finally {
-      setDeletingWebhookId(null);
+      setDeletingWebhookIds((prev) => {
+        const next = new Set(prev);
+        next.delete(webhookId);
+        return next;
+      });
     }
   }
 
@@ -285,9 +303,9 @@ export function SettingsPage({ onAuthChange }: Props) {
   }
 
   // ─── Team seats (revoke only — invite stays inline on its form) ──
-  const [revokingSeatId, setRevokingSeatId] = useState<string | null>(null);
+  const [revokingSeatIds, setRevokingSeatIds] = useState<Set<string>>(new Set());
   async function handleRevokeSeat(seatId: string) {
-    setRevokingSeatId(seatId);
+    setRevokingSeatIds((prev) => new Set(prev).add(seatId));
     const requestId = ++seatsRequestIdRef.current;
     try {
       await revokeSeat(seatId);
@@ -296,26 +314,28 @@ export function SettingsPage({ onAuthChange }: Props) {
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to revoke seat", details: apiErrorDetails(err) });
     } finally {
-      setRevokingSeatId(null);
+      setRevokingSeatIds((prev) => {
+        const next = new Set(prev);
+        next.delete(seatId);
+        return next;
+      });
     }
   }
 
   // ─── Programs ────────────────────────────────────────────────
-  const [programBusy, setProgramBusy] = useState<string | null>(null);
-  // One busy flag drives N per-row toggle buttons, so useFocusRetention's
-  // single-button shape doesn't fit — track each row's element in a
-  // registry and refocus whichever one was actually busy once it clears.
+  // H-Phase-A cycle 20: a single shared string can't represent N independent
+  // concurrent per-row toggles — toggling program A then program B before A
+  // resolved used to overwrite this to "B", re-enabling A's button while A's
+  // own toggle was still in flight. Converted to Set<string>; focus
+  // restoration now happens directly per-program in the finally block below
+  // (refocus THAT program's own button once ITS toggle clears) instead of a
+  // useEffect watching a single "last busy" ref, which is both simpler and
+  // more correct once two rows can be busy at once.
+  const [programBusyIds, setProgramBusyIds] = useState<Set<string>>(new Set());
   const programButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const lastBusyProgram = useRef<string | null>(null);
-  useEffect(() => {
-    if (programBusy === null && lastBusyProgram.current) {
-      programButtonRefs.current.get(lastBusyProgram.current)?.focus();
-    }
-    lastBusyProgram.current = programBusy;
-  }, [programBusy]);
 
   async function handleToggleProgram(program: string, enabled: boolean) {
-    setProgramBusy(program);
+    setProgramBusyIds((prev) => new Set(prev).add(program));
     setError(null);
     const requestId = ++entitlementsRequestIdRef.current;
     try {
@@ -326,7 +346,12 @@ export function SettingsPage({ onAuthChange }: Props) {
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to update program", details: apiErrorDetails(err) });
     } finally {
-      setProgramBusy(null);
+      setProgramBusyIds((prev) => {
+        const next = new Set(prev);
+        next.delete(program);
+        return next;
+      });
+      programButtonRefs.current.get(program)?.focus();
     }
   }
 
@@ -436,7 +461,7 @@ export function SettingsPage({ onAuthChange }: Props) {
                       <DangerButton
                         label="Revoke"
                         confirmLabel="Revoke this key? Anything using it stops working immediately."
-                        busy={revokingKeyId === k.key_id}
+                        busy={revokingKeyIds.has(k.key_id)}
                         onConfirm={() => void handleRevokeKey(k.key_id)}
                         confirmButtonLabel="Yes, confirm"
                         busyLabel="Working..."
@@ -476,7 +501,7 @@ export function SettingsPage({ onAuthChange }: Props) {
                       <DangerButton
                         label="Remove"
                         confirmLabel="Remove this token? Program runs relying on it will stop working."
-                        busy={deletingTokenId === t.token_id}
+                        busy={deletingTokenIds.has(t.token_id)}
                         onConfirm={() => void handleDeleteToken(t.token_id)}
                         confirmButtonLabel="Yes, confirm"
                         busyLabel="Working..."
@@ -535,7 +560,7 @@ export function SettingsPage({ onAuthChange }: Props) {
                     <DangerButton
                       label="Delete"
                       confirmLabel="Delete this webhook? Delivery history goes with it."
-                      busy={deletingWebhookId === w.webhook_id}
+                      busy={deletingWebhookIds.has(w.webhook_id)}
                       onConfirm={() => void handleDeleteWebhook(w.webhook_id)}
                       confirmButtonLabel="Yes, confirm"
                       busyLabel="Working..."
@@ -619,7 +644,7 @@ export function SettingsPage({ onAuthChange }: Props) {
                             <DangerButton
                               label="Revoke"
                               confirmLabel={`Revoke ${s.email}'s seat? They lose access immediately.`}
-                              busy={revokingSeatId === s.seat_id}
+                              busy={revokingSeatIds.has(s.seat_id)}
                               onConfirm={() => void handleRevokeSeat(s.seat_id)}
                               confirmButtonLabel="Yes, confirm"
                               busyLabel="Working..."
@@ -657,10 +682,10 @@ export function SettingsPage({ onAuthChange }: Props) {
                           ref={(el) => { if (el) programButtonRefs.current.set(p.name, el); else programButtonRefs.current.delete(p.name); }}
                           type="button"
                           className={`btn text-xs ${enabled ? "" : "btn-primary"}`}
-                          disabled={programBusy === p.name}
+                          disabled={programBusyIds.has(p.name)}
                           onClick={() => void handleToggleProgram(p.name, !enabled)}
                         >
-                          {programBusy === p.name ? "Working..." : enabled ? "Disable" : "Enable"}
+                          {programBusyIds.has(p.name) ? "Working..." : enabled ? "Disable" : "Enable"}
                         </button>
                       </td>
                     </tr>

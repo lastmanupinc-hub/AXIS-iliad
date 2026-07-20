@@ -134,6 +134,58 @@ describe("SettingsPage — API keys", () => {
 
     expect(await screen.findByText("axis_rawkey123")).toBeTruthy();
   });
+
+  // H-Phase-A cycle 20: revokingKeyId was a single shared string, not
+  // per-key state -- revoking key A then key B before A resolved used to
+  // overwrite it to "B", re-enabling A's confirm button while A's own
+  // revoke was still in flight (a genuine duplicate-request risk, not just
+  // a stale-looking button).
+  it("revoking a second key while the first's revoke is still in flight does not re-enable the first key's confirm button", async () => {
+    const keys = [
+      { key_id: "k-a", label: "Key A", prefix: "axis_aaa", created_at: "2026-07-01T00:00:00Z", revoked_at: null },
+      { key_id: "k-b", label: "Key B", prefix: "axis_bbb", created_at: "2026-07-01T00:00:00Z", revoked_at: null },
+    ];
+    const resolvers: Array<(body: unknown) => void> = [];
+    let revokeCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/revoke") && init?.method === "POST") {
+        const index = revokeCallCount++;
+        const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+        return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/account/keys")) {
+        return { ok: true, status: 200, json: async () => ({ keys }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      const handlers = baseHandlers();
+      const hit = handlers.find(([m]) => url.includes(m));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<SettingsPage onAuthChange={onAuthChange} />);
+    const rowA = (await screen.findByText("Key A")).closest("tr")!;
+    const rowB = (await screen.findByText("Key B")).closest("tr")!;
+
+    fireEvent.click(within(rowA).getByRole("button", { name: "Revoke" }));
+    fireEvent.click(within(rowA).getByRole("button", { name: "Yes, confirm" }));
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    fireEvent.click(within(rowB).getByRole("button", { name: "Revoke" }));
+    fireEvent.click(within(rowB).getByRole("button", { name: "Yes, confirm" }));
+    await waitFor(() => expect(resolvers[1]).toBeTruthy());
+
+    // B (the SECOND, independent revoke) finishes first.
+    resolvers[1]({ revoked: true });
+    await waitFor(() => expect(within(rowB).queryByRole("button", { name: "Working..." })).toBeNull());
+    // A must still show its own busy state -- before the fix, B's own
+    // finally() would have cleared A's busy flag too.
+    expect(within(rowA).getByRole("button", { name: "Working..." })).toBeTruthy();
+
+    resolvers[0]({ revoked: true });
+    await waitFor(() => expect(within(rowA).queryByRole("button", { name: "Working..." })).toBeNull());
+  });
 });
 
 describe("SettingsPage — GitHub tokens", () => {
@@ -363,13 +415,19 @@ describe("SettingsPage — programs (tier-gated honestly)", () => {
     // seo's refetch (the NEWER call) resolves first, correctly reflecting both enabled.
     resolvers[1]({ programs: ["theme", "seo"] });
     await waitFor(() => expect(within(seoRow).getByRole("button", { name: "Disable" })).toBeTruthy());
-    expect(within(themeRow).getByRole("button", { name: "Disable" })).toBeTruthy();
+    // H-Phase-A cycle 20: theme's OWN toggle call hasn't resolved yet
+    // (resolvers[0] below) -- its row correctly stays busy until ITS OWN
+    // request finishes, independent of seo's request completing. Before
+    // cycle 20's fix, a single shared busy flag was "stolen" by seo's click,
+    // making theme's button look ready even though theme's own network call
+    // hadn't finished -- that was itself a bug, not something to preserve.
+    expect(within(themeRow).getByRole("button", { name: "Working..." })).toBeTruthy();
 
     // theme's refetch (the OLDER call, reflecting a world where seo wasn't
-    // enabled yet) resolves AFTER -- must be ignored, not revert seo.
+    // enabled yet) resolves AFTER -- must be ignored for entitlements (not
+    // revert seo), but DOES clear theme's own busy flag once ITS call finishes.
     resolvers[0]({ programs: ["theme"] });
-    await new Promise((r) => setTimeout(r, 0));
-    expect(within(themeRow).getByRole("button", { name: "Disable" })).toBeTruthy();
+    await waitFor(() => expect(within(themeRow).getByRole("button", { name: "Disable" })).toBeTruthy());
     expect(within(seoRow).getByRole("button", { name: "Disable" })).toBeTruthy();
   });
 });

@@ -340,6 +340,56 @@ describe("VersionsTab — snapshot deletion", () => {
     expect(screen.queryAllByText("debug", { exact: false }).length).toBe(0);
     expect(onSnapshotDeleted).not.toHaveBeenCalled(); // it wasn't the CURRENT snapshot that was deleted
   });
+
+  // H-Phase-A cycle 20: deletingSnapshot was a single shared string, not
+  // per-row state -- deleting the older snapshot then the current one
+  // before the first resolved used to overwrite it, re-enabling the first
+  // row's Confirm/Cancel buttons while its own delete was still in flight
+  // (a genuine duplicate-DELETE risk, not just a stale-looking button).
+  it("deleting a second snapshot while the first's delete is still in flight does not re-enable the first row's confirm button", async () => {
+    const resolvers: Record<string, (body: unknown) => void> = {};
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "DELETE" && (url.endsWith(`/v1/snapshots/${OLDER_SNAPSHOT_ID}`) || url.endsWith(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}`))) {
+        const id = url.endsWith(OLDER_SNAPSHOT_ID) ? OLDER_SNAPSHOT_ID : CURRENT_SNAPSHOT_ID;
+        const body = await new Promise((resolve) => { resolvers[id] = resolve; });
+        return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      const routes = baseRoutes();
+      const hit = routes.find((r) => r.method === method && r.match(url));
+      const status = hit?.status ?? (hit ? 200 : 404);
+      const body = hit ? hit.body : { error: "unhandled" };
+      return { ok: status >= 200 && status < 300, status, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(
+      <VersionsTab projectId={PROJECT_ID} currentSnapshotId={CURRENT_SNAPSHOT_ID} loggedIn={false} onSnapshotDeleted={() => {}} onProjectDeleted={() => {}} onNeedCredits={() => {}} />,
+    );
+
+    await screen.findAllByText("ready");
+    const rows = screen.getAllByRole("row");
+    const olderRow = rows.find((r) => within(r).queryByText("10") !== null)!;
+    const currentRow = rows.find((r) => within(r).queryByText("latest") !== null)!;
+
+    fireEvent.click(within(olderRow).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(olderRow).getByRole("button", { name: "Yes, delete" }));
+    await waitFor(() => expect(resolvers[OLDER_SNAPSHOT_ID]).toBeTruthy());
+
+    fireEvent.click(within(currentRow).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(currentRow).getByRole("button", { name: "Yes, delete" }));
+    await waitFor(() => expect(resolvers[CURRENT_SNAPSHOT_ID]).toBeTruthy());
+
+    // The current snapshot's delete (the SECOND, independent one) finishes first.
+    resolvers[CURRENT_SNAPSHOT_ID]({ deleted: true, snapshot_id: CURRENT_SNAPSHOT_ID });
+    await waitFor(() => expect(within(currentRow).queryByRole("button", { name: "Deleting..." })).toBeNull());
+    // The older row must still show its own busy state -- before the fix,
+    // the current row's own finally() would have cleared it too.
+    expect(within(olderRow).getByRole("button", { name: "Deleting..." })).toBeTruthy();
+
+    resolvers[OLDER_SNAPSHOT_ID]({ deleted: true, snapshot_id: OLDER_SNAPSHOT_ID });
+  });
 });
 
 describe("VersionsTab — project memory", () => {

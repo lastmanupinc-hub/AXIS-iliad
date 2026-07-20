@@ -47,7 +47,13 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
   const [snapshots, setSnapshots] = useState<ProjectSnapshotSummary[] | null>(null);
   const [snapshotsError, setSnapshotsError] = useState<{ message: string; details: string | null } | null>(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>(currentSnapshotId);
-  const [deletingSnapshot, setDeletingSnapshot] = useState<string | null>(null);
+  // H-Phase-A cycle 20: a single shared string can't represent N independent
+  // concurrent row deletions — arming+confirming delete on snapshot A then
+  // doing the same on snapshot B before A resolved used to overwrite this to
+  // "B", re-enabling A's Confirm/Cancel buttons while A's own delete was
+  // still in flight, letting a second click fire a genuine duplicate DELETE.
+  // Same fix shape as ProjectsPage.tsx's deletingIds/exportingIds.
+  const [deletingSnapshots, setDeletingSnapshots] = useState<Set<string>>(new Set());
 
   // H-Phase-A cycle 11 (8th recurrence of this session's async-stale-state
   // shape): VersionsTab isn't remounted across a browser back/forward
@@ -81,7 +87,7 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
   useEffect(() => { setSelectedSnapshotId(currentSnapshotId); }, [currentSnapshotId]);
 
   async function handleDeleteSnapshot(snapshotId: string) {
-    setDeletingSnapshot(snapshotId);
+    setDeletingSnapshots((prev) => new Set(prev).add(snapshotId));
     try {
       await deleteSnapshot(snapshotId);
       await loadSnapshots();
@@ -94,7 +100,11 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
     } catch (err) {
       setSnapshotsError({ message: err instanceof Error ? err.message : "Failed to delete snapshot", details: apiErrorDetails(err) });
     } finally {
-      setDeletingSnapshot(null);
+      setDeletingSnapshots((prev) => {
+        const next = new Set(prev);
+        next.delete(snapshotId);
+        return next;
+      });
     }
   }
 
@@ -286,7 +296,7 @@ export function VersionsTab({ projectId, currentSnapshotId, loggedIn, onSnapshot
                       <DangerButton
                         label="Delete"
                         confirmLabel="Delete this snapshot?"
-                        busy={deletingSnapshot === s.snapshot_id}
+                        busy={deletingSnapshots.has(s.snapshot_id)}
                         onConfirm={() => void handleDeleteSnapshot(s.snapshot_id)}
                       />
                     </td>
