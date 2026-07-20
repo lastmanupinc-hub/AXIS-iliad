@@ -48,4 +48,18 @@ describe("free scrape pool (100 pages/account/month)", () => {
     await getFreeScrapePoolStatus(acct.account_id);
     expect((await getFreeScrapePoolStatus(acct.account_id)).used).toBe(0);
   });
+
+  it("under concurrent same-account requests, total consumed never exceeds the monthly cap (H-Phase-A cycle 18 TOCTOU fix)", async () => {
+    const acct = await createAccount("Race", "race@x.com", "paid");
+    // 10 concurrent requests for 20 pages each = 200 requested; the pool only
+    // holds 100, so total consumed across ALL of them must be exactly 100 —
+    // before the advisory-lock fix, a plain read-then-write let concurrent
+    // requests each read the same stale counter and over-consume.
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => consumeFreeScrapes(acct.account_id, 20)),
+    );
+    const totalConsumed = results.reduce((sum, r) => sum + r.consumed, 0);
+    expect(totalConsumed).toBe(FREE_SCRAPE_POOL_MONTHLY);
+    expect((await getFreeScrapePoolStatus(acct.account_id)).used).toBe(FREE_SCRAPE_POOL_MONTHLY);
+  });
 });
