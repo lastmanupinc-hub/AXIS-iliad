@@ -97,6 +97,8 @@ import {
   recordPaymentFunnelEvent,
   getFreeScrapePoolStatus,
   consumeFreeScrapes,
+  getCachedScrape,
+  putCachedScrape,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -144,7 +146,7 @@ import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
-import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchBackend, webResearchNotConfigured } from "./web-research.js";
+import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchBackend, webResearchNotConfigured, isWebResearchNotConfigured } from "./web-research.js";
 import { sovereignScrape, sovereignCrawl } from "./web-research-sovereign.js";
 import {
   REGISTRY_DISPLAY_NAME,
@@ -1371,6 +1373,23 @@ export async function runWebResearch(args: Record<string, unknown>, req: Incomin
   if (args.only_main_content !== undefined && typeof args.only_main_content !== "boolean") {
     throw new Error("iliad_web_research: `only_main_content` must be a boolean when provided.");
   }
+  // H-Phase-A cycle 19: read/write the SAME 24h shared scrape cache REST's
+  // handleFirecrawlScrape already uses — this MCP tool used to never check
+  // or populate it, so an MCP scrape of a URL any caller (REST or MCP)
+  // already scraped in the last 24h paid full price instead of the
+  // documented $0 cache hit, and an MCP scrape never populated the cache
+  // for the NEXT caller either. Checked before backend selection/charging —
+  // matches REST's own ordering (a cache hit needs no backend at all).
+  const cachedScrape = await getCachedScrape(url);
+  if (cachedScrape) {
+    return JSON.stringify({
+      url: cachedScrape.url,
+      markdown: cachedScrape.markdown,
+      metadata: cachedScrape.metadata,
+      cached: true,
+      cache_age_seconds: cachedScrape.age_seconds,
+    }, null, 2);
+  }
   // Backend selection (WO-12): the AXIS-owned sovereign crawler is the DEFAULT
   // and needs no third-party key. The _not_configured envelope is reachable
   // ONLY when the operator explicitly selected the firecrawl backend without
@@ -1387,6 +1406,9 @@ export async function runWebResearch(args: Record<string, unknown>, req: Incomin
       ? await firecrawlScrape(url, args.only_main_content !== false)
       : await sovereignScrape(url, args.only_main_content !== false);
   await captureMcpToolCredits(auth.account, charge);
+  if (!isWebResearchNotConfigured(result)) {
+    await putCachedScrape(url, result.markdown, result.metadata, 200);
+  }
   return JSON.stringify(result, null, 2);
 }
 
