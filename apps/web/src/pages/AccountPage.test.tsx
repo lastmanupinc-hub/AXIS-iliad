@@ -58,3 +58,22 @@ describe("AccountPage — OAuth-exchange vs. already-logged-in redirect race", (
     await waitFor(() => expect(onNavigate).toHaveBeenCalledWith("settings"));
   });
 });
+
+// H-Phase-A cycle 18: the redirect effect's guard only ever checked
+// `code` (hasPendingOAuthCode), not `error` — an already-authenticated
+// visitor (stale axis_api_key marker) whose re-auth attempt FAILS lands on
+// this fixed OAuth redirect target with `?error=...` and no `code` at all,
+// so the redirect fired in the same commit as the sibling effect's
+// setError(), bouncing to Settings before the failure Callout ever painted.
+describe("AccountPage — a failed re-auth for an already-signed-in visitor", () => {
+  it("shows the failure Callout instead of silently bouncing to Settings", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    window.history.pushState({}, "", "/?error=access_denied&login=github");
+
+    const onNavigate = vi.fn();
+    render(<AccountPage onNavigate={onNavigate} />);
+
+    await waitFor(() => expect(screen.getByText(/GitHub login failed/i)).toBeTruthy());
+    expect(onNavigate).not.toHaveBeenCalledWith("settings");
+  });
+});

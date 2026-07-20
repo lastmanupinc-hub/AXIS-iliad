@@ -43,6 +43,14 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
   const oauthParams = new URLSearchParams(window.location.search);
   const hasPendingOAuthCode =
     oauthParams.has("code") && (oauthParams.get("login") === "github" || oauthParams.get("login") === "google");
+  // H-Phase-A cycle 18: same synchronous-first-paint reasoning as
+  // hasPendingOAuthCode above, but for a FAILED re-auth — an already-
+  // logged-in visitor (stale session marker) landing on this provider's
+  // fixed redirect target with `?error=...` used to get bounced to Settings
+  // before the sibling effect's setError() ever had a chance to land, since
+  // (like the code/exchanging case) a state update from one effect isn't
+  // visible to a sibling effect in the same commit.
+  const hasPendingOAuthError = oauthParams.has("error");
 
   // Handle the OAuth callback: trade the one-time ?code= for the API key — the
   // key is never placed in the URL. Scrub the URL immediately, either way.
@@ -76,10 +84,15 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
   }, [onNavigate]);
 
   useEffect(() => {
-    if (isLoggedIn && !exchanging && !hasPendingOAuthCode) redirectToSettings();
-  }, [isLoggedIn, exchanging, hasPendingOAuthCode, redirectToSettings]);
+    // `error` (not just hasPendingOAuthError) also gates this: once the
+    // sibling effect above sets it, the URL has already been scrubbed
+    // (window.history.replaceState), so hasPendingOAuthError alone would
+    // flip back to false on the very next render and redirect away before
+    // the user ever reads the failure Callout.
+    if (isLoggedIn && !exchanging && !hasPendingOAuthCode && !hasPendingOAuthError && !error) redirectToSettings();
+  }, [isLoggedIn, exchanging, hasPendingOAuthCode, hasPendingOAuthError, error, redirectToSettings]);
 
-  if (isLoggedIn && !exchanging && !hasPendingOAuthCode) {
+  if (isLoggedIn && !exchanging && !hasPendingOAuthCode && !hasPendingOAuthError && !error) {
     return (
       <div className="empty-state" role="status" aria-live="polite">
         <span className="spinner" /> Redirecting to Settings...
