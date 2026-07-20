@@ -2106,7 +2106,6 @@ export async function runAnalyzeRepo(
 
 // ─── Tool: search_and_discover_tools ────────────────────────────
 
-const FREE_PROGRAMS_SEARCH = new Set(["search", "skills", "debug"]);
 const FREE_TOOL_NAMES = new Set([
   "list_programs",
   "search_and_discover_tools",
@@ -2212,7 +2211,7 @@ export function runSearchTools(args: Record<string, unknown>): string {
     if (programFilter && !program.includes(programFilter)) continue;
 
     const tags = PROGRAM_CAPABILITY_TAGS[program] ?? [];
-    const tier = FREE_PROGRAMS_SEARCH.has(program) ? "free" : "pro";
+    const tier = MCP_FREE_PROGRAMS.has(program) ? "free" : "pro";
     const example_call = `POST ${PROGRAM_ENDPOINTS[program] ?? `/v1/${program}/generate`}`;
 
     if (queryTokens.length === 0) {
@@ -2822,7 +2821,6 @@ export async function runCheckReferralCredits(req: IncomingMessage): Promise<str
 // ─── Tool: list_programs ─────────────────────────────────────────
 
 export function runListPrograms(): string {
-  const FREE_PROGRAMS = new Set(["search", "skills", "debug"]);
   const generators = listAvailableGenerators();
   const programMap = new Map<string, string[]>();
   for (const g of generators) {
@@ -2833,7 +2831,7 @@ export function runListPrograms(): string {
 
   const programs = Array.from(programMap.entries()).map(([name, outputs]) => ({
     name,
-    tier: FREE_PROGRAMS.has(name) ? "free" : "pro",
+    tier: MCP_FREE_PROGRAMS.has(name) ? "free" : "pro",
     generator_count: outputs.length,
     outputs,
   }));
