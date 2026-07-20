@@ -214,6 +214,65 @@ describe("SettingsPage — webhooks", () => {
 
     await waitFor(() => expect(screen.getByText("Paused")).toBeTruthy());
   });
+
+  // H-Phase-A cycle 18: handleViewDeliveries was the one webhook handler the
+  // bulk sweep's request-id guard missed -- deliveries is a single shared
+  // array, not keyed per webhook, so an older, slower response resolving
+  // AFTER a newer one used to silently swap the visible panel back to the
+  // stale webhook's data even though the user's last action opened a
+  // different one.
+  it("viewing a second webhook's deliveries while the first's request is still in flight does not let the older response overwrite the newer panel", async () => {
+    const webhookA = { webhook_id: "wh-a", account_id: "acct_1", url: "https://a.example.com/hook", events: ["snapshot.created"], secret: null, active: true, created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z" };
+    const webhookB = { webhook_id: "wh-b", account_id: "acct_1", url: "https://b.example.com/hook", events: ["snapshot.created"], secret: null, active: true, created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z" };
+    const resolvers: Array<(body: unknown) => void> = [];
+    let deliveryCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/deliveries")) {
+        const index = deliveryCallCount++;
+        const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+        return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/account/webhooks")) {
+        return { ok: true, status: 200, json: async () => ({ webhooks: [webhookA, webhookB], count: 2 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      const handlers = baseHandlers();
+      const hit = handlers.find(([m]) => url.includes(m));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<SettingsPage onAuthChange={onAuthChange} />);
+    await waitFor(() => expect(screen.getByText("https://a.example.com/hook")).toBeTruthy());
+    const rowA = screen.getByText("https://a.example.com/hook").closest(".card") as HTMLElement;
+    const rowB = screen.getByText("https://b.example.com/hook").closest(".card") as HTMLElement;
+
+    // Open A's deliveries -- its request (call 0) is now in flight.
+    fireEvent.click(within(rowA).getByRole("button", { name: "View deliveries" }));
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    // Open B's deliveries BEFORE A's request resolves -- its own request (call 1) also in flight.
+    fireEvent.click(within(rowB).getByRole("button", { name: "View deliveries" }));
+    await waitFor(() => expect(resolvers[1]).toBeTruthy());
+
+    // B's request (the NEWER call) resolves first.
+    resolvers[1]({
+      deliveries: [{ delivery_id: "d-b", webhook_id: "wh-b", event_type: "snapshot.created", payload: "{}", status_code: 200, response_body: null, success: true, attempted_at: "2026-07-01T00:00:00Z" }],
+      count: 1,
+    });
+    await waitFor(() => expect(within(rowB).getByRole("region", { name: /Deliveries for/ })).toBeTruthy());
+
+    // A's request (the OLDER call) resolves AFTER -- must be ignored, not
+    // swap the visible panel back to A.
+    resolvers[0]({
+      deliveries: [{ delivery_id: "d-a", webhook_id: "wh-a", event_type: "snapshot.created", payload: "{}", status_code: 200, response_body: null, success: true, attempted_at: "2026-07-01T00:00:00Z" }],
+      count: 1,
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(within(rowB).getByRole("region", { name: /Deliveries for/ })).toBeTruthy();
+    expect(within(rowA).queryByRole("region", { name: /Deliveries for/ })).toBeNull();
+  });
 });
 
 describe("SettingsPage — team seats (tier-gated honestly)", () => {

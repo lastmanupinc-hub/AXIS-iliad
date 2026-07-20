@@ -72,6 +72,11 @@ export function SettingsPage({ onAuthChange }: Props) {
   const webhooksRequestIdRef = useRef(0);
   const seatsRequestIdRef = useRef(0);
   const entitlementsRequestIdRef = useRef(0);
+  // H-Phase-A cycle 18: handleViewDeliveries was the one handler the bulk
+  // sweep above missed (it wasn't read as a "mutation") -- same shape, its
+  // own dedicated ref since it's a distinct resource (a webhook's delivery
+  // log, not the webhook list itself).
+  const deliveriesRequestIdRef = useRef(0);
 
   const load = useCallback(async () => {
     setError(null);
@@ -267,11 +272,14 @@ export function SettingsPage({ onAuthChange }: Props) {
       setOpenDeliveries(null);
       return;
     }
+    const requestId = ++deliveriesRequestIdRef.current;
     try {
       const result = await getWebhookDeliveries(webhookId);
+      if (requestId !== deliveriesRequestIdRef.current) return;
       setDeliveries(result.deliveries ?? []);
       setOpenDeliveries(webhookId);
     } catch (err) {
+      if (requestId !== deliveriesRequestIdRef.current) return;
       setError({ message: err instanceof Error ? err.message : "Failed to load deliveries", details: apiErrorDetails(err) });
     }
   }
