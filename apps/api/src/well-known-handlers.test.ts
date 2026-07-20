@@ -1,14 +1,14 @@
 /**
  * Tests for discovery & well-known handlers (eq_197):
- *   GET /.well-known/agent.json       â€” handleAgentJson
- *   GET /.well-known/glama.json       â€” handleGlamaJson
- *   GET /.well-known/security.txt     â€” handleSecurityTxt
- *   GET /.well-known/capabilities.json â€” handleCapabilities
- *   GET /robots.txt                    â€” handleRobotsTxt
- *   GET /sitemap.xml                   â€” handleSitemapXml
- *   GET /health                        â€” handleHealthRedirect
- *   GET /docs                          â€” handleDocsRedirect
- *   GET /openapi.json                  â€” handleOpenApiJson
+ *   GET /.well-known/agent.json       — handleAgentJson
+ *   GET /.well-known/glama.json       — handleGlamaJson
+ *   GET /.well-known/security.txt     — handleSecurityTxt
+ *   GET /.well-known/capabilities.json — handleCapabilities
+ *   GET /robots.txt                    — handleRobotsTxt
+ *   GET /sitemap.xml                   — handleSitemapXml
+ *   GET /health                        — handleHealthRedirect
+ *   GET /docs                          — handleDocsRedirect
+ *   GET /openapi.json                  — handleOpenApiJson
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
@@ -32,7 +32,7 @@ import {
   handlePricingLanding,
 } from "./handlers.js";
 
-// â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HTTP helper ─────────────────────────────────────────────────
 
 async function req(
   path: string,
@@ -99,7 +99,7 @@ afterAll(async () => {
   );
 });
 
-// â”€â”€â”€ GET /.well-known/agent.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/agent.json ─────────────────────────────────
 
 describe("GET /pricing", () => {
   it("returns 200 with pricing landing metadata for crawlers", async () => {
@@ -169,7 +169,7 @@ describe("GET /.well-known/agent.json", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/glama.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/glama.json ────────────────────────────────
 
 describe("GET /.well-known/glama.json", () => {
   let status: number;
@@ -198,7 +198,7 @@ describe("GET /.well-known/glama.json", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/security.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/security.txt ───────────────────────────────
 
 describe("GET /.well-known/security.txt", () => {
   let status: number;
@@ -241,7 +241,7 @@ describe("GET /.well-known/security.txt", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/capabilities.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/capabilities.json ──────────────────────────
 
 describe("GET /.well-known/capabilities.json", () => {
   let status: number;
@@ -302,7 +302,7 @@ describe("GET /.well-known/capabilities.json", () => {
   });
 });
 
-// â”€â”€â”€ GET /robots.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /robots.txt ─────────────────────────────────────────────
 
 describe("GET /robots.txt", () => {
   let status: number;
@@ -343,7 +343,7 @@ describe("GET /robots.txt", () => {
   });
 });
 
-// â”€â”€â”€ GET /sitemap.xml â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /sitemap.xml ────────────────────────────────────────────
 
 describe("GET /sitemap.xml", () => {
   let status: number;
@@ -387,7 +387,7 @@ describe("GET /sitemap.xml", () => {
   });
 });
 
-// â”€â”€â”€ GET /health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /health ─────────────────────────────────────────────────
 
 describe("GET /health", () => {
   let status: number;
@@ -429,7 +429,7 @@ describe("GET /health", () => {
   });
 });
 
-// â”€â”€â”€ GET /docs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /docs ───────────────────────────────────────────────────
 
 describe("GET /docs", () => {
   let status: number;
@@ -466,7 +466,7 @@ describe("GET /docs", () => {
   });
 });
 
-// â”€â”€â”€ GET /openapi.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /openapi.json ──────────────────────────────────────────
 
 describe("GET /openapi.json", () => {
   let status: number;
@@ -507,7 +507,7 @@ describe("GET /openapi.json", () => {
   });
 });
 
-// â”€â”€â”€ GET /performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /performance ─────────────────────────────────────────────
 
 describe("GET /performance", () => {
   let status: number;
@@ -583,7 +583,7 @@ describe("GET /performance", () => {
   });
 });
 
-// â”€â”€â”€ GET /performance/reputation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /performance/reputation ──────────────────────────────────
 
 describe("GET /performance/reputation", () => {
   let status: number;
@@ -638,7 +638,7 @@ describe("GET /performance/reputation", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/ai-plugin.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/ai-plugin.json ─────────────────────────────
 
 describe("GET /.well-known/ai-plugin.json", () => {
   let status: number;
@@ -680,7 +680,7 @@ describe("GET /.well-known/ai-plugin.json", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/oauth-protected-resource â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/oauth-protected-resource ───────────────────
 
 describe("GET /.well-known/oauth-protected-resource", () => {
   let status: number;
@@ -716,7 +716,7 @@ describe("GET /.well-known/oauth-protected-resource", () => {
   });
 });
 
-// â”€â”€â”€ GET /agents.json (root alias of /.well-known/agent.json) â”€â”€â”€â”€â”€
+// ─── GET /agents.json (root alias of /.well-known/agent.json) ─────
 
 describe("GET /agents.json", () => {
   let status: number;

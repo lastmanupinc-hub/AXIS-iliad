@@ -1,8 +1,8 @@
 /**
  * Tests for the three AI-discoverability endpoints (eq_192):
- *   GET /llms.txt                        â€” llmstxt.org standard
- *   GET /.well-known/skills/index.json   â€” agentskills.io standard
- *   GET /v1/docs.md                      â€” Stripe-style plain-text API reference
+ *   GET /llms.txt                        — llmstxt.org standard
+ *   GET /.well-known/skills/index.json   — agentskills.io standard
+ *   GET /v1/docs.md                      — Stripe-style plain-text API reference
  *
  * Also verifies that handleWellKnown now includes the llms_txt and skills fields.
  */
@@ -26,7 +26,7 @@ import {
 } from "./handlers.js";
 import { ErrorCode } from "./logger.js";
 
-// â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HTTP helper ─────────────────────────────────────────────────
 
 async function req(
   path: string,
@@ -118,7 +118,7 @@ afterAll(async () => {
   );
 });
 
-// â”€â”€â”€ GET /llms.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /llms.txt ───────────────────────────────────────────────
 
 describe("GET /llms.txt", () => {
   let status: number;
@@ -235,11 +235,11 @@ describe("GET /llms.txt", () => {
   it("H4.6: MCP_TOOL_COUNT/PROGRAM_COUNT numerals in the body match the live constants", async () => {
     expect(body).toContain(`${MCP_TOOL_COUNT} tools`);
     // ARTIFACT_COUNT/PROGRAM_COUNT are asserted in the pre-existing "canonical MCP tools
-    // count" / "20 programs" tests above â€” this test only adds the two H4.6 introduced.
+    // count" / "20 programs" tests above — this test only adds the two H4.6 introduced.
   });
 });
 
-// â”€â”€â”€ GET /.well-known/skills/index.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/skills/index.json ─────────────────────────
 
 describe("GET /.well-known/skills/index.json", () => {
   let status: number;
@@ -321,7 +321,7 @@ describe("GET /.well-known/skills/index.json", () => {
   });
 });
 
-// â”€â”€â”€ GET /v1/docs.md â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/docs.md ────────────────────────────────────────────
 
 describe("GET /v1/docs.md", () => {
   let status: number;
@@ -389,9 +389,9 @@ describe("GET /v1/docs.md", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/axis.json â€” llms_txt and skills fields â”€â”€â”€â”€
+// ─── GET /.well-known/axis.json — llms_txt and skills fields ────
 
-describe("GET /.well-known/axis.json â€” new fields", () => {
+describe("GET /.well-known/axis.json — new fields", () => {
   let data: Record<string, unknown>;
 
   beforeAll(async () => {
@@ -421,7 +421,7 @@ describe("GET /.well-known/axis.json â€” new fields", () => {
   });
 });
 
-// â”€â”€â”€ GET /for-agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /for-agents ──────────────────────────────────────────
 
 describe("GET /for-agents", () => {
   let status: number;
@@ -558,7 +558,7 @@ describe("GET /for-agents", () => {
   });
 });
 
-// â”€â”€â”€ GET /v1/install â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/install ──────────────────────────────────────────
 
 describe("GET /v1/install", () => {
   let status: number;
@@ -593,7 +593,7 @@ describe("GET /v1/install", () => {
   });
 });
 
-// â”€â”€â”€ GET /v1/install/:platform â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/install/:platform ──────────────────────────────
 
 describe("GET /v1/install/:platform", () => {
   it("returns claude-desktop config", async () => {
@@ -637,7 +637,7 @@ describe("GET /v1/install/:platform", () => {
   });
 });
 
-// â”€â”€â”€ POST /probe-intent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /probe-intent ─────────────────────────────────────────
 
 describe("POST /probe-intent", () => {
   it("returns 200 with recommendations for valid description", async () => {
@@ -716,7 +716,7 @@ describe("POST /probe-intent", () => {
   });
 });
 
-// â”€â”€â”€ POST /probe-intent â€” H4.5: 20-realistic-intent routing quality pass â”€
+// ─── POST /probe-intent — H4.5: 20-realistic-intent routing quality pass ─
 //
 // Ground truth: probing all 20 of these against the pre-fix classifier showed 12/20
 // (60%) falling through to the generic commerce fallback (discover_agentic_purchasing_needs)
@@ -726,7 +726,7 @@ describe("POST /probe-intent", () => {
 // (a Stripe-dispute intent routed to the general purchasing-readiness tool instead of
 // score_dispute_readiness). Each case below pins the fix for one of those real misses.
 
-describe("POST /probe-intent â€” 20 realistic intents (H4.5)", () => {
+describe("POST /probe-intent — 20 realistic intents (H4.5)", () => {
   const cases: Array<[string, string]> = [
     ["I want to understand this codebase before making changes", "analyze_repo"],
     ["Help me prepare my SaaS for autonomous purchasing agents", "prepare_agentic_purchasing"],
@@ -758,7 +758,7 @@ describe("POST /probe-intent â€” 20 realistic intents (H4.5)", () => {
   });
 });
 
-// â”€â”€â”€ GET /for-agents?intent= â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /for-agents?intent= ────────────────────────────────────
 
 describe("GET /for-agents?intent=", () => {
   it("returns tools sorted by relevance when intent is provided", async () => {

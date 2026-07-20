@@ -1,4 +1,4 @@
-// â”€â”€â”€ OpenAPI 3.1 Specification for Axis' Iliad API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── OpenAPI 3.1 Specification for Axis' Iliad API ─────────────
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 
 export interface OpenApiSpec {
@@ -35,7 +35,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       { url: "http://localhost:4000", description: "Local development" },
     ],
     paths: {
-      // â”€â”€ Health â”€â”€
+      // ── Health ──
       "/v1/health": {
         get: {
           summary: "Health check",
@@ -99,7 +99,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Snapshots â”€â”€
+      // ── Snapshots ──
       "/v1/snapshots": {
         post: {
           summary: "Create a snapshot from uploaded files",
@@ -184,7 +184,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Projects â”€â”€
+      // ── Projects ──
       "/v1/projects": {
         get: {
           summary: "List the account's analyzed projects, newest-analyzed-first",
@@ -315,18 +315,18 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Programs â”€â”€
+      // ── Programs ──
       ...programEndpoints(),
 
-      // â”€â”€ Analyze (unified one-call endpoint) â”€â”€
+      // ── Analyze (unified one-call endpoint) ──
       "/v1/analyze": {
         post: {
-          summary: "Analyze a codebase â€” one call returns all AI context files with adoption hints",
+          summary: "Analyze a codebase — one call returns all AI context files with adoption hints",
           description:
             `Analyze any GitHub repo or uploaded codebase and return ${ARTIFACT_COUNT} structured AI artifacts across ${PROGRAM_COUNT} programs (AGENTS.md, CLAUDE.md, .cursorrules, MCP config, brand guidelines, debug playbooks, etc.). ` +
             "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.50 per-call MPP credit. " +
             "If the caller lacks access, the server returns HTTP 402 with a machine-readable payment body containing payment_url, checkout_url, and retry_after_payment instructions. " +
-            "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request â€” no extra steps. " +
+            "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request — no extra steps. " +
             "Pass X-Agent-Budget header to negotiate lite mode ($0.15, 3 programs). Pass X-Agent-Mode: lite explicitly. " +
             "Response headers on every authenticated call: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Credits-Balance, X-Axis-Request-Cost.",
           operationId: "analyze",
@@ -339,15 +339,15 @@ export function buildOpenApiSpec(): OpenApiSpec {
             description: "Returns HTTP 402 for free-tier callers requesting paid programs. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
             budget_header: "X-Agent-Budget: {\"budget_per_run_cents\": 50, \"spending_window\": \"per_call\"}",
             lite_mode_header: "X-Agent-Mode: lite",
-            retry_pattern: "Re-send original request with same API key after payment â€” no extra steps.",
+            retry_pattern: "Re-send original request with same API key after payment — no extra steps.",
           },
           requestBody: jsonBody(ref("AnalyzeRequest")),
           responses: {
-            201: { description: "Analysis complete â€” files with content, placement, and adoption_hint", content: jsonContent(ref("AnalyzeResponse")) },
+            201: { description: "Analysis complete — files with content, placement, and adoption_hint", content: jsonContent(ref("AnalyzeResponse")) },
             400: { description: "Validation error", content: jsonContent(ref("ErrorResponse")) },
-            401: { description: "Invalid or revoked API key â€” authenticate first via POST /v1/accounts then POST /v1/account/keys" },
+            401: { description: "Invalid or revoked API key — authenticate first via POST /v1/accounts then POST /v1/account/keys" },
             402: {
-              description: "Payment Required â€” free-tier caller requested paid programs. Response body contains payment_url, checkout_url, retry_after_payment, and full x402 negotiation block.",
+              description: "Payment Required — free-tier caller requested paid programs. Response body contains payment_url, checkout_url, retry_after_payment, and full x402 negotiation block.",
               content: jsonContent({
                 type: "object",
                 properties: {
@@ -370,7 +370,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/prepare-for-agentic-purchasing": {
         post: {
-          summary: "Generate agentic purchasing readiness assessment â€” AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
+          summary: "Generate agentic purchasing readiness assessment — AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
           description:
             "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence requirements, SCA exemption paths, and autonomous checkout rules." +
             "Requires Pro tier or $0.50 MPP credit. HTTP 402 returned for free-tier callers with payment_url and retry instructions. " +
@@ -388,13 +388,13 @@ export function buildOpenApiSpec(): OpenApiSpec {
             201: { description: "Purchasing readiness score + compliance artifacts" },
             400: { description: "Validation error" },
             401: { description: "Invalid or revoked API key" },
-            402: { description: "Payment Required â€” body contains payment_url, checkout_url, and retry_after_payment instructions" },
+            402: { description: "Payment Required — body contains payment_url, checkout_url, and retry_after_payment instructions" },
             429: { description: "Rate limit or quota exceeded" },
           },
         },
       },
 
-      // â”€â”€ GitHub â”€â”€
+      // ── GitHub ──
       "/v1/github/analyze": {
         post: {
           summary: "Create snapshot from a GitHub repository URL",
@@ -409,7 +409,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Firecrawl Web Research (Phase 1) â”€â”€
+      // ── Firecrawl Web Research (Phase 1) ──
       "/v1/research/scrape": {
         post: {
           summary: "Scrape a single URL and return markdown content",
@@ -495,7 +495,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ AI tool discovery standards â”€â”€
+      // ── AI tool discovery standards ──
       "/llms.txt": {
         get: {
           summary: "Plain-text AI tool instructions (llmstxt.org standard)",
@@ -568,7 +568,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/.well-known/axis.json": {
         get: {
-          summary: "Agent discovery manifest â€” describes how to use AXIS programmatically",
+          summary: "Agent discovery manifest — describes how to use AXIS programmatically",
           operationId: "getWellKnown",
           tags: ["Discovery"],
           responses: {
@@ -717,7 +717,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ MCP tool discovery â”€â”€
+      // ── MCP tool discovery ──
       "/v1/mcp/tools": {
         get: {
           summary: "Search AXIS programs and generators by keyword or capability tag",
@@ -733,7 +733,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ MCP registry metadata â”€â”€
+      // ── MCP registry metadata ──
       "/v1/mcp/server.json": {
         get: {
           summary: "MCP registry metadata for mcp-publisher CLI and registry crawlers",
@@ -750,7 +750,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           operationId: "getWellKnownMcpJson",
           tags: ["MCP", "Discovery"],
           responses: {
-            200: { description: "Same as /v1/mcp/server.json â€” MCP server metadata" },
+            200: { description: "Same as /v1/mcp/server.json — MCP server metadata" },
           },
         },
       },
@@ -765,7 +765,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Search â”€â”€
+      // ── Search ──
       "/v1/search/index": {
         post: {
           summary: "Build search index for a snapshot's file contents",
@@ -822,10 +822,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ MCP Server â”€â”€
+      // ── MCP Server ──
       "/mcp": {
         post: {
-          summary: "MCP Streamable HTTP endpoint (2025-03-26) â€” call AXIS as a native tool from any MCP-capable agent",
+          summary: "MCP Streamable HTTP endpoint (2025-03-26) — call AXIS as a native tool from any MCP-capable agent",
           operationId: "mcpPost",
           tags: ["MCP"],
           requestBody: jsonBody({
@@ -840,7 +840,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           }),
           responses: {
             200: { description: "JSON-RPC 2.0 response (result or error)" },
-            202: { description: "Notification accepted â€” no body" },
+            202: { description: "Notification accepted — no body" },
             400: { description: "Parse error or invalid JSON-RPC 2.0 request" },
           },
         },
@@ -857,7 +857,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Programs listing â”€â”€
+      // ── Programs listing ──
       "/v1/programs": {
         get: {
           summary: "List available programs and their outputs",
@@ -869,7 +869,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Account & Billing â”€â”€
+      // ── Account & Billing ──
       "/v1/accounts": {
         post: {
           summary: "Create a new account",
@@ -968,7 +968,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         post: { summary: "Toggle program entitlements", operationId: "updatePrograms", tags: ["Billing"], responses: { 200: { description: "Programs updated" } } },
       },
 
-      // â”€â”€ Funnel & Seats â”€â”€
+      // ── Funnel & Seats ──
       "/v1/plans": {
         get: { summary: "List available plans and features", operationId: "getPlans", tags: ["Funnel"], responses: { 200: { description: "Plan listing" } } },
       },
@@ -995,7 +995,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         get: { summary: "Get aggregate funnel metrics", operationId: "getFunnelMetrics", tags: ["Funnel"], responses: { 200: { description: "Funnel metrics" } } },
       },
 
-      // â”€â”€ Admin â”€â”€
+      // ── Admin ──
       "/v1/admin/stats": {
         get: {
           summary: "Get platform-wide statistics",
@@ -1035,7 +1035,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Webhooks â”€â”€
+      // ── Webhooks ──
       "/v1/account/webhooks": {
         post: {
           summary: "Create a webhook subscription",
@@ -1099,7 +1099,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Database â”€â”€
+      // ── Database ──
       "/v1/db/stats": {
         get: {
           summary: "Admin: get database size and table statistics",
@@ -1129,7 +1129,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ OAuth â”€â”€
+      // ── OAuth ──
       "/v1/auth/github": {
         get: {
           summary: "Start GitHub OAuth flow (redirects to GitHub)",
@@ -1260,7 +1260,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Stripe Payments â”€â”€
+      // ── Stripe Payments ──
       "/v1/webhooks/stripe": {
         post: {
           summary: "Stripe webhook receiver (Stripe-Signature verified)",
@@ -1344,7 +1344,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         post: { summary: "Generate deployment configuration artifacts", operationId: "generateDeploy", tags: ["Programs"], security: [{ apiKey: [] }], responses: { 200: { description: "Deployment artifacts" } } },
       },
 
-      // â”€â”€ PAI'D Payment Processor â”€â”€
+      // ── PAI'D Payment Processor ──
       "/portal/api/subscribe": {
         post: {
           summary: "Create a PAI'D hosted checkout session (returns a redirect URL)",
@@ -1433,7 +1433,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ GitHub Token Management â”€â”€
+      // ── GitHub Token Management ──
       "/v1/account/github-token": {
         post: {
           summary: "Save a GitHub personal access token",
@@ -1473,7 +1473,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Billing History â”€â”€
+      // ── Billing History ──
       "/v1/billing/history": {
         get: {
           summary: "Get billing/usage event history",
@@ -1505,7 +1505,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Persistence Credits â”€â”€
+      // ── Persistence Credits ──
       "/v1/account/credits": {
         get: {
           summary: "Get persistence credit balance and ledger",
@@ -1545,7 +1545,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ OpenAPI Docs â”€â”€
+      // ── OpenAPI Docs ──
       "/v1/docs": {
         get: {
           summary: "Get OpenAPI 3.1 specification",
@@ -1557,14 +1557,14 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Agent Discovery â”€â”€
+      // ── Agent Discovery ──
       "/for-agents": {
         get: {
-          summary: "Agent onboarding manifest â€” tools, install configs, system prompts, and getting-started guide for autonomous agents",
+          summary: "Agent onboarding manifest — tools, install configs, system prompts, and getting-started guide for autonomous agents",
           operationId: "getForAgents",
           tags: ["Discovery"],
           parameters: [
-            { name: "intent", in: "query", schema: { type: "string" }, description: "Optional intent string â€” tools are sorted by relevance to the intent" },
+            { name: "intent", in: "query", schema: { type: "string" }, description: "Optional intent string — tools are sorted by relevance to the intent" },
           ],
           responses: {
             200: { description: "Complete agent onboarding payload with tools, install configs, and system prompts" },
@@ -1594,10 +1594,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Stats â”€â”€
+      // ── Stats ──
       "/v1/stats": {
         get: {
-          summary: "Anonymous MCP call counters â€” today/total calls, top tools, process uptime",
+          summary: "Anonymous MCP call counters — today/total calls, top tools, process uptime",
           operationId: "getStats",
           tags: ["Health"],
           responses: {
@@ -1606,10 +1606,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // â”€â”€ Root â”€â”€
+      // ── Root ──
       "/": {
         get: {
-          summary: "API landing page â€” name, version, docs/health/mcp links, endpoint count",
+          summary: "API landing page — name, version, docs/health/mcp links, endpoint count",
           operationId: "getRoot",
           tags: ["Discovery"],
           responses: {
@@ -1619,7 +1619,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/probe-intent": {
         post: {
-          summary: "Lightweight intent probe â€” describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations",
+          summary: "Lightweight intent probe — describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations",
           operationId: "probeIntent",
           tags: ["Discovery"],
           requestBody: jsonBody({
@@ -2216,7 +2216,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
   };
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ────────────────────────────────────────────────────
 
 function ref(name: string) {
   return { $ref: `#/components/schemas/${name}` };

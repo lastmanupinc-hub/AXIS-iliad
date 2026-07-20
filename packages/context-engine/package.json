@@ -2,7 +2,7 @@
   "name": "@axis/context-engine",
   "version": "0.5.3",
   "type": "module",
-  "description": "Context map and repo profile builders â€” transforms parsed code into structured LLM context",
+  "description": "Context map and repo profile builders — transforms parsed code into structured LLM context",
   "keywords": ["codebase", "context", "ai", "llm", "repo-profile", "context-map", "mcp", "agent"],
   "license": "MIT",
   "repository": {
@@ -19,7 +19,7 @@
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
-    "test": "echo skipped â€” run vitest from root"
+    "test": "echo skipped — run vitest from root"
   },
   "dependencies": {
     "@axis/snapshots": "workspace:*",

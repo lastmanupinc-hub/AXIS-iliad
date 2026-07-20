@@ -484,7 +484,7 @@ export const MCP_TOOLS = [
       properties: {
         q: {
           type: "string",
-          description: "Search query â€” keyword or phrase",
+          description: "Search query — keyword or phrase",
         },
         program: {
           type: "string",

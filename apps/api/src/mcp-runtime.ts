@@ -37,7 +37,7 @@ export interface RpcError {
   error: { code: number; message: string; data?: unknown };
 }
 
-// â”€â”€â”€ Response builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Response builders ───────────────────────────────────────────
 
 export function rpcOk(id: string | number | null, result: unknown): RpcSuccess {
   return { jsonrpc: "2.0", id, result };

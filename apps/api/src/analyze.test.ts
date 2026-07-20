@@ -17,7 +17,7 @@ import {
   PROGRAM_OUTPUTS,
 } from "./handlers.js";
 
-// â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HTTP helper ─────────────────────────────────────────────────
 
 async function req(
   method: string,
@@ -94,7 +94,7 @@ afterAll(async () => {
   );
 });
 
-// â”€â”€â”€ adoptionHint (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── adoptionHint (pure function) ───────────────────────────────
 
 describe("adoptionHint", () => {
   it("returns known hint for AGENTS.md", () => {
@@ -144,7 +144,7 @@ describe("adoptionHint", () => {
   });
 });
 
-// â”€â”€â”€ buildNextSteps (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── buildNextSteps (pure function) ─────────────────────────────
 
 describe("buildNextSteps", () => {
   it("returns AGENTS.md as top step when present", () => {
@@ -180,7 +180,7 @@ describe("buildNextSteps", () => {
   });
 });
 
-// â”€â”€â”€ detectProjectName (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── detectProjectName (pure function) ──────────────────────────
 
 describe("detectProjectName", () => {
   it("extracts name from package.json", () => {
@@ -231,9 +231,9 @@ describe("detectProjectName", () => {
   });
 });
 
-// â”€â”€â”€ POST /v1/analyze â€” validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/analyze — validation ──────────────────────────────
 
-describe("POST /v1/analyze â€” validation", () => {
+describe("POST /v1/analyze — validation", () => {
   it("rejects missing body input (no github_url or files)", async () => {
     const r = await req("POST", "/v1/analyze", {});
     expect(r.status).toBe(400);
@@ -372,9 +372,9 @@ describe("POST /v1/analyze â€” validation", () => {
   });
 });
 
-// â”€â”€â”€ POST /v1/analyze â€” success (files mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/analyze — success (files mode) ────────────────────
 
-describe("POST /v1/analyze â€” files mode", () => {
+describe("POST /v1/analyze — files mode", () => {
   let result: Record<string, unknown>;
 
   beforeAll(async () => {
@@ -438,9 +438,9 @@ describe("POST /v1/analyze â€” files mode", () => {
   });
 });
 
-// â”€â”€â”€ POST /v1/analyze â€” programs filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/analyze — programs filter ──────────────────────────
 
-describe("POST /v1/analyze â€” programs filter", () => {
+describe("POST /v1/analyze — programs filter", () => {
   it("returns only requested programs", async () => {
     const r = await req("POST", "/v1/analyze", {
       files: minFiles,
@@ -451,7 +451,7 @@ describe("POST /v1/analyze â€” programs filter", () => {
     const files = data.files as Array<{ program: string }>;
     const programs = new Set(files.map(f => f.program));
     expect(programs.has("debug")).toBe(true);
-    // search program not requested â€” should not appear
+    // search program not requested — should not appear
     expect(programs.has("search")).toBe(false);
   });
 
@@ -500,9 +500,9 @@ describe("POST /v1/analyze â€” programs filter", () => {
   });
 });
 
-// â”€â”€â”€ POST /v1/analyze â€” inline_content: false â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/analyze — inline_content: false ────────────────────
 
-describe("POST /v1/analyze â€” inline_content: false", () => {
+describe("POST /v1/analyze — inline_content: false", () => {
   it("omits content field from files when inline_content is false", async () => {
     const r = await req("POST", "/v1/analyze", {
       files: minFiles,
@@ -522,7 +522,7 @@ describe("POST /v1/analyze â€” inline_content: false", () => {
   });
 });
 
-// â”€â”€â”€ GET /.well-known/axis.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/axis.json ──────────────────────────────────
 
 describe("GET /.well-known/axis.json", () => {
   let manifest: Record<string, unknown>;

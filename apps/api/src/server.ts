@@ -126,8 +126,8 @@ import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
-// â”€â”€â”€ Startup env validation (fail-fast) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/* v8 ignore start â€” server.ts startup block not imported by tests */
+// ─── Startup env validation (fail-fast) ─────────────────────────
+/* v8 ignore start — server.ts startup block not imported by tests */
 const envResult = validateEnv();
 if (!envResult.valid) {
   for (const err of envResult.errors) {
@@ -139,7 +139,7 @@ if (!envResult.valid) {
 
 export const router = new Router();
 
-// Root â€” API landing page for probes, crawlers, and humans
+// Root — API landing page for probes, crawlers, and humans
 router.get("/", async (_req, res) => {
   const { sendJSON } = await import("./router.js");
   sendJSON(res, 200, {
@@ -232,7 +232,7 @@ router.post("/v1/github/webhook", handleGitHubWebhook);
 // E5 Living Architecture: push-triggered architecture-drift PR mode
 router.post("/v1/github/architecture-drift", handleArchitectureDriftWebhook);
 
-// Firecrawl proxy â€” web research (Phase 1)
+// Firecrawl proxy — web research (Phase 1)
 router.post("/v1/research/scrape", handleFirecrawlScrape);
 router.post("/v1/research/crawl", handleFirecrawlCrawl);
 
@@ -281,7 +281,7 @@ router.get("/v1/changelog", handleChangelog);
 router.get("/begin.yaml", handleBeginYaml);
 router.get("/continuation.yaml", handleContinuationYaml);
 
-// Agent onboarding â€” machine-readable manifest + install configs
+// Agent onboarding — machine-readable manifest + install configs
 router.get("/for-agents", handleForAgents);
 router.post("/probe-intent", handleProbeIntent);
 router.get("/v1/install", handleInstall);
@@ -315,7 +315,7 @@ router.get("/v1/programs", async (_req, res) => {
   sendJSON(res, 200, { programs, total_generators: generators.length });
 });
 
-// MCP Server â€” Streamable HTTP transport (2025-03-26)
+// MCP Server — Streamable HTTP transport (2025-03-26)
 const handleMcpEntrypoint = async (req: IncomingMessage, res: ServerResponse) => {
   // Parse once here and pass pre-read JSON to handleMcpPost.
   // Auth is enforced inside MCP tool handlers so clients get JSON-RPC/tool
@@ -421,7 +421,7 @@ router.get("/v1/stats", async (_req, res) => {
   });
 });
 
-// MCP registry metadata â€” for mcp-publisher CLI and registry crawlers
+// MCP registry metadata — for mcp-publisher CLI and registry crawlers
 router.get("/v1/mcp/server.json", handleMcpServerJson);
 
 // MCP tool discovery via REST
@@ -535,7 +535,7 @@ router.post("/portal/api/subscribe", handlePaidSubscribe);
 router.get("/portal/api/paid/config", handlePaidConfig);
 router.post("/portal/api/paid/webhook", handlePaidWebhook);
 
-/* v8 ignore next â€” server.ts is never imported by test suites */
+/* v8 ignore next — server.ts is never imported by test suites */
 const port = parseInt(process.env.PORT ?? "4000", 10);
 /* v8 ignore next */
 export const app = createApp(router, port);

@@ -61,7 +61,7 @@ import { MCP_TOOLS } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 
-// â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Referral discount wrapper ──────────────────────────────────
 
 /** Apply referral benefits (free call) before charging MPP cash overage. */
 async function chargeWithDiscounts(
@@ -81,7 +81,7 @@ async function chargeWithDiscounts(
 
   res.setHeader("X-Axis-Request-Cost", (overageCents / 100).toFixed(2));
 
-  // Plan credits covered this call fully â€” no overage payment required.
+  // Plan credits covered this call fully — no overage payment required.
   if (overageCents <= 0) return { status: 200 };
 
   // Collection (5th-call-free -> cash rail -> paid-call record) is delegated to the
@@ -109,7 +109,7 @@ async function buildPaymentRequiredPayload(
   };
 }
 
-// â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ownership helpers ──────────────────────────────────────────
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
 export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): Promise<boolean> {
@@ -142,7 +142,7 @@ export async function assertProjectAccess(req: IncomingMessage, res: ServerRespo
   return true;
 }
 
-// â”€â”€â”€ Per-program default outputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Per-program default outputs ────────────────────────────────
 
 export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug:        ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
@@ -196,7 +196,7 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   ],
 };
 
-// â”€â”€â”€ Generic program handler factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Generic program handler factory ────────────────────────────
 
 const FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
 
@@ -325,7 +325,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   };
 }
 
-// â”€â”€â”€ Program handlers (generated from PROGRAM_OUTPUTS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Program handlers (generated from PROGRAM_OUTPUTS) ──────────
 
 export const handleDebugAnalyze        = makeProgramHandler("debug", PROGRAM_OUTPUTS.debug);
 export const handleFrontendAudit       = makeProgramHandler("frontend", PROGRAM_OUTPUTS.frontend);
@@ -440,7 +440,7 @@ export async function handleCreateSnapshot(
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
       // Determine if the user is requesting ONLY free programs.
-      // If so, skip the MPP charge â€” return a clear 429 without payment flow.
+      // If so, skip the MPP charge — return a clear 429 without payment flow.
       const requestedProgramsFromOutputs = new Set<string>();
       for (const output of manifest.requested_outputs) {
         for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -451,7 +451,7 @@ export async function handleCreateSnapshot(
         [...requestedProgramsFromOutputs].every(p => FREE_PROGRAMS.has(p));
 
       if (onlyFreePrograms) {
-        // Free-program-only requests bypass quota entirely â€” free programs are always available
+        // Free-program-only requests bypass quota entirely — free programs are always available
       } else {
         await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
         const budget = parseAgentBudget(req);
@@ -481,7 +481,7 @@ export async function handleCreateSnapshot(
     // File count/size caps already enforced ABOVE the charge (validate-first).
     const limits = preLimits;
 
-    // Enforce program entitlements â€” reject if free-tier user requests pro outputs
+    // Enforce program entitlements — reject if free-tier user requests pro outputs
     const allowedPrograms = new Set(limits.programs.length > 0 ? limits.programs : ALL_PROGRAMS as unknown as string[]);
     const requestedPro = new Set<string>();
     for (const output of manifest.requested_outputs) {
@@ -508,7 +508,7 @@ export async function handleCreateSnapshot(
 
       if (mppResult === null) {
         const paymentMessage = `Free tier includes 3 programs (search, skills, debug). Upgrade to Pro to unlock: ${proList.join(", ")}.`;
-        // MPP not configured â€” return 402 with negotiation data
+        // MPP not configured — return 402 with negotiation data
         sendError(res, 402, ErrorCode.TIER_REQUIRED,
           paymentMessage,
           {
@@ -522,7 +522,7 @@ export async function handleCreateSnapshot(
         );
       }
       if (mppResult === null || mppResult.status === 402) return;
-      // mppResult.status === 200 â€” payment accepted, continue to generation
+      // mppResult.status === 200 — payment accepted, continue to generation
     }
   } else if (auth.anonymous) {
     // Anonymous uploads must still obey free-tier file count/size limits — the authenticated
@@ -951,7 +951,7 @@ export async function handleSkillsGenerate(
   });
 }
 
-// â”€â”€â”€ GitHub URL intake â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GitHub URL intake ──────────────────────────────────────────
 
 export async function handleGitHubAnalyze(
   req: IncomingMessage,
@@ -1163,7 +1163,7 @@ export async function handleGitHubAnalyze(
   /* v8 ignore stop */
 }
 
-// â”€â”€â”€ File Content Search API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── File Content Search API ────────────────────────────────────
 
 export async function handleSearchIndex(
   req: IncomingMessage,
@@ -1298,7 +1298,7 @@ export async function handleSearchSymbols(
   });
 }
 
-// â”€â”€â”€ POST /v1/analyze  -  unified one-call analysis endpoint â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/analyze  -  unified one-call analysis endpoint ──────
 
 // Per-file adoption hints (deterministic  -  same input = same output)
 const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string }> = {
@@ -1807,9 +1807,9 @@ export async function handleAnalyze(
   /* v8 ignore stop */
 }
 
-// â”€â”€â”€ POST /v1/prepare-for-agentic-purchasing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/prepare-for-agentic-purchasing ────────────────────
 
-/** Scoring weights for Purchasing Readiness Score (0â€“100). */
+/** Scoring weights for Purchasing Readiness Score (0–100). */
 export const PURCHASING_READINESS_WEIGHTS = {
   commerce_artifacts:   25,
   mcp_configs:          20,
@@ -1998,7 +1998,7 @@ export async function handlePreparePurchasing(
   // Firecrawl and cycle-5 handleCreateSnapshot/handleAnalyze double-charges).
   let paidForThisCall = false;
 
-  // Billing gate ï¿½ the hardener runs pro programs, so require auth + entitlement
+  // Billing gate — the hardener runs pro programs, so require auth + entitlement
   const proPrograms = PURCHASING_PROGRAMS.filter(p => !FREE_PROGRAMS.has(p));
   if (proPrograms.length > 0) {
     if (auth.anonymous || !auth.account) {
@@ -2211,10 +2211,10 @@ export async function handlePreparePurchasing(
       compliance_depth: complianceDepth,
       compliance_depth_reason:
         complianceDepth === "summary"
-          ? "Lite mode ï¿½ top gaps and score only. Upgrade to standard for full evidence."
+          ? "Lite mode — top gaps and score only. Upgrade to standard for full evidence."
           : complianceDepth === "standard"
-            ? "Budget-constrained ï¿½ core compliance included, detailed TAP/dispute evidence abbreviated."
-            : "Full compliance suite ï¿½ all evidence, TAP interop, dispute flows, and verification proofs included.",
+            ? "Budget-constrained — core compliance included, detailed TAP/dispute evidence abbreviated."
+            : "Full compliance suite — all evidence, TAP interop, dispute flows, and verification proofs included.",
       ...(complianceDepth === "full"
         ? { category_scores, evidence }
         : complianceDepth === "standard"
@@ -2337,7 +2337,7 @@ export async function handlePreparePurchasing(
   /* v8 ignore stop */
 }
 
-// â”€â”€â”€ GET /.well-known/axis.json  -  agent discovery manifest â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/axis.json  -  agent discovery manifest ──────
 
 export async function handleWellKnown(
   _req: IncomingMessage,
@@ -2398,7 +2398,7 @@ export async function handleWellKnown(
     openapi_json: "GET /openapi.json  -  OpenAPI 3.1 spec alias",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
-      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0â€“100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence requirements + SCA exemption paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
+      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence requirements + SCA exemption paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
       // H-Phase-A cycle 15: a 10th hand-typed-catalog-drift recurrence — this
       // name list was frozen from a 12-tool era and never grew with the real
@@ -2491,7 +2491,7 @@ export async function handleCapabilities(
       intent_probe: {
         endpoint: "POST /probe-intent",
         mcp_tool: "discover_agentic_purchasing_needs",
-        description: "Lightweight intent matching ï¿½ describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations. Free, no auth.",
+        description: "Lightweight intent matching — describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations. Free, no auth.",
         auth_required: false,
       },
       analysis: {
@@ -2611,7 +2611,7 @@ ${MCP_ERROR_CATEGORY_CATALOG.map(c => `- ${c.code} (retryable: ${c.retryable}): 
   res.end(body);
 }
 
-// â”€â”€â”€ GET /.well-known/security.txt  -  RFC 9116 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/security.txt  -  RFC 9116 ────────────────────
 
 export async function handleSecurityTxt(
   _req: IncomingMessage,
@@ -2630,7 +2630,7 @@ export async function handleSecurityTxt(
   res.end(lines.join("\n") + "\n");
 }
 
-// â”€â”€â”€ GET /.well-known/skills/index.json  -  agent skills registry â”€â”€
+// ─── GET /.well-known/skills/index.json  -  agent skills registry ──
 
 export async function handleRobotsTxt(
   _req: IncomingMessage,
@@ -2804,7 +2804,7 @@ export async function handleSkillsIndex(
   });
 }
 
-// â”€â”€â”€ GET /.well-known/oauth-authorization-server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/oauth-authorization-server ──────────────────
 export async function handleOAuthAuthorizationServer(
   _req: IncomingMessage,
   res: ServerResponse,
@@ -2824,7 +2824,7 @@ export async function handleOAuthAuthorizationServer(
   });
 }
 
-// â”€â”€â”€ GET /v1/docs.md  -  plain-text OpenAPI summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/docs.md  -  plain-text OpenAPI summary ───────────────
 
 export async function handleDocsMd(
   _req: IncomingMessage,
@@ -2926,7 +2926,7 @@ List all programs with generator counts and output paths. No auth required.
   res.end(body);
 }
 
-// â”€â”€â”€ GET /v1/changelog  -  repo CHANGELOG.md, verbatim (WO-A4) â”€â”€â”€â”€â”€
+// ─── GET /v1/changelog  -  repo CHANGELOG.md, verbatim (WO-A4) ─────
 
 export async function handleChangelog(
   _req: IncomingMessage,
@@ -2981,7 +2981,7 @@ export async function handleContinuationYaml(
   res.end(body);
 }
 
-// --- GET /for-agents ï¿½ agent-first onboarding manifest ----------
+// --- GET /for-agents — agent-first onboarding manifest ----------
 
 const AXIS_API_BASE = "https://axis-api-6c7z.onrender.com";
 
@@ -3147,17 +3147,17 @@ export async function handleForAgents(
       budget_negotiation: {
         header: "X-Agent-Budget",
         schema: {
-          budget_per_run_cents: "number ï¿½ your max spend per call in cents",
+          budget_per_run_cents: "number — your max spend per call in cents",
           spending_window: "per_call | hourly | daily | monthly",
-          max_monthly_cents: "number ï¿½ optional monthly cap",
-          wallet_id: "string ï¿½ optional wallet/org identifier",
-          agent_type: "string ï¿½ e.g. claude, cursor, custom_swarm",
+          max_monthly_cents: "number — optional monthly cap",
+          wallet_id: "string — optional wallet/org identifier",
+          agent_type: "string — e.g. claude, cursor, custom_swarm",
         },
         modes: {
           standard: "Full artifact bundle at $0.50/run",
           lite: "Reduced output at $0.15-$0.25/run (tool-dependent)",
         },
-        mode_header: "X-Agent-Mode: lite ï¿½ explicitly request lite mode for lower price",
+        mode_header: "X-Agent-Mode: lite — explicitly request lite mode for lower price",
         example: 'curl -H \'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}\' -H \'X-Agent-Mode: lite\' ...',
       },
     },
@@ -3260,7 +3260,7 @@ export async function handleForAgents(
       description: "Few-shot examples showing the complete agent interaction pattern with the x402 payment rail.",
       examples: [
         {
-          label: "1 â€” Free-tier caller hits 402",
+          label: "1 — Free-tier caller hits 402",
           step: "Agent calls POST /v1/analyze as a free-tier user requesting paid programs",
           request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_free_xxxx" }, body: { github_url: "https://github.com/acme/shop" } },
           response: {
@@ -3279,21 +3279,21 @@ export async function handleForAgents(
           agent_action: "Present checkout_url to the user or, if autonomous payment is authorized, trigger payment flow, then proceed to step 2.",
         },
         {
-          label: "2 â€” Agent retries after payment",
+          label: "2 — Agent retries after payment",
           step: "After payment completes, agent re-sends identical request. No extra steps needed.",
           request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_free_xxxx" }, body: { github_url: "https://github.com/acme/shop" } },
           response: { status: 201, body: { snapshot_id: "snap_abc123", artifact_count: ARTIFACT_COUNT, programs_executed: ["search", "skills", "debug", "theme", "brand", "..."] } },
           agent_action: "Proceed with the snapshot_id to read artifacts via get_artifact.",
         },
         {
-          label: "3 â€” Budget negotiation (lite mode)",
+          label: "3 — Budget negotiation (lite mode)",
           step: "Agent with a $0.25 budget sends X-Agent-Budget and X-Agent-Mode: lite",
           request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_xxxx", "X-Agent-Budget": "{\"budget_per_run_cents\":25,\"spending_window\":\"per_call\"}", "X-Agent-Mode": "lite" }, body: { github_url: "https://github.com/acme/shop" } },
           response: { status: 201, body: { snapshot_id: "snap_lite_xyz", artifact_count: 30, programs_executed: ["search", "skills", "debug"] } },
           agent_action: "Lite mode succeeded at $0.15. 3 programs returned instead of the full bundle.",
         },
         {
-          label: "4 â€” Reading quota before calling",
+          label: "4 — Reading quota before calling",
           step: "Agent checks X-Axis-Quota-Remaining header from a previous response before deciding to call",
           hint: "Every authenticated response includes: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost. Read them to pre-check budget before committing to a paid call.",
           example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "0.50" },
@@ -3304,7 +3304,7 @@ export async function handleForAgents(
   });
 }
 
-// --- GET /v1/install ï¿½ platform-specific MCP configs ------------
+// --- GET /v1/install — platform-specific MCP configs ------------
 
 const INSTALL_CONFIGS: Record<string, { file: string; description: string; config: object }> = {
   "claude-desktop": {
@@ -3377,9 +3377,9 @@ export async function handleInstall(
     return;
   }
 
-  // No platform specified ï¿½ return all
+  // No platform specified — return all
   sendJSON(res, 200, {
-    name: "Axis' Iliad ï¿½ MCP Install Configs",
+    name: "Axis' Iliad — MCP Install Configs",
     mcp_endpoint: `${AXIS_API_BASE}/mcp`,
     get_api_key: `POST ${AXIS_API_BASE}/v1/accounts with {email, name, tier: 'free'}`,
     platforms: INSTALL_CONFIGS,
@@ -3387,7 +3387,7 @@ export async function handleInstall(
   });
 }
 
-// --- POST /probe-intent ï¿½ lightweight intent capture ------------
+// --- POST /probe-intent — lightweight intent capture ------------
 
 export async function handleProbeIntent(
   req: IncomingMessage,
@@ -3680,7 +3680,7 @@ export async function handleProbeIntent(
   });
 }
 
-// â”€â”€â”€ GET /.well-known/glama.json  -  Glama registry hint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/glama.json  -  Glama registry hint ─────────────
 
 export async function handleGlamaJson(
   _req: IncomingMessage,
@@ -3696,7 +3696,7 @@ export async function handleGlamaJson(
   });
 }
 
-// â”€â”€â”€ GET /.well-known/agent.json  -  AgentSEO / MCP scanner standard â”€â”€
+// ─── GET /.well-known/agent.json  -  AgentSEO / MCP scanner standard ──
 
 export async function handleAgentJson(
   _req: IncomingMessage,
@@ -3721,7 +3721,7 @@ export async function handleAgentJson(
     // surface needed this cycle — PAI'D's checkout is a one-time charge.
     monetization: {
       model: "usage-based MPP ($0.50 per run)",
-      pro: "$99 once for Pro (one-time charge, not a recurring subscription) â€” 300,000 monthly credits, all programs",
+      pro: "$99 once for Pro (one-time charge, not a recurring subscription) — 300,000 monthly credits, all programs",
     },
     homepage: "https://iliad.trustfabric.ai",
     mcp_endpoint: "/mcp",
@@ -3780,7 +3780,7 @@ export async function handleOAuthProtectedResource(
   });
 }
 
-// â”€â”€â”€ GET /health  -  scanner-friendly health probe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /health  -  scanner-friendly health probe ────────────────
 
 export async function handleHealthRedirect(
   _req: IncomingMessage,
@@ -3795,7 +3795,7 @@ export async function handleHealthRedirect(
   });
 }
 
-// â”€â”€â”€ GET /docs  -  redirect to API docs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /docs  -  redirect to API docs ──────────────────────────
 
 export async function handleDocsRedirect(
   _req: IncomingMessage,
@@ -3809,7 +3809,7 @@ export async function handleDocsRedirect(
   });
 }
 
-// â”€â”€â”€ GET /pricing  -  pricing landing metadata for crawlers â”€â”€â”€â”€â”€
+// ─── GET /pricing  -  pricing landing metadata for crawlers ─────
 
 export async function handlePricingLanding(
   _req: IncomingMessage,
@@ -3825,7 +3825,7 @@ export async function handlePricingLanding(
   });
 }
 
-// â”€â”€â”€ GET /openapi.json  -  OpenAPI spec alias â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /openapi.json  -  OpenAPI spec alias ────────────────────
 
 export async function handleOpenApiJson(
   _req: IncomingMessage,
@@ -3839,7 +3839,7 @@ export async function handleOpenApiJson(
   sendJSON(res, 200, openApiMod.buildOpenApiSpec());
 }
 
-// â”€â”€â”€ GET /performance  -  Main performance overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /performance  -  Main performance overview ──────────────
 
 export async function handlePerformance(
   _req: IncomingMessage,
@@ -3910,7 +3910,7 @@ export async function handlePerformance(
   });
 }
 
-// â”€â”€â”€ GET /performance/reputation  -  AgentSEO trust signals â”€â”€â”€â”€â”€â”€
+// ─── GET /performance/reputation  -  AgentSEO trust signals ──────
 
 export async function handlePerformanceReputation(
   _req: IncomingMessage,
@@ -3967,7 +3967,7 @@ export async function handlePerformanceReputation(
   });
 }
 
-// â”€â”€â”€ Firecrawl Proxy: Web Research Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Firecrawl Proxy: Web Research Tools ──────────────────────────────
 
 interface FirecrawlScrapeRequest {
   url: string;
@@ -4013,7 +4013,7 @@ interface FirecrawlCrawlResponse {
 }
 
 /**
- * POST /v1/research/scrape â€” Proxy to Firecrawl /scrape endpoint
+ * POST /v1/research/scrape — Proxy to Firecrawl /scrape endpoint
  * Scrapes a single URL and returns markdown + structured data
  * Pricing: iliad_web_research's real tier (packages/mpp/src/index.ts's
  * PRICING_TIERS) — $0.10/page standard, $0.05/page lite, $0 on a 24h cache
@@ -4235,7 +4235,7 @@ export async function handleFirecrawlScrape(
 export const LITE_CRAWL_MAX_PAGES = 5;
 
 /**
- * POST /v1/research/crawl â€” Proxy to Firecrawl /crawl endpoint
+ * POST /v1/research/crawl — Proxy to Firecrawl /crawl endpoint
  * Crawls a domain and scrapes multiple pages
  * Pricing: charged per page crawled
  */

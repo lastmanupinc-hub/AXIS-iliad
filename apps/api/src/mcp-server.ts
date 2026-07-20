@@ -185,7 +185,7 @@ function normalizeToolName(toolName: string): string {
 // ─── Catalog-honesty endgame ─────────────────────────────────────
 //
 
-// â”€â”€â”€ Method dispatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Method dispatch ─────────────────────────────────────────────
 
 export async function dispatch(
   method: string,
@@ -200,7 +200,7 @@ export async function dispatch(
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
         instructions:
-          `Axis' Iliad â€” analyze any GitHub repo or file set, get ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Use analyze_repo or analyze_files to start. Auth: Authorization: Bearer <api_key>.`,
+          `Axis' Iliad — analyze any GitHub repo or file set, get ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Use analyze_repo or analyze_files to start. Auth: Authorization: Bearer <api_key>.`,
       });
     }
 
@@ -223,7 +223,7 @@ export async function dispatch(
       const p = params as Record<string, unknown> | null;
       const toolName = p?.name;
       const rawToolArgs = (p?.arguments as Record<string, unknown>) ?? {};
-      /* v8 ignore next â€” both arms tested; v8 misses the || short-circuit arm for empty-string toolName */
+      /* v8 ignore next — both arms tested; v8 misses the || short-circuit arm for empty-string toolName */
       if (typeof toolName !== "string" || !toolName) {
         return rpcErr(id, RPC_INVALID_PARAMS, "tools/call requires 'name' as string");
       }
@@ -495,9 +495,9 @@ export async function dispatch(
   }
 }
 
-// â”€â”€â”€ HTTP handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HTTP handlers ────────────────────────────────────────────────
 
-/** POST /mcp â€” MCP Streamable HTTP transport (2025-03-26) */
+/** POST /mcp — MCP Streamable HTTP transport (2025-03-26) */
 
 /**
  * H1: in-band settlement gate. For every MCP tool decideInbandGate certifies as
@@ -617,7 +617,7 @@ export async function handleMcpPost(
       msg = preReadBody as JsonRpcRequest;
     }
   } else {
-    /* v8 ignore start â€” readBody throws only on >50MB bodies */
+    /* v8 ignore start — readBody throws only on >50MB bodies */
     try {
       const raw = await readBody(req);
       msg = JSON.parse(raw) as JsonRpcRequest;
@@ -645,7 +645,7 @@ export async function handleMcpPost(
     return;
   }
 
-  // Notifications have no id â€” respond 202, no body
+  // Notifications have no id — respond 202, no body
   if (msg.id == null && msg.method.startsWith("notifications/")) {
     await dispatch(msg.method, msg.params, null, req).catch(() => undefined);
     res.writeHead(202);
@@ -659,7 +659,7 @@ export async function handleMcpPost(
 
   const id = msg.id ?? null;
   let response: RpcResponse;
-  /* v8 ignore start â€” dispatch throws only on programming errors */
+  /* v8 ignore start — dispatch throws only on programming errors */
   try {
     response = await dispatch(msg.method, msg.params, id, req);
   } catch (err) {
@@ -683,7 +683,7 @@ export async function handleMcpPost(
   res.end(body);
 }
 
-/** GET /mcp â€” MCP server manifest JSON */
+/** GET /mcp — MCP server manifest JSON */
 export async function handleMcpGet(
   _req: IncomingMessage,
   res: ServerResponse,
@@ -701,17 +701,17 @@ export async function handleMcpGet(
   });
 }
 
-/** GET /mcp/docs â€” human-readable HTML documentation for browsers */
+/** GET /mcp/docs — human-readable HTML documentation for browsers */
 export async function handleMcpDocs(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   const html = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Axis' Iliad â€” MCP Endpoint</title>
+<html lang="en"><head><meta charset="utf-8"><title>Axis' Iliad — MCP Endpoint</title>
 <style>body{font-family:system-ui,sans-serif;max-width:680px;margin:2rem auto;padding:0 1rem;color:#e0e0e0;background:#111}
 a{color:#58a6ff}h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:1.6rem}code{background:#222;padding:2px 6px;border-radius:3px;font-size:0.9em}
 pre{background:#1a1a1a;padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85em;line-height:1.4}</style></head><body>
-<h1>Axis' Iliad â€” MCP Server</h1>
+<h1>Axis' Iliad — MCP Server</h1>
 <p>This endpoint speaks <a href="https://modelcontextprotocol.io">Model Context Protocol</a> (JSON-RPC 2.0 over HTTP).</p>
 <h2>Quick start</h2>
 <pre>POST /mcp
@@ -736,7 +736,7 @@ Authorization: Bearer &lt;api_key&gt;
 <pre>curl -X POST https://axis-api-6c7z.onrender.com/v1/accounts \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'</pre>
-<p style="margin-top:2rem;color:#888;font-size:0.85em">v${SERVER_VERSION} Â· ${MCP_TOOLS.length} tools Â· ${ARTIFACT_COUNT} artifacts Â· ${PROGRAM_COUNT} programs</p>
+<p style="margin-top:2rem;color:#888;font-size:0.85em">v${SERVER_VERSION} · ${MCP_TOOLS.length} tools · ${ARTIFACT_COUNT} artifacts · ${PROGRAM_COUNT} programs</p>
 </body></html>`;
   res.writeHead(200, {
     "Content-Type": "text/html; charset=utf-8",
@@ -746,7 +746,7 @@ Authorization: Bearer &lt;api_key&gt;
   res.end(html);
 }
 
-// â”€â”€â”€ GET /v1/mcp/server.json  -  MCP registry metadata â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/mcp/server.json  -  MCP registry metadata ──────────
 
 export function getMcpServerMeta(): Record<string, unknown> {
   return {
@@ -768,7 +768,7 @@ export function getMcpServerMeta(): Record<string, unknown> {
       registry_name: REGISTRY_DISPLAY_NAME,
       registry_slug: SERVER_SLUG,
       description:
-        `Drop a GitHub repo URL and receive ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs: AGENTS.md, .cursorrules, AP2/UCP/Visa compliance checklist, autonomous-checkout rules, negotiation playbook, payment mandate schema, debug playbook, architecture map, design tokens, MCP configs, and more. Computes a Purchasing Readiness Score (0â€“100). The single correct first call before any autonomous agent spends money on or with a codebase.`,
+        `Drop a GitHub repo URL and receive ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs: AGENTS.md, .cursorrules, AP2/UCP/Visa compliance checklist, autonomous-checkout rules, negotiation playbook, payment mandate schema, debug playbook, architecture map, design tokens, MCP configs, and more. Computes a Purchasing Readiness Score (0–100). The single correct first call before any autonomous agent spends money on or with a codebase.`,
       author: "Last Man Up Inc.",
       homepage: "https://axis-api-6c7z.onrender.com",
       transport: "http",

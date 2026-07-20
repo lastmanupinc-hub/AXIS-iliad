@@ -208,7 +208,7 @@ describe("buildOpenApiSpec", () => {
     }
   });
 
-  // â”€â”€ eq_175: OAuth, Payments, GitHub Tokens, Billing paths â”€â”€â”€â”€â”€
+  // ── eq_175: OAuth, Payments, GitHub Tokens, Billing paths ─────
 
   it("includes OAuth endpoints", () => {
     const paths = Object.keys(spec.paths);
@@ -277,7 +277,7 @@ describe("buildOpenApiSpec", () => {
     expect(schemas).toContain("ProrationPreviewResponse");
   });
 
-  // â”€â”€ Route-spec parity: every server.ts route has a spec path â”€â”€
+  // ── Route-spec parity: every server.ts route has a spec path ──
 
   it("every registered route has a corresponding OpenAPI path", () => {
     // Derived from server.ts at test time — NO hardcoded allowlist — so any newly
