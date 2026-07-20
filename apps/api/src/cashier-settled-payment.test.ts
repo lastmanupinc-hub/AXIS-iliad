@@ -152,6 +152,20 @@ describe("settleOverageCash -> recordSettledPayment (H1 cash settlement persiste
     });
   });
 
+  // H-Phase-A cycle 19: same unguarded-bookkeeping bug as the wallet branch
+  // below, on the mppx (Stripe/Tempo) rail — recordPaidCall/recordSettledPayment
+  // used to run with no try/catch after chargeMpp had already returned 200
+  // (a real settlement already validated).
+  it("a recordSettledPayment failure after a successful mppx charge never propagates — the already-successful charge result is still returned", async () => {
+    const { res } = makeRes();
+    mockChargeMppSuccess(res, "stripe", "ch_bookkeeping_fail");
+    vi.mocked(snapshots.recordSettledPayment).mockRejectedValueOnce(new Error("db down"));
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-4b", 20, OPTS);
+
+    expect(result).toEqual({ status: 200 });
+  });
+
   it("chargeMpp 402 does NOT record a settled payment, but DOES record an x402 challenge event (x402 onboarding Phase 0)", async () => {
     const { res } = makeRes();
     vi.mocked(mpp.chargeMpp).mockResolvedValueOnce({ status: 402 });
@@ -236,6 +250,31 @@ describe("settleOverageCash: enforce-mode wallet success records a paid_fc recei
       provider: "paid_fc",
       external_receipt: undefined,
     });
+  });
+
+  // H-Phase-A cycle 19: recordPaidCall/recordSettledPayment used to run
+  // completely unguarded after a real charge already succeeded — a
+  // transient DB error on either write propagated straight out of
+  // settleOverageCash as an uncaught throw, with the customer's money
+  // already taken and no compensation-ledger visibility (that producer only
+  // fires for the MCP in-band gate's markInbandSettled path, which runs
+  // AFTER this bookkeeping, so it could never catch this specific failure).
+  it("a recordSettledPayment failure after a successful wallet debit never propagates — the already-successful charge result is still returned", async () => {
+    vi.mocked(snapshots.recordSettledPayment).mockRejectedValueOnce(new Error("db down"));
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-9b", 150, OPTS);
+
+    expect(result).toEqual({ status: 200 });
+  });
+
+  it("a recordPaidCall failure after a successful wallet debit never propagates", async () => {
+    vi.mocked(snapshots.recordPaidCall).mockRejectedValueOnce(new Error("db down"));
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-9c", 150, OPTS);
+
+    expect(result).toEqual({ status: 200 });
   });
 
   it("wallet 402 (insufficient credits) does NOT record a settled payment", async () => {

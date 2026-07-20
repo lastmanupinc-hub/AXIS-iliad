@@ -256,6 +256,55 @@ function parsePaymentReceipt(res: ServerResponse): { provider: PaymentProvider; 
  *                                                from plan-credit overage metering.
  *   MPP not configured     -> null             no STRIPE_SECRET_KEY — caller falls back
  */
+/**
+ * Best-effort post-charge bookkeeping — call ONLY after a real cash charge has
+ * already succeeded (a Stripe/Tempo settlement via mppx, or a PAI'D wallet
+ * debit). H-Phase-A cycle 19: recordPaidCall/recordSettledPayment used to run
+ * completely unguarded here — a transient DB error on EITHER write propagated
+ * straight out of settleOverageCash with no try/catch at any of its 3
+ * callers (chargeWithDiscounts, the MCP in-band settlement gate), landing as
+ * a raw uncaught 500 on a request whose money had ALREADY moved. Worse than
+ * the analogous recordUsage false-fail this loop already closed: that shape
+ * at least flips a state field an operator can query; this one is invisible
+ * to WO-19's settled-revenue tracker entirely (recordSettledPayment is the
+ * ONLY place a real cash settlement is recorded in this system's own DB) and
+ * — via the MCP path — happens BEFORE markInbandSettled runs, so it's also
+ * structurally invisible to the settled_then_error compensation-ledger
+ * producer (that producer only fires once a settlement is marked, which
+ * never happens if this throws first). Catch + log loudly (never silently
+ * void — recordPaidCall/recordSettledPayment feed real revenue accounting,
+ * not disposable analytics) so the caller's already-successful charge result
+ * is never lost to a transient DB hiccup, while the gap stays visible in
+ * logs for reconciliation.
+ */
+async function recordSettlementBookkeepingBestEffort(
+  accountId: string,
+  overageCents: number,
+  opts: SettleOptions,
+  provider: PaymentProvider,
+  external_receipt: string | undefined,
+): Promise<void> {
+  try {
+    await recordPaidCall(accountId);
+    await recordSettledPayment({
+      account_id: accountId,
+      tool: opts.meta?.tool ?? "default",
+      amount_cents: overageCents,
+      currency: opts.currency,
+      provider,
+      external_receipt,
+    });
+  } catch (err) {
+    log("error", "settlement_bookkeeping_failed", {
+      account_id: accountId,
+      tool: opts.meta?.tool ?? "default",
+      amount_cents: overageCents,
+      provider,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 export async function settleOverageCash(
   req: IncomingMessage,
   res: ServerResponse,
@@ -271,19 +320,11 @@ export async function settleOverageCash(
     const w = await settleOverageViaPaidWallet(req, res, accountId, overageCents, opts, wm);
     if (wm === "enforce" && w) {
       if (w.status === 200) {
-        await recordPaidCall(accountId);
         // H0.3: a wallet debit IS settled cash (PAI'D -> its Stripe -> founder
         // settlement) — record the receipt so WO-19's settled-revenue tracker
         // sees the wallet rail. No external reference is available from the
         // debit response today; the per-call idempotency key stays internal.
-        await recordSettledPayment({
-          account_id: accountId,
-          tool: opts.meta?.tool ?? "default",
-          amount_cents: overageCents,
-          currency: opts.currency,
-          provider: "paid_fc",
-          external_receipt: undefined,
-        });
+        await recordSettlementBookkeepingBestEffort(accountId, overageCents, opts, "paid_fc", undefined);
       } else if (w.status === 402) {
         await recordFunnelChallenge(accountId, opts);
       }
@@ -294,16 +335,8 @@ export async function settleOverageCash(
 
   const result = await chargeMpp(req, res, { ...opts, amount: String(overageCents) });
   if (result && result.status === 200) {
-    await recordPaidCall(accountId);
     const { provider, external_receipt } = parsePaymentReceipt(res);
-    await recordSettledPayment({
-      account_id: accountId,
-      tool: opts.meta?.tool ?? "default",
-      amount_cents: overageCents,
-      currency: opts.currency,
-      provider,
-      external_receipt,
-    });
+    await recordSettlementBookkeepingBestEffort(accountId, overageCents, opts, provider, external_receipt);
   } else if (result && result.status === 402) {
     await recordFunnelChallenge(accountId, opts);
   }
