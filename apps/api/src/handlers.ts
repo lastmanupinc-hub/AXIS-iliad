@@ -2155,9 +2155,28 @@ export async function handlePreparePurchasing(
       }
     }
 
-    // Generate referral code for authenticated users
-    const myReferralCode = auth.account ? await createReferralCode(auth.account.account_id) : null;
-    const myCredits = auth.account ? await getReferralCredits(auth.account.account_id) : null;
+    // Generate referral code for authenticated users. H-Phase-A cycle 17: these two
+    // calls used to run unguarded — a transient failure in either propagated to the
+    // outer catch below, which flips this snapshot's already-"ready" status back to
+    // "failed" and 500s a caller who already paid and already has the fully generated
+    // bundle. Same false-fail bug class this handler's referral-tracking block just
+    // above (and its MCP twin, runPreparePurchasing) already got fixed for in cycle 15
+    // — these two lines were simply missed by that earlier sweep. Both default to null
+    // together on any failure so the `myCredits!` non-null assertion below (gated on
+    // `myReferralCode` truthiness) stays sound.
+    let myReferralCode: Awaited<ReturnType<typeof createReferralCode>> | null = null;
+    let myCredits: Awaited<ReturnType<typeof getReferralCredits>> | null = null;
+    if (auth.account) {
+      try {
+        myReferralCode = await createReferralCode(auth.account.account_id);
+        myCredits = await getReferralCredits(auth.account.account_id);
+      } catch {
+        // best-effort — must never block the caller's already-fully-generated
+        // result or corrupt the already-"ready" snapshot's status.
+        myReferralCode = null;
+        myCredits = null;
+      }
+    }
 
     const artifactPaths = generated.files.map(f => f.path);
     const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
