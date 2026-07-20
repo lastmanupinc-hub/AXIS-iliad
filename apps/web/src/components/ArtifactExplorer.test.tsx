@@ -230,4 +230,34 @@ describe("ArtifactExplorer — downloads", () => {
     render(<ArtifactExplorer files={FILES} />);
     expect(screen.queryByRole("button", { name: /Download .* ZIP/ })).toBeNull();
   });
+
+  // H-Phase-A cycle 19: downloadingProgram was a single shared string, not
+  // per-program state — downloading "deploy" then "skills" before the first
+  // resolved used to overwrite it to "skills", silently re-enabling the
+  // "deploy" button while its own download was still in flight.
+  it("downloading a second program's ZIP does not re-enable or clear the first program's still-in-flight button", async () => {
+    const resolvers: Array<() => void> = [];
+    vi.mocked(downloadExport).mockImplementation(() => new Promise<void>((res) => { resolvers.push(res); }));
+    render(<ArtifactExplorer files={FILES} projectId="proj1" />);
+
+    const deployBtn = screen.getByRole("button", { name: "Download deploy ZIP" }) as HTMLButtonElement;
+    const skillsBtn = screen.getByRole("button", { name: "Download skills ZIP" }) as HTMLButtonElement;
+
+    fireEvent.click(deployBtn); // deploy's export now in flight
+    expect(deployBtn.disabled).toBe(true);
+
+    fireEvent.click(skillsBtn); // skills started BEFORE deploy resolves
+    expect(skillsBtn.disabled).toBe(true);
+    expect(deployBtn.disabled).toBe(true); // still in flight, unaffected by skills starting
+
+    // skills (the SECOND, independent download) finishes first.
+    resolvers[1]();
+    await waitFor(() => expect(skillsBtn.disabled).toBe(false));
+    // deploy must still show disabled — before the fix, skills' own
+    // `finally { setDownloadingProgram(null) }` would have re-enabled it too.
+    expect(deployBtn.disabled).toBe(true);
+
+    resolvers[0]();
+    await waitFor(() => expect(deployBtn.disabled).toBe(false));
+  });
 });

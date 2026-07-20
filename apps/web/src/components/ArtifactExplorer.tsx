@@ -69,7 +69,14 @@ export function ArtifactExplorer({ files, projectId }: Props) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>("rendered");
   const [copiedPath, setCopiedPath] = useState(false);
   const [copiedContent, setCopiedContent] = useState(false);
-  const [downloadingProgram, setDownloadingProgram] = useState<string | null>(null);
+  // H-Phase-A cycle 19: a single shared string can't represent N independent
+  // concurrent program downloads — downloading "search" then "skills" before
+  // the first resolved used to overwrite this to "skills", silently
+  // re-enabling the "search" button while its own download was still in
+  // flight (its spinner vanished early), and whichever finally() ran last
+  // wiped whichever program's indicator was showing, even if unrelated to
+  // it. Same fix shape as ProjectsPage.tsx's deletingIds/exportingIds.
+  const [downloadingPrograms, setDownloadingPrograms] = useState<Set<string>>(new Set());
 
   // Facets are derived from the FULL file list (not the filtered one) so the
   // dropdown options stay stable while the user is typing a search.
@@ -153,13 +160,17 @@ export function ArtifactExplorer({ files, projectId }: Props) {
 
   async function handleDownloadProgram(program: string) {
     if (!projectId) return;
-    setDownloadingProgram(program);
+    setDownloadingPrograms((prev) => new Set(prev).add(program));
     try {
       await downloadExport(projectId, program);
     } catch {
       // best-effort — the button just re-enables; a repeat click retries.
     } finally {
-      setDownloadingProgram(null);
+      setDownloadingPrograms((prev) => {
+        const next = new Set(prev);
+        next.delete(program);
+        return next;
+      });
     }
   }
 
@@ -232,7 +243,7 @@ export function ArtifactExplorer({ files, projectId }: Props) {
             selectedPath={selectedPath}
             onSelect={selectFile}
             projectId={projectId}
-            downloadingProgram={downloadingProgram}
+            downloadingPrograms={downloadingPrograms}
             onDownloadProgram={(program) => { void handleDownloadProgram(program); }}
           />
           {previewPane}
@@ -255,7 +266,7 @@ function TreeList({
   selectedPath,
   onSelect,
   projectId,
-  downloadingProgram,
+  downloadingPrograms,
   onDownloadProgram,
 }: {
   grouped: Map<string, GeneratedFile[]>;
@@ -263,7 +274,7 @@ function TreeList({
   selectedPath: string | null;
   onSelect: (f: GeneratedFile) => void;
   projectId?: string;
-  downloadingProgram: string | null;
+  downloadingPrograms: Set<string>;
   onDownloadProgram: (program: string) => void;
 }) {
   const visiblePrograms = programs.filter((p) => (grouped.get(p)?.length ?? 0) > 0);
@@ -286,12 +297,12 @@ function TreeList({
                       type="button"
                       className="btn"
                       style={{ fontSize: "0.625rem", padding: "2px 6px" }}
-                      disabled={downloadingProgram === program}
+                      disabled={downloadingPrograms.has(program)}
                       onClick={() => onDownloadProgram(program)}
                       aria-label={`Download ${program} ZIP`}
                       title={`Download ${program} ZIP`}
                     >
-                      {downloadingProgram === program ? "..." : <Icon name="download" />}
+                      {downloadingPrograms.has(program) ? "..." : <Icon name="download" />}
                     </button>
                   )}
                 </div>
