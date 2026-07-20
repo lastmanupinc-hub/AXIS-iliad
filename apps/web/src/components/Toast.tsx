@@ -70,10 +70,13 @@ const LEVEL_STYLE: Record<ToastLevel, { bg: string; border: string; icon: string
 };
 
 function ToastRail({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: number) => void }) {
-  if (toasts.length === 0) return null;
-
+  // Stays mounted (even empty) so the live region exists before the first
+  // toast lands -- a region created and populated in the same tick is not
+  // reliably announced by all screen readers.
   return (
     <div
+      role="status"
+      aria-live="polite"
       style={{
         position: "fixed",
         bottom: 56,
@@ -90,7 +93,10 @@ function ToastRail({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: num
         return (
           <div
             key={t.id}
-            className="animate-slide-up"
+            className="toast-item animate-slide-up"
+            role="button"
+            tabIndex={0}
+            aria-label={`Dismiss notification: ${t.message}`}
             style={{
               background: s.bg,
               border: `1px solid ${s.border}`,
@@ -103,6 +109,12 @@ function ToastRail({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: num
               cursor: "pointer",
             }}
             onClick={() => onDismiss(t.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onDismiss(t.id);
+              }
+            }}
           >
             <span style={{ flexShrink: 0 }}>{s.icon}</span>
             <span style={{ fontSize: "0.8125rem", lineHeight: 1.4, overflowWrap: "break-word", minWidth: 0 }}>{t.message}</span>

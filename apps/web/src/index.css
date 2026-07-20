@@ -1573,6 +1573,8 @@ kbd {
 .artifact-row.active { background: var(--bg-hover); border-left-color: var(--accent); }
 .artifact-row:focus-visible { outline: none; box-shadow: var(--glow); }
 
+.toast-item:focus-visible { outline: none; box-shadow: var(--glow); }
+
 .artifact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .artifact-card {
   display: block;
