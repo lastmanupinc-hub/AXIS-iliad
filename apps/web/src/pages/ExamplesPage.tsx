@@ -28,7 +28,7 @@ const EXAMPLES: Example[] = [
       "End-to-end fintech platform: payment orchestration, ledger, reconciliation, provider routing, settlement, and merchant dashboards. Plus Trust Fabric — a repair-to-certify fintech marketplace. 7,251 tests across Go backend and Svelte frontend, 689 HTTP routes, 8 provider adapters.",
     stack: ["Go", "Svelte", "PostgreSQL", "Docker", "REST"],
     stats: { files: 3314, loc: 417166 },
-    afterCount: 75,
+    afterCount: ARTIFACT_COUNT,
     keyArtifacts: [
       { file: "AGENTS.md", desc: "689 routes mapped with auth requirements and handler files" },
       { file: "CLAUDE.md", desc: "Go conventions, test commands, package structure" },
@@ -70,7 +70,7 @@ const EXAMPLES: Example[] = [
       "Medical device training platform for surgical robotics. Gate 9 certification framework with 186 passing tests, full audit trails, deterministic execution, and 12 enumerated refusal conditions preventing unsafe operations. Regulatory-grade evidence generation.",
     stack: ["Python", "TypeScript", "pytest", "Gate 9 Framework"],
     stats: { files: 20, loc: 3200 },
-    afterCount: 75,
+    afterCount: ARTIFACT_COUNT,
     keyArtifacts: [
       { file: "AGENTS.md", desc: "Gate 1–9 certification pipeline with exit criteria" },
       { file: "CLAUDE.md", desc: "Medical device constraints, refusal system rules" },
@@ -114,7 +114,7 @@ const EXAMPLES: Example[] = [
       "Post-production enterprise platform enforcing deterministic boundaries for side effects. Complete monorepo with production-grade backend services, responsive React UI, Babble DSL compiler, CI publication gates, and test vectors with expected outcomes.",
     stack: ["Node.js", "React", "TypeScript", "Babble DSL", "Vitest"],
     stats: { files: 56, loc: 5800 },
-    afterCount: 75,
+    afterCount: ARTIFACT_COUNT,
     keyArtifacts: [
       { file: "AGENTS.md", desc: "Monorepo layout: apps/web, services, DSL compiler" },
       { file: "CLAUDE.md", desc: "Determinism rules, CI gate requirements, DSL syntax" },
@@ -156,7 +156,7 @@ const EXAMPLES: Example[] = [
       "AXIS Platform certification slate containing the full Gate 1–9 certified implementation. Artifact-first architecture with .axp pack format, 12 core components, universal input layer, and a 6-phase development roadmap. Build process with step 0–9 exit criteria.",
     stack: ["Python", "YAML", "JSON", "Markdown", "Shell"],
     stats: { files: 575, loc: 14200 },
-    afterCount: 75,
+    afterCount: ARTIFACT_COUNT,
     keyArtifacts: [
       { file: "AGENTS.md", desc: "Gate 1–9 pipeline: entry criteria → evidence → exit" },
       { file: "CLAUDE.md", desc: "Artifact-first rules, .axp format, build sequence" },
@@ -198,7 +198,7 @@ const EXAMPLES: Example[] = [
       "PvP/PvE battle royale in Roblox: loot-scramble opener into a panic-inducing chase through a procedurally generated maze. 2–50 players, 5–10 minute rounds, deterministic game systems, progression system, and expansion packs.",
     stack: ["Lua", "Roblox Studio", "ReplicatedStorage", "ServerScript"],
     stats: { files: 90, loc: 4200 },
-    afterCount: 75,
+    afterCount: ARTIFACT_COUNT,
     keyArtifacts: [
       { file: "AGENTS.md", desc: "Game loop: loot phase → maze chase → extraction" },
       { file: "CLAUDE.md", desc: "Roblox API patterns, RemoteEvent conventions" },
@@ -565,7 +565,7 @@ export function ExamplesPage() {
         <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.7 }}>
           Five codebases across Go, Python, TypeScript, Lua, and YAML — each went from{" "}
           <strong style={{ color: "var(--red, #ef4444)" }}>0 AI context files</strong> to{" "}
-          <strong style={{ color: "var(--green)" }}>75 structured artifacts</strong>.
+          <strong style={{ color: "var(--green)" }}>{ARTIFACT_COUNT} structured artifacts</strong>.
           Browse the generated AGENTS.md, CLAUDE.md, .cursorrules, debug playbooks, and more.
         </p>
 
