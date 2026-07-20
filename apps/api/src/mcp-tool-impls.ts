@@ -174,6 +174,40 @@ export function runPlannedCapability(capability: PlannedCapability): string {
   }, null, 2);
 }
 
+/**
+ * Best-effort wrapper around recordUsage. H-Phase-A cycle 18 (bulk sweep):
+ * recordUsage is a real, quota-load-bearing DB write (getMonthlySnapshotCount/
+ * getProjectCount in billing-store.ts both read FROM usage_records) called
+ * AFTER the snapshot is already saved/marked "ready" but BEFORE the charge is
+ * captured — the exact vulnerable position the trackEvent-focused sweeps
+ * (cycles 13-15) fixed for analytics calls in these same functions, but never
+ * checked for OTHER fallible calls in the same spot. Unlike trackEvent this
+ * can't just be voided-and-forgotten (a silently-dropped write means this
+ * run's quota is permanently undercounted), so failures are caught and
+ * logged loudly for reconciliation instead — never letting a transient
+ * recordUsage failure turn an already-delivered, already-persisted result
+ * into an uncaptured charge or a false 500.
+ */
+async function recordUsageBestEffort(
+  accountId: string,
+  program: string,
+  snapshotId: string,
+  generatorsRun: number,
+  inputFiles: number,
+  inputBytes: number,
+): Promise<void> {
+  try {
+    await recordUsage(accountId, program, snapshotId, generatorsRun, inputFiles, inputBytes);
+  } catch (err) {
+    log("error", "record_usage_failed", {
+      account_id: accountId,
+      program,
+      snapshot_id: snapshotId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 /** Cap on operator-supplied TTL. 24h matches the doc surface. */
 const OBJECT_STORAGE_MAX_TTL_SECONDS = 86400;
 
@@ -1873,7 +1907,7 @@ export async function runAnalyzeFiles(
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    await recordUsage(
+    await recordUsageBestEffort(
       auth.account!.account_id,
       program,
       snapshot.snapshot_id,
@@ -2021,7 +2055,7 @@ export async function runAnalyzeRepo(
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    await recordUsage(
+    await recordUsageBestEffort(
       auth.account!.account_id,
       program,
       snapshot.snapshot_id,
@@ -2440,7 +2474,7 @@ export async function runImproveMyAgent(
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    await recordUsage(auth.account!.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, files.reduce((s, f) => s + (f.size ?? 0), 0));
+    await recordUsageBestEffort(auth.account!.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, files.reduce((s, f) => s + (f.size ?? 0), 0));
   }
 
   // Check what context files are missing
@@ -2997,7 +3031,7 @@ export async function runCloser(
   });
   await updateSnapshotStatus(snapshotId, "ready");
 
-  await recordUsage(
+  await recordUsageBestEffort(
     auth.account.account_id,
     "closer",
     snapshotId,
@@ -3093,7 +3127,7 @@ export async function runDeploy(
   });
   await updateSnapshotStatus(snapshotId, "ready");
 
-  await recordUsage(
+  await recordUsageBestEffort(
     auth.account.account_id,
     "deploy",
     snapshotId,
@@ -3258,7 +3292,7 @@ export async function runPreparePurchasing(
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    await recordUsage(
+    await recordUsageBestEffort(
       auth.account!.account_id,
       program,
       snapshot.snapshot_id,
