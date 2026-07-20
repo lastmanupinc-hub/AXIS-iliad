@@ -9,6 +9,8 @@ import {
 } from "./billing.js";
 import { PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
+import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
+import { getPricingTier } from "./mpp.js";
 
 let server: Server;
 let TEST_PORT: number;
@@ -1204,6 +1206,42 @@ describe("GET /mcp — JSON manifest", () => {
     const meta = data._meta as Record<string, unknown>;
     expect(meta.authentication).toBeDefined();
     expect(meta.monetization).toBeDefined();
+  });
+
+  // H-Phase-A cycle 20: this manifest's monetization block hardcoded a flat
+  // standard_price_cents: 50 / lite_price_cents: 15 as if that applied to
+  // the whole 37-tool registry — only true for analyze_repo/analyze_files,
+  // badly overestimating cost for 17 of the 19 metered tools. Pinned here
+  // against the REAL per-tool pricing so a future price change can't
+  // silently make this manifest's range wrong again.
+  it("_meta.monetization's price range matches the real per-tool pricing, not a stale flat pair", async () => {
+    const r = await get("/mcp");
+    const data = r.data as Record<string, unknown>;
+    const meta = data._meta as Record<string, unknown>;
+    const monetization = meta.monetization as { standard_price_cents_range?: [number, number] };
+    const realCents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+    const realMin = Math.min(...realCents);
+    const realMax = Math.max(...realCents);
+    expect(monetization.standard_price_cents_range).toEqual([realMin, realMax]);
+    // The whole point of this fix: a single flat number can't represent the
+    // real spread across 19 metered tools (1-5c for most iliad_* tools up
+    // to 50c for analyze_repo/analyze_files/prepare_agentic_purchasing).
+    expect(realMin).toBeLessThan(realMax);
+  });
+
+  // H-Phase-A cycle 20: this manifest's authentication.description used to
+  // name only 3 auth-required tools and 2 open ones, when in reality
+  // roughly two dozen tools require auth. Guard against re-introducing a
+  // hand-typed enumeration that names specific tools (which will drift
+  // again) rather than pointing to each tool's own description.
+  it("_meta.authentication.description does not hand-enumerate specific tool names", async () => {
+    const r = await get("/mcp");
+    const data = r.data as Record<string, unknown>;
+    const meta = data._meta as Record<string, unknown>;
+    const auth = meta.authentication as { description: string };
+    for (const name of ["analyze_files", "analyze_repo", "prepare_agentic_purchasing", "list_programs", "search_and_discover_tools"]) {
+      expect(auth.description).not.toContain(name);
+    }
   });
 });
 

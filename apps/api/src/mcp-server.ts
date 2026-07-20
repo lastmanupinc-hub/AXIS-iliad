@@ -40,6 +40,7 @@ import {
   gateIdempotency,
   resolveIdempotencyClaim,
   releaseIdempotencyClaim,
+  METERED_MCP_TOOLS,
   type RpcSuccess,
   type RpcError,
 } from "./mcp-runtime.js";
@@ -84,7 +85,7 @@ import {
   runPingPayment,
 } from "./mcp-tool-impls.js";
 import { runAssembleRepresentment } from "./disputes.js";
-import { resolveAgentMode } from "./mpp.js";
+import { resolveAgentMode, getPricingTier } from "./mpp.js";
 import { applyLiteCaps } from "./lite-caps.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
@@ -748,6 +749,18 @@ Authorization: Bearer &lt;api_key&gt;
 
 // ─── GET /v1/mcp/server.json  -  MCP registry metadata ──────────
 
+// H-Phase-A cycle 20: derived from the real per-tool pricing, not a
+// hand-typed pair of numbers — this manifest's own monetization block
+// used to hardcode standard_price_cents: 50 / lite_price_cents: 15 (only
+// true for analyze_repo/analyze_files) as if it applied to the whole
+// 37-tool registry, badly overestimating cost for 17 of the 19 metered
+// tools (most iliad_* tools are 1-5c). Range, not a flat number, so it
+// can't misrepresent the catalog even as individual tool prices change.
+const METERED_STANDARD_CENTS_RANGE = (() => {
+  const cents = METERED_MCP_TOOLS.map((t) => getPricingTier(t).standard_cents);
+  return { min: Math.min(...cents), max: Math.max(...cents) };
+})();
+
 export function getMcpServerMeta(): Record<string, unknown> {
   return {
     server: {
@@ -775,8 +788,17 @@ export function getMcpServerMeta(): Record<string, unknown> {
       protocol: `mcp-${MCP_PROTOCOL_VERSION}`,
       authentication: {
         type: "bearer",
+        // H-Phase-A cycle 20: this used to name only 3 auth-required tools
+        // and 2 open ones as if that were the whole picture — in reality
+        // roughly two dozen tools (all iliad_* tools plus
+        // analyze_files/analyze_repo/prepare_agentic_purchasing/closer/
+        // deploy) require auth, and 11+ others (the free discovery/
+        // commerce-engine tools) don't. A hand-typed enumeration here would
+        // just be a new instance of the same drift — point to each tool's
+        // own description/cost field instead of re-listing names that can
+        // go stale again.
         description:
-          "API key in Authorization header: Bearer <api_key>. analyze_files, analyze_repo, and prepare_agentic_purchasing require auth. list_programs and search_and_discover_tools are open.",
+          "API key in Authorization header: Bearer <api_key>. Most tools require it — free discovery/preview tools are the exception, not the rule. Check each tool's own description (or its response's `cost` field, e.g. \"free — no auth required\") for its exact requirement.",
       },
       mpp: {
         protocol: "mppx-0.5.12",
@@ -786,8 +808,13 @@ export function getMcpServerMeta(): Record<string, unknown> {
       },
       monetization: {
         model: "usage_based_mpp + referral_credits",
-        standard_price_cents: 50,
-        lite_price_cents: 15,
+        // H-Phase-A cycle 20: was a flat 50/15 -- only true for
+        // analyze_repo/analyze_files, badly overestimating cost for 17 of
+        // the 19 metered tools (most iliad_* tools are 1-5c). A RANGE
+        // across every metered tool, derived from PRICING_TIERS, so this
+        // can't misrepresent the catalog again as individual prices change.
+        standard_price_cents_range: [METERED_STANDARD_CENTS_RANGE.min, METERED_STANDARD_CENTS_RANGE.max],
+        pricing_note: "Prices vary per tool (1-50c standard) -- see each tool's own description for its exact rate.",
         budget_header: "X-Agent-Budget",
       },
       categories: [
