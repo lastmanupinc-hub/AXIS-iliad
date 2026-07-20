@@ -86,7 +86,6 @@ import {
   trackEvent,
   resolveStage,
   TIER_LIMITS,
-  isProgramEnabled,
   getGitHubTokenDecrypted,
   lookupReferralCode,
   recordReferralConversion,
@@ -1797,27 +1796,36 @@ export async function runAnalyzeFiles(
   });
 
   const account = auth.account;
-  const _generatorsForGate = listAvailableGenerators();
-  const _programEnabled = new Map(
-    await Promise.all(
-      _generatorsForGate.map(async g => [g.program, await isProgramEnabled(account.account_id, g.program)] as const),
-    ),
-  );
-  const blockedPrograms = _generatorsForGate
-    .filter(g => !MCP_FREE_PROGRAMS.has(g.program) && !_programEnabled.get(g.program))
-    .map(g => g.program)
-    .filter((program, index, all) => all.indexOf(program) === index)
-    .sort();
-  if (blockedPrograms.length > 0) {
+  // H-Phase-A cycle 17: this used to hard-reject the WHOLE call whenever any non-free
+  // program lacked an isProgramEnabled row — computed over ALL 20 programs regardless
+  // of what was actually requested, so it fired for every non-suite account (a
+  // free→paid upgrade never auto-populates program_entitlements; only a suite upgrade
+  // bulk-enables — see updateAccountTier). A real paying Starter/Pro subscriber with
+  // ample credits got an unconditional "requires $0.50 MPP credit (or Pro tier)"
+  // rejection for calling the tool they're already paying for.
+  //
+  // Fixed by gating ONLY on tier === "free", NOT by simply falling through to
+  // authorizeMcpToolCredits below (an earlier version of this fix tried that and a new
+  // regression test caught it: authorizeMcpToolCredits/previewUsageCredits lets a FREE
+  // account cover the charge from its normal 10,000 monthly included credits — it has
+  // no free-tier special case. chargeWithDiscounts (the REST twin's charge function)
+  // does: `tier === "free" ? amountCents : consumeUsageCredits(...)` — it skips
+  // included-credit coverage ENTIRELY for free tier and always demands the full cash
+  // price. Falling through unconditionally would have let a free account spend its
+  // ordinary monthly allowance on the full Pro bundle (this tool's own runAnalyzeFiles
+  // always requests every program, with no per-call `programs` narrowing to stay on a
+  // free-only path unlike REST's handleAnalyze) — a genuine new leak, not a fix.
+  // Free tier is still rejected here, exactly matching runCloser/runDeploy's cycle-16
+  // fix and REST's real cash-only treatment of free tier for this gate.
+  if (account.tier === "free") {
     throw new Error(await buildMcpPaymentRequiredError(
       "analyze_files",
       account.account_id,
       `analyze_files requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. Use list_programs, search_and_discover_tools, or free programs only to stay on the free path.`,
       req,
-      { blocked_programs: blockedPrograms },
+      {},
     ));
   }
-
   const charge = await authorizeMcpToolCredits(req, account, "analyze_files");
 
   /* quota exceeded and file limit paths â€” tested in quota-guardrails.test.ts */
@@ -1897,7 +1905,11 @@ export async function runAnalyzeFiles(
       project_id: snapshot.project_id,
       status: "ready",
       snapshot_summary: {
-        mode: resolveAgentMode(req) === "lite" ? "lite" : (blockedPrograms.length > 0 ? "free-tier" : "full-access"),
+        // H-Phase-A cycle 17: was derived from the now-removed blockedPrograms check.
+        // A genuinely free-tier caller is now rejected earlier in this function (see
+        // above), so reaching this point already guarantees a paid/suite account —
+        // "free-tier" can no longer legitimately appear here.
+        mode: resolveAgentMode(req) === "lite" ? "lite" : "full-access",
         pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).",
       },
       programs_executed: [...programs],
@@ -1941,27 +1953,13 @@ export async function runAnalyzeRepo(
   }
 
   const account = auth.account;
-  const _generatorsForGate = listAvailableGenerators();
-  const _programEnabled = new Map(
-    await Promise.all(
-      _generatorsForGate.map(async g => [g.program, await isProgramEnabled(account.account_id, g.program)] as const),
-    ),
-  );
-  const blockedPrograms = _generatorsForGate
-    .filter(g => !MCP_FREE_PROGRAMS.has(g.program) && !_programEnabled.get(g.program))
-    .map(g => g.program)
-    .filter((program, index, all) => all.indexOf(program) === index)
-    .sort();
-  if (blockedPrograms.length > 0) {
-    throw new Error(await buildMcpPaymentRequiredError(
-      "analyze_repo",
-      account.account_id,
-      `analyze_repo requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. This is the paid full-analysis path; discovery remains free on list_programs, search_and_discover_tools, and discover_commerce_tools.`,
-      req,
-      { blocked_programs: blockedPrograms },
-    ));
-  }
-
+  // H-Phase-A cycle 17: removed the isProgramEnabled hard-block here — same rationale
+  // as runAnalyzeFiles' identical fix above (this codebase's other flagship analysis
+  // tool had the byte-for-byte same bug). authorizeMcpToolCredits below already gates
+  // every tier correctly (including free, via its own structured payment-required
+  // error), for the exact same PRICING_TIERS("analyze_repo") amount the REST twin
+  // (handleAnalyze) charges when its own blockedPrograms branch fires — this pre-check
+  // was redundant, and wrongly so, since it never considered tier/credits at all.
   const charge = await authorizeMcpToolCredits(req, account, "analyze_repo");
 
   /* v8 ignore start â€” quota exceeded path requires exhausting account limits */
@@ -2044,7 +2042,11 @@ export async function runAnalyzeRepo(
       github_url,
       status: "ready",
       snapshot_summary: {
-        mode: resolveAgentMode(req) === "lite" ? "lite" : (blockedPrograms.length > 0 ? "free-tier" : "full-access"),
+        // H-Phase-A cycle 17: was derived from the now-removed blockedPrograms check.
+        // A genuinely free-tier caller is now rejected earlier in this function (see
+        // above), so reaching this point already guarantees a paid/suite account —
+        // "free-tier" can no longer legitimately appear here.
+        mode: resolveAgentMode(req) === "lite" ? "lite" : "full-access",
         pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).",
       },
       programs_executed: [...programs],

@@ -146,6 +146,54 @@ describe("Quota-exceeded guardrails — analyze_files", () => {
   });
 });
 
+describe("H-Phase-A cycle 17 — analyze_files no longer hard-blocks a fresh paid/suite account with no program_entitlements row", () => {
+  it("a fresh 'paid' account (entitlements NEVER manually enabled) can call analyze_files for the full bundle", async () => {
+    const acct = await createAccount("FreshPaidAnalyze", "fresh-paid-analyze@example.com", "paid");
+    const key = await createApiKey(acct.account_id, "fresh-paid-analyze-key");
+    // Deliberately NOT calling enableProgram — this is the real state a PAI'D
+    // webhook leaves a Starter/Pro upgrade in (see updateAccountTierIfCurrent).
+    const r = await post(
+      "/mcp",
+      rpcCall("analyze_files", {
+        project_name: "fresh-paid-full-bundle",
+        project_type: "library",
+        frameworks: ["node"],
+        goals: ["test"],
+        files: [{ path: "README.md", content: "# Fresh paid account" }],
+      }),
+      key.rawKey,
+    );
+    expect(r.status).toBe(200);
+    const result = getToolResult(r.data);
+    expect(result.isError).toBe(false);
+    const parsed = JSON.parse(result.text) as { snapshot_summary: { mode: string }; artifact_count: number };
+    // Full bundle, not silently downgraded to a free-tier-only run.
+    expect(parsed.snapshot_summary.mode).toBe("full-access");
+    expect(parsed.artifact_count).toBeGreaterThan(20);
+  });
+
+  it("a genuinely free-tier account still gets a payment-required error for the full bundle (no free ride)", async () => {
+    const acct = await createAccount("FreshFreeAnalyze", "fresh-free-analyze@example.com", "free");
+    const key = await createApiKey(acct.account_id, "fresh-free-analyze-key");
+    const r = await post(
+      "/mcp",
+      rpcCall("analyze_files", {
+        project_name: "fresh-free-full-bundle",
+        project_type: "library",
+        frameworks: ["node"],
+        goals: ["test"],
+        files: [{ path: "README.md", content: "# Fresh free account" }],
+      }),
+      key.rawKey,
+    );
+    expect(r.status).toBe(200);
+    const result = getToolResult(r.data);
+    expect(result.isError).toBe(true);
+    const parsed = JSON.parse(result.text) as { error: string; _payment_required?: boolean };
+    expect(parsed.error).toBe("Payment Required");
+  });
+});
+
 describe("Quota-exceeded guardrails — file limit", () => {
   it("rejects files exceeding tier max_files_per_snapshot", async () => {
     // Paid account with all programs enabled; file limit = paid.max_files_per_snapshot
