@@ -10,7 +10,7 @@
 // component before this fix.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ProgramLauncher } from "./ProgramLauncher.tsx";
 
 afterEach(() => {
@@ -85,5 +85,41 @@ describe("ProgramLauncher — Pro-lock race (H-Phase-A cycle 5)", () => {
     });
     fireEvent.click(seoCard);
     expect(onRun).not.toHaveBeenCalled();
+  });
+});
+
+// H-Phase-A cycle 18: `running` was a single shared string, not per-program
+// state — starting a SECOND program while the first was still generating
+// let the first's own spinner vanish early (running flipped to the second
+// program's name), and the second program's eventual `finally` then
+// unconditionally wiped whichever spinner was showing, even if the FIRST
+// program was still mid-generation.
+describe("ProgramLauncher — concurrent runs (H-Phase-A cycle 18)", () => {
+  it("a second program's spinner does not clear the first program's still-in-flight spinner", async () => {
+    const resolvers: Record<string, () => void> = {};
+    const onRun = vi.fn((endpoint: string) => new Promise<void>((resolve) => {
+      resolvers[endpoint] = resolve;
+    }));
+    render(<ProgramLauncher generatedFiles={[]} onRun={onRun} />);
+
+    const searchCard = screen.getByText("Search Context").closest(".card") as HTMLElement;
+    const debugCard = screen.getByText("Debug Playbook").closest(".card") as HTMLElement;
+
+    fireEvent.click(searchCard); // search/export now in flight
+    await waitFor(() => expect(within(searchCard).getByText("Generating...")).toBeTruthy());
+
+    fireEvent.click(debugCard); // debug/analyze started BEFORE search resolves
+    await waitFor(() => expect(within(debugCard).getByText("Generating...")).toBeTruthy());
+    expect(within(searchCard).getByText("Generating...")).toBeTruthy(); // still running, unaffected by debug starting
+
+    // Debug (the SECOND, independent run) finishes first.
+    resolvers["debug/analyze"]();
+    await waitFor(() => expect(within(debugCard).queryByText("Generating...")).toBeNull());
+    // Search must still show its own spinner — before the fix, debug's
+    // `finally { setRunning(null) }` would have wiped it too.
+    expect(within(searchCard).getByText("Generating...")).toBeTruthy();
+
+    resolvers["search/export"]();
+    await waitFor(() => expect(within(searchCard).queryByText("Generating...")).toBeNull());
   });
 });

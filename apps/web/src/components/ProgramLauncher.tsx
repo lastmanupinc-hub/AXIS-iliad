@@ -50,7 +50,14 @@ export const PROGRAMS: ProgramDef[] = [
 ];
 
 export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) {
-  const [running, setRunning] = useState<string | null>(null);
+  // H-Phase-A cycle 18: a single shared string can't represent N independent
+  // concurrent program runs — clicking a second program card while the
+  // first's run was still in flight let the first's OWN spinner vanish
+  // early (running flipped to the second program's name), and the first's
+  // eventual `finally { setRunning(null) }` then unconditionally wiped the
+  // second program's spinner too, even mid-generation. Same fix shape as
+  // ProjectsPage.tsx's deletingIds/exportingIds (bulk sweep).
+  const [runningPrograms, setRunningPrograms] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [tier, setTier] = useState<BillingTier>("free");
   // H-Phase-A cycle 5: tier starts "free" and only resolves to the real
@@ -77,7 +84,7 @@ export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) 
   }
 
   async function handleRun(program: ProgramDef) {
-    setRunning(program.name);
+    setRunningPrograms((prev) => new Set(prev).add(program.name));
     setError(null);
     try {
       await onRun(program.endpoint, { lite: liteMode });
@@ -88,7 +95,11 @@ export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) 
         setError(err instanceof Error ? err.message : "Failed");
       }
     } finally {
-      setRunning(null);
+      setRunningPrograms((prev) => {
+        const next = new Set(prev);
+        next.delete(program.name);
+        return next;
+      });
     }
   }
 
@@ -133,7 +144,7 @@ export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) 
               key={p.name}
               program={p}
               fileCount={filesPerProgram.get(p.name) ?? 0}
-              running={running === p.name}
+              running={runningPrograms.has(p.name)}
               onRun={() => { void handleRun(p); }}
               onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
             />
@@ -152,7 +163,7 @@ export function ProgramLauncher({ generatedFiles, onRun, onOpenRunner }: Props) 
               key={p.name}
               program={p}
               fileCount={filesPerProgram.get(p.name) ?? 0}
-              running={running === p.name}
+              running={runningPrograms.has(p.name)}
               locked={tierResolved && tier === "free"}
               onRun={() => { void handleRun(p); }}
               onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
