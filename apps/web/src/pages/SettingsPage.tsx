@@ -33,6 +33,7 @@ import {
   type ProgramCatalogEntry,
 } from "../api.ts";
 import { SectionHeader, Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
+import { DangerButton } from "../components/DangerButton.tsx";
 import { useFocusRetention } from "../useFocusRetention.ts";
 
 // ─── SettingsPage (WO-P12) ────────────────────────────────────────────────
@@ -43,43 +44,6 @@ import { useFocusRetention } from "../useFocusRetention.ts";
 // the Danger Zone (PATCH/DELETE /v1/account, WO-A5). AccountPage.tsx keeps
 // only the OAuth-callback exchange and the signed-out sign-in card — it
 // redirects here once a session exists (see its own comment).
-
-/** Click once to arm, click again to confirm — same pattern as
- *  VersionsTab.tsx/ProjectsPage.tsx's DangerButton (each a small page-local
- *  copy; not shared, see either for the "why not a native confirm()"). */
-function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string; confirmLabel: string; busy: boolean; onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-  const labelRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const wasArmed = useRef(false);
-
-  // The confirm step replaces this control's whole subtree, which unmounts
-  // whatever was just clicked and silently drops keyboard focus to <body>.
-  // Move focus to the safer default (Cancel, not the destructive action)
-  // on arm, and back to the label button when disarmed.
-  useEffect(() => {
-    if (armed && !wasArmed.current) cancelRef.current?.focus();
-    if (!armed && wasArmed.current) labelRef.current?.focus();
-    wasArmed.current = armed;
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <button ref={labelRef} type="button" className="btn" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => setArmed(true)}>
-        {label}
-      </button>
-    );
-  }
-  return (
-    <span className="flex gap-2" style={{ alignItems: "center", flexWrap: "wrap" }}>
-      <span className="text-muted text-sm">{confirmLabel}</span>
-      <button type="button" className="btn btn-primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={onConfirm}>
-        {busy ? "Working..." : "Yes, confirm"}
-      </button>
-      <button ref={cancelRef} type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Cancel</button>
-    </span>
-  );
-}
 
 interface Props {
   onAuthChange?: () => void;
@@ -466,6 +430,8 @@ export function SettingsPage({ onAuthChange }: Props) {
                         confirmLabel="Revoke this key? Anything using it stops working immediately."
                         busy={revokingKeyId === k.key_id}
                         onConfirm={() => void handleRevokeKey(k.key_id)}
+                        confirmButtonLabel="Yes, confirm"
+                        busyLabel="Working..."
                       />
                     )}</td>
                   </tr>
@@ -504,6 +470,8 @@ export function SettingsPage({ onAuthChange }: Props) {
                         confirmLabel="Remove this token? Program runs relying on it will stop working."
                         busy={deletingTokenId === t.token_id}
                         onConfirm={() => void handleDeleteToken(t.token_id)}
+                        confirmButtonLabel="Yes, confirm"
+                        busyLabel="Working..."
                       />
                     </td>
                   </tr>
@@ -561,6 +529,8 @@ export function SettingsPage({ onAuthChange }: Props) {
                       confirmLabel="Delete this webhook? Delivery history goes with it."
                       busy={deletingWebhookId === w.webhook_id}
                       onConfirm={() => void handleDeleteWebhook(w.webhook_id)}
+                      confirmButtonLabel="Yes, confirm"
+                      busyLabel="Working..."
                     />
                   </div>
                 </div>
@@ -643,6 +613,8 @@ export function SettingsPage({ onAuthChange }: Props) {
                               confirmLabel={`Revoke ${s.email}'s seat? They lose access immediately.`}
                               busy={revokingSeatId === s.seat_id}
                               onConfirm={() => void handleRevokeSeat(s.seat_id)}
+                              confirmButtonLabel="Yes, confirm"
+                              busyLabel="Working..."
                             />
                           )}
                         </td>
@@ -704,6 +676,8 @@ export function SettingsPage({ onAuthChange }: Props) {
           confirmLabel="This permanently deletes your projects and access. Are you sure?"
           busy={deletingAccount}
           onConfirm={() => void handleDeleteAccount()}
+          confirmButtonLabel="Yes, confirm"
+          busyLabel="Working..."
         />
       </div>
     </div>

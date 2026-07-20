@@ -19,6 +19,7 @@ import {
   type UsageBucket,
 } from "../api.ts";
 import { SectionHeader, StatTile, Sparkline, BarChart, Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
+import { DangerButton } from "../components/DangerButton.tsx";
 import { PROGRAM_COUNT } from "../config.ts";
 
 // ─── UsagePage (WO-P10) ───────────────────────────────────────────────────
@@ -30,44 +31,6 @@ import { PROGRAM_COUNT } from "../config.ts";
 // tier switch is a fresh one-time charge, not a prorated change — see the
 // warning below the tier stat tile (H-Phase-A cycle 9 removed the
 // fabricated proration-preview widget that used to live here).
-
-/** Click once to arm, click again to confirm — same pattern as
- *  VersionsTab.tsx/ProjectsPage.tsx/SettingsPage.tsx's DangerButton (each a
- *  small page-local copy; not shared, see any of them for the "why not a
- *  native confirm()"). */
-function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string; confirmLabel: string; busy: boolean; onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-  const labelRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const wasArmed = useRef(false);
-
-  // The confirm step replaces this control's whole subtree, which unmounts
-  // whatever was just clicked and silently drops keyboard focus to <body>.
-  // Move focus to the safer default (Cancel, not the destructive action)
-  // on arm, and back to the label button when disarmed.
-  useEffect(() => {
-    if (armed && !wasArmed.current) cancelRef.current?.focus();
-    if (!armed && wasArmed.current) labelRef.current?.focus();
-    wasArmed.current = armed;
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <button ref={labelRef} type="button" className="btn text-sm" onClick={() => setArmed(true)}>
-        {label}
-      </button>
-    );
-  }
-  return (
-    <span className="flex gap-2" style={{ alignItems: "center", flexWrap: "wrap" }}>
-      <span className="text-muted text-sm">{confirmLabel}</span>
-      <button type="button" className="btn btn-primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={onConfirm}>
-        {busy ? "Working..." : "Yes, cancel"}
-      </button>
-      <button ref={cancelRef} type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Never mind</button>
-    </span>
-  );
-}
 
 const TIMESERIES_DAYS = 30;
 // Starter and Pro both collapse into tier==="paid" — this default is only
@@ -304,6 +267,11 @@ export function UsagePage() {
               confirmLabel="Cancel your subscription? You'll keep access until the current period ends."
               busy={cancelingSubscription}
               onConfirm={() => void handleCancelSubscription()}
+              confirmButtonLabel="Yes, cancel"
+              busyLabel="Working..."
+              cancelButtonLabel="Never mind"
+              destructive={false}
+              labelClassName="btn text-sm"
             />
           )}
         </div>

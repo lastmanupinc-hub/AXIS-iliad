@@ -8,6 +8,7 @@ import {
   type ProjectSummary,
 } from "../api.ts";
 import { SectionHeader, Callout, EmptyState, Skeleton, Pill, TableWrap } from "../components/primitives/index.ts";
+import { DangerButton } from "../components/DangerButton.tsx";
 import { statusBadgeClass, gradeBadgeClass } from "../badge-utils.ts";
 
 // ─── ProjectsPage (WO-P11) ────────────────────────────────────────────────
@@ -27,45 +28,6 @@ interface Props {
 
 type SortKey = "recent" | "name" | "snapshots";
 const FETCH_LIMIT = 200;
-
-/** Click once to arm, click again to confirm — avoids a native confirm()
- *  dialog (untestable/unstyleable) while still requiring a deliberate
- *  second action before an irreversible delete fires. Mirrors
- *  VersionsTab.tsx's DangerButton (not shared — both are small, page-local
- *  copies of the same established pattern). */
-function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string; confirmLabel: string; busy: boolean; onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-  const labelRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const wasArmed = useRef(false);
-
-  // The confirm step replaces this control's whole subtree, which unmounts
-  // whatever was just clicked and silently drops keyboard focus to <body>.
-  // Move focus to the safer default (Cancel, not the destructive action)
-  // on arm, and back to the label button when disarmed.
-  useEffect(() => {
-    if (armed && !wasArmed.current) cancelRef.current?.focus();
-    if (!armed && wasArmed.current) labelRef.current?.focus();
-    wasArmed.current = armed;
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <button ref={labelRef} type="button" className="btn" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={() => setArmed(true)}>
-        {label}
-      </button>
-    );
-  }
-  return (
-    <span className="flex gap-2" style={{ alignItems: "center", flexWrap: "wrap" }}>
-      <span className="text-muted text-sm">{confirmLabel}</span>
-      <button type="button" className="btn btn-primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={onConfirm}>
-        {busy ? "Deleting..." : "Yes, delete"}
-      </button>
-      <button ref={cancelRef} type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Cancel</button>
-    </span>
-  );
-}
 
 export function ProjectsPage({ onOpenProject, onReanalyze, onAnalyze }: Props) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
