@@ -72,10 +72,13 @@ const LEVEL_STYLE: Record<ToastLevel, { bg: string; border: string; icon: string
 function ToastRail({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: number) => void }) {
   // Stays mounted (even empty) so the live region exists before the first
   // toast lands -- a region created and populated in the same tick is not
-  // reliably announced by all screen readers.
+  // reliably announced by all screen readers. role="log" (not "status"): this
+  // app already uses role="status" everywhere for loading spinners, and a
+  // toast rail mounted for the app's entire lifetime would permanently
+  // collide with every one of them under an accessibility-tree query.
   return (
     <div
-      role="status"
+      role="log"
       aria-live="polite"
       style={{
         position: "fixed",

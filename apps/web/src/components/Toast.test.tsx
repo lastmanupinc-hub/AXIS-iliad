@@ -30,7 +30,7 @@ function Fire({ level, message }: { level: "info" | "success" | "error" | "warni
 describe("ToastRail accessibility", () => {
   it("mounts a live region up front, even with zero toasts", () => {
     render(<ToastProvider>{null}</ToastProvider>);
-    const region = screen.getByRole("status");
+    const region = screen.getByRole("log");
     expect(region.getAttribute("aria-live")).toBe("polite");
   });
 
@@ -40,7 +40,7 @@ describe("ToastRail accessibility", () => {
         <Fire level="success" message="Snapshot saved" />
       </ToastProvider>,
     );
-    const region = screen.getByRole("status");
+    const region = screen.getByRole("log");
     expect(region.textContent).toContain("Snapshot saved");
   });
 
