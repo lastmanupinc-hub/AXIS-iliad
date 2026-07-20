@@ -85,3 +85,45 @@ describe("SearchTab — no mojibake in user-visible text (H-Phase-A cycle 16)", 
     expect(badge.textContent).not.toContain("Â·");
   });
 });
+
+describe("SearchTab — stale search responses cannot overwrite a newer query (H-Phase-A bulk sweep)", () => {
+  it("Enter re-fires the search on every keypress, and an older, slower response never overwrites the newer one", async () => {
+    const resolvers: Array<(body: unknown) => void> = [];
+    let callCount = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      const index = callCount++;
+      const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+      return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    }));
+
+    render(<SearchTab snapshotId="snap1" />);
+    const input = screen.getByPlaceholderText(/Search files by content/);
+
+    // First query, Enter-triggered -- its response will resolve LAST.
+    fireEvent.change(input, { target: { value: "first" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    // Second query, also Enter-triggered, before the first has resolved.
+    fireEvent.change(input, { target: { value: "second" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(resolvers[1]).toBeTruthy());
+
+    // Newer (second) response resolves FIRST.
+    resolvers[1]({
+      snapshot_id: "snap1", query: "second", total_indexed_lines: 10, total_indexed_files: 1,
+      results: [{ file_path: "b.ts", line_number: 1, content: "second-match", rank: 1 }],
+    });
+    await waitFor(() => expect(screen.getByText("second-match")).toBeTruthy());
+
+    // Older (first) response resolves AFTER -- must be ignored, not overwrite
+    // the already-displayed, more-current "second-match" result.
+    resolvers[0]({
+      snapshot_id: "snap1", query: "first", total_indexed_lines: 10, total_indexed_files: 1,
+      results: [{ file_path: "a.ts", line_number: 1, content: "first-match", rank: 1 }],
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.getByText("second-match")).toBeTruthy();
+    expect(screen.queryByText("first-match")).toBeNull();
+  });
+});

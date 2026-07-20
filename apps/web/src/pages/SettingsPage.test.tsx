@@ -263,6 +263,56 @@ describe("SettingsPage — programs (tier-gated honestly)", () => {
 
     await waitFor(() => expect(within(themeRow).getByRole("button", { name: "Disable" })).toBeTruthy());
   });
+
+  // H-Phase-A bulk sweep: handleToggleProgram's setEntitlements had no
+  // request-id guard -- toggling a SECOND, different program while the
+  // first's own refetch was still in flight let an older response silently
+  // revert the first program's just-applied change if it resolved later.
+  it("toggling a second program does not let an older refetch revert the first program's own change", async () => {
+    const catalog = { programs: [{ name: "theme", outputs: ["theme.css"], generator_count: 1 }, { name: "seo", outputs: ["seo-rules.md"], generator_count: 1 }], total_generators: 2 };
+    const resolvers: Array<(body: unknown) => void> = [];
+    let toggleCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/account/programs")) {
+        const index = toggleCallCount++;
+        const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+        return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/programs")) {
+        return { ok: true, status: 200, json: async () => catalog, text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      const handlers = baseHandlers(ACCOUNT_PAID);
+      const hit = handlers.find(([m]) => url.includes(m));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<SettingsPage onAuthChange={onAuthChange} />);
+    const themeRow = (await screen.findByText("theme")).closest("tr")!;
+    const seoRow = (await screen.findByText("seo")).closest("tr")!;
+
+    // Enable theme -- its own refetch (call 0) is now in flight.
+    fireEvent.click(within(themeRow).getByRole("button", { name: "Enable" }));
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    // Enable seo BEFORE theme's refetch resolves -- its own refetch (call 1) also in flight.
+    fireEvent.click(within(seoRow).getByRole("button", { name: "Enable" }));
+    await waitFor(() => expect(resolvers[1]).toBeTruthy());
+
+    // seo's refetch (the NEWER call) resolves first, correctly reflecting both enabled.
+    resolvers[1]({ programs: ["theme", "seo"] });
+    await waitFor(() => expect(within(seoRow).getByRole("button", { name: "Disable" })).toBeTruthy());
+    expect(within(themeRow).getByRole("button", { name: "Disable" })).toBeTruthy();
+
+    // theme's refetch (the OLDER call, reflecting a world where seo wasn't
+    // enabled yet) resolves AFTER -- must be ignored, not revert seo.
+    resolvers[0]({ programs: ["theme"] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(within(themeRow).getByRole("button", { name: "Disable" })).toBeTruthy();
+    expect(within(seoRow).getByRole("button", { name: "Disable" })).toBeTruthy();
+  });
 });
 
 describe("SettingsPage — Danger Zone", () => {

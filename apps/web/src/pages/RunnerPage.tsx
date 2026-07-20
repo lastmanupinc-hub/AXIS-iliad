@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   SnapshotResponse,
   ProjectSummary,
@@ -568,6 +568,11 @@ function SearchIndexPanel({ snapshotId }: { snapshotId: string }) {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  // H-Phase-A bulk sweep: Enter fires handleQuery on every keypress with no
+  // in-flight guard, and setResults ran unconditionally -- two rapid queries
+  // whose responses arrive out of order let the older one silently overwrite
+  // the newer results. Same shape as SearchTab.tsx's identical fix.
+  const searchRequestIdRef = useRef(0);
 
   async function handleIndex() {
     setIndexing(true);
@@ -584,15 +589,18 @@ function SearchIndexPanel({ snapshotId }: { snapshotId: string }) {
 
   async function handleQuery() {
     if (!query.trim()) return;
+    const requestId = ++searchRequestIdRef.current;
     setSearching(true);
     setSearchError(null);
     try {
       const res = await searchQuery(snapshotId, query.trim(), 5);
+      if (requestId !== searchRequestIdRef.current) return;
       setResults(res.results);
     } catch (err) {
+      if (requestId !== searchRequestIdRef.current) return;
       setSearchError(err instanceof Error ? err.message : "Search failed");
     } finally {
-      setSearching(false);
+      if (requestId === searchRequestIdRef.current) setSearching(false);
     }
   }
 

@@ -288,6 +288,54 @@ describe("McpPage — program & generator capability search", () => {
     expect(screen.getByText("pro")).toBeTruthy();
     expect(screen.getByText("POST /v1/agentic-purchasing/generate")).toBeTruthy();
   });
+
+  // H-Phase-A bulk sweep: handleSearch had no request-id guard -- an older,
+  // slower search response could resolve after a newer one and silently
+  // overwrite it, with the input still showing the newer query text.
+  it("an older, slower search response never overwrites a newer one", async () => {
+    const resolvers: Array<(body: unknown) => void> = [];
+    let searchCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/mcp/tools")) {
+        const index = searchCallCount++;
+        const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+        return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+      }
+      const hit = DEFAULT_HANDLERS.find(([m]) => url.includes(m));
+      const body = hit ? hit[1] : {};
+      const status = hit?.[2] ?? 200;
+      return { ok: status >= 200 && status < 300, status, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<McpPage onNavigate={noop} />);
+    await waitFor(() => expect(screen.getByText("3 tools")).toBeTruthy());
+
+    const input = screen.getByLabelText("Search programs and generators");
+    fireEvent.change(input, { target: { value: "first" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    fireEvent.change(input, { target: { value: "second" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(resolvers[1]).toBeTruthy());
+
+    const resultFor = (program: string) => ({
+      query: program, program_filter: null, total_matches: 1,
+      results: [{ program, tier: "pro", score: 5, capability_tags: [], matching_artifacts: [], all_artifacts: [], example_call: `POST /v1/${program}/generate` }],
+    });
+
+    // Newer (second) response resolves first.
+    resolvers[1](resultFor("second-program"));
+    await waitFor(() => expect(screen.getByText("second-program")).toBeTruthy());
+
+    // Older (first) response resolves after -- must be ignored.
+    resolvers[0](resultFor("first-program"));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.getByText("second-program")).toBeTruthy();
+    expect(screen.queryByText("first-program")).toBeNull();
+  });
 });
 
 describe("McpPage — platform install tabs (fed live by GET /v1/install/:platform)", () => {

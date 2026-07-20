@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PageId } from "../routes.tsx";
 import {
   getMcpManifest,
@@ -345,18 +345,27 @@ function ProgramCapabilitySearch() {
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<McpToolSearchResponse | null>(null);
   const [error, setError] = useState<AsyncError | null>(null);
+  // H-Phase-A bulk sweep: Enter fires handleSearch on every keypress with no
+  // in-flight guard, and setResult ran unconditionally -- two rapid searches
+  // whose responses arrive out of order let the older one silently overwrite
+  // the newer results. Same shape as SearchTab.tsx/RunnerPage.tsx's fix.
+  const searchRequestIdRef = useRef(0);
 
   async function handleSearch() {
     const q = query.trim();
     if (!q) return;
+    const requestId = ++searchRequestIdRef.current;
     setSearching(true);
     setError(null);
     try {
-      setResult(await searchMcpTools(q));
+      const res = await searchMcpTools(q);
+      if (requestId !== searchRequestIdRef.current) return;
+      setResult(res);
     } catch (err) {
+      if (requestId !== searchRequestIdRef.current) return;
       setError(toAsyncError(err, "Search failed"));
     } finally {
-      setSearching(false);
+      if (requestId === searchRequestIdRef.current) setSearching(false);
     }
   }
 

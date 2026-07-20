@@ -210,4 +210,113 @@ describe("ProjectsPage — row actions", () => {
     resolveExport();
     await waitFor(() => expect(screen.getByRole("button", { name: "Export ZIP" })).toBeTruthy());
   });
+
+  // H-Phase-A bulk sweep: deletingId/exportingId used to be a single string,
+  // so a second row's concurrent action silently stole the busy flag from the
+  // first row — its button would re-enable and show its idle label while its
+  // own request was still genuinely in flight, letting a user fire a
+  // duplicate action on it. Now a Set, so both rows track their own busy
+  // state independently.
+  it("exporting one row does not clear a DIFFERENT row's own busy state", async () => {
+    const resolvers: Record<string, () => void> = {};
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const idMatch = url.match(/\/v1\/projects\/(proj_\d)\/export/);
+      if (idMatch) {
+        const id = idMatch[1];
+        await new Promise<void>((resolve) => { resolvers[id] = resolve; });
+        return { ok: true, status: 200, blob: async () => new Blob(["zip"]), headers: { get: (h: string) => (h === "content-disposition" ? 'attachment; filename="x.zip"' : null) } } as unknown as Response;
+      }
+      if (url.includes("/v1/projects")) {
+        return {
+          ok: true, status: 200,
+          json: async () => ({ projects: [project({ project_id: "proj_1", name: "alpha-repo" }), project({ project_id: "proj_2", name: "beta-repo" })], total: 2 }),
+          text: async () => "", headers: { get: () => null },
+        } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<ProjectsPage onOpenProject={onOpenProject} onReanalyze={onReanalyze} onAnalyze={onAnalyze} />);
+    await waitFor(() => expect(screen.getByText("alpha-repo")).toBeTruthy());
+
+    const rows = screen.getAllByRole("row").slice(1);
+    fireEvent.click(within(rows[0]).getByRole("button", { name: "Export ZIP" }));
+    await waitFor(() => expect(resolvers.proj_1).toBeTruthy());
+    expect(within(rows[0]).getByRole("button", { name: "Zipping..." })).toBeTruthy();
+
+    // Start a SECOND row's export while the first is still in flight.
+    fireEvent.click(within(rows[1]).getByRole("button", { name: "Export ZIP" }));
+    await waitFor(() => expect(resolvers.proj_2).toBeTruthy());
+
+    // The first row must still show its own busy state -- not silently
+    // reverted to idle by the second row's action starting.
+    expect(within(rows[0]).getByRole("button", { name: "Zipping..." })).toBeTruthy();
+    expect(within(rows[1]).getByRole("button", { name: "Zipping..." })).toBeTruthy();
+
+    resolvers.proj_1();
+    await waitFor(() => expect(within(rows[0]).getByRole("button", { name: "Export ZIP" })).toBeTruthy());
+    // Second row's own busy state is untouched by the first row's completion.
+    expect(within(rows[1]).getByRole("button", { name: "Zipping..." })).toBeTruthy();
+
+    resolvers.proj_2();
+    await waitFor(() => expect(within(rows[1]).getByRole("button", { name: "Export ZIP" })).toBeTruthy());
+  });
+
+  // H-Phase-A bulk sweep: load() had no request-id guard against its own
+  // stale in-flight responses -- an OLDER reload (triggered by an earlier
+  // delete) that happens to resolve AFTER a NEWER reload (triggered by a
+  // later delete) used to silently overwrite the newer, more-correct state.
+  it("an older, slower load() response never overwrites a newer one that already resolved", async () => {
+    const listResolvers: Array<() => void> = [];
+    let listCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.match(/\/v1\/projects\/proj_[12]$/) && init?.method === "DELETE") {
+        return { ok: true, status: 200, json: async () => ({ deleted: true, project_id: "x", deleted_snapshots: 0 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      if (url.includes("/v1/projects")) {
+        const callIndex = listCallCount++;
+        await new Promise<void>((resolve) => { listResolvers[callIndex] = resolve; });
+        // call 0: initial mount -> both projects. call 1: reload after
+        // deleting proj_1 -> only proj_2 left (this is the OLDER reload,
+        // resolved LAST below). call 2: reload after deleting proj_2 -> both
+        // gone (the NEWER reload, resolved FIRST below).
+        const bodies = [
+          { projects: [project({ project_id: "proj_1", name: "alpha-repo" }), project({ project_id: "proj_2", name: "beta-repo" })], total: 2 },
+          { projects: [project({ project_id: "proj_2", name: "beta-repo" })], total: 1 },
+          { projects: [], total: 0 },
+        ];
+        return { ok: true, status: 200, json: async () => bodies[callIndex], text: async () => JSON.stringify(bodies[callIndex]), headers: { get: () => null } } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<ProjectsPage onOpenProject={onOpenProject} onReanalyze={onReanalyze} onAnalyze={onAnalyze} />);
+    await waitFor(() => expect(listResolvers[0]).toBeTruthy());
+    listResolvers[0]();
+    await waitFor(() => expect(screen.getByText("alpha-repo")).toBeTruthy());
+
+    const rows = screen.getAllByRole("row").slice(1);
+    fireEvent.click(within(rows[0]).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(rows[0]).getByRole("button", { name: "Yes, delete" }));
+    await waitFor(() => expect(listResolvers[1]).toBeTruthy()); // older reload now in flight
+
+    fireEvent.click(within(rows[1]).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(rows[1]).getByRole("button", { name: "Yes, delete" }));
+    await waitFor(() => expect(listResolvers[2]).toBeTruthy()); // newer reload now in flight
+
+    // Newer reload (call 2, empty list) resolves FIRST.
+    listResolvers[2]();
+    await waitFor(() => expect(screen.getByText("No projects yet")).toBeTruthy());
+
+    // Older reload (call 1, still lists beta-repo) resolves AFTER -- must be
+    // ignored, not silently resurrect beta-repo.
+    listResolvers[1]();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.getByText("No projects yet")).toBeTruthy();
+    expect(screen.queryByText("beta-repo")).toBeNull();
+  });
 });

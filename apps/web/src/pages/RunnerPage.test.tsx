@@ -419,4 +419,51 @@ describe("RunnerPage — content search index (WO-P7: /v1/search/index + /v1/sea
 
     await waitFor(() => expect(screen.getByText(/async function handleRun/)).toBeTruthy());
   });
+
+  // H-Phase-A bulk sweep: handleQuery had no request-id guard -- an older,
+  // slower query response could resolve after a newer one and silently
+  // overwrite it, with no visible indication the results didn't match the
+  // query text still shown in the input.
+  it("an older, slower query response never overwrites a newer one", async () => {
+    const resolvers: Array<(body: unknown) => void> = [];
+    let queryCallCount = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/programs")) return { ok: true, status: 200, json: async () => CATALOG, text: async () => "", headers: { get: () => null } } as unknown as Response;
+      if (url.includes("/v1/search/index")) return { ok: true, status: 200, json: async () => ({ snapshot_id: "snap_anon", indexed_files: 12, indexed_lines: 3400, indexed_symbols: 88 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      if (url.includes("/v1/search/query")) {
+        const index = queryCallCount++;
+        const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+        return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<RunnerPage loggedIn={false} currentProjectId="proj_anon" anonResult={makeAnonResult()} onNavigate={noop} onRequireLogin={noop} />);
+    await waitFor(() => expect(screen.getByText("Search Context")).toBeTruthy());
+    fireEvent.click(screen.getByText("Search Context").closest("button")!);
+    await waitFor(() => expect(screen.getByText("Content search index")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Build content search index" }));
+    await waitFor(() => expect(screen.getByText(/12 files/)).toBeTruthy());
+
+    const input = screen.getByLabelText("Content search query");
+    fireEvent.change(input, { target: { value: "first" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    fireEvent.change(input, { target: { value: "second" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(resolvers[1]).toBeTruthy());
+
+    // Newer (second) query's response resolves first.
+    resolvers[1]({ snapshot_id: "snap_anon", query: "second", total_indexed_lines: 3400, total_indexed_files: 12, results: [{ file_path: "b.ts", line_number: 1, content: "second-match", rank: 1 }] });
+    await waitFor(() => expect(screen.getByText("second-match")).toBeTruthy());
+
+    // Older (first) query's response resolves AFTER -- must be ignored.
+    resolvers[0]({ snapshot_id: "snap_anon", query: "first", total_indexed_lines: 3400, total_indexed_files: 12, results: [{ file_path: "a.ts", line_number: 1, content: "first-match", rank: 1 }] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.getByText("second-match")).toBeTruthy();
+    expect(screen.queryByText("first-match")).toBeNull();
+  });
 });

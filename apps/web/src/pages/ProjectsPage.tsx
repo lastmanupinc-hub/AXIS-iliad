@@ -72,15 +72,29 @@ export function ProjectsPage({ onOpenProject, onReanalyze, onAnalyze }: Props) {
   const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("recent");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [exportingId, setExportingId] = useState<string | null>(null);
+  // Sets, not a single id: a single string was silently "stolen" by a second,
+  // different row's concurrent action — the first row's button would re-enable
+  // and show its idle label while that row's own operation was still in
+  // flight, letting a user fire a duplicate delete/export on it.
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(() => new Set());
+  const [exportingIds, setExportingIds] = useState<Set<string>>(() => new Set());
+  // H-Phase-A bulk sweep: handleDelete/handleExport each call load() when they
+  // finish, gated only by a per-row busy flag — nothing stops a second,
+  // different row's delete from starting while the first row's reload is
+  // still in flight, and whichever response resolves last wins regardless of
+  // which fired first. Same request-id-ref shape already fixed in VersionsTab/
+  // PlaygroundPage/MyAnalyticsPage/AdminPage.
+  const loadRequestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
     setError(null);
     try {
       const res = await listProjects({ limit: FETCH_LIMIT });
+      if (requestId !== loadRequestIdRef.current) return;
       setProjects(res.projects);
     } catch (err) {
+      if (requestId !== loadRequestIdRef.current) return;
       setError({ message: err instanceof Error ? err.message : "Failed to load projects", details: apiErrorDetails(err) });
       setProjects([]);
     }
@@ -104,25 +118,25 @@ export function ProjectsPage({ onOpenProject, onReanalyze, onAnalyze }: Props) {
   }, [projects, query, sort]);
 
   async function handleDelete(projectId: string) {
-    setDeletingId(projectId);
+    setDeletingIds((prev) => new Set(prev).add(projectId));
     try {
       await deleteProject(projectId);
       await load();
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete project", details: apiErrorDetails(err) });
     } finally {
-      setDeletingId(null);
+      setDeletingIds((prev) => { const next = new Set(prev); next.delete(projectId); return next; });
     }
   }
 
   async function handleExport(projectId: string) {
-    setExportingId(projectId);
+    setExportingIds((prev) => new Set(prev).add(projectId));
     try {
       await downloadExport(projectId);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to export project", details: apiErrorDetails(err) });
     } finally {
-      setExportingId(null);
+      setExportingIds((prev) => { const next = new Set(prev); next.delete(projectId); return next; });
     }
   }
 
@@ -216,13 +230,13 @@ export function ProjectsPage({ onOpenProject, onReanalyze, onAnalyze }: Props) {
                             {p.github_url && (
                               <button type="button" className="btn" onClick={() => onReanalyze(p.github_url!)}>Re-analyze</button>
                             )}
-                            <button type="button" className="btn" disabled={exportingId === p.project_id} onClick={() => void handleExport(p.project_id)}>
-                              {exportingId === p.project_id ? "Zipping..." : "Export ZIP"}
+                            <button type="button" className="btn" disabled={exportingIds.has(p.project_id)} onClick={() => void handleExport(p.project_id)}>
+                              {exportingIds.has(p.project_id) ? "Zipping..." : "Export ZIP"}
                             </button>
                             <DangerButton
                               label="Delete"
                               confirmLabel={`Delete "${p.name}" and all its snapshots?`}
-                              busy={deletingId === p.project_id}
+                              busy={deletingIds.has(p.project_id)}
                               onConfirm={() => void handleDelete(p.project_id)}
                             />
                           </div>

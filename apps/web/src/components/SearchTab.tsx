@@ -24,6 +24,13 @@ export function SearchTab({ snapshotId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // H-Phase-A bulk sweep: handleKeyDown fires a new search on every Enter
+  // keypress with no in-flight guard, and neither handler checked whether its
+  // own response was still the latest before calling setResults/
+  // setSymbolResults -- two rapid searches (Enter, edit, Enter again) whose
+  // responses arrive out of order let the OLDER query's results silently
+  // overwrite the newer one while the input still shows the newer text.
+  const searchRequestIdRef = useRef(0);
 
   const handleIndex = useCallback(async () => {
     setIndexing(true);
@@ -42,28 +49,32 @@ export function SearchTab({ snapshotId }: Props) {
   const handleTextSearch = useCallback(async () => {
     const q = query.trim();
     if (!q) return;
+    const requestId = ++searchRequestIdRef.current;
     setLoading(true);
     setError(null);
     setSearched(true);
     try {
       const res = await searchQuery(snapshotId, q);
+      if (requestId !== searchRequestIdRef.current) return;
       setResults(res.results);
       if (!stats) {
         setStats({ files: res.total_indexed_files, lines: res.total_indexed_lines, symbols: 0 });
       }
       if (res.total_indexed_files > 0) setIndexed(true);
     } catch (err) {
+      if (requestId !== searchRequestIdRef.current) return;
       if (!indexed) {
         setError("Search index not built yet. Click \"Index Files\" first.");
       } else {
         setError(err instanceof Error ? err.message : "Search failed");
       }
     } finally {
-      setLoading(false);
+      if (requestId === searchRequestIdRef.current) setLoading(false);
     }
   }, [snapshotId, query, indexed, stats]);
 
   const handleSymbolSearch = useCallback(async () => {
+    const requestId = ++searchRequestIdRef.current;
     setLoading(true);
     setError(null);
     setSearched(true);
@@ -73,17 +84,19 @@ export function SearchTab({ snapshotId }: Props) {
         type: symbolType || undefined,
         limit: 100,
       });
+      if (requestId !== searchRequestIdRef.current) return;
       setSymbolResults(res.results);
       setSymbolCount(res.symbol_count);
       if (res.symbol_count > 0) setIndexed(true);
     } catch (err) {
+      if (requestId !== searchRequestIdRef.current) return;
       if (!indexed) {
         setError("Symbol index not built yet. Click \"Index Files\" first.");
       } else {
         setError(err instanceof Error ? err.message : "Symbol search failed");
       }
     } finally {
-      setLoading(false);
+      if (requestId === searchRequestIdRef.current) setLoading(false);
     }
   }, [snapshotId, query, symbolType, indexed]);
 

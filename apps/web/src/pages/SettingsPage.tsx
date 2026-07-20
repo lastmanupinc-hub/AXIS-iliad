@@ -95,6 +95,19 @@ export function SettingsPage({ onAuthChange }: Props) {
   const [programs, setPrograms] = useState<ProgramCatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
+  // H-Phase-A bulk sweep: every mutation handler below refetches-and-replaces
+  // its FULL list, gated only by a per-row busy flag on the row being
+  // mutated -- nothing stopped a second, different row's mutation (of the
+  // SAME resource type) from starting while the first's refetch was still in
+  // flight, and whichever response resolved last won regardless of which
+  // fired first (e.g. a just-enabled program could visually revert if an
+  // older refetch resolved after a newer one). One ref per resource type,
+  // since operations on different resource types are independent.
+  const keysRequestIdRef = useRef(0);
+  const tokensRequestIdRef = useRef(0);
+  const webhooksRequestIdRef = useRef(0);
+  const seatsRequestIdRef = useRef(0);
+  const entitlementsRequestIdRef = useRef(0);
 
   const load = useCallback(async () => {
     setError(null);
@@ -173,11 +186,13 @@ export function SettingsPage({ onAuthChange }: Props) {
   async function handleCreateKey(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const requestId = ++keysRequestIdRef.current;
     try {
       const result = await createApiKey(newKeyLabel.trim() || "default");
       setRevealedKey(result.raw_key);
       setNewKeyLabel("");
-      setKeys((await listApiKeys()).keys ?? []);
+      const refreshed = (await listApiKeys()).keys ?? [];
+      if (requestId === keysRequestIdRef.current) setKeys(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to create key", details: apiErrorDetails(err) });
     }
@@ -186,9 +201,11 @@ export function SettingsPage({ onAuthChange }: Props) {
   const [revokingKeyId, setRevokingKeyId] = useState<string | null>(null);
   async function handleRevokeKey(keyId: string) {
     setRevokingKeyId(keyId);
+    const requestId = ++keysRequestIdRef.current;
     try {
       await revokeApiKey(keyId);
-      setKeys((await listApiKeys()).keys ?? []);
+      const refreshed = (await listApiKeys()).keys ?? [];
+      if (requestId === keysRequestIdRef.current) setKeys(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to revoke key", details: apiErrorDetails(err) });
     } finally {
@@ -203,11 +220,13 @@ export function SettingsPage({ onAuthChange }: Props) {
   async function handleSaveToken(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const requestId = ++tokensRequestIdRef.current;
     try {
       await saveGitHubToken(newToken.trim(), newTokenLabel.trim() || "default");
       setNewToken("");
       setNewTokenLabel("");
-      setTokens((await listGitHubTokens()).tokens ?? []);
+      const refreshed = (await listGitHubTokens()).tokens ?? [];
+      if (requestId === tokensRequestIdRef.current) setTokens(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to save token", details: apiErrorDetails(err) });
     }
@@ -216,9 +235,11 @@ export function SettingsPage({ onAuthChange }: Props) {
   const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
   async function handleDeleteToken(tokenId: string) {
     setDeletingTokenId(tokenId);
+    const requestId = ++tokensRequestIdRef.current;
     try {
       await deleteGitHubToken(tokenId);
-      setTokens((await listGitHubTokens()).tokens ?? []);
+      const refreshed = (await listGitHubTokens()).tokens ?? [];
+      if (requestId === tokensRequestIdRef.current) setTokens(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete token", details: apiErrorDetails(err) });
     } finally {
@@ -239,11 +260,13 @@ export function SettingsPage({ onAuthChange }: Props) {
       setError({ message: "Select at least one event to subscribe to", details: null });
       return;
     }
+    const requestId = ++webhooksRequestIdRef.current;
     try {
       await createWebhook(newWebhookUrl.trim(), newWebhookEvents);
       setNewWebhookUrl("");
       setNewWebhookEvents([]);
-      setWebhooks((await listWebhooks()).webhooks ?? []);
+      const refreshed = (await listWebhooks()).webhooks ?? [];
+      if (requestId === webhooksRequestIdRef.current) setWebhooks(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to create webhook", details: apiErrorDetails(err) });
     }
@@ -252,9 +275,11 @@ export function SettingsPage({ onAuthChange }: Props) {
   const [deletingWebhookId, setDeletingWebhookId] = useState<string | null>(null);
   async function handleDeleteWebhook(webhookId: string) {
     setDeletingWebhookId(webhookId);
+    const requestId = ++webhooksRequestIdRef.current;
     try {
       await deleteWebhook(webhookId);
-      setWebhooks((await listWebhooks()).webhooks ?? []);
+      const refreshed = (await listWebhooks()).webhooks ?? [];
+      if (requestId === webhooksRequestIdRef.current) setWebhooks(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete webhook", details: apiErrorDetails(err) });
     } finally {
@@ -263,9 +288,11 @@ export function SettingsPage({ onAuthChange }: Props) {
   }
 
   async function handleToggleWebhook(webhookId: string, active: boolean) {
+    const requestId = ++webhooksRequestIdRef.current;
     try {
       await toggleWebhook(webhookId, active);
-      setWebhooks((await listWebhooks()).webhooks ?? []);
+      const refreshed = (await listWebhooks()).webhooks ?? [];
+      if (requestId === webhooksRequestIdRef.current) setWebhooks(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to update webhook", details: apiErrorDetails(err) });
     }
@@ -289,9 +316,11 @@ export function SettingsPage({ onAuthChange }: Props) {
   const [revokingSeatId, setRevokingSeatId] = useState<string | null>(null);
   async function handleRevokeSeat(seatId: string) {
     setRevokingSeatId(seatId);
+    const requestId = ++seatsRequestIdRef.current;
     try {
       await revokeSeat(seatId);
-      setSeats(await listSeats());
+      const refreshed = await listSeats();
+      if (requestId === seatsRequestIdRef.current) setSeats(refreshed);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to revoke seat", details: apiErrorDetails(err) });
     } finally {
@@ -316,11 +345,12 @@ export function SettingsPage({ onAuthChange }: Props) {
   async function handleToggleProgram(program: string, enabled: boolean) {
     setProgramBusy(program);
     setError(null);
+    const requestId = ++entitlementsRequestIdRef.current;
     try {
       const result = enabled
         ? await updateProgramEntitlements({ enable: [program] })
         : await updateProgramEntitlements({ disable: [program] });
-      setEntitlements(result.programs ?? []);
+      if (requestId === entitlementsRequestIdRef.current) setEntitlements(result.programs ?? []);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to update program", details: apiErrorDetails(err) });
     } finally {
@@ -576,11 +606,13 @@ export function SettingsPage({ onAuthChange }: Props) {
                 const form = e.currentTarget as HTMLFormElement;
                 const email = (new FormData(form).get("email") as string) ?? "";
                 setError(null);
+                const requestId = ++seatsRequestIdRef.current;
                 void (async () => {
                   try {
                     await inviteSeat(email.trim());
                     form.reset();
-                    setSeats(await listSeats());
+                    const refreshed = await listSeats();
+                    if (requestId === seatsRequestIdRef.current) setSeats(refreshed);
                   } catch (err) {
                     setError({ message: err instanceof Error ? err.message : "Failed to invite", details: apiErrorDetails(err) });
                   }
