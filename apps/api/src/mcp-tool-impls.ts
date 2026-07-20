@@ -95,6 +95,8 @@ import {
   extractSymbols,
   listMemoryEntries,
   recordPaymentFunnelEvent,
+  getFreeScrapePoolStatus,
+  consumeFreeScrapes,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -137,7 +139,7 @@ import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS, PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
-import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, type AgentMode } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, getPricingTier, priceForMode, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
@@ -149,6 +151,7 @@ import {
   SERVER_SLUG,
   REGISTRY_VERSION,
   authorizeMcpToolCredits,
+  authorizeMcpToolCreditsForAmount,
   captureMcpToolCredits,
   meterMcpToolCredits,
   buildMcpPaymentRequiredError,
@@ -1409,13 +1412,39 @@ export async function runWebResearchCrawl(args: Record<string, unknown>, req: In
   if (process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()) {
     return JSON.stringify(webResearchNotConfigured("iliad_web_research_crawl"), null, 2);
   }
-  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
+  // H-Phase-A cycle 19: price per actual page crawled, drawing down the SAME
+  // shared 100-page/month free pool REST's handleFirecrawlCrawl already
+  // uses — this tool used to charge a flat per-call fee via
+  // authorizeMcpToolCredits' fixed PRICING_TIERS price regardless of
+  // `limit` (up to a ~100x undercharge at limit=100) and never touched the
+  // free pool at all, so an MCP-driven crawl also silently bypassed the
+  // account's monthly allowance accounting.
+  const mode = resolveAgentMode(req);
+  const pricing = getPricingTier("iliad_web_research_crawl");
+  const perPageCents = priceForMode(pricing, mode);
+  const poolStatus = await getFreeScrapePoolStatus(auth.account.account_id);
+  const estimatedUnfunded = Math.max(0, limit - poolStatus.remaining);
+  // Authorize (reject-only, never debits) against an ESTIMATE off the
+  // requested limit — matches every other tool's authorize-before-work
+  // pattern, rejecting a call that would clearly exceed included credits
+  // BEFORE the expensive crawl runs. The real debit at capture below uses
+  // the ACTUAL page count, not this estimate, so a partial crawl (Firecrawl
+  // can return fewer pages than requested) is never overcharged.
+  const charge = await authorizeMcpToolCreditsForAmount(req, auth.account, "iliad_web_research_crawl", perPageCents * estimatedUnfunded);
   const result =
     backend === "firecrawl"
       ? await firecrawlCrawl(url, limit, args.only_main_content !== false)
       : await sovereignCrawl(url, limit, args.only_main_content !== false);
-  await captureMcpToolCredits(auth.account, charge);
-  return JSON.stringify(result, null, 2);
+  const pagesCrawled = "pages_crawled" in result ? result.pages_crawled : 0;
+  const poolDraw = await consumeFreeScrapes(auth.account.account_id, pagesCrawled);
+  const finalAmountCents = perPageCents * poolDraw.unfunded;
+  await captureMcpToolCredits(auth.account, { ...charge, amountCents: finalAmountCents });
+  return JSON.stringify({
+    ...result,
+    free_pages_used: poolDraw.consumed,
+    free_pages_remaining: poolDraw.remaining,
+    paid_pages: poolDraw.unfunded,
+  }, null, 2);
 }
 
 const MCP_FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
@@ -3837,6 +3866,15 @@ export async function decideInbandGate(
       return process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()
         ? { settle: false, reason: "not_provisioned" }
         : { settle: true, tool };
+    // H-Phase-A cycle 19: runWebResearchCrawl itself now prices per actual
+    // page crawled (see its own comment), but this gate's caller
+    // (previewMcpToolOverage, settleMcpCallInband) still previews at the
+    // FIXED flat per-call PRICING_TIERS price — the true per-page cost
+    // isn't knowable until AFTER the crawl runs, which this pre-dispatch
+    // gate can't wait for. Currently inert: AXIS_MCP_INBAND_SETTLEMENT
+    // defaults off in production, so this narrower gap has no live impact
+    // today — disclosed rather than silently left, for whoever eventually
+    // flips that flag on.
     case "iliad_web_research_crawl":
       return process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()
         ? { settle: false, reason: "not_provisioned" }

@@ -261,14 +261,12 @@ export async function previewMcpToolOverage(
  * succeeds. Gate half of the auth/capture pattern that guarantees a credit is
  * debited only when the tool call actually succeeds.
  */
-export async function authorizeMcpToolCredits(
+async function authorizeAmount(
   req: IncomingMessage,
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   tool: MeteredMcpTool,
+  amountCents: number,
 ): Promise<AuthorizedCharge> {
-  const mode = resolveAgentMode(req);
-  const pricing = getPricingTier(tool);
-  const amountCents = priceForMode(pricing, mode);
   const charge = await previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
     // H1: if the overage was already collected as cash by the in-band MCP gate, do not
@@ -296,6 +294,38 @@ export async function authorizeMcpToolCredits(
     ));
   }
   return { tool, amountCents };
+}
+
+export async function authorizeMcpToolCredits(
+  req: IncomingMessage,
+  account: { account_id: string; tier: "free" | "paid" | "suite" },
+  tool: MeteredMcpTool,
+): Promise<AuthorizedCharge> {
+  const mode = resolveAgentMode(req);
+  const pricing = getPricingTier(tool);
+  const amountCents = priceForMode(pricing, mode);
+  return authorizeAmount(req, account, tool, amountCents);
+}
+
+/**
+ * Same as authorizeMcpToolCredits, but for a tool whose real price ISN'T a
+ * fixed PRICING_TIERS lookup — the caller computes amountCents itself (e.g.
+ * iliad_web_research_crawl, priced per actual page crawled, not a flat
+ * per-call fee). Still preview-only (never debits): call captureMcpToolCredits
+ * with the FINAL known amount once the metered work succeeds, which may
+ * differ from what was authorized here if the true cost wasn't knowable
+ * until after the work ran (e.g. Firecrawl returned fewer pages than the
+ * requested limit) — that's safe, since this function never reserves or
+ * moves money, it only rejects up front when an ESTIMATE would clearly
+ * exceed included credits.
+ */
+export async function authorizeMcpToolCreditsForAmount(
+  req: IncomingMessage,
+  account: { account_id: string; tier: "free" | "paid" | "suite" },
+  tool: MeteredMcpTool,
+  amountCents: number,
+): Promise<AuthorizedCharge> {
+  return authorizeAmount(req, account, tool, amountCents);
 }
 
 /** Commit a previously-authorized charge. Call ONLY after the metered work succeeds. */
