@@ -33,6 +33,14 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
   const [accountTier, setAccountTier] = useState<BillingTier | null>(null);
 
   async function handlePlanSelect(planId: string) {
+    // H-Phase-A cycle 19: re-entrancy guard — checkoutLoading is a single
+    // shared string, not per-plan state; without this, clicking a SECOND
+    // plan button before the first's getPaidConfig() resolved would
+    // overwrite checkoutLoading and start a second concurrent checkout —
+    // whichever call's sessionStorage.setItem("axis_paid_plan", ...) landed
+    // LAST would win, which could be a different plan than the user's
+    // actual final click. Only one checkout may ever be in flight.
+    if (checkoutLoading) return;
     if (planId === "free") {
       onSelectPlan(); // Signed-in users land on Settings (account redirects there); signed-out users hit the login gate first.
       return;
@@ -243,7 +251,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
               className={`btn ${plan.id === "pro" ? "btn-primary" : ""}`}
               style={{ width: "100%", justifyContent: "center" }}
               onClick={() => { void handlePlanSelect(plan.id); }}
-              disabled={checkoutLoading === plan.id}
+              disabled={checkoutLoading !== null}
             >
               {checkoutLoading === plan.id
                 ? "Redirecting to checkout…"

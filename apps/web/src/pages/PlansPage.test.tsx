@@ -12,13 +12,21 @@
 // framing (PAI'D never auto-renews).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PlansPage } from "./PlansPage.tsx";
 
 const PLANS = {
   plans: [
     { id: "free", name: "Free", tagline: "Free tier", price_monthly_cents: 0, price_annual_cents: 0, highlights: [] },
     { id: "pro", name: "Pro", tagline: "Pro tier", price_monthly_cents: 9900, price_annual_cents: 95040, highlights: [] },
+  ],
+  features: [],
+};
+
+const PLANS_TWO_PAID = {
+  plans: [
+    ...PLANS.plans,
+    { id: "growth", name: "Growth", tagline: "Growth tier", price_monthly_cents: 29900, price_annual_cents: 287040, highlights: [] },
   ],
   features: [],
 };
@@ -30,6 +38,26 @@ function stubFetch(handlers: Array<[match: string, body: unknown]>) {
     const body = hit ? hit[1] : {};
     return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
   }));
+}
+
+/** Fetch stub whose /portal/api/paid/config response stays pending until
+ *  resolvers are invoked in call order — lets a test observe a
+ *  cross-plan-click race against the underlying getPaidConfig() call. */
+function stubDeferredPaidConfigFetch(handlers: Array<[match: string, body: unknown]>): { resolvers: Array<(body: unknown) => void> } {
+  const resolvers: Array<(body: unknown) => void> = [];
+  let callCount = 0;
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/portal/api/paid/config")) {
+      const index = callCount++;
+      const body = await new Promise((resolve) => { resolvers[index] = resolve; });
+      return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    }
+    const hit = handlers.find(([m]) => url.includes(m));
+    const body = hit ? hit[1] : {};
+    return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+  }));
+  return { resolvers };
 }
 
 afterEach(() => {
@@ -62,5 +90,42 @@ describe("PlansPage — cancellation honesty", () => {
 
     await waitFor(() => expect(screen.getByText("Pro")).toBeTruthy());
     expect(screen.queryByText(/already on a paid plan/)).toBeNull();
+  });
+});
+
+// H-Phase-A cycle 19: checkoutLoading is a single shared string, not per-plan
+// state, and handlePlanSelect had no re-entrancy guard — clicking a SECOND
+// plan button before the first's getPaidConfig() resolved overwrote
+// checkoutLoading and started a second concurrent checkout. Whichever call's
+// sessionStorage.setItem("axis_paid_plan", ...) landed LAST would win,
+// which could check the user out for the WRONG plan relative to their
+// actual final click.
+describe("PlansPage — concurrent plan selection (H-Phase-A cycle 19)", () => {
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  it("clicking a second plan before the first's checkout resolves does not let the second click start a concurrent checkout", async () => {
+    const { resolvers } = stubDeferredPaidConfigFetch([["/v1/plans", PLANS_TWO_PAID]]);
+    render(<PlansPage loggedIn={true} onSelectPlan={() => {}} />);
+
+    await waitFor(() => expect(screen.getByText("Pro")).toBeTruthy());
+    const proButton = screen.getByRole("button", { name: /Choose Pro/ });
+    const growthButton = screen.getByRole("button", { name: /Choose Growth/ });
+
+    fireEvent.click(proButton); // Pro's getPaidConfig() (call 0) now in flight
+    await waitFor(() => expect(resolvers[0]).toBeTruthy());
+
+    // Before the fix: growthButton was still enabled here (disabled only
+    // checked `checkoutLoading === "growth"`), so this click would overwrite
+    // checkoutLoading and start a second concurrent checkout for Growth.
+    expect((growthButton as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(growthButton);
+    // No second call was ever queued — proven by there being no second
+    // resolver to invoke.
+    expect(resolvers[1]).toBeUndefined();
+
+    resolvers[0]({ configured: true });
+    await waitFor(() => expect(sessionStorage.getItem("axis_paid_plan")).toBe("pro"));
   });
 });
