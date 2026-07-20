@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { ContextMap } from "../api.ts";
 
 interface Props {
@@ -32,6 +32,29 @@ export function FilesTab({ ctx }: Props) {
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc(!sortAsc);
     else { setSortKey(key); setSortAsc(true); }
+  }
+
+  // aria-sort belongs on the <th> itself (its native columnheader role must
+  // stay intact); the click/keyboard affordance belongs on an inner element,
+  // NOT the <th> — an explicit role="button" on the <th> would override its
+  // columnheader role entirely, breaking both semantics and role-based
+  // queries.
+  function ariaSortFor(key: SortKey): "ascending" | "descending" | "none" {
+    return sortKey === key ? (sortAsc ? "ascending" : "descending") : "none";
+  }
+
+  function sortLabelProps(key: SortKey) {
+    return {
+      role: "button" as const,
+      tabIndex: 0,
+      onClick: () => handleSort(key),
+      onKeyDown: (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleSort(key);
+        }
+      },
+    };
   }
 
   return (
@@ -85,17 +108,25 @@ export function FilesTab({ ctx }: Props) {
         <table>
           <thead>
             <tr>
-              <th onClick={() => handleSort("path")} style={{ cursor: "pointer" }}>
-                Path {sortKey === "path" ? (sortAsc ? "↑" : "↓") : ""}
+              <th aria-sort={ariaSortFor("path")}>
+                <span {...sortLabelProps("path")} className="files-tab-sortable">
+                  Path {sortKey === "path" ? (sortAsc ? "↑" : "↓") : ""}
+                </span>
               </th>
-              <th onClick={() => handleSort("language")} style={{ cursor: "pointer" }}>
-                Language {sortKey === "language" ? (sortAsc ? "↑" : "↓") : ""}
+              <th aria-sort={ariaSortFor("language")}>
+                <span {...sortLabelProps("language")} className="files-tab-sortable">
+                  Language {sortKey === "language" ? (sortAsc ? "↑" : "↓") : ""}
+                </span>
               </th>
-              <th onClick={() => handleSort("loc")} style={{ cursor: "pointer", textAlign: "right" }}>
-                LOC {sortKey === "loc" ? (sortAsc ? "↑" : "↓") : ""}
+              <th aria-sort={ariaSortFor("loc")} style={{ textAlign: "right" }}>
+                <span {...sortLabelProps("loc")} className="files-tab-sortable">
+                  LOC {sortKey === "loc" ? (sortAsc ? "↑" : "↓") : ""}
+                </span>
               </th>
-              <th onClick={() => handleSort("role")} style={{ cursor: "pointer" }}>
-                Role {sortKey === "role" ? (sortAsc ? "↑" : "↓") : ""}
+              <th aria-sort={ariaSortFor("role")}>
+                <span {...sortLabelProps("role")} className="files-tab-sortable">
+                  Role {sortKey === "role" ? (sortAsc ? "↑" : "↓") : ""}
+                </span>
               </th>
             </tr>
           </thead>

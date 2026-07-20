@@ -170,7 +170,7 @@ export function ToolPage({
       >
         {children}
         {loading && (
-          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: "0.875rem" }}>
+          <div role="status" aria-live="polite" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: "0.875rem" }}>
             <span className="spinner" />
             Running…
           </div>
