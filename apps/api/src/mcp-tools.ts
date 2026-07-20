@@ -775,7 +775,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research_crawl",
     description:
-      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.01 flat per call (standard and lite), regardless of how many pages are crawled (up to limit). If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of crawling, and is not billed. Use iliad_web_research for single-page scrapes.",
+      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.01/page beyond your account's shared 100-page/month free pool (standard and lite) — a crawl fully covered by the free pool costs $0.00; a fully-paid 100-page crawl costs up to $1.00. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of crawling, and is not billed. Use iliad_web_research for single-page scrapes.",
     inputSchema: {
       type: "object",
       required: ["url"],

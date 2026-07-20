@@ -797,16 +797,18 @@ describe("GET /for-agents?intent=", () => {
     }
   });
 
-  // H-Phase-A cycle 8: iliad_web_research_crawl's entry advertised
-  // $0.25/$0.12 "per page crawled" — stale by 12-25x since WO-12 replaced
-  // the per-page Firecrawl pricing with a flat 1c/call.
-  it("iliad_web_research_crawl's advertised price is not the stale $0.25/$0.12", async () => {
+  // H-Phase-A cycle 8 corrected the stale $0.25/$0.12 numeric rate here but
+  // mischaracterized the pricing MODEL as flat-per-call — handleFirecrawlCrawl
+  // has always billed per page beyond the shared free pool. Cycle 19 fixed
+  // both the entry and this test.
+  it("iliad_web_research_crawl's advertised price is per-page, not the stale flat $0.25/$0.12/$0.01", async () => {
     const r = await req("/for-agents");
     const data = JSON.parse(r.body);
-    const tools = data.tools as Array<{ name: string; x_payment?: { price_usd?: string; lite_price_usd?: string } }>;
+    const tools = data.tools as Array<{ name: string; x_payment?: { model?: string; price_usd?: string; lite_price_usd?: string } }>;
     const entry = tools.find((t) => t.name === "iliad_web_research_crawl");
-    expect(entry?.x_payment?.price_usd).toBe("$0.01");
-    expect(entry?.x_payment?.lite_price_usd).toBe("$0.01");
+    expect(entry?.x_payment?.model).toBe("per_page_beyond_free_pool");
+    expect(entry?.x_payment?.price_usd).toBe("$0.01/page");
+    expect(entry?.x_payment?.lite_price_usd).toBe("$0.01/page");
   });
 });
 

@@ -3099,13 +3099,12 @@ export async function handleForAgents(
       { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files. Free (uses free-tier programs: search, skills, debug)." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
-      // H-Phase-A cycle 8: this entry advertised $0.25/$0.12 ("per page
-      // crawled") — stale by 12-25x since WO-12 replaced the Firecrawl proxy
-      // with AXIS's own owned crawler at a flat 1c/call. The real price
-      // (what handleFirecrawlCrawl actually bills via getPricingTier) lives
-      // in packages/mpp/src/index.ts's PRICING_TIERS; mcp-tools.ts's own
-      // tool description already had this right.
-      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "flat_per_call_with_lite_mode", price_usd: "$0.01", lite_price_usd: "$0.01", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain with AXIS's owned crawler (no third-party key) and scrape multiple pages. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Flat $0.01 per call regardless of pages crawled (standard allows up to 100 pages, lite up to 5). On 402, present checkout_url or pay autonomously, then retry." },
+      // H-Phase-A cycle 8 corrected the stale numeric rate here but, like
+      // openapi.ts's entry, mischaracterized the pricing MODEL as flat —
+      // handleFirecrawlCrawl has always billed per page beyond the account's
+      // shared 100-page/month free pool, never a flat per-call fee. Fixed in
+      // cycle 19 alongside the same correction to openapi.ts and mcp-tools.ts.
+      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_page_beyond_free_pool", price_usd: "$0.01/page", lite_price_usd: "$0.01/page", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain with AXIS's owned crawler (no third-party key) and scrape multiple pages. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. $0.01/page beyond your account's shared 100-page/month free pool (standard allows up to 100 pages, lite up to 5) — a crawl fully covered by the free pool costs $0.00. On 402, present checkout_url or pay autonomously, then retry." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral token for the opt-in referral usage-credit program. Unique conversions earn usage credits (capped, calendar-month reset)." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];

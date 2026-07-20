@@ -340,17 +340,18 @@ describe("buildOpenApiSpec", () => {
     expect(paths.length).toBeGreaterThanOrEqual(55);
   });
 
-  // H-Phase-A cycle 8: /v1/research/crawl's advertised price was stale by
-  // 12-25x ($0.25/$0.12 "per page crawled") after WO-12 replaced the
-  // per-page Firecrawl pricing with a flat 1c/call — pinned against the SAME
-  // real pricing tier handleFirecrawlCrawl itself bills from, not a re-typed
-  // literal that could drift again.
-  it("/v1/research/crawl's advertised price matches what it actually bills", () => {
+  // H-Phase-A cycle 8 corrected the stale numeric rate here but MISCHARACTERIZED
+  // the pricing MODEL as flat-per-call, when handleFirecrawlCrawl has always
+  // billed per page beyond the shared free pool — this test only ever pinned
+  // the numeric rate, never the "flat vs per-page" model claim, so it couldn't
+  // catch that. Cycle 19 fixed both the docs and this test.
+  it("/v1/research/crawl's advertised price matches what it actually bills (per page, not flat)", () => {
     const tier = getPricingTier("iliad_web_research_crawl");
     const post = spec.paths["/v1/research/crawl"]?.post as { "x-payment"?: Record<string, string> } | undefined;
     const payment = post?.["x-payment"];
     expect(payment).toBeDefined();
-    expect(payment!.price_usd).toBe(`$${(tier.standard_cents / 100).toFixed(2)}`);
-    expect(payment!.lite_price_usd).toBe(`$${(tier.lite_cents / 100).toFixed(2)}`);
+    expect(payment!.model).toBe("per_page_beyond_free_pool");
+    expect(payment!.price_usd).toBe(`$${(tier.standard_cents / 100).toFixed(2)}/page`);
+    expect(payment!.lite_price_usd).toBe(`$${(tier.lite_cents / 100).toFixed(2)}/page`);
   });
 });
