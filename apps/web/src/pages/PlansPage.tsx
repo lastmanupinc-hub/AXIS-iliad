@@ -132,13 +132,15 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
         </div>
       )}
       {/* H-Phase-A cycle 7: PAI'D has no cancel/modify API — starting a new
-          checkout below while already on a paid plan creates a SECOND,
-          separate subscription rather than replacing the current one. */}
+          checkout below while already on a paid plan is a SECOND, separate
+          one-time charge rather than replacing the current one. H-Phase-A
+          cycle 17: reworded from "subscription" to match TermsPage.tsx's
+          corrected one-time-charge-only framing (PAI'D never auto-renews). */}
       {accountTier && accountTier !== "free" && (
         <div style={{ maxWidth: 640, margin: "0 auto 16px" }}>
           <Callout tone="warning" title="You're already on a paid plan">
-            Choosing a plan below starts a brand-new subscription — it does NOT replace or
-            cancel your current one, and you'd be billed for both. Email support@jonathanarvay.com
+            Choosing a plan below is a brand-new, separate one-time charge — it does NOT replace
+            or cancel your current plan, and you'd be billed for both. Email support@jonathanarvay.com
             to change or cancel your existing plan first.
           </Callout>
         </div>

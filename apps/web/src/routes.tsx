@@ -609,7 +609,7 @@ export const ROUTES: RouteDef[] = [
     section: "REFERENCE",
     shortcut: 7,
     nav: { group: "HELP", icon: "message" },
-    render: () => <QAPage />,
+    render: (ctx) => <QAPage onNavigate={ctx.navigate} />,
   },
   {
     page: "for-agents",

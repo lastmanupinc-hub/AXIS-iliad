@@ -4,6 +4,7 @@ import { EmptyState } from "../components/primitives/index.ts";
 import { useTabList } from "../useTabList.ts";
 // Single-source counts + canonical API origin (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, ENDPOINT_COUNT, PROD_API_BASE, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
+import type { PageId } from "../routes.tsx";
 
 type QACategory = "all" | "general" | "programs" | "api" | "billing" | "technical" | "integration" | "security";
 
@@ -149,7 +150,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Can I cancel or downgrade?",
-    answer: "Self-serve plan changes aren't available yet — email support@jonathanarvay.com to cancel or change your plan. Don't start a new checkout for a different plan on your own: it creates a second, separate subscription rather than replacing your current one. Your generated files and project history remain accessible regardless of plan changes (within the new plan's project limits).",
+    answer: "Self-serve plan changes aren't available yet — email support@jonathanarvay.com to cancel or change your plan. Don't start a new checkout for a different plan on your own: it's a second, separate one-time charge rather than replacing your current one. Your generated files and project history remain accessible regardless of plan changes (within the new plan's project limits).",
   },
   {
     category: "billing",
@@ -270,7 +271,11 @@ const CATEGORY_LABELS: Record<QACategory, { label: string; icon: string }> = {
   security: { label: "Security", icon: "shield-lock" },
 };
 
-export function QAPage() {
+interface Props {
+  onNavigate?: (page: PageId) => void;
+}
+
+export function QAPage({ onNavigate }: Props = {}) {
   const [category, setCategory] = useState<QACategory>("all");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -403,7 +408,20 @@ export function QAPage() {
       <div className="card" style={{ textAlign: "center", marginTop: 24 }}>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
           Don't see your question? Check the{" "}
-          <strong style={{ color: "var(--accent)", cursor: "pointer" }}>Help Center</strong> or reach out to{" "}
+          {onNavigate ? (
+            <strong
+              role="button"
+              tabIndex={0}
+              style={{ color: "var(--accent)", cursor: "pointer" }}
+              onClick={() => onNavigate("help")}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("help"); } }}
+            >
+              Help Center
+            </strong>
+          ) : (
+            <strong style={{ color: "var(--text)" }}>Help Center</strong>
+          )}{" "}
+          or reach out to{" "}
           <strong style={{ color: "var(--accent)" }}>support@jonathanarvay.com</strong>
         </p>
       </div>

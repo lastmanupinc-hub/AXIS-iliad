@@ -4,10 +4,12 @@
 
 // H-Phase-A cycle 7: PAI'D is the only live checkout path and has no
 // cancel/modify API — starting a new checkout while already on a paid plan
-// creates a SECOND, separate subscription rather than replacing the first.
-// The page used to say "Cancel any time" (false — no self-serve cancel
-// exists at all) and gave no warning before a plan-switch checkout could
-// double-bill an existing subscriber.
+// creates a SECOND, separate one-time charge rather than replacing the
+// first. The page used to say "Cancel any time" (false — no self-serve
+// cancel exists at all) and gave no warning before a plan-switch checkout
+// could double-bill an existing subscriber. H-Phase-A cycle 17: reworded
+// "subscription" to "one-time charge" to match TermsPage.tsx's corrected
+// framing (PAI'D never auto-renews).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -51,7 +53,7 @@ describe("PlansPage — cancellation honesty", () => {
     render(<PlansPage loggedIn={true} onSelectPlan={() => {}} />);
 
     await waitFor(() => expect(screen.getByText(/already on a paid plan/)).toBeTruthy());
-    expect(screen.getByText(/starts a brand-new subscription/)).toBeTruthy();
+    expect(screen.getByText(/brand-new, separate one-time charge/)).toBeTruthy();
   });
 
   it("shows no paid-plan warning for a free-tier account", async () => {
