@@ -89,6 +89,43 @@ async function chargeWithDiscounts(
   return settleOverageCash(req, res, accountId, overageCents, opts);
 }
 
+/**
+ * Best-effort wrapper around recordUsage. H-Phase-A cycle 18 (bulk sweep):
+ * recordUsage is a real, quota-load-bearing DB write (getMonthlySnapshotCount/
+ * getProjectCount in billing-store.ts both read FROM usage_records). Three of
+ * this file's callers (handleCreateSnapshot, handleGitHubAnalyze,
+ * handleAnalyze, handlePreparePurchasing) ran it unguarded inside a try block
+ * whose catch flips an already-"ready" snapshot's status back to "failed" and
+ * 500s a caller whose work genuinely succeeded — the exact false-fail shape
+ * cycle 15's trackEvent fix closed for the SAME functions, on a call the
+ * sweep never checked because it searched by function name (trackEvent), not
+ * by vulnerable POSITION. makeProgramHandler's case is worse still: it runs
+ * with NO surrounding try/catch at all, AFTER chargeWithDiscounts has already
+ * committed a real charge -- a throw here was a genuinely uncaught 500 with
+ * money already taken. Unlike trackEvent this can't be voided-and-forgotten
+ * (a silently-dropped write permanently undercounts that run's quota), so
+ * failures are caught and logged loudly for reconciliation instead.
+ */
+async function recordUsageBestEffort(
+  accountId: string,
+  program: string,
+  snapshotId: string,
+  generatorsRun: number,
+  inputFiles: number,
+  inputBytes: number,
+): Promise<void> {
+  try {
+    await recordUsage(accountId, program, snapshotId, generatorsRun, inputFiles, inputBytes);
+  } catch (err) {
+    log("error", "record_usage_failed", {
+      account_id: accountId,
+      program,
+      snapshot_id: snapshotId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 async function buildPaymentRequiredPayload(
   tool: string,
   message: string,
@@ -305,7 +342,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     if (isPro) {
       const auth = await resolveAuth(req);
       if (auth.account) {
-        await recordUsage(
+        await recordUsageBestEffort(
           auth.account.account_id,
           program,
           snapshotId,
@@ -598,7 +635,7 @@ export async function handleCreateSnapshot(
       const programs = new Set(generated.files.map(f => f.program));
       for (const program of programs) {
         const programFiles = generated.files.filter(f => f.program === program);
-        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
+        await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
       }
       // H-Phase-A cycle 15: analytics-only, must never sit inside this try
       // block unguarded — the snapshot is already saved and "ready" above, so
@@ -1116,7 +1153,7 @@ export async function handleGitHubAnalyze(
       const totalBytes = fetchResult.files.reduce((s, f) => s + f.size, 0);
       for (const program of programs) {
         const programFiles = generated.files.filter(f => f.program === program);
-        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
+        await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
       }
       // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
       // risk as handleCreateSnapshot above — must never sit unguarded between
@@ -1741,7 +1778,7 @@ export async function handleAnalyze(
       const totalBytes = files.reduce((s, f) => s + (f.size ?? 0), 0);
       for (const program of programs) {
         const programFiles = generated.files.filter(f => f.program === program);
-        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
+        await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
       }
       // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
       // risk as handleCreateSnapshot above.
@@ -2125,7 +2162,7 @@ export async function handlePreparePurchasing(
       const totalBytes = files.reduce((s, f) => s + (f.size ?? 0), 0);
       for (const program of programs) {
         const pFiles = generated.files.filter(f => f.program === program);
-        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
+        await recordUsageBestEffort(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
       }
       // H-Phase-A cycle 15: analytics-only, same false-fail/status-corruption
       // risk as handleCreateSnapshot above.
