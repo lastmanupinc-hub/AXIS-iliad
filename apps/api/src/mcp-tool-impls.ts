@@ -3909,18 +3909,21 @@ export async function decideInbandGate(
         ? { settle: false, reason: "not_provisioned" }
         : { settle: true, tool };
     // H-Phase-A cycle 19: runWebResearchCrawl itself now prices per actual
-    // page crawled (see its own comment), but this gate's caller
-    // (previewMcpToolOverage, settleMcpCallInband) still previews at the
-    // FIXED flat per-call PRICING_TIERS price — the true per-page cost
-    // isn't knowable until AFTER the crawl runs, which this pre-dispatch
-    // gate can't wait for. Currently inert: AXIS_MCP_INBAND_SETTLEMENT
-    // defaults off in production, so this narrower gap has no live impact
-    // today — disclosed rather than silently left, for whoever eventually
-    // flips that flag on.
+    // page crawled (see its own comment) — its PRICING_TIERS entry is a
+    // PER-PAGE rate, not a per-call price. previewMcpToolOverage (this
+    // gate's caller) has no way to know `limit` up front and would collect
+    // cash for exactly ONE page regardless of how many the crawl actually
+    // processes (up to 100), then dispatch's own authorize/capture would see
+    // isInbandSettled() and skip its normal reject-on-insufficient-credit
+    // check — a live undercharge of up to ~100x on the cash path once
+    // AXIS_MCP_INBAND_SETTLEMENT is on (it is, in prod, since render.yaml
+    // pinned it "true" on 2026-07-06 — this is not a dormant/inert gap).
+    // Treated the same as the other true runtime-metered tools: the real
+    // price is only knowable after the work runs, so this pre-dispatch gate
+    // steps aside and dispatch's existing correct per-page plan-credit
+    // metering (cycle 19) handles it, unchanged.
     case "iliad_web_research_crawl":
-      return process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()
-        ? { settle: false, reason: "not_provisioned" }
-        : { settle: true, tool };
+      return { settle: false, reason: "runtime_metered" };
     case "iliad_llm_inference":
       return (await isLlmConfigured()) ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
 

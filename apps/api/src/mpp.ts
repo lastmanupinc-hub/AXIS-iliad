@@ -66,7 +66,16 @@ export interface PaymentRequiredCanonicalFields {
   usage_credits?: unknown;
 }
 
-// USDC on Tempo network
+// USDC on Tempo network. Mainnet matches mppx's own `tokens.usdc` default.
+// DISCLOSED, NOT FIXED: the testnet address below matches mppx's
+// `tokens.pathUsd` default (chainId 42431), not `tokens.usdc` — Tempo's
+// testnet may simply not have a USDC deployment and pathUSD is the sensible
+// default, but that's inferred from address matching, not confirmed against
+// a live testnet. The negotiation body's `asset` field is unconditionally
+// "USDC" regardless of testnet/mainnet, so an agent testing the crypto rail
+// today is told "USDC" while this constant may actually settle pathUSD.
+// Needs verification against mppx's real testnet behavior before relabeling
+// either the constant or the negotiation body's asset field.
 const TEMPO_USDC_MAINNET = "0x20c000000000000000000000b9537d11c60e8b50";
 const TEMPO_USDC_TESTNET = "0x20c0000000000000000000000000000000000000";
 

@@ -429,20 +429,28 @@ describe("decideInbandGate — config gate (env-driven)", () => {
     });
   });
 
-  it("iliad_web_research_crawl: sovereign default settles with NO key; explicit firecrawl w/o key is not_provisioned", async () => {
+  // H-Phase-A cycle 24: iliad_web_research_crawl used to settle:true like its
+  // iliad_web_research sibling above, but its PRICING_TIERS entry is a
+  // PER-PAGE rate — previewMcpToolOverage has no way to know `limit` up
+  // front, so it would only ever collect cash for ONE page regardless of how
+  // many the crawl actually processed (up to 100), a live undercharge once
+  // AXIS_MCP_INBAND_SETTLEMENT is on. Moved to runtime_metered (like the 4
+  // tools below) so it steps aside for dispatch's own correct per-page
+  // plan-credit metering (cycle 19) — backend-independent, unlike its sibling.
+  it("iliad_web_research_crawl always resolves runtime_metered, regardless of backend config", async () => {
     expect(await decideInbandGate("iliad_web_research_crawl", { url: "https://example.com" }, "standard")).toEqual({
-      settle: true,
-      tool: "iliad_web_research_crawl",
+      settle: false,
+      reason: "runtime_metered",
     });
     process.env.AXIS_WEB_RESEARCH_BACKEND = "firecrawl";
     expect(await decideInbandGate("iliad_web_research_crawl", { url: "https://example.com" }, "standard")).toEqual({
       settle: false,
-      reason: "not_provisioned",
+      reason: "runtime_metered",
     });
     process.env.FIRECRAWL_API_KEY = "fc-test";
     expect(await decideInbandGate("iliad_web_research_crawl", { url: "https://example.com" }, "standard")).toEqual({
-      settle: true,
-      tool: "iliad_web_research_crawl",
+      settle: false,
+      reason: "runtime_metered",
     });
   });
 
@@ -526,6 +534,7 @@ describe("decideInbandGate — excluded set (runtime-metered, unchanged behavior
     "iliad_code_sandbox",
     "iliad_speech_to_text",
     "iliad_text_to_speech",
+    "iliad_web_research_crawl",
   ] as const)("%s resolves runtime_metered", async (tool) => {
     expect(await decideInbandGate(tool, {}, "standard")).toEqual({ settle: false, reason: "runtime_metered" });
   });
@@ -634,7 +643,7 @@ describe("decideInbandGate — total-classification invariant (every MeteredMcpT
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("exactly 16 of 20 tools settle:true and the other 4 resolve runtime_metered — no tool falls through", async () => {
+  it("exactly 15 of 20 tools settle:true and the other 5 resolve runtime_metered — no tool falls through", async () => {
     expect(toolNames.length).toBe(20); // proves the invariant covers the full union, not a stale subset
 
     let settleTrueCount = 0;
@@ -649,8 +658,8 @@ describe("decideInbandGate — total-classification invariant (every MeteredMcpT
         throw new Error(`${tool} classified as "${decision.reason}", expected settle:true or runtime_metered`);
       }
     }
-    expect(settleTrueCount).toBe(16);
-    expect(runtimeMeteredCount).toBe(4);
+    expect(settleTrueCount).toBe(15);
+    expect(runtimeMeteredCount).toBe(5);
   });
 });
 

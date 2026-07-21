@@ -512,17 +512,17 @@ describe("build402NegotiationBody", () => {
     try {
       const body = build402NegotiationBody("analyze_repo");
       const schemes = body.accepted_payment_schemes as string[];
-      expect(schemes[0]).toBe("x402/usdc/base");
-      expect(schemes).toContain("mppx/tempo");
+      expect(schemes[0]).toBe("mppx/tempo");
       expect(schemes[schemes.length - 1]).toBe("mppx/stripe");
-      expect(body.preferred_payment_scheme).toBe("x402/usdc/base");
+      expect(body.preferred_payment_scheme).toBe("mppx/tempo");
 
       const rails = body.payment_rails as Array<Record<string, unknown>>;
       expect(rails[0]!.asset).toBe("USDC");
+      expect(rails[0]!.network).toBe("tempo");
       expect(rails[0]!.preferred).toBe(true);
       expect(rails[0]!.price_usd).toBe("0.50");
       expect(rails[0]!.lite_price_usd).toBe("0.15");
-      expect(String(rails[0]!.summary)).toBe("USDC on base @ $0.50 per analyze_repo call ($0.15 lite)");
+      expect(String(rails[0]!.summary)).toBe("USDC on tempo @ $0.50 per analyze_repo call ($0.15 lite)");
       expect(String(rails[0]!.chargeback_exposure)).toContain("none");
 
       const stripeRail = rails.find(r => r.scheme === "mppx/stripe")!;
@@ -565,12 +565,14 @@ describe("build402NegotiationBody", () => {
     try {
       const body = build402NegotiationBody("analyze_repo");
       const schemes = body.accepted_payment_schemes as string[];
-      expect(schemes[0]).toBe("x402/usdc/base-sepolia");
-      expect(body.preferred_payment_scheme).toBe("x402/usdc/base-sepolia");
+      // Scheme name is network-independent ("mppx/tempo" always) — only the
+      // network field inside payment_rails/x402 changes for testnet.
+      expect(schemes[0]).toBe("mppx/tempo");
+      expect(body.preferred_payment_scheme).toBe("mppx/tempo");
       const rails = body.payment_rails as Array<Record<string, unknown>>;
-      expect(rails[0]!.network).toBe("base-sepolia");
+      expect(rails[0]!.network).toBe("tempo-testnet");
       const x402 = body.x402 as Record<string, unknown>;
-      expect(x402.network).toBe("base-sepolia");
+      expect(x402.network).toBe("tempo-testnet");
     } finally {
       if (prevRecipient === undefined) delete process.env.TEMPO_RECIPIENT_ADDRESS;
       else process.env.TEMPO_RECIPIENT_ADDRESS = prevRecipient;

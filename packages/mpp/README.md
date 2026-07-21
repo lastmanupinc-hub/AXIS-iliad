@@ -201,11 +201,11 @@ The library is intentionally side-effect-free — no global state, no env reads 
 
 Used only by `build402NegotiationBody` when present:
 
-| Variable                  | Effect                                                                   |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `TEMPO_RECIPIENT_ADDRESS` | Adds `mppx/tempo` and `x402/usdc/<network>` to `accepted_payment_schemes` |
-| `TEMPO_TESTNET=true`      | Uses `base-sepolia` instead of `base` for the USDC network               |
-| `WEB_BASE_URL`            | Overrides the default `payment_url` / `checkout_url`                     |
+| Variable                  | Effect                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `TEMPO_RECIPIENT_ADDRESS` | Adds `mppx/tempo` (on-chain USDC on the Tempo chain) to `accepted_payment_schemes` |
+| `TEMPO_TESTNET=true`      | Uses `tempo-testnet` instead of `tempo` for the `network` field                    |
+| `WEB_BASE_URL`            | Overrides the default `payment_url` / `checkout_url`                              |
 
 ---
 

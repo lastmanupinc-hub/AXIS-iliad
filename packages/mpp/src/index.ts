@@ -368,15 +368,24 @@ export function build402NegotiationBody(
   const tier = getPricingTier(tool);
   const negotiation = budget ? negotiatePrice(budget, tool) : null;
   const paymentRecipient = process.env.TEMPO_RECIPIENT_ADDRESS ?? null;
-  const paymentNetwork = process.env.TEMPO_TESTNET === "true" ? "base-sepolia" : "base";
+  // Settlement is on the Tempo chain (chainId 4217 mainnet / 42431 testnet,
+  // rpc.tempo.xyz / rpc.moderato.tempo.xyz per mppx's own defaults) — NOT
+  // Base. This used to be mislabeled "base"/"base-sepolia" with a
+  // "x402/usdc/base" scheme name, which would tell an agent holding real
+  // Base-chain USDC to pay an address that chargeMpp only ever verifies
+  // against Tempo — see docs/x402/STRATEGY.md §7 defect 5.
+  const paymentNetwork = process.env.TEMPO_TESTNET === "true" ? "tempo-testnet" : "tempo";
   // Token rail leads when configured: on-chain USDC settles in seconds with no
   // card-network intermediaries and no chargeback exposure, so it is the rail
   // AXIS prefers agents to pick. Order here mirrors the wire-level challenge
   // order chargeMpp emits (mppx compose lists tempo first); a client
   // Accept-Payment header still overrides server preference per protocol.
-  const usdcScheme = `x402/usdc/${paymentNetwork}`;
+  // "mppx/tempo" (not "x402/...") because this rail does not speak the
+  // x402.org wire protocol (no facilitator, no CAIP-2 network id) — it is
+  // mppx's own protocol, honestly labeled as such.
+  const usdcScheme = "mppx/tempo";
   const acceptedPaymentSchemes = paymentRecipient
-    ? [usdcScheme, "mppx/tempo", "mppx/stripe"]
+    ? [usdcScheme, "mppx/stripe"]
     : ["mppx/stripe"];
   const preferredPaymentScheme = paymentRecipient ? usdcScheme : "mppx/stripe";
   const standardUsd = (tier.standard_cents / 100).toFixed(2);

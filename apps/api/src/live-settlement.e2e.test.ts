@@ -87,7 +87,7 @@ function serverUrl(server: http.Server, path: string): string {
 // and STRIPE_TEST_SPT_TOKEN are supplied out of band (never in normal CI).
 // ---------------------------------------------------------------------------
 
-(STRIPE && SPT ? describe : describe.skip)("402 -> X-Payment -> 200 (Stripe test mode)", () => {
+(STRIPE && SPT ? describe : describe.skip)("402 -> Authorization: Payment -> 200 (Stripe test mode)", () => {
   let server: http.Server;
 
   beforeEach(async () => {
