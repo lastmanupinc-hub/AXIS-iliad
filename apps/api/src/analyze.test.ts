@@ -370,6 +370,73 @@ describe("POST /v1/analyze — validation", () => {
     expect(r.status).toBe(413);
     expect((r.data as Record<string, unknown>).error_code).toBe("FILE_COUNT_EXCEEDED");
   });
+
+  // ─── Tier-upgrade enrichment on size-cap 413s ──────────────────
+  // The status code and error_code stay EXACTLY as above (413, never 402 —
+  // crossing tiers is a subscription change, not a per-call mppx payment;
+  // a real 402 here would falsely imply a per-call charge could fix it).
+  // What's new: when a HIGHER tier's limits would actually accommodate the
+  // submitted repo, the 413 body now says so instead of leaving the caller
+  // with no path forward.
+
+  it("free-tier account, repo exceeds free's file-count cap but fits paid's — 413 body names the accommodating tier", async () => {
+    // Free cap is 1000 files, paid cap is 2000 — this exact case is the one
+    // the test above already proves stays 413; this proves the body is now
+    // enriched too.
+    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+      path: `src/file${i}.ts`,
+      content: "export const x = 1;",
+    }));
+    const r = await req("POST", "/v1/analyze", { files: manyFiles }, freeApiKey);
+    expect(r.status).toBe(413);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("FILE_COUNT_EXCEEDED");
+    expect(data.accommodating_tier).toBe("paid");
+    expect(typeof data.upgrade_url).toBe("string");
+    expect(data.upgrade_note).toContain("paid");
+    // The disclaimer that this is a subscription change, not a payable per-call
+    // charge, must be present — this is what keeps the 402-vs-413 choice honest.
+    expect(String(data.upgrade_note)).toContain("not a per-call payment");
+  });
+
+  it("anonymous caller, repo exceeds free's file-count cap but fits paid's — 413 body names the accommodating tier", async () => {
+    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+      path: `src/file${i}.ts`,
+      content: "export const x = 1;",
+    }));
+    const r = await req("POST", "/v1/analyze", { files: manyFiles, programs: ["skills"] });
+    expect(r.status).toBe(413);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("FILE_COUNT_EXCEEDED");
+    expect(data.accommodating_tier).toBe("paid");
+    expect(typeof data.upgrade_url).toBe("string");
+  });
+
+  it("repo exceeds even suite's file-count cap — no accommodating tier exists, body carries no upgrade fields", async () => {
+    const wayTooManyFiles = Array.from({ length: 5001 }, (_, i) => ({
+      path: `src/file${i}.ts`,
+      content: "export const x = 1;",
+    }));
+    const r = await req("POST", "/v1/analyze", { files: wayTooManyFiles, programs: ["skills"] });
+    expect(r.status).toBe(413);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("FILE_COUNT_EXCEEDED");
+    expect(data.accommodating_tier).toBeUndefined();
+    expect(data.upgrade_url).toBeUndefined();
+  });
+
+  it("single oversized file within free's file-count cap but over free's per-file-size cap — accommodating tier named", async () => {
+    // 6MB file: over free's 5MB/file cap, under paid's 50MB/file cap.
+    const r = await req("POST", "/v1/analyze", {
+      files: [{ path: "big.bin", content: "x", size: 6 * 1024 * 1024 }],
+      programs: ["skills"],
+    });
+    expect(r.status).toBe(413);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("FILE_TOO_LARGE");
+    expect(data.accommodating_tier).toBe("paid");
+    expect(typeof data.upgrade_url).toBe("string");
+  });
 });
 
 // ─── POST /v1/analyze — success (files mode) ────────────────────

@@ -277,6 +277,34 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
 
 const FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
 
+const TIER_ORDER: readonly BillingTier[] = ["free", "paid", "suite"];
+
+/**
+ * A repo can be rejected for exceeding its caller's tier size caps (file
+ * count or per-file bytes) even though a HIGHER tier's limits would fit it —
+ * today that just returns a flat 413 with no path forward. This finds the
+ * cheapest tier (above `currentTier`) that would actually accommodate the
+ * submitted files, so the 413 body can tell the caller what would fix it.
+ * Deliberately NOT a 402: crossing tiers is a subscription change (PAI'D
+ * checkout), not a per-call mppx payment — a real 402 here would carry the
+ * same x402/payment_rails/retry shape every OTHER 402 in this file uses for
+ * an actual payable charge, and an x402-aware client paying that per-call
+ * price would still get rejected on retry, since the account's persisted
+ * tier never changes from a per-call charge. Returns null if no tier (not
+ * even suite) would fit, or if the caller is already on the top tier.
+ */
+function findAccommodatingTier(files: { size: number }[], currentTier: BillingTier): BillingTier | null {
+  const currentIndex = TIER_ORDER.indexOf(currentTier);
+  for (let i = currentIndex + 1; i < TIER_ORDER.length; i++) {
+    const candidateTier = TIER_ORDER[i];
+    const candidate = TIER_LIMITS[candidateTier];
+    if (files.length <= candidate.max_files_per_snapshot && files.every((f) => f.size <= candidate.max_file_size_bytes)) {
+      return candidateTier;
+    }
+  }
+  return null;
+}
+
 export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   const isPro = !FREE_PROGRAMS.has(program);
 
@@ -1709,12 +1737,22 @@ export async function handleAnalyze(
     // work that never ran. A doomed request must cost $0.
     const limits = TIER_LIMITS[auth.account.tier];
     if (files.length > limits.max_files_per_snapshot) {
-      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
+      const accommodatingTier = findAccommodatingTier(files, auth.account.tier);
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`, accommodatingTier ? {
+        accommodating_tier: accommodatingTier,
+        upgrade_url: "https://iliad.trustfabric.ai/billing",
+        upgrade_note: `This repo would fit under ${accommodatingTier} tier's limit (${TIER_LIMITS[accommodatingTier].max_files_per_snapshot} files, ${TIER_LIMITS[accommodatingTier].max_file_size_bytes} bytes/file) — upgrade your subscription at the URL above to process it. This is a subscription tier change, not a per-call payment; a per-call charge would not lift this limit on retry.`,
+      } : undefined);
       return;
     }
     for (const file of files) {
       if (file.size > limits.max_file_size_bytes) {
-        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`);
+        const accommodatingTier = findAccommodatingTier(files, auth.account.tier);
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`, accommodatingTier ? {
+          accommodating_tier: accommodatingTier,
+          upgrade_url: "https://iliad.trustfabric.ai/billing",
+          upgrade_note: `This repo would fit under ${accommodatingTier} tier's limit (${TIER_LIMITS[accommodatingTier].max_files_per_snapshot} files, ${TIER_LIMITS[accommodatingTier].max_file_size_bytes} bytes/file) — upgrade your subscription at the URL above to process it. This is a subscription tier change, not a per-call payment; a per-call charge would not lift this limit on retry.`,
+        } : undefined);
         return;
       }
     }
@@ -1797,12 +1835,22 @@ export async function handleAnalyze(
     // still reach full generation on free programs, an unbounded-cost DoS/abuse vector.
     const anonLimits = TIER_LIMITS.free;
     if (files.length > anonLimits.max_files_per_snapshot) {
-      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`);
+      const accommodatingTier = findAccommodatingTier(files, "free");
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`, accommodatingTier ? {
+        accommodating_tier: accommodatingTier,
+        upgrade_url: "https://iliad.trustfabric.ai/billing",
+        upgrade_note: `This repo would fit under a ${accommodatingTier} account (${TIER_LIMITS[accommodatingTier].max_files_per_snapshot} files, ${TIER_LIMITS[accommodatingTier].max_file_size_bytes} bytes/file) — create an account and upgrade at the URL above to process it.`,
+      } : undefined);
       return;
     }
     for (const file of files) {
       if (file.size > anonLimits.max_file_size_bytes) {
-        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`);
+        const accommodatingTier = findAccommodatingTier(files, "free");
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`, accommodatingTier ? {
+          accommodating_tier: accommodatingTier,
+          upgrade_url: "https://iliad.trustfabric.ai/billing",
+          upgrade_note: `This repo would fit under a ${accommodatingTier} account (${TIER_LIMITS[accommodatingTier].max_files_per_snapshot} files, ${TIER_LIMITS[accommodatingTier].max_file_size_bytes} bytes/file) — create an account and upgrade at the URL above to process it.`,
+        } : undefined);
         return;
       }
     }
