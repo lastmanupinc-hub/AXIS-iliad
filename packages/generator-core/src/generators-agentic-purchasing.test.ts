@@ -197,6 +197,58 @@ describe("generateCheckoutFlow", () => {
   });
 });
 
+// This whole compliance kit (CE 3.0, SCA/3DS2, the Visa dispute lifecycle,
+// network tokenization) is card-network specific and, as of this writing,
+// the generator never mentions AXIS's other rail (direct on-chain USDC / x402)
+// anywhere. The rail-applicability note exists so a reader who also accepts
+// that rail doesn't read a card-specific section as a claim about it — every
+// card-specific section in both artifacts must carry it.
+describe("card-rail scope honesty (RAIL_APPLICABILITY_NOTE)", () => {
+  const snapshot = makeSnapshot();
+  const ctx = buildContextMap(snapshot);
+  const profile = buildRepoProfile(snapshot);
+  const RAIL_NOTE_MARKER = "Rail scope";
+
+  it("generateAgentPurchasingPlaybook: the note co-occurs with CE 3.0, SCA, and dispute sections", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile);
+    const ce3Index = file.content.indexOf("Compelling Evidence 3.0");
+    const scaIndex = file.content.indexOf("Lighter SCA Paths");
+    const disputeIndex = file.content.indexOf("Dispute Resolution & Chargeback Flow");
+    expect(ce3Index).toBeGreaterThan(-1);
+    expect(scaIndex).toBeGreaterThan(-1);
+    expect(disputeIndex).toBeGreaterThan(-1);
+    // Each heading is immediately followed (within the note's own length) by
+    // the rail-scope note, not just present anywhere in the whole document.
+    expect(file.content.slice(ce3Index, ce3Index + 400)).toContain(RAIL_NOTE_MARKER);
+    expect(file.content.slice(scaIndex, scaIndex + 400)).toContain(RAIL_NOTE_MARKER);
+    expect(file.content.slice(disputeIndex, disputeIndex + 400)).toContain(RAIL_NOTE_MARKER);
+  });
+
+  it("generateCheckoutFlow: the note co-occurs with the inline SCA, dispute, and network-token sections", () => {
+    const file = generateCheckoutFlow(ctx, profile);
+    const scaIndex = file.content.indexOf("## SCA / 3DS2 Handling");
+    const disputeIndex = file.content.indexOf("## Dispute and Return Flow");
+    const tokenIndex = file.content.indexOf("## Network Token Payload");
+    expect(scaIndex).toBeGreaterThan(-1);
+    expect(disputeIndex).toBeGreaterThan(-1);
+    expect(tokenIndex).toBeGreaterThan(-1);
+    expect(file.content.slice(scaIndex, scaIndex + 300)).toContain(RAIL_NOTE_MARKER);
+    expect(file.content.slice(disputeIndex, disputeIndex + 300)).toContain(RAIL_NOTE_MARKER);
+    expect(file.content.slice(tokenIndex, tokenIndex + 300)).toContain(RAIL_NOTE_MARKER);
+    // generateCheckoutFlow also embeds buildLighterScaSection + buildCompellingEvidence3Section
+    // in full near the end — those carry the note too (checked via count, not position,
+    // since they're appended after the inline sections above).
+    const noteOccurrences = file.content.split(RAIL_NOTE_MARKER).length - 1;
+    expect(noteOccurrences).toBeGreaterThanOrEqual(5); // 3 inline + buildLighterSca + buildCompellingEvidence3
+  });
+
+  it("explicitly names the crypto rail as out of scope for card-specific mechanics", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile);
+    expect(file.content).toContain("no chargebacks");
+    expect(file.content).toContain("no SCA challenge");
+  });
+});
+
 describe("generateNegotiationRules", () => {
   const snapshot = makeSnapshot();
   const ctx = buildContextMap(snapshot);

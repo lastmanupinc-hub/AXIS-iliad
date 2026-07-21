@@ -128,6 +128,19 @@ const AP2_SCOPE_CAVEAT =
   "against an official AP2/TAP/UCP conformance suite, nor exercised against a live Visa/Mastercard " +
   "network or counterparty.";
 
+// This entire compliance kit (CE 3.0, SCA/3DS2 exemptions, the Visa dispute
+// lifecycle, network tokenization) is card-network scoped — every mechanic
+// below assumes a card rail with an issuer, an acquirer, and a chargeback
+// process. AXIS's OTHER payment rail (direct on-chain USDC settlement, see
+// docs/x402/CONTRACT.md) has none of that: no issuer, no SCA challenge, no
+// chargeback to dispute. This note exists so a reader who ALSO accepts that
+// rail doesn't read a card-specific compliance section as a claim about it.
+const RAIL_APPLICABILITY_NOTE =
+  "> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer " +
+  "roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), " +
+  "none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute " +
+  "lifecycle to manage. Treat this section as scoped to card transactions only.";
+
 interface Ap2Samples {
   signedIntent: ReturnType<typeof signMandate<IntentMandate>>;
   signedCart: ReturnType<typeof signMandate<CartMandate>>;
@@ -335,6 +348,8 @@ function buildCompellingEvidence3Section(signals: CommerceSignals): string {
   return [
     `## Compelling Evidence 3.0 (CE 3.0) — Auto-Generated Payloads`,
     ``,
+    RAIL_APPLICABILITY_NOTE,
+    ``,
     `CE 3.0 reduces fraud-related chargebacks by proving legitimate cardholder engagement.`,
     `AXIS auto-generates the evidence payload structure — agents fill transaction-specific fields at dispute time.`,
     ``,
@@ -433,6 +448,8 @@ function buildDisputeEvidenceChecklist(): string {
 function buildLighterScaSection(signals: CommerceSignals): string {
   return [
     `## Lighter SCA Paths — Agent-Optimized Flow`,
+    ``,
+    RAIL_APPLICABILITY_NOTE,
     ``,
     `Goal: minimize friction for autonomous agent purchases. Prefer exemptions over challenges.`,
     ``,
@@ -637,6 +654,8 @@ export function generateAp2InteropSamples(
 function buildDisputeFlowSection(signals: CommerceSignals): string {
   return [
     `## Dispute Resolution & Chargeback Flow`,
+    ``,
+    RAIL_APPLICABILITY_NOTE,
     ``,
     `Dispute handling: ${signals.has_dispute_handling ? "✅ Detected in codebase" : "⚠️ Not detected — implement before production"}`,
     ``,
@@ -1624,6 +1643,8 @@ Every autonomous purchase MUST include these AP2 mandate fields:
 
 ## SCA / 3DS2 Handling
 
+${RAIL_APPLICABILITY_NOTE}
+
 ${signals.has_sca ? "✅ SCA/3DS2 code detected in this repository." : "⚠️ No SCA/3DS2 code detected — add challenge flow before processing EU/UK transactions."}
 
 | Scenario | Action | AP2 Field |
@@ -1638,6 +1659,8 @@ ${signals.has_sca ? "✅ SCA/3DS2 code detected in this repository." : "⚠️ N
 Never trigger interactive SCA during an autonomous purchase session.
 
 ## Dispute and Return Flow
+
+${RAIL_APPLICABILITY_NOTE}
 
 ${signals.has_dispute_handling ? "✅ Dispute/refund handling detected in this repository." : "⚠️ No dispute handling code detected — implement refund logic before production."}
 
@@ -1682,6 +1705,8 @@ AXIS does not publish approval-rate figures. To reduce challenge friction:
 - Measure your own approval and challenge rates with your PSP's reporting tools
 
 ## Network Token Payload (VTS/MDES)
+
+${RAIL_APPLICABILITY_NOTE}
 
 When network tokenization is available, include in payment request:
 
