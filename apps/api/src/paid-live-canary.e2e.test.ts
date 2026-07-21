@@ -25,19 +25,38 @@
  *     Postgres column) — it never calls a real payment provider (Stripe /
  *     Plaid / Circle), so no card is ever charged and "FC" here is not
  *     realized money. It DOES write one real, permanent transaction row
- *     into PAI'D's live production database. This test uses a synthetic,
- *     clearly-namespaced developerId (never the owner's real account) —
- *     PAI'D auto-provisions a fresh 60-FC free-tier wallet for any unseen
- *     developer_id, so a 1-FC debit is trivially affordable.
+ *     into PAI'D's live production database — IF the wallet exists (see
+ *     2026-07-21 finding below; today it usually does not for a fresh id).
  *   - Gated exactly like live-settlement.e2e.test.ts: `describe.skip` unless
  *     PAI'D credentials are present, so it never runs in default `pnpm
  *     test` or CI, and never produces a false green.
  *
- * This file was written as part of H8.4 but has NOT been executed against
- * production by the harden-polish loop — no PAI'D credentials are available
- * in that environment. Running it (and updating the Idempotency-Key
- * comments with the real answer) is an explicit owner action; see the
- * H8.4 PROGRESS ledger entry.
+ * This file was written as part of H8.4 but had NOT been executed against
+ * production by the harden-polish loop until 2026-07-21 (owner-directed,
+ * explicit go-ahead given) — no PAI'D credentials were available in the
+ * environment that wrote this test.
+ *
+ * **2026-07-21 run, real result — corrects this file's own prior assumption:**
+ * Test 1 (checkout-session idempotency) PASSED against live production
+ * (`api.trustfabric.ai`, merchant `acct_7ec95648-...`): the same
+ * Idempotency-Key returned the identical session id on a retried request —
+ * PAI'D's checkout-session endpoint genuinely honors it.
+ * Test 2 (wallet-debit idempotency) did NOT run to completion — both the
+ * vitest run and a standalone direct call to `debitPaidWallet` for a fresh,
+ * never-seen `developerId` returned a real `404 resource_not_found` from
+ * `POST /trust-fabric/billing/wallet/{id}/debit` itself (not just the
+ * `GET` pre-check). **This disproves the "PAI'D auto-provisions a fresh
+ * 60-FC free-tier wallet for any unseen developer_id" assumption this file
+ * was originally written with** — as deployed today, debiting a wallet
+ * that doesn't already exist is a 404, not an auto-create. The genuine
+ * wallet-debit idempotency question (does a retried debit against an
+ * EXISTING wallet double-charge) remains open and unanswered — it was
+ * never reached. No financial or ledger side effect occurred from either
+ * 404'd attempt (the request never got far enough to mutate anything).
+ * Whoever revisits this: find the real developer/wallet-provisioning
+ * mechanism (a separate PAI'D endpoint? does it require an actual signed-up
+ * account?) before re-attempting test 2 — do not just retry with a
+ * different synthetic id and expect a different result.
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { randomUUID } from "node:crypto";
