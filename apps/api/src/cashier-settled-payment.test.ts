@@ -228,9 +228,14 @@ describe("settleOverageCash -> recordSettledPayment (H1 cash settlement persiste
 describe("settleOverageCash: enforce-mode wallet success records a paid_fc receipt (H0.3)", () => {
   beforeEach(() => {
     process.env.PAID_WALLET_MODE = "enforce";
+    // MTL structural guard (isOwnerEntityAccount, cashier.ts): this block's
+    // fixture accounts (acc-9, acc-9b, acc-9c, acc-10) exercise the wallet
+    // mechanism itself and must be explicitly allowlisted.
+    process.env.PAID_WALLET_OWNER_ACCOUNT_IDS = "acc-9,acc-9b,acc-9c,acc-10";
   });
   afterEach(() => {
     delete process.env.PAID_WALLET_MODE;
+    delete process.env.PAID_WALLET_OWNER_ACCOUNT_IDS;
   });
 
   it("wallet debit success persists a settled payment with provider 'paid_fc'", async () => {

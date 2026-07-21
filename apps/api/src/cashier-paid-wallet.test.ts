@@ -47,10 +47,17 @@ import * as snapshots from "@axis/snapshots";
 import * as mpp from "./mpp.js";
 import { log } from "./logger.js";
 
+// Every existing test in this suite exercises the wallet mechanism itself
+// against account "acc-1" — the MTL structural guard (isOwnerEntityAccount,
+// cashier.ts) now requires that account to be explicitly allowlisted as an
+// owner-entity account, or the wallet rail refuses it regardless of mode.
+// "acc-third-party-refusal" below is the one account deliberately left OFF
+// this allowlist, to prove the refusal.
 const PAID_ENV = {
   PAID_API_BASE_URL: "https://paid.test/v1",
   PAID_MERCHANT_ID: "merchant-1",
   PAID_API_KEY: "sk_test",
+  PAID_WALLET_OWNER_ACCOUNT_IDS: "acc-1",
 };
 
 const PAID_ENV_KEYS = [
@@ -61,6 +68,7 @@ const PAID_ENV_KEYS = [
   "PAID_MERCHANT_ID",
   "PAID_ACCOUNT_ID",
   "PAID_API_KEY",
+  "PAID_WALLET_OWNER_ACCOUNT_IDS",
 ] as const;
 
 function fakeReq(): IncomingMessage {
@@ -424,5 +432,71 @@ describe("settleOverageViaPaidWallet — direct", () => {
     const { res } = makeRes();
     await expect(settleOverageViaPaidWallet(fakeReq(), res, "acc-1", 150, OPTS, "read")).resolves.toBeNull();
     await expect(settleOverageViaPaidWallet(fakeReq(), res, "acc-1", 150, OPTS, "shadow")).resolves.toBeNull();
+  });
+});
+
+// ─── MTL structural guard: the FC stored-value rail is owner-entity-only ──
+// (isOwnerEntityAccount, cashier.ts) — see [[paid-mtl-risk-finding]]. A
+// PAID-held prepaid balance for a third-party account is exactly the custody
+// pattern that makes this rail an MTL question; the guard must refuse it
+// regardless of PAID_WALLET_MODE, with zero calls to debitPaidWallet (i.e.
+// zero network calls at all — the guard fires before any fetch).
+
+describe("MTL guard — non-owner-entity accounts never reach the FC wallet rail", () => {
+  const NON_OWNER = "acc-third-party-refusal";
+
+  it("enforce mode: refuses a non-allowlisted account with ZERO network calls, falls through to mppx", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce" });
+    fetchSpy.mockResolvedValueOnce(debitOkResponse(58, 2)); // would succeed IF called — proves refusal isn't accidental
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, NON_OWNER, 150, OPTS);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // Fell through to mppx-direct, exactly as mode="off" would; chargeMpp is
+    // mocked to resolve null ("MPP not configured"), which is settleOverageCash's
+    // own documented "null" outcome — the important assertion is WHICH rail
+    // was consulted (mppx, via the mock below), not this particular mock's value.
+    expect(mpp.chargeMpp).toHaveBeenCalledOnce();
+    expect(result).toBeNull();
+  });
+
+  it("read mode: also refuses (this rail's diagnostics never even look at a non-owner wallet)", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "read" });
+    fetchSpy.mockResolvedValueOnce(walletResponse());
+    const { res } = makeRes();
+
+    await expect(settleOverageViaPaidWallet(fakeReq(), res, NON_OWNER, 150, OPTS, "read")).resolves.toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("shadow mode: also refuses", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "shadow" });
+    const { res } = makeRes();
+
+    await expect(settleOverageViaPaidWallet(fakeReq(), res, NON_OWNER, 150, OPTS, "shadow")).resolves.toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("an empty/unset allowlist refuses EVERY account, including 'acc-1' — fail-closed default", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce", PAID_WALLET_OWNER_ACCOUNT_IDS: "" });
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(mpp.chargeMpp).toHaveBeenCalledOnce();
+    expect(result).toBeNull();
+  });
+
+  it("the allowlist supports multiple owner entities (comma-separated)", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce", PAID_WALLET_OWNER_ACCOUNT_IDS: "y-axis-acc, x-axis-acc ,z-axis-acc" });
+    fetchSpy.mockResolvedValueOnce(debitOkResponse(58, 2));
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, "x-axis-acc", 150, OPTS);
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(result).toEqual({ status: 200 });
   });
 });

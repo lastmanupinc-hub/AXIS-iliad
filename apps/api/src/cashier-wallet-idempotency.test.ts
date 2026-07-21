@@ -24,7 +24,7 @@
  * PAI'D. No caller key -> still falls back to the H0.1 per-invocation
  * randomUUID() (the residual risk is inherent to opting out of idempotency).
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 vi.mock("./paid-client.js", async (importOriginal) => {
@@ -49,6 +49,13 @@ const noKeyReq = reqWithKey();
 
 beforeEach(() => {
   vi.mocked(debitPaidWallet).mockClear();
+  // MTL structural guard (isOwnerEntityAccount, cashier.ts): these tests exercise
+  // the wallet mechanism itself, so the fixture accounts must be explicitly
+  // allowlisted, or the guard refuses them before debitPaidWallet is ever called.
+  process.env.PAID_WALLET_OWNER_ACCOUNT_IDS = "acc-1,acc-2";
+});
+afterEach(() => {
+  delete process.env.PAID_WALLET_OWNER_ACCOUNT_IDS;
 });
 
 function sentKey(callIndex: number): string {

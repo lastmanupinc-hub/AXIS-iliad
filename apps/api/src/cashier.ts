@@ -63,6 +63,25 @@ export function centsToFabricCredits(cents: number): number {
  *                                        and write a 402 to `res`; returns { status: 402 }
  *                                        (mppx is NOT called, no work runs on this call).
  */
+/**
+ * MTL structural guard (fail-closed allowlist, not a denylist): the PAI'D
+ * Fabric-Credit wallet is a stored-value balance PAI'D itself holds — fine
+ * for the owner's own entities (self-custody), but exactly the custody
+ * pattern that makes a THIRD-PARTY account's funds a money-transmission
+ * question (see [[paid-mtl-risk-finding]]). Iliad has no existing concept of
+ * "this account is one of the owner's own LLCs" to check against, so this
+ * does NOT invent one — it requires the owner to explicitly allowlist
+ * account_ids via PAID_WALLET_OWNER_ACCOUNT_IDS (comma-separated). Unset or
+ * empty means the allowlist is empty: EVERY account is refused, including in
+ * a future where PAID_WALLET_MODE is accidentally left on "enforce" for
+ * everyone — fail closed, not fail open.
+ */
+export function isOwnerEntityAccount(accountId: string): boolean {
+  const raw = process.env.PAID_WALLET_OWNER_ACCOUNT_IDS ?? "";
+  const allowlist = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  return allowlist.includes(accountId);
+}
+
 export async function settleOverageViaPaidWallet(
   req: IncomingMessage,
   res: ServerResponse,
@@ -73,6 +92,15 @@ export async function settleOverageViaPaidWallet(
 ): Promise<{ status: 402 | 200 } | null> {
   const amountFc = centsToFabricCredits(overageCents);
   const tool = opts.meta?.tool ?? "default";
+
+  if (!isOwnerEntityAccount(accountId)) {
+    // Structural, not policy: this fires regardless of mode (read/shadow/enforce)
+    // so the FC rail's diagnostics never even LOOK at a non-owner account's
+    // wallet, and enforce can never debit one. Falls through to mppx-direct,
+    // exactly as if PAID_WALLET_MODE were "off" for this specific caller.
+    log("info", "paid_wallet_non_owner_account_refused", { accountId, tool, mode });
+    return null;
+  }
 
   if (mode === "read") {
     try {
