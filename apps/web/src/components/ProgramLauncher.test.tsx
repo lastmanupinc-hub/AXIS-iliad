@@ -123,3 +123,39 @@ describe("ProgramLauncher — concurrent runs (H-Phase-A cycle 18)", () => {
     await waitFor(() => expect(within(searchCard).queryByText("Generating...")).toBeNull());
   });
 });
+
+// H-Phase-A cycle 23: each program card was a mouse-only clickable <div> --
+// no role="button"/tabIndex/onKeyDown -- so a keyboard-only or screen-reader
+// user on the app's most-visited page had no way to run a program directly
+// from the launcher grid at all.
+describe("ProgramLauncher — keyboard operability (H-Phase-A cycle 23)", () => {
+  it("each unlocked card is a real, keyboard-focusable button that runs on Enter", async () => {
+    const onRun = vi.fn(async () => {});
+    render(<ProgramLauncher generatedFiles={[]} onRun={onRun} />);
+
+    const searchCard = screen.getByRole("button", { name: "Search Context" });
+    expect(searchCard.getAttribute("tabindex")).toBe("0");
+
+    fireEvent.keyDown(searchCard, { key: "Enter" });
+    await waitFor(() => expect(onRun).toHaveBeenCalledTimes(1));
+  });
+
+  it("Space also runs the program, and a locked card does nothing on Enter", async () => {
+    const { resolveAccount } = stubDeferredAccountFetch();
+    const onRun = vi.fn(async () => {});
+    render(<ProgramLauncher generatedFiles={[]} onRun={onRun} />);
+    resolveAccount("free");
+
+    const seoCard = await waitFor(() => {
+      const el = screen.getByRole("button", { name: /SEO Analysis/ });
+      expect(el.getAttribute("aria-disabled")).toBe("true");
+      return el;
+    });
+    fireEvent.keyDown(seoCard, { key: "Enter" });
+    expect(onRun).not.toHaveBeenCalled();
+
+    const debugCard = screen.getByRole("button", { name: "Debug Playbook" });
+    fireEvent.keyDown(debugCard, { key: " " });
+    await waitFor(() => expect(onRun).toHaveBeenCalledTimes(1));
+  });
+});

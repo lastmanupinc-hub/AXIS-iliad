@@ -1578,6 +1578,8 @@ kbd {
 .files-tab-sortable { display: inline-block; cursor: pointer; }
 .files-tab-sortable:focus-visible { outline: none; box-shadow: var(--glow); }
 
+.program-launcher-card:focus-visible { outline: none; box-shadow: var(--glow); }
+
 .artifact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .artifact-card {
   display: block;

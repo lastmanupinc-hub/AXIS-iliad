@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+const FOCUSABLE_SELECTOR = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export interface PaletteAction {
   id: string;
   label: string;
@@ -18,6 +20,8 @@ export function CommandPalette({ actions }: Props) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const paletteRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   // Ctrl+K / Cmd+K to open
   useEffect(() => {
@@ -32,13 +36,37 @@ export function CommandPalette({ actions }: Props) {
         e.preventDefault();
         setOpen(false);
       }
+      // H-Phase-A cycle 23: this palette is functionally a modal (fixed
+      // backdrop + centered panel) but, unlike every other overlay in this
+      // app (UpsellModal, SignUpModal), never trapped Tab focus inside it --
+      // Tab could escape into the ide-shell behind the visually-covering
+      // backdrop, producing "invisible focus" navigation.
+      if (e.key === "Tab" && open) {
+        const focusable = paletteRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (!focusable || focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    if (open) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } else if (previouslyFocusedRef.current) {
+      previouslyFocusedRef.current.focus();
+      previouslyFocusedRef.current = null;
+    }
   }, [open]);
 
   const filtered = actions.filter((a) =>
@@ -94,7 +122,11 @@ export function CommandPalette({ actions }: Props) {
 
       {/* Palette */}
       <div
+        ref={paletteRef}
         className="animate-scale-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         style={{
           position: "fixed",
           top: "20%",

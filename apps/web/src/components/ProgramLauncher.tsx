@@ -192,7 +192,11 @@ function ProgramCard({
 }) {
   return (
     <div
-      className="card"
+      className="card program-launcher-card"
+      role="button"
+      tabIndex={0}
+      aria-disabled={locked || running}
+      aria-label={locked ? `${program.label} (requires Pro)` : program.label}
       style={{
         padding: 16,
         cursor: locked ? "not-allowed" : running ? "wait" : "pointer",
@@ -200,6 +204,12 @@ function ProgramCard({
         transition: "border-color 0.15s",
       }}
       onClick={() => !running && !locked && onRun()}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !running && !locked) {
+          e.preventDefault();
+          onRun();
+        }
+      }}
       onMouseEnter={(e) => !locked && (e.currentTarget.style.borderColor = "var(--accent)")}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
     >
