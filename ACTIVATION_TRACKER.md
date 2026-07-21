@@ -58,7 +58,12 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done · 🚧 blocked
 - Paid path: **Starter monthly → PAI'D hosted checkout**; **Starter annual + Pro + Growth →
   Stripe-direct**. PAI'D settles into Stripe. (`paid-handlers.ts`, commit `bcb97ab`)
 - Metering: `meterMcpToolCredits()` → `consumeUsageCredits()` throws payment-required;
-  `@axis/mpp` builds the x402/402 negotiation body. 6 free discovery tools; rest metered.
+  `@axis/mpp` builds the x402/402 negotiation body. Free tools have grown well past the
+  original "6 discovery tools" figure (WO-13 commerce engines + WO-14 network
+  tokenization + the x402 `ping_payment` probe all added free entries since) — the real,
+  non-drifting count is `FREE_MCP_TOOL_COUNT` in `mcp-tool-impls.ts` (derived from
+  `FREE_TOOL_NAMES` filtered against real `MCP_TOOLS` registrations, currently 14); rest
+  metered.
 - Entitlements deny-by-default: `AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=false` in prod.
 - Pricing: flat 50¢ standard / 15¢ lite for analysis; `iliad_*` infra tools 1–5¢; some free lite.
 - Discovery routes registered in `server.ts:215–225`; handlers in `handlers.ts`; tests in

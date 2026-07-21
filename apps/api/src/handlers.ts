@@ -3315,7 +3315,7 @@ export async function handleForAgents(
     payment: {
       protocol: "mppx-0.5.12",
       per_run: `$${(METERED_STANDARD_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_STANDARD_CENTS_RANGE.max / 100).toFixed(2)} USD (standard) / $${(METERED_LITE_CENTS_RANGE.min / 100).toFixed(2)}-$${(METERED_LITE_CENTS_RANGE.max / 100).toFixed(2)} USD (lite) — varies per tool, see each tool's own description`,
-      flow: "HTTP 402 ? parse WWW-Authenticate mppx challenge ? pay via Stripe ? retry with credential",
+      flow: "HTTP 402 → parse WWW-Authenticate mppx challenge → pay via Stripe → retry with credential",
       budget_negotiation: {
         header: "X-Agent-Budget",
         schema: {

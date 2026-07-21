@@ -180,22 +180,48 @@ become optional — an upsell for credits/plans — instead of a prerequisite.
   self-facilitated unscreened receipt; the 1 USDC = $1.00 peg assumption; tax/invoicing on
   per-call machine payments.
 
-## 7. Honesty defects found during this mapping (fix in cycle 24)
+## 7. Honesty defects found during this mapping (fixed cycle 24)
 
-1. `docs/x402/CONTRACT.md` + `mcp-server.ts:508` comment describe an "X-Payment" retry
-   header that does not exist on our wire (contradicted by our own e2e test).
-2. `mcp-server.ts:505` comment says "13 of 17" metered tools; `METERED_MCP_TOOL_SET`
-   (`mcp-runtime.ts:177-198`) is the source of truth and has drifted past both numbers —
-   derive, don't hand-type.
-3. `ACTIVATION_TRACKER.md` claims "6 free discovery tools"; `FREE_MCP_TOOL_COUNT` is the
-   derived truth.
-4. `handlers.ts:3318` — `payment.flow` string has mojibake-corrupted arrows (`?`), missed
-   by prior sweeps.
-5. `build402NegotiationBody` advertises `x402/usdc/base` for a Tempo-chain rail, and
-   `mpp.ts:71` labels a token address "USDC" that is pathUSD per mppx's own defaults.
-6. Stale "in-band settlement defaults off in production" language across
-   `docs/payment-gates.md`, `H1_INBAND_SETTLEMENT.md`, and code comments vs
-   `render.yaml`'s pinned `"true"`.
+1. **FIXED.** `docs/x402/CONTRACT.md` + `mcp-server.ts:508` comment described an
+   "X-Payment" retry header that does not exist on our wire (contradicted by our own
+   e2e test). Corrected across `CONTRACT.md`, `mcp-server.ts`, `H1_INBAND_SETTLEMENT.md`,
+   `docs/runbooks/live-collection-verification.md`, and the e2e test's own describe title.
+2. **FIXED.** `mcp-server.ts:505` comment said "13 of 17" metered tools;
+   `METERED_MCP_TOOL_SET` (`mcp-runtime.ts:177-198`) is the source of truth and had
+   drifted past both numbers. Now reads 15 of 20 (see defect 7 below — the count moved
+   again mid-fix).
+3. **FIXED.** `ACTIVATION_TRACKER.md` claimed "6 free discovery tools";
+   `FREE_MCP_TOOL_COUNT` (currently 14) is the derived truth — pointed the doc at the
+   constant instead of hand-typing a number that will drift again.
+4. **FIXED.** `handlers.ts:3318` — `payment.flow` string had mojibake-corrupted arrows
+   (`?`), missed by prior sweeps. Swept the rest of the file for the same pattern; no
+   other instances found.
+5. **FIXED.** `build402NegotiationBody` advertised `x402/usdc/base` for a Tempo-chain
+   rail (an agent holding real Base USDC could not have paid — wrong chain entirely).
+   Relabeled the scheme `mppx/tempo` and `network` to `tempo`/`tempo-testnet` throughout
+   (`packages/mpp/src/index.ts`, `CONTRACT.md`, `packages/mpp/README.md`); red/green
+   verified via `budget-probe.test.ts`. **Disclosed, not fixed:** `mpp.ts:70-71`'s
+   testnet token address matches mppx's `pathUsd` default, not `usdc` — plausibly
+   Tempo's testnet just doesn't have a USDC deployment, but that's inferred from address
+   matching, not confirmed live; the negotiation body's `asset` field says "USDC"
+   unconditionally regardless. Needs verification against mppx's real testnet behavior
+   before relabeling either side.
+6. **FIXED.** Stale "in-band settlement defaults off in production" language across
+   `docs/payment-gates.md` and `H1_INBAND_SETTLEMENT.md` vs `render.yaml`'s pinned
+   `"true"` (since 2026-07-06) — both now state the code default AND the live-prod value
+   explicitly, with a pointer to verify current state via Render's API rather than trust
+   either the doc or the blueprint file blindly.
+7. **NEW, found while fixing defect 6, FIXED same cycle.** The `mcp-tool-impls.ts`
+   comment justifying #6's `iliad_web_research_crawl` gap as "currently inert" because
+   the flag is "off in production" was itself doubly wrong: the flag IS on in prod, and
+   the gap it was excusing is a real, live, up-to-~100x cash undercharge — the
+   pre-dispatch in-band gate previews this tool's PER-PAGE price as if it were a flat
+   per-call price (no way to know `limit` before the crawl runs), collects cash for one
+   page, then marks the request "settled" so dispatch's own correct per-page charge
+   (cycle 19) never collects the shortfall. Fixed by moving the tool into the same
+   `runtime_metered` exclusion bucket as the 4 truly-post-run-priced tools (now 5 of 20),
+   so it falls back to dispatch's already-correct plan-credit path unchanged. Red/green
+   verified via `mcp-inband-settlement.test.ts`.
 
 ## 8. Constraints this plan honors
 

@@ -15,7 +15,7 @@ Agent → POST /tool (no payment headers)
 Server → 402 + negotiation JSON body
 Agent → (a) retry with X-Agent-Budget + X-Agent-Mode: lite
       → (b) pay via payment_url / stablecoin, receive Payment-Receipt
-      → (c) retry with X-Payment credential + Authorization
+      → (c) retry with Authorization: Payment <credential> (API key moves to X-Axis-Key)
 Server → 200 + result (+ Payment-Receipt header on success)
 ```
 
@@ -25,10 +25,17 @@ Server → 200 + result (+ Payment-Receipt header on success)
 
 | Header | Required | Purpose |
 |--------|----------|---------|
-| `Authorization` | Usually | `Bearer <api_key>` for authenticated tools |
+| `Authorization` | Usually | `Bearer <api_key>` for authenticated tools; repurposed to `Payment <base64 credential>` on the payment retry leg (mppx protocol) |
 | `X-Agent-Budget` | Negotiation | JSON: `{"budget_per_run_cents":25,"spending_window":"per_call"}` |
 | `X-Agent-Mode` | Optional | `lite` or `engineer` for tier selection |
-| `X-Payment` | After pay | Settlement credential from PAI'D / mppx challenge |
+| `X-Axis-Key` | After pay | On the payment retry, the API key moves here since `Authorization` now carries the payment credential |
+
+There is no header literally named `X-Payment` on this wire — the payment
+credential rides on `Authorization: Payment <base64>` per the mppx/PaymentAuth
+protocol this contract's reference implementation (`@axis/mpp`) actually
+speaks. This differs from both x402.org protocol generations (v1: `X-PAYMENT`
+request header; v2: `PAYMENT-SIGNATURE`) — see `docs/x402/STRATEGY.md` for the
+full wire-compatibility gap analysis and the plan to close it.
 
 ---
 
@@ -43,13 +50,13 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
   "price": "0.50",
   "currency": "USD",
   "lite_price": "0.15",
-  "accepted_payment_schemes": ["x402/usdc/base", "mppx/tempo", "mppx/stripe"],
-  "preferred_payment_scheme": "x402/usdc/base",
+  "accepted_payment_schemes": ["mppx/tempo", "mppx/stripe"],
+  "preferred_payment_scheme": "mppx/tempo",
   "payment_rails": [
     {
-      "scheme": "x402/usdc/base",
+      "scheme": "mppx/tempo",
       "asset": "USDC",
-      "network": "base",
+      "network": "tempo",
       "price_usd": "0.50",
       "lite_price_usd": "0.15",
       "summary": "USDC on base @ $0.50 per analyze_repo call ($0.15 lite)",
@@ -76,7 +83,7 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
   "x402": {
     "amount": "500000",
     "asset": "USDC",
-    "network": "base",
+    "network": "tempo",
     "payTo": "<recipient_address_or_null>"
   },
   "payment_url": "https://iliad.trustfabric.ai/billing",
@@ -101,7 +108,7 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
 | `lite_price` | Yes | Lite tier price string |
 | `currency` | Yes | ISO display currency (`USD`) |
 | `accepted_payment_schemes` | Yes | Ordered by SERVER PREFERENCE — token/USDC first when a recipient is configured; Stripe is the always-available fallback. A client `Accept-Payment` ranking overrides. |
-| `preferred_payment_scheme` | Yes | The single scheme the server prefers (`x402/usdc/<network>` when configured, else `mppx/stripe`) |
+| `preferred_payment_scheme` | Yes | The single scheme the server prefers (`mppx/tempo` when a Tempo recipient is configured, else `mppx/stripe`) |
 | `payment_rails` | Yes | Per-rail economics an agent can evaluate autonomously: `scheme`, `asset`, `network`, `price_usd`, `lite_price_usd`, `summary`, `settlement`, `intermediaries`, `chargeback_exposure`, `surcharge`, `processing_overhead`, `preferred` (+ `why_preferred` on the preferred rail). Agent-facing prices are identical on every rail (no per-rail surcharge); rails differ in settlement mechanics and processing overhead — the card rail carries Stripe's published standard fee (2.9% + $0.30), the USDC rail network gas only, which is why the token rail is preferred. See [`PAYMENTS_COMPLIANCE.md`](./PAYMENTS_COMPLIANCE.md) for the AML/sanctions posture and the discount-not-surcharge rule on any future price differential. |
 | `payment_url` | Yes | Human or agent checkout entry |
 | `x402` | Yes | Stablecoin block: `amount`, `asset`, `network`, `payTo` |

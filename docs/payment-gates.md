@@ -15,11 +15,17 @@ Every `POST /mcp` carrying a `tools/call` passes through `settleMcpCallInband`
 written to `res` by step 6 below, never earlier.
 
 1. **`AXIS_MCP_INBAND_SETTLEMENT` flag** (`inbandSettlementEnabled()`,
-   `mcp-runtime.ts`). Off (default) → the in-band gate is a no-op for every
-   call; dispatch metering (authorize/capture against plan credits, 402 via
-   `buildMcpPaymentRequiredError`) behaves exactly as it always has. **Ship
-   changes to this chain in staging with the flag ON before touching
-   production's value.**
+   `mcp-runtime.ts`). Off (code default, unset/anything but `"true"`/`"1"`) →
+   the in-band gate is a no-op for every call; dispatch metering
+   (authorize/capture against plan credits, 402 via
+   `buildMcpPaymentRequiredError`) behaves exactly as it always has. **The
+   code default and the live production value are different questions** —
+   `render.yaml` (Blueprint-managed, autoSync) has pinned this flag to
+   `"true"` since 2026-07-06, so the deployed prod service runs with in-band
+   settlement ON. Confirm current live state via Render's own API before
+   trusting either this doc or `render.yaml` as current truth — dashboard
+   overrides can diverge from the blueprint. **Ship changes to this chain in
+   staging with the flag ON before touching production's value.**
 2. **Method + tool-name shape.** Must be `tools/call` with a string `name`.
 3. **Lite-mode caps** (`applyLiteCaps`, `lite-caps.ts`). A call the cap table
    REJECTS never reaches this gate's charge logic — dispatch returns the
@@ -30,8 +36,10 @@ written to `res` by step 6 below, never earlier.
    depends on `args`/`mode` and this call is free), `not_provisioned` (the
    backend env isn't configured — the real `runX` would return
    `_not_configured` without charging), `runtime_metered` (billability is only
-   knowable from a post-run probe — 4 tools stay on plan-credit metering),
-   and `not_in_scope` (free/discovery tools, unknown names) all fall through.
+   knowable from a post-run probe — 5 tools stay on plan-credit metering,
+   incl. `iliad_web_research_crawl` since cycle 24: its price is per-page and
+   the pre-dispatch preview can't know the page count), and `not_in_scope`
+   (free/discovery tools, unknown names) all fall through.
 5. **Auth.** `auth.account` must resolve (a real API key). Anonymous falls
    through to dispatch's normal free/limit path — the in-band gate never
    collects cash from an unauthenticated caller.
@@ -92,7 +100,7 @@ including fully anonymous ones — and record the event to
 
 | Flag | Default | Effect |
 |---|---|---|
-| `AXIS_MCP_INBAND_SETTLEMENT` | off (unset/anything but `"true"`/`"1"`) | Master switch for the whole ordered chain above. **Ship staging-first**: flip it on in a non-production environment, watch `GET /v1/stats`'s `x402_challenges_issued`/`paid_settlements` (Phase 0) move as expected, before touching production. |
+| `AXIS_MCP_INBAND_SETTLEMENT` | off in code (unset/anything but `"true"`/`"1"`) — **but `render.yaml` has pinned it to `"true"` in prod since 2026-07-06**; verify live state via Render's API, don't trust this table alone | Master switch for the whole ordered chain above. **Ship staging-first**: flip it on in a non-production environment, watch `GET /v1/stats`'s `x402_challenges_issued`/`paid_settlements` (Phase 0) move as expected, before touching production. |
 | `PAID_WALLET_MODE` | `off` | `off` / `read` / `shadow` / `enforce` — see `docs/MCP_PAID_ACCESS_DESIGN.md`'s phased rollout section for the full detail; only relevant when `AXIS_MCP_INBAND_SETTLEMENT` is also on. |
 | `AXIS_PAYMENT_PROBE_ENABLED` | on (unset, or any value other than exactly `"false"`) | Operator kill-switch for `ping_payment`'s dispatch. Set to `"false"` to disable the probe (e.g. if it becomes an abuse vector — it is the one tool callable by a fully anonymous caller with zero rate-limit-relevant cost signal). Gates the tool's **behavior only**, not its catalog listing — `tools/list` still advertises `ping_payment` either way, so catalog-honesty (every tool ships what `tools/list` advertises) is unaffected; a disabled call returns a clear, non-2xx-shaped tool error explaining why, not a silent no-op. |
 

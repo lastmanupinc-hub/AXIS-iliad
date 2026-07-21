@@ -502,11 +502,22 @@ export async function dispatch(
 
 /**
  * H1: in-band settlement gate. For every MCP tool decideInbandGate certifies as
- * guaranteed-billable (WO-02: 13 of 17 metered tools, up from the 3 in WO-01), when the
- * flag is on and the call would incur a cash overage, collect it in-band on the JSON-RPC
- * POST (the surface an agent already lives on) instead of only metering-and-rejecting:
- *   - overage + valid X-Payment  -> settle, mark the request paid, let dispatch run the tool
- *   - overage + no payment        -> write the x402 challenge and stop (agent retries w/ X-Payment)
+ * guaranteed-billable (15 of the 20 real METERED_MCP_TOOLS -- see decideInbandGate's
+ * own switch + mcp-runtime.ts's METERED_MCP_TOOL_SET for the authoritative count;
+ * the other 5 -- iliad_document_parsing/code_sandbox/speech_to_text/text_to_speech/
+ * web_research_crawl -- stay on plan-credit metering since their billability is a
+ * post-run runtime probe unknowable at this pre-dispatch gate (web_research_crawl's
+ * PRICING_TIERS entry is a PER-PAGE rate; pre-dispatch can't know the page count),
+ * when the flag is on and the call would incur
+ * a cash overage, collect it in-band on the JSON-RPC POST (the surface an agent
+ * already lives on) instead of only metering-and-rejecting:
+ *   - overage + a valid payment credential (Authorization: Payment <base64 mppx
+ *     credential>, API key moved to X-Axis-Key since Authorization is occupied)
+ *     -> settle, mark the request paid, let dispatch run the tool
+ *   - overage + no payment credential -> write the WWW-Authenticate: Payment
+ *     challenge and stop (agent retries with Authorization: Payment ... +
+ *     X-Axis-Key: <api_key> -- there is no header literally named "X-Payment";
+ *     see live-settlement.e2e.test.ts's own note on this)
  *   - no overage / not applicable -> passthrough (dispatch meters via plan credits as today)
  * Charges before the tool runs, matching the REST cashier's existing semantics.
  * Returns true iff it already wrote the response (a 402 challenge) — caller must stop.

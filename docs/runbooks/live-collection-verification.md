@@ -1,8 +1,9 @@
 # Runbook — Live Collection Verification (WO-03)
 
-**Claim this closes:** InstallPage / ForAgents — *"HTTP 402 → MPP challenge → Stripe
-payment → retry. No human needed."* (live in-band settlement of the Machine Payments
-Protocol / MPP overage charge, via `chargeMpp` → `mppx` → Stripe).
+**Claim this closes:** McpPage / ForAgentsPage (formerly InstallPage — renamed since this
+runbook was written) — *"HTTP 402 → MPP challenge → Stripe payment → retry. No human
+needed."* (live in-band settlement of the Machine Payments Protocol / MPP overage charge,
+via `chargeMpp` → `mppx` → Stripe).
 
 **Status until every step below reads green:** the claim is **not yet fully live**.
 Code alone cannot close it — three external Stripe/Render gates require a human. This
@@ -58,10 +59,11 @@ the key is present but Stripe rejected the charge attempt).
 
 ## External gate 2 — Stripe Shared Payment Tokens (SPT) capability
 
-Even with a valid key present, the `X-Payment` retry leg (in-band card settlement)
-requires the Stripe account to have **Shared Payment Tokens** capability enabled. This
-is an allowlisted / limited-availability Stripe feature — it is not something code can
-turn on.
+Even with a valid key present, the `Authorization: Payment` retry leg (in-band card
+settlement — the real mppx wire header; this doc used to call it "X-Payment", which
+does not exist on the wire, see `live-settlement.e2e.test.ts`) requires the Stripe
+account to have **Shared Payment Tokens** capability enabled. This is an allowlisted /
+limited-availability Stripe feature — it is not something code can turn on.
 
 **Verify:** confirm via the Stripe Dashboard or Stripe support that SPT is enabled for
 the account backing `STRIPE_SECRET_KEY`. Without it, `chargeMpp` will issue the 402
@@ -102,18 +104,22 @@ copy must keep the residual caveat (see below), not assert unqualified live coll
    proves the loop in Stripe **TEST** mode.
 2. `curl https://api.iliad.trustfabric.ai/v1/health/ready` → `checks.payment_rail ==
    "live"` — proves a live-mode key reached the prod process.
-3. A real live-mode `X-Payment` retry has been observed to return `200` with a
-   `Payment-Receipt` header against production (an actual, small, real-money charge —
-   an operational step beyond simply enabling the feature; do this deliberately and
-   only when ready to accept a real charge).
+3. A real live-mode `Authorization: Payment` retry has been observed to return `200`
+   with a `Payment-Receipt` header against production (an actual, small, real-money
+   charge — an operational step beyond simply enabling the feature; do this
+   deliberately and only when ready to accept a real charge).
 
-## Residual honesty caveat (current interim copy)
+## Residual honesty caveat
 
-Until all three hold, InstallPage's "Autonomous Payment" copy reads:
-
-> "Over-quota agents get an HTTP 402 MPP challenge and can settle in-band via X-Payment
-> retry (Stripe test-mode verified; live-mode collection is enabled once the account's
-> Stripe SPT capability is active)."
+Until all three hold, ForAgentsPage/McpPage copy must not assert unqualified live
+in-band collection. The exact interim wording this runbook originally quoted
+(InstallPage's "Autonomous Payment" section) no longer appears verbatim in the current
+UI — the page was renamed and its copy has since evolved (see `ForAgentsPage.tsx`,
+which today just says "Native x402 payments" / "Respect x402 responses for autonomous
+payment" without a header-name claim to get wrong). That is not itself a violation of
+this caveat, but it means the specific quoted-copy check below is historical, not a
+live diff target — re-derive the current caveat wording from whatever payment-flow
+copy is on the live page before flipping it to an unqualified claim.
 
 Flip to the unqualified "No human needed" claim only after all three DONE steps above
 are satisfied.
