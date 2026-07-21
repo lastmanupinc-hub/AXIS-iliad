@@ -3,6 +3,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { settleOverageCash } from "./cashier.js";
+import { getClientIp } from "./rate-limiter.js";
+import { anonProvisionEnabled, allowChallenge, buildProvisioningChallenge } from "./anon-frontdoor.js";
 import { compensateAndSummarize } from "./compensator.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
 import {
@@ -10,6 +12,7 @@ import {
   getUsageCreditSummary,
   recordMcpUsage,
   recordCompensationOwed,
+  recordPaymentFunnelEvent,
 } from "@axis/snapshots";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { classifyProbe, captureIntent, detectMcpSource } from "./intent.js";
@@ -232,6 +235,33 @@ export async function dispatch(
       const auth = await resolveAuth(req);
       const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
       await logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>);
+
+      // Anonymous front door (flag-gated, default OFF; docs/x402/STRATEGY.md's
+      // PAI'D-routing design). An anonymous caller hitting a metered tool gets a
+      // PROVISIONING challenge — a routing pointer to a real, reachable API key —
+      // instead of today's dead-end auth error. Deliberately branches on
+      // auth.anonymous, NOT !auth.account: an invalid/revoked key must still fall
+      // through unchanged to the existing per-handler wall below (this door is not
+      // a key-validity oracle). Adds NO anonymous settlement path anywhere —
+      // settleMcpCallInband's own anonymous short-circuit is untouched — which is
+      // what keeps this MTL-safe by construction (see [[paid-mtl-risk-finding]]).
+      if (anonProvisionEnabled() && auth.anonymous && (METERED_MCP_TOOLS as readonly string[]).includes(canonicalToolName)) {
+        if (!allowChallenge(getClientIp(req))) {
+          return rpcOk(id, {
+            ...toolErr("Too many provisioning requests from this network. Wait a moment and retry."),
+            _error: { code: "quota", retryable: true },
+          });
+        }
+        try {
+          await recordPaymentFunnelEvent({ account_id: null, tool: canonicalToolName, kind: "challenge" });
+        } catch {
+          /* funnel telemetry is best-effort — must never block the challenge response */
+        }
+        return rpcOk(id, {
+          ...toolOk(buildProvisioningChallenge(canonicalToolName, req)),
+          _provision_required: true,
+        });
+      }
 
       // Lite-mode cap enforcement (revenue-leak fix): a caller paying the lite
       // price must GET lite behavior. Applied BEFORE the idempotency hash so a
