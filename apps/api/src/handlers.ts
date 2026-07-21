@@ -3216,11 +3216,24 @@ export async function handleForAgents(
   const knownToolNames = new Set(allTools.map(t => t.name));
   for (const entry of deriveMcpToolCatalog()) {
     if (knownToolNames.has(entry.name)) continue;
+    // H-Phase-A cycle 23: this used to spread PAYMENT_META (analyze_repo's
+    // OWN price_usd/lite_price_usd) and override only price_usd with
+    // entry.pricing -- a pre-formatted "$0.05/call" string that doesn't even
+    // match the bare-decimal shape every other price_usd value in this
+    // document uses. lite_price_usd was left at analyze_repo's "0.15" for
+    // EVERY derived tool regardless of its real lite price (several of
+    // which are actually free in lite mode, per their own PRICING_TIERS
+    // row). Derive both fields from this tool's own real pricing tier
+    // instead -- and, like the 3 curated entries with no charge at all
+    // (get_snapshot/get_artifact/improve_my_agent_with_axis), omit
+    // x_payment entirely for a genuinely non-metered tool rather than
+    // attaching a bogus "included in plan" price.
+    const tier = (METERED_MCP_TOOLS as readonly string[]).includes(entry.name) ? getPricingTier(entry.name) : null;
     allTools.push({
       name: entry.name,
       auth: entry.auth_required,
       description: entry.description,
-      ...(entry.pricing !== "free" ? { x_payment: { ...PAYMENT_META, price_usd: entry.pricing } } : {}),
+      ...(tier ? { x_payment: { ...PAYMENT_META, price_usd: (tier.standard_cents / 100).toFixed(2), lite_price_usd: (tier.lite_cents / 100).toFixed(2) } } : {}),
     });
   }
 
