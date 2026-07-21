@@ -1229,6 +1229,19 @@ describe("GET /mcp — JSON manifest", () => {
     expect(realMin).toBeLessThan(realMax);
   });
 
+  // H-Phase-A cycle 22: pricing_note sat right next to standard_price_cents_
+  // range above, hand-typing "(1-50c standard)" instead of interpolating the
+  // same derived range -- the exact bug class cycle 20 fixed on its sibling
+  // field, one field over. Guard both stay in sync.
+  it("_meta.monetization.pricing_note interpolates the same real range as standard_price_cents_range", async () => {
+    const r = await get("/mcp");
+    const data = r.data as Record<string, unknown>;
+    const meta = data._meta as Record<string, unknown>;
+    const monetization = meta.monetization as { standard_price_cents_range?: [number, number]; pricing_note?: string };
+    const [realMin, realMax] = monetization.standard_price_cents_range!;
+    expect(monetization.pricing_note).toContain(`${realMin}-${realMax}c`);
+  });
+
   // H-Phase-A cycle 20: this manifest's authentication.description used to
   // name only 3 auth-required tools and 2 open ones, when in reality
   // roughly two dozen tools require auth. Guard against re-introducing a

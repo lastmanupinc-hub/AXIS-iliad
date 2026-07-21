@@ -822,7 +822,11 @@ export function getMcpServerMeta(): Record<string, unknown> {
         // across every metered tool, derived from PRICING_TIERS, so this
         // can't misrepresent the catalog again as individual prices change.
         standard_price_cents_range: [METERED_STANDARD_CENTS_RANGE.min, METERED_STANDARD_CENTS_RANGE.max],
-        pricing_note: "Prices vary per tool (1-50c standard) -- see each tool's own description for its exact rate.",
+        // H-Phase-A cycle 22: this hand-typed "(1-50c standard)" sat right
+        // next to standard_price_cents_range above -- the exact same
+        // hand-typed-vs-derived bug cycle 20 fixed on THAT field, one field
+        // over. Interpolated instead so it can't drift from its own sibling.
+        pricing_note: `Prices vary per tool (${METERED_STANDARD_CENTS_RANGE.min}-${METERED_STANDARD_CENTS_RANGE.max}c standard) -- see each tool's own description for its exact rate.`,
         budget_header: "X-Agent-Budget",
       },
       categories: [
