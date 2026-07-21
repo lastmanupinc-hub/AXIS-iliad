@@ -3185,7 +3185,13 @@ export async function handleForAgents(
       // below), promising a 402 challenge that never arrives.
       { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files. Free (uses free-tier programs: search, skills, debug)." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
-      { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
+      // H-Phase-A cycle 22: this entry described the tool as a Firecrawl proxy;
+      // runWebResearch's real default backend is AXIS's own sovereign crawler
+      // (sovereignScrape) -- Firecrawl only runs if an operator explicitly sets
+      // AXIS_WEB_RESEARCH_BACKEND=firecrawl. The sibling crawl entry below got
+      // this exact correction in cycle 19; this single-page scrape entry was
+      // simply missed by that fix.
+      { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL with AXIS's owned crawler (no third-party key). Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
       // H-Phase-A cycle 8 corrected the stale numeric rate here but, like
       // openapi.ts's entry, mischaracterized the pricing MODEL as flat —
       // handleFirecrawlCrawl has always billed per page beyond the account's
@@ -4329,8 +4335,18 @@ export async function handleFirecrawlScrape(
           sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
             ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
           });
-          return;
         }
+        // H-Phase-A cycle 22: this site only checked `=== null` (MPP not
+        // configured) and fell straight through on a REAL {status:402} --
+        // chargeMpp's own contract (mpp.ts) is that a 402 challenge is
+        // ALREADY written+ended to `res` and the caller MUST return
+        // immediately, exactly like every other chargeWithDiscounts call
+        // site in this file already does. Missing this let a normal,
+        // protocol-compliant first-leg x402 call (no payment credential
+        // attached yet -- always a real 402, not an edge case) fall through
+        // to populate the 24h shared cache for free; the client's own
+        // retry then hit that cache and skipped payment entirely.
+        if (chargeResult === null || chargeResult.status === 402) return;
       }
 
       try {
@@ -4568,8 +4584,12 @@ export async function handleFirecrawlCrawl(
         sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
           ...(await buildPaymentRequiredPayload("iliad_web_research_crawl", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
         });
-        return;
       }
+      // H-Phase-A cycle 22: same missing-402-check bug as handleFirecrawlScrape
+      // -- a real {status:402} (chargeMpp already wrote+ended the challenge)
+      // fell through instead of returning, on a normal protocol-compliant
+      // first-leg call with no payment credential attached yet.
+      if (chargeResult === null || chargeResult.status === 402) return;
     }
 
     try {

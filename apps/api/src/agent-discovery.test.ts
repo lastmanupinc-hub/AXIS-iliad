@@ -486,6 +486,21 @@ describe("GET /for-agents", () => {
     expect(standardMin).not.toBe(standardMax);
   });
 
+  it("H-Phase-A cycle 22: iliad_web_research's description matches its real default backend (AXIS's own crawler), not Firecrawl", async () => {
+    const tools = data.tools as Array<{ name: string; description: string }>;
+    const scrape = tools.find((t) => t.name === "iliad_web_research");
+    const crawl = tools.find((t) => t.name === "iliad_web_research_crawl");
+    expect(scrape).toBeDefined();
+    expect(crawl).toBeDefined();
+    // runWebResearch/runWebResearchCrawl both default to sovereignScrape/
+    // sovereignCrawl -- Firecrawl only runs if an operator explicitly opts
+    // in via AXIS_WEB_RESEARCH_BACKEND=firecrawl -- so neither entry should
+    // claim Firecrawl as if it were the default.
+    expect(scrape!.description).not.toContain("Firecrawl");
+    expect(crawl!.description).not.toContain("Firecrawl");
+    expect(scrape!.description).toContain("owned crawler");
+  });
+
   it("includes discovery URLs", async () => {
     const discovery = data.discovery as Record<string, unknown>;
     expect(discovery).toBeDefined();
