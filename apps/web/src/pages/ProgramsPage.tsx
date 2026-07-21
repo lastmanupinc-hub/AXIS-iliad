@@ -280,7 +280,7 @@ export function ProgramsPage({ onAnalyze }: Props) {
       <section className="programs-section">
         <div className="programs-section-header">
           <h2>Pro Programs</h2>
-          <p>17 additional programs unlocked with a Pro subscription.</p>
+          <p>{pro.length} additional programs unlocked with a Pro subscription.</p>
         </div>
         <div className="programs-grid">
           {pro.map((p) => (
