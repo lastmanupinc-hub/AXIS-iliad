@@ -65,9 +65,32 @@ export interface PricingTier {
   engineer_description?: string;
 }
 
+/**
+ * The x402 foundation's "Bazaar" discovery extension (specs/extensions/bazaar.md,
+ * github.com/x402-foundation/x402) -- the REAL, spec-defined discovery mechanism.
+ * Verified against the foundation's own TypeScript types
+ * (typescript/packages/extensions/src/bazaar/mcp/types.ts): resource servers do
+ * NOT host a well-known discovery path -- discovery info instead rides inside
+ * the 402 response body itself, and facilitators catalog it from there. This
+ * package stays dependency-free (see PRICING_TIERS's own comment below), so the
+ * caller supplies the tool's real MCP catalog entry rather than this module
+ * looking one up itself.
+ */
+export interface Build402BazaarInfo {
+  /** The MCP tool name exactly as registered in tools/list. */
+  toolName: string;
+  description?: string;
+  /** The tool's REAL JSON Schema (from its MCP_TOOLS catalog entry) -- required by the spec; never fabricate one. */
+  inputSchema: Record<string, unknown>;
+  example?: Record<string, unknown>;
+  output?: { example?: unknown };
+}
+
 export interface Build402Options {
   message?: string;
   referral_token?: string | null;
+  /** Omitted entirely when absent -- never emit a bazaar block with a fabricated inputSchema. */
+  bazaar?: Build402BazaarInfo;
 }
 
 // ─── Pricing Registry ─────────────────────────────────────────────
@@ -547,6 +570,44 @@ export function build402NegotiationBody(
       },
     },
     conversion_hint: "Every paid AXIS response returns a referral_token. Share it with other agents to earn credits on future paid calls.",
+    // The x402 foundation's real, spec-defined discovery mechanism (Bazaar
+    // extension) -- see Build402BazaarInfo's docs above. Only present when the
+    // caller supplied the tool's real MCP catalog entry; never fabricated.
+    ...(options.bazaar
+      ? {
+          bazaar: {
+            key: "bazaar",
+            info: {
+              input: {
+                type: "mcp" as const,
+                toolName: options.bazaar.toolName,
+                ...(options.bazaar.description ? { description: options.bazaar.description } : {}),
+                inputSchema: options.bazaar.inputSchema,
+                ...(options.bazaar.example ? { example: options.bazaar.example } : {}),
+              },
+              ...(options.bazaar.output ? { output: options.bazaar.output } : {}),
+            },
+            schema: {
+              $schema: "https://json-schema.org/draft/2020-12/schema" as const,
+              type: "object" as const,
+              properties: {
+                input: {
+                  type: "object" as const,
+                  properties: {
+                    type: { type: "string" as const, const: "mcp" as const },
+                    toolName: { type: "string" as const },
+                    description: { type: "string" as const },
+                    inputSchema: { type: "object" as const },
+                    example: { type: "object" as const },
+                  },
+                  required: ["type", "toolName", "inputSchema"],
+                },
+              },
+              required: ["input"],
+            },
+          },
+        }
+      : {}),
   };
 }
 

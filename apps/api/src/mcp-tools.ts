@@ -1836,3 +1836,29 @@ export const MCP_TOOLS = [
     ],
   },
 ];
+
+/**
+ * Look up a tool's REAL catalog entry for the x402 Bazaar discovery extension
+ * (build402NegotiationBody's `options.bazaar`, packages/mpp) -- never fabricate
+ * an inputSchema. Returns undefined for tool names not in MCP_TOOLS (e.g. a
+ * REST-only operation with no MCP twin), so callers can safely omit the
+ * bazaar block entirely rather than send a wrong one.
+ */
+export function getMcpToolBazaarInfo(toolName: string): {
+  toolName: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  example?: Record<string, unknown>;
+  output?: { example?: unknown };
+} | undefined {
+  const tool = MCP_TOOLS.find((t) => t.name === toolName);
+  if (!tool) return undefined;
+  const firstExample = "examples" in tool ? (tool.examples as { input?: Record<string, unknown>; output?: unknown }[] | undefined)?.[0] : undefined;
+  return {
+    toolName: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    ...(firstExample?.input ? { example: firstExample.input } : {}),
+    ...(firstExample?.output !== undefined ? { output: { example: firstExample.output } } : {}),
+  };
+}

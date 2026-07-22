@@ -364,3 +364,50 @@ describe("build402NegotiationBody — canonical fields (H2.5)", () => {
     expect(typeof withOptions.upgrade_url).toBe("string");
   });
 });
+
+// The x402 foundation's real, spec-defined discovery mechanism (specs/extensions/
+// bazaar.md, verified against the foundation's own TypeScript types this session) —
+// NOT a well-known file. Resource servers embed discovery info directly in the 402
+// body; facilitators catalog it from there.
+describe("build402NegotiationBody — bazaar discovery extension (x402 foundation spec)", () => {
+  it("omits the bazaar field entirely when no bazaar info is supplied — never fabricates one", () => {
+    const body = build402NegotiationBody("analyze_repo");
+    expect(body.bazaar).toBeUndefined();
+  });
+
+  it("emits the real bazaar extension shape when the caller supplies real tool info", () => {
+    const body = build402NegotiationBody("analyze_repo", undefined, {
+      bazaar: {
+        toolName: "analyze_repo",
+        description: "Analyze a GitHub repository.",
+        inputSchema: { type: "object", required: ["github_url"], properties: { github_url: { type: "string" } } },
+        example: { github_url: "https://github.com/expressjs/express" },
+      },
+    });
+    const bazaar = body.bazaar as Record<string, unknown>;
+    expect(bazaar.key).toBe("bazaar");
+    const info = bazaar.info as Record<string, unknown>;
+    const input = info.input as Record<string, unknown>;
+    expect(input.type).toBe("mcp");
+    expect(input.toolName).toBe("analyze_repo");
+    expect(input.description).toBe("Analyze a GitHub repository.");
+    // The spec REQUIRES inputSchema — this must be the real schema, not a placeholder.
+    expect(input.inputSchema).toEqual({ type: "object", required: ["github_url"], properties: { github_url: { type: "string" } } });
+    expect(input.example).toEqual({ github_url: "https://github.com/expressjs/express" });
+    // schema.required must list inputSchema as a spec-required field, per the
+    // foundation's own McpDiscoveryExtension type.
+    const schema = bazaar.schema as { required: string[] };
+    expect(schema.required).toContain("input");
+  });
+
+  it("omits example/output/description when not supplied, but always includes the required inputSchema", () => {
+    const body = build402NegotiationBody("iliad_web_search", undefined, {
+      bazaar: { toolName: "iliad_web_search", inputSchema: { type: "object" } },
+    });
+    const bazaar = body.bazaar as { info: { input: Record<string, unknown> } };
+    expect(bazaar.info.input.toolName).toBe("iliad_web_search");
+    expect(bazaar.info.input.inputSchema).toEqual({ type: "object" });
+    expect(bazaar.info.input.description).toBeUndefined();
+    expect(bazaar.info.input.example).toBeUndefined();
+  });
+});

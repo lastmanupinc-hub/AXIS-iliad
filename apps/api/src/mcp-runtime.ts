@@ -10,6 +10,7 @@ import {
   releaseIdempotencyKey,
 } from "@axis/snapshots";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
+import { getMcpToolBazaarInfo } from "./mcp-tools.js";
 
 // Registry identity constants — shared between the tool impls
 // (runDiscoverAgenticCommerceTools advertises the shareable manifest) and the
@@ -116,6 +117,7 @@ async function buildMcpPaymentRequiredError(
       ...build402NegotiationBody(tool, parseAgentBudget(req), {
         message,
         referral_token: referralToken,
+        bazaar: getMcpToolBazaarInfo(tool),
       }),
       ...extra,
       price_per_call: `$${(getPricingTier(tool).standard_cents / 100).toFixed(2)}`,

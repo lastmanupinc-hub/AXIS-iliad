@@ -144,7 +144,7 @@ import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, getPricingTier, priceForMode, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
-import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
+import { MCP_TOOLS, getMcpToolBazaarInfo, type PlannedCapability } from "./mcp-tools.js";
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchBackend, webResearchNotConfigured, isWebResearchNotConfigured } from "./web-research.js";
 import { sovereignScrape, sovereignCrawl } from "./web-research-sovereign.js";
@@ -4040,6 +4040,7 @@ export async function runPingPayment(_args: Record<string, unknown>, req: Incomi
       {
         ...build402NegotiationBody("ping_payment", parseAgentBudget(req), {
           message: "This is a free payment-flow probe. Fulfil the x402 challenge and retry the same tools/call with the payment credential.",
+          bazaar: getMcpToolBazaarInfo("ping_payment"),
         }),
         _payment_required: true,
         tool: "ping_payment",

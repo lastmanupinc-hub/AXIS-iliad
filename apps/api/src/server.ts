@@ -33,6 +33,7 @@ import {
   handleFirecrawlCrawl,
   handlePreparePurchasing,
   handleWellKnown,
+  handleX402WellKnown,
   handleCapabilities,
   handleLlmsTxt,
   handleErrorCodes,
@@ -246,6 +247,11 @@ router.get("/.well-known/agent.json", handleAgentJson);
 router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
 router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
 router.get("/.well-known/ai-plugin.json", handleAiPlugin);
+// x402 discovery aid — real production traffic checks this path (verified via
+// Render log review); see handleX402WellKnown's own docblock for the honesty
+// note on why this isn't the x402 foundation's actual canonical mechanism.
+router.get("/.well-known/x402", handleX402WellKnown);
+router.get("/.well-known/x402.json", handleX402WellKnown);
 
 // Root-level discovery aliases probed by crawlers that skip the .well-known prefix
 router.get("/agents.json", handleAgentJson);

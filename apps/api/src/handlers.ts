@@ -57,7 +57,7 @@ import { requireAdmin } from "./admin.js";
 import { ErrorCode, ERROR_CODE_CATALOG, log, getRequestId } from "./logger.js";
 import { MCP_ERROR_CATEGORY_CATALOG, METERED_MCP_TOOLS } from "./mcp-runtime.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
-import { MCP_TOOLS } from "./mcp-tools.js";
+import { MCP_TOOLS, getMcpToolBazaarInfo } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 
@@ -178,6 +178,7 @@ async function buildPaymentRequiredPayload(
     ...build402NegotiationBody(tool, budget, {
       message,
       referral_token: referralToken,
+      bazaar: getMcpToolBazaarInfo(tool),
     }),
     // H2.5: usage_credits present everywhere an authenticated account's
     // credit standing is meaningful — absent (not fabricated) for anonymous
@@ -2615,6 +2616,41 @@ export async function handleWellKnown(
       openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
       examples: "https://github.com/lastmanupinc-hub/axis-iliad-examples  -  before/after examples of AXIS artifact-coverage runs (coverage score measures AXIS artifact presence, 0-100). Coverage is not a code-readiness or production-readiness claim; see the code_readiness block for the content-based verdict.",
     },
+  });
+}
+
+// ─── GET /.well-known/x402(.json)  -  x402 discovery aid ─────────────
+//
+// Honesty note (verified against the x402 foundation's own spec this
+// session, specs/extensions/bazaar.md + typescript/packages/extensions/src/
+// bazaar/mcp/types.ts): resource servers do NOT canonically host a
+// well-known discovery path under the real spec — discovery info instead
+// rides INSIDE each 402 response body via a `bazaar` extension field (see
+// build402NegotiationBody, packages/mpp), which facilitators are expected to
+// catalog. This file exists anyway because real, live production traffic
+// checks this exact path (confirmed via Render log review) — it is a
+// pragmatic pointer at the real mechanism, not a competing standard, and it
+// only ever advertises rails this system can actually settle today.
+export async function handleX402WellKnown(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const paymentRecipient = process.env.TEMPO_RECIPIENT_ADDRESS ?? null;
+  sendJSON(res, 200, {
+    note: "This file is a pragmatic discovery aid, not the x402 foundation's canonical mechanism. Per the foundation's own spec (specs/extensions/bazaar.md), resource servers do not host a well-known discovery path — real discovery info rides inside each 402 response body via a `bazaar` extension field. Every metered tool below returns one on its own 402.",
+    contract_doc: "https://github.com/lastmanupinc-hub/AXIS-iliad/blob/main/docs/x402/CONTRACT.md",
+    wire_protocol_note: "Iliad speaks the mppx/PaymentAuth wire protocol (WWW-Authenticate: Payment / Authorization: Payment / Payment-Receipt headers) — NOT x402.org's v1 (X-PAYMENT body/header) or v2 (PAYMENT-SIGNATURE header) conventions. See contract_doc for the full wire comparison.",
+    endpoint: {
+      url: "/mcp",
+      method: "POST",
+      transport: "Streamable HTTP (2025-03-26 MCP spec)",
+    },
+    metered_tools: METERED_MCP_TOOLS.map((tool) => {
+      const tier = getPricingTier(tool);
+      return { name: tool, standard_price_usd: (tier.standard_cents / 100).toFixed(2), lite_price_usd: (tier.lite_cents / 100).toFixed(2) };
+    }),
+    accepted_payment_schemes: paymentRecipient ? ["mppx/tempo", "mppx/stripe"] : ["mppx/stripe"],
+    how_to_pay: "Call any metered tool via tools/call without a payment credential to receive a real 402 negotiation body (WWW-Authenticate: Payment challenge, plus a bazaar discovery extension with the tool's real inputSchema). Retry with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
   });
 }
 

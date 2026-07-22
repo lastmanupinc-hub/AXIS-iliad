@@ -32,6 +32,7 @@ import {
   handleAiPlugin,
   handleOAuthProtectedResource,
   handlePricingLanding,
+  handleX402WellKnown,
 } from "./handlers.js";
 
 // ─── HTTP helper ─────────────────────────────────────────────────
@@ -85,6 +86,8 @@ beforeAll(async () => {
   router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
   router.get("/agents.json", handleAgentJson);
   router.get("/pricing", handlePricingLanding);
+  router.get("/.well-known/x402", handleX402WellKnown);
+  router.get("/.well-known/x402.json", handleX402WellKnown);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -310,6 +313,72 @@ describe("GET /.well-known/capabilities.json", () => {
   it("contains keywords array", async () => {
     expect(Array.isArray(json.keywords)).toBe(true);
     expect((json.keywords as string[]).length).toBeGreaterThan(0);
+  });
+});
+
+// ─── GET /.well-known/x402 and /.well-known/x402.json ────────────
+// Pragmatic discovery aid (not the x402 foundation's canonical mechanism —
+// see handleX402WellKnown's own docblock) added because real production
+// traffic checks this exact path.
+
+describe("GET /.well-known/x402 and /.well-known/x402.json", () => {
+  let jsonNoExt: Record<string, unknown>;
+  let jsonWithExt: Record<string, unknown>;
+  let statusNoExt: number;
+  let statusWithExt: number;
+
+  beforeAll(async () => {
+    const r1 = await req("/.well-known/x402");
+    const r2 = await req("/.well-known/x402.json");
+    statusNoExt = r1.status;
+    statusWithExt = r2.status;
+    jsonNoExt = JSON.parse(r1.body);
+    jsonWithExt = JSON.parse(r2.body);
+  });
+
+  it("both the extension-less and .json paths return 200 with identical bodies", () => {
+    expect(statusNoExt).toBe(200);
+    expect(statusWithExt).toBe(200);
+    expect(jsonNoExt).toEqual(jsonWithExt);
+  });
+
+  it("is honest that this is not the x402 foundation's canonical discovery mechanism", () => {
+    expect(String(jsonNoExt.note)).toContain("not the x402 foundation's canonical mechanism");
+    expect(String(jsonNoExt.note)).toContain("bazaar");
+  });
+
+  it("uses the real mppx/PaymentAuth wire protocol name, never claims X-PAYMENT/PAYMENT-SIGNATURE", () => {
+    const note = String(jsonNoExt.wire_protocol_note);
+    expect(note).toContain("mppx/PaymentAuth");
+    expect(note).toContain("NOT x402.org's");
+  });
+
+  it("lists every real metered tool with its real derived price — not a hand-typed subset", () => {
+    const tools = jsonNoExt.metered_tools as { name: string; standard_price_usd: string; lite_price_usd: string }[];
+    expect(tools.length).toBe(METERED_MCP_TOOLS.length);
+    for (const tool of METERED_MCP_TOOLS) {
+      const entry = tools.find((t) => t.name === tool);
+      expect(entry, `x402.json's metered_tools is missing ${tool}`).toBeDefined();
+      const tier = getPricingTier(tool);
+      expect(entry!.standard_price_usd).toBe((tier.standard_cents / 100).toFixed(2));
+      expect(entry!.lite_price_usd).toBe((tier.lite_cents / 100).toFixed(2));
+    }
+  });
+
+  it("never advertises the Base/CDP rail — only mppx schemes it can actually settle today", () => {
+    const schemes = jsonNoExt.accepted_payment_schemes as string[];
+    for (const scheme of schemes) {
+      expect(scheme.startsWith("mppx/"), `scheme "${scheme}" is not an mppx/ rail this system can settle`).toBe(true);
+    }
+    expect(schemes.join(",")).not.toContain("x402/usdc/base");
+  });
+
+  it("points agents at the real /mcp endpoint and the retry credential convention", () => {
+    const endpoint = jsonNoExt.endpoint as Record<string, unknown>;
+    expect(endpoint.url).toBe("/mcp");
+    expect(endpoint.method).toBe("POST");
+    expect(String(jsonNoExt.how_to_pay)).toContain("Authorization: Payment");
+    expect(String(jsonNoExt.how_to_pay)).toContain("X-Axis-Key");
   });
 });
 
