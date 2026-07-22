@@ -44,7 +44,13 @@ const MANIFEST_RESPONSE = {
   _meta: {
     categories: ["code-analysis", "agentic-commerce"],
     authentication: { type: "bearer", description: "API key in Authorization header: Bearer <api_key>." },
-    monetization: { model: "usage_based_mpp", standard_price_cents: 50, lite_price_cents: 15, budget_header: "X-Agent-Budget" },
+    // Cycle 27: was the pre-cycle-20 flat {standard_price_cents, lite_price_cents}
+    // shape -- the real backend (mcp-server.ts) has emitted
+    // {standard_price_cents_range, pricing_note} since cycle 20/22, so this
+    // mock was exercising a shape the live API no longer produces, masking
+    // McpPage's own stale-shape regression (the pricing paragraph's render
+    // guard checked the old flat fields and so never rendered in production).
+    monetization: { model: "usage_based_mpp", standard_price_cents_range: [1, 50], pricing_note: "Prices vary per tool (1-50c standard) -- see each tool's own description for its exact rate.", budget_header: "X-Agent-Budget" },
     transport: "http",
   },
 };
@@ -169,8 +175,12 @@ describe("McpPage — manifest panel", () => {
     // whole JSON blob, not equal to just the bare URL, so an exact match
     // still uniquely resolves to this panel's own <code>.
     expect(screen.getByText("https://x/mcp")).toBeTruthy();
-    expect(screen.getByText(/\$0\.50\/call/)).toBeTruthy();
-    expect(screen.getByText(/\$0\.15\/call/)).toBeTruthy();
+    // Cycle 27: locks the REAL current manifest shape (pricing_note, a
+    // fully-formed sentence) — the pre-cycle-20 flat $X/call rendering this
+    // used to assert on doesn't exist in the live API anymore; a mock still
+    // using the old shape would have kept this green while the real page
+    // silently never rendered anything (exactly what happened in production).
+    expect(screen.getByText(/Prices vary per tool/)).toBeTruthy();
     expect(screen.getByText("code-analysis")).toBeTruthy();
   });
 

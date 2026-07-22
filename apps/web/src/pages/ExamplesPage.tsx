@@ -575,7 +575,7 @@ export function ExamplesPage() {
             { label: "Repos analyzed", value: "5", color: "var(--accent)" },
             { label: "Languages covered", value: "5", color: "var(--text)" },
             { label: "Before (AI files)", value: "0", color: "var(--red, #ef4444)" },
-            { label: "After (per repo)", value: "75", color: "var(--green)" },
+            { label: "After (per repo)", value: String(ARTIFACT_COUNT), color: "var(--green)" },
           ].map(stat => (
             <div key={stat.label} style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)", textAlign: "center" }}>
               <div style={{ fontSize: "1.3rem", fontWeight: 800, color: stat.color, marginBottom: 3 }}>{stat.value}</div>

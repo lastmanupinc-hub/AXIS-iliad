@@ -32,4 +32,13 @@ describe("ExamplesPage — artifact-count honesty", () => {
     // 5 case-study cards, each rendering its own after-count badge.
     expect(badges.length).toBeGreaterThanOrEqual(5);
   });
+
+  it("the 'After (per repo)' summary stat tile shows the real ARTIFACT_COUNT, not a 7th stale '75' (Cycle 27)", () => {
+    // A distinct literal from the hero text and the 5 case-study badges above
+    // — cycle 20 fixed those 6 occurrences but missed this 7th one, which had
+    // zero test coverage until now.
+    render(<ExamplesPage />);
+    expect(screen.getByText("After (per repo)").parentElement?.textContent).toContain(String(ARTIFACT_COUNT));
+    expect(screen.queryByText("75")).toBeNull();
+  });
 });

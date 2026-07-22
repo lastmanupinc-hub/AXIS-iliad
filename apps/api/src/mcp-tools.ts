@@ -872,12 +872,13 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── iliad_vector_database (AXIS-owned, SQLite-backed flat search) ─
-  // Second member of the owned tier. MVP runs cosine-similarity flat
-  // search over the existing @axis/snapshots SQLite database. Future
-  // upgrade path: swap the module body for a LanceDB-on-R2 implementation
-  // when query volume justifies the columnar index. Public function
-  // signatures stay stable across the swap.
+  // ─── iliad_vector_database (AXIS-owned, Postgres-backed pgvector search) ─
+  // Second member of the owned tier. Runs pgvector cosine-similarity search
+  // over the @axis/snapshots Postgres database (see apps/api/src/vector-db.ts;
+  // predates the Neon/Postgres migration -- this comment previously said
+  // SQLite, stale since that migration). Future upgrade path: swap the module
+  // body for a LanceDB-on-R2 implementation when query volume justifies the
+  // columnar index. Public function signatures stay stable across the swap.
   {
     name: "iliad_vector_database",
     description:

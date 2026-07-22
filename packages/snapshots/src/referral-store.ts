@@ -189,7 +189,19 @@ export async function consumeFreeCall(account_id: string): Promise<boolean> {
   return result.rowCount > 0;
 }
 
-/** Apply referral discount to a base price in cents. Returns adjusted price (minimum 0). */
+/**
+ * Apply referral discount to a base price in cents. Returns adjusted price (minimum 0).
+ *
+ * Cycle 27: has ZERO callers anywhere in apps/api today — the live referral
+ * discount path is the separate getReferralTokenUsageModifier (a fractional
+ * usage-scaling modifier feeding usage-credit-metering.ts), not this
+ * whole-cent conversion. Also note: with MAX_EARNED_MILLICENTS capped at 20
+ * (0.02 cents), Math.floor(.../1000) below always yields 0 -- this function
+ * cannot produce a nonzero cash discount as written. Left unfixed rather than
+ * silently rescaled, since raising the cap's meaning is a pricing decision,
+ * not a bug fix; flagged here so it isn't wired up later without noticing
+ * it's a no-op.
+ */
 export async function applyReferralDiscount(account_id: string, base_cents: number): Promise<{ final_cents: number; discount_cents: number; credits_used_millicents: number }> {
   const credits = await getReferralCredits(account_id);
 

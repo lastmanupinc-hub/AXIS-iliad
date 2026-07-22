@@ -13,7 +13,7 @@ import {
   type McpToolSearchResponse,
   type InstallConfigResponse,
 } from "../api.ts";
-import { SectionHeader, StatTile, Callout, EmptyState, Skeleton, CodeBlock, Pill, TableWrap, formatUsdCents } from "../components/primitives/index.ts";
+import { SectionHeader, StatTile, Callout, EmptyState, Skeleton, CodeBlock, Pill, TableWrap } from "../components/primitives/index.ts";
 import { ProbeIntentDemo } from "../components/ProbeIntentDemo.tsx";
 import { DOCS_API_BASE, TOOL_COUNT, PROGRAM_COUNT } from "../config.ts";
 import { useTabList } from "../useTabList.ts";
@@ -86,8 +86,8 @@ function ErrorRetry({ error, onRetry }: { error: AsyncError; onRetry: () => void
 
 interface McpMonetization {
   model?: string;
-  standard_price_cents?: number;
-  lite_price_cents?: number;
+  standard_price_cents_range?: [number, number];
+  pricing_note?: string;
   budget_header?: string;
 }
 
@@ -140,9 +140,9 @@ function ManifestPanel() {
             Endpoint: <code className="mono">{manifest.server.endpoint}</code>
           </p>
           {authentication?.description && <p className="text-muted text-sm mb-2">{authentication.description}</p>}
-          {monetization && typeof monetization.standard_price_cents === "number" && typeof monetization.lite_price_cents === "number" && (
+          {monetization?.pricing_note && (
             <p className="text-muted text-sm mb-2">
-              Pricing: standard {formatUsdCents(monetization.standard_price_cents)}/call · lite {formatUsdCents(monetization.lite_price_cents)}/call
+              {monetization.pricing_note}
               {monetization.budget_header && <> · negotiate reduced pricing with <code className="mono">{monetization.budget_header}</code></>}
             </p>
           )}
