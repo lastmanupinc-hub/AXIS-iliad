@@ -68,7 +68,8 @@ function expandIpv6Hextets(ip: string): string[] {
   const left = ip.slice(0, compressedAt).split(":").filter((h) => h.length > 0);
   const right = ip.slice(compressedAt + 2).split(":").filter((h) => h.length > 0);
   const zerosNeeded = Math.max(0, 8 - left.length - right.length);
-  return [...left, ...Array(zerosNeeded).fill("0"), ...right];
+  const zeros: string[] = new Array<string>(zerosNeeded).fill("0");
+  return [...left, ...zeros, ...right];
 }
 
 function aggregateIpPrefix(ip: string): string {
