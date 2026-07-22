@@ -371,6 +371,13 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     // Charge only now that the request is validated — a 400/404/cross-tenant rejection above
     // returns before any billing, so callers are never charged for output they never receive
     // (audit #11 over-charge). A generation failure after this point is the rare residual case.
+    // H-Phase-A cycle 25: tracks whether a real charge fired so the catch block below can
+    // compensate on failure — mirrors handleAnalyze/handleCreateSnapshot/handleGitHubAnalyze/
+    // handlePreparePurchasing's identical chargedAmountCents convention (cycle 21). Before this
+    // fix, this handler had NO surrounding try/catch at all around generateFiles/
+    // recordUsageBestEffort despite already having charged — any future fallible addition here
+    // would silently strand a real charge with no compensation-ledger record.
+    let chargedAmountCents: number | null = null;
     if (isPro && auth?.account) {
       const budget = parseAgentBudget(req);
       const mode = resolveAgentMode(req);
@@ -397,37 +404,53 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
+      chargedAmountCents = amountCents;
     }
-    const result = generateFiles({
-      context_map: contextMap,
-      repo_profile: repoProfile,
-      requested_outputs: requestedOutputs,
-      source_files: snapshot?.files ?? [],
-    });
+    try {
+      const result = generateFiles({
+        context_map: contextMap,
+        repo_profile: repoProfile,
+        requested_outputs: requestedOutputs,
+        source_files: snapshot?.files ?? [],
+      });
 
-    const programFiles = result.files.filter(f => f.program === program);
+      const programFiles = result.files.filter(f => f.program === program);
 
-    // Record usage for authenticated pro program calls
-    if (isPro) {
-      const auth = await resolveAuth(req);
-      if (auth.account) {
-        await recordUsageBestEffort(
-          auth.account.account_id,
-          program,
-          snapshotId,
-          programFiles.length,
-          snapshot?.files?.length ?? 0,
-          snapshot?.total_size_bytes ?? 0,
-        );
+      // Record usage for authenticated pro program calls
+      if (isPro) {
+        const usageAuth = await resolveAuth(req);
+        if (usageAuth.account) {
+          await recordUsageBestEffort(
+            usageAuth.account.account_id,
+            program,
+            snapshotId,
+            programFiles.length,
+            snapshot?.files?.length ?? 0,
+            snapshot?.total_size_bytes ?? 0,
+          );
+        }
       }
-    }
 
-    sendJSON(res, 200, {
-      snapshot_id: snapshotId,
-      program,
-      files: programFiles,
-      skipped: result.skipped,
-    });
+      sendJSON(res, 200, {
+        snapshot_id: snapshotId,
+        program,
+        files: programFiles,
+        skipped: result.skipped,
+      });
+    } catch (err) {
+      log("error", "program_generation_failed", {
+        request_id: getRequestId(res),
+        program,
+        snapshot_id: snapshotId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      const compensation = await compensateIfChargedBeforeFailure(auth?.account?.account_id, chargedAmountCents, program);
+      sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
+        snapshot_id: snapshotId,
+        program,
+        ...(compensation ? { compensation_entry_id: compensation.entry_id } : {}),
+      });
+    }
   };
 }
 
@@ -2637,7 +2660,7 @@ export function handleX402WellKnown(
 ): Promise<void> {
   const paymentRecipient = process.env.TEMPO_RECIPIENT_ADDRESS ?? null;
   sendJSON(res, 200, {
-    note: "This file is a pragmatic discovery aid, not the x402 foundation's canonical mechanism. Per the foundation's own spec (specs/extensions/bazaar.md), resource servers do not host a well-known discovery path — real discovery info rides inside each 402 response body via a `bazaar` extension field. Every metered tool below returns one on its own 402.",
+    note: "This file is a pragmatic discovery aid, not the x402 foundation's canonical mechanism. Per the foundation's own spec (specs/extensions/bazaar.md), resource servers do not host a well-known discovery path — real discovery info rides inside each 402 response body via a `bazaar` extension field. Whether a metered tool below actually returns one on a given call depends on the preconditions in how_to_pay.",
     contract_doc: "https://github.com/lastmanupinc-hub/AXIS-iliad/blob/main/docs/x402/CONTRACT.md",
     wire_protocol_note: "Iliad speaks the mppx/PaymentAuth wire protocol (WWW-Authenticate: Payment / Authorization: Payment / Payment-Receipt headers) — NOT x402.org's v1 (X-PAYMENT body/header) or v2 (PAYMENT-SIGNATURE header) conventions. See contract_doc for the full wire comparison.",
     endpoint: {
@@ -2650,7 +2673,7 @@ export function handleX402WellKnown(
       return { name: tool, standard_price_usd: (tier.standard_cents / 100).toFixed(2), lite_price_usd: (tier.lite_cents / 100).toFixed(2) };
     }),
     accepted_payment_schemes: paymentRecipient ? ["mppx/tempo", "mppx/stripe"] : ["mppx/stripe"],
-    how_to_pay: "Call any metered tool via tools/call without a payment credential to receive a real 402 negotiation body (WWW-Authenticate: Payment challenge, plus a bazaar discovery extension with the tool's real inputSchema). Retry with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
+    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one, free, on every call, and is not gated by account state or deployment config. For the metered tools listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
   });
   return Promise.resolve();
 }

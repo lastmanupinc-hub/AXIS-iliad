@@ -380,6 +380,20 @@ describe("GET /.well-known/x402 and /.well-known/x402.json", () => {
     expect(String(jsonNoExt.how_to_pay)).toContain("Authorization: Payment");
     expect(String(jsonNoExt.how_to_pay)).toContain("X-Axis-Key");
   });
+
+  it("does not overpromise that any metered tool call without a credential returns a real 402 (H-cycle-25 honesty fix)", () => {
+    // The endpoint used to claim "call any metered tool without a payment
+    // credential to receive a real 402" — false in the default/common case:
+    // an anonymous caller hits a plain auth error (anon front door is OFF by
+    // default), and even an authenticated caller only gets a real negotiation
+    // body on overage past plan credits, on a guaranteed-billable tool, with
+    // in-band settlement enabled. how_to_pay must not repeat that overclaim,
+    // and must point at ping_payment as the one deterministic, unconditional demo.
+    const howToPay = String(jsonNoExt.how_to_pay);
+    expect(howToPay).not.toContain("Call any metered tool via tools/call without a payment credential to receive a real 402");
+    expect(howToPay).toContain("ping_payment");
+    expect(howToPay.toLowerCase()).toContain("overage");
+  });
 });
 
 // ─── GET /robots.txt ─────────────────────────────────────────────

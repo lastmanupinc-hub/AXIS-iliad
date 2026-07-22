@@ -68,6 +68,22 @@ describe("allowChallenge — IP-prefix-aggregated, namespaced rate limit", () =>
     expect(allowChallenge("2001:db8:1234:5678:9999::9999")).toBe(false);
   });
 
+  it("aggregates IPv6 addresses whose NETWORK prefix itself is zero-compressed (H-cycle-25 fix)", () => {
+    // Distinct from the test above: there the "::" falls in the HOST portion
+    // (after the real /64 hextets), which the naive split-and-filter-empty
+    // implementation happened to handle correctly by accident. Here the "::"
+    // falls INSIDE the network portion itself (2001:db8::/64, with the zero
+    // hextets it stands for landing in positions 3-4) — the exact shape that
+    // let host-bit hextets shift into the "first 4 hextets" slot and mint a
+    // fresh bucket per address sharing one real /64.
+    for (let i = 0; i < 10; i++) {
+      expect(allowChallenge(`2001:db8::a1b2:c3d4:e5f6:${i}`)).toBe(true);
+    }
+    expect(allowChallenge("2001:db8::9999:8888:7777:6666")).toBe(false);
+    // A genuinely different /64 must still get its own, fresh bucket.
+    expect(allowChallenge("2001:db8:1::a1b2:c3d4:e5f6:1")).toBe(true);
+  });
+
   it("treats 'unknown' as its own bucket, not aggregated with real IPs", () => {
     for (let i = 0; i < 10; i++) allowChallenge("unknown");
     expect(allowChallenge("unknown")).toBe(false);

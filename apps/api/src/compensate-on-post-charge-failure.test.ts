@@ -12,11 +12,20 @@
  * test via `armThrow`), simulating a transient persistence failure AFTER a
  * real charge has already committed. Since these tests run sequentially
  * (no `concurrent`), a simple module-level flag is safe.
+ *
+ * H-Phase-A cycle 25 (x402-system harden) adds makeProgramHandler coverage:
+ * unlike the four handlers above, it had NO surrounding try/catch at all
+ * around its post-charge generateFiles/recordUsageBestEffort call — a
+ * genuinely uncaught 500 with money already taken, worse than the other
+ * four's "caught but uncompensated" gap. Uses a SEPARATE mock
+ * (@axis/generator-core's generateFiles, armed via `armGenerateThrow`) so it
+ * doesn't interfere with the saveContextMap-based tests above.
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 
 let armThrow = false;
+let armGenerateThrow = false;
 // Free-tier accounts in these tests need their cash-settlement charge to
 // actually SUCCEED (not fall through to a real payment rail) so the handler
 // reaches the post-charge persistence pipeline at all — same mock
@@ -38,10 +47,24 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
   };
 });
 
+vi.mock("@axis/generator-core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@axis/generator-core")>();
+  return {
+    ...actual,
+    generateFiles: (...args: Parameters<typeof actual.generateFiles>) => {
+      if (armGenerateThrow) {
+        armGenerateThrow = false;
+        throw new Error("simulated transient generateFiles failure");
+      }
+      return actual.generateFiles(...args);
+    },
+  };
+});
+
 import { resetTestDb, createAccount, createApiKey, recordUsage, TIER_LIMITS, getCompensationSummary } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleCreateSnapshot, handleAnalyze, handlePreparePurchasing, handleGitHubAnalyze } from "./handlers.js";
+import { handleCreateSnapshot, handleAnalyze, handlePreparePurchasing, handleGitHubAnalyze, makeProgramHandler, PROGRAM_OUTPUTS } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
 const mockFetchGitHubRepo = vi.fn();
@@ -94,6 +117,8 @@ beforeAll(async () => {
   router.post("/v1/analyze", handleAnalyze);
   router.post("/v1/prepare-for-agentic-purchasing", handlePreparePurchasing);
   router.post("/v1/github/analyze", handleGitHubAnalyze);
+  router.post("/v1/seo/analyze", makeProgramHandler("seo", PROGRAM_OUTPUTS.seo));
+  router.post("/v1/debug/analyze", makeProgramHandler("debug", PROGRAM_OUTPUTS.debug));
   const ts = await startTestServer(router);
   server = ts.server;
   testPort = ts.port;
@@ -214,6 +239,72 @@ describe("POST /v1/prepare-for-agentic-purchasing — compensates a charge that 
     expect(typeof r.data.compensation_entry_id).toBe("string");
     const after = await getCompensationSummary(acct.account_id);
     expect(after.owed_cents).toBeGreaterThan(0);
+  }, 15000);
+});
+
+describe("makeProgramHandler (POST /v1/<program>/analyze) — the SAME shape, guarded for the first time (cycle 25)", () => {
+  it("records a compensation entry when generateFiles throws AFTER the pro-program charge already fired", async () => {
+    const acct = await createAccount("ProgramCompensate", "program-compensate@test.local", "free");
+    const { rawKey } = await createApiKey(acct.account_id);
+    const snapRes = await req(
+      "/v1/snapshots",
+      {
+        manifest: {
+          project_name: "program-compensate-test",
+          project_type: "web_application",
+          frameworks: ["react"],
+          goals: ["test"],
+          requested_outputs: [],
+        },
+        files: [{ path: "package.json", content: '{"name":"x"}' }],
+      },
+      rawKey,
+    );
+    expect(snapRes.status).toBe(201);
+    const snapshotId = snapRes.data.snapshot_id as string;
+    const before = await getCompensationSummary(acct.account_id);
+
+    armGenerateThrow = true;
+    // "seo" is a pro-only program for a free-tier account — trips the
+    // entitlement-charge branch (consumeFreeCall mocked true lets it settle).
+    const r = await req("/v1/seo/analyze", { snapshot_id: snapshotId }, rawKey);
+
+    expect(r.status).toBe(500);
+    expect(typeof r.data.compensation_entry_id).toBe("string");
+    const after = await getCompensationSummary(acct.account_id);
+    expect(after.owed_cents).toBeGreaterThan(before.owed_cents);
+  }, 15000);
+
+  it("does NOT record compensation when generateFiles fails but no charge ever fired (free program)", async () => {
+    const acct = await createAccount("ProgramNoCharge", "program-no-charge@test.local", "free");
+    const { rawKey } = await createApiKey(acct.account_id);
+    const snapRes = await req(
+      "/v1/snapshots",
+      {
+        manifest: {
+          project_name: "program-no-charge-test",
+          project_type: "web_application",
+          frameworks: ["react"],
+          goals: ["test"],
+          requested_outputs: [],
+        },
+        files: [{ path: "package.json", content: '{"name":"x"}' }],
+      },
+      rawKey,
+    );
+    expect(snapRes.status).toBe(201);
+    const snapshotId = snapRes.data.snapshot_id as string;
+    const before = await getCompensationSummary(acct.account_id);
+
+    armGenerateThrow = true;
+    // "debug" is one of the free tier's own included programs — isPro is
+    // false, so makeProgramHandler never reaches the charge block at all.
+    const r = await req("/v1/debug/analyze", { snapshot_id: snapshotId }, rawKey);
+
+    expect(r.status).toBe(500);
+    expect(r.data.compensation_entry_id).toBeUndefined();
+    const after = await getCompensationSummary(acct.account_id);
+    expect(after.owed_cents).toBe(before.owed_cents);
   }, 15000);
 });
 
