@@ -84,10 +84,14 @@ const RATE_LIMITER = source("rate-limiter.ts");
 const CASHIER = source("cashier.ts");
 
 describe("payment-required contract (H2.5) — every 402/429 site is canonical-shaped or explicitly waived", () => {
-  it("handlers.ts: exactly 9 402 sites (all TIER_REQUIRED) and 6 429 sites (4 QUOTA_EXCEEDED + 2 RATE_LIMITED)", () => {
+  it("handlers.ts: exactly 10 402 sites (all TIER_REQUIRED) and 6 429 sites (4 QUOTA_EXCEEDED + 2 RATE_LIMITED)", () => {
+    // H-x402-cycle-25 DEVELOP added the 10th site: handleAnalyze's large-body
+    // surcharge 402 (a real per-call payable unlock, same canonical shape as
+    // every sibling site — see large-body-surcharge.test.ts for its own
+    // dedicated coverage).
     const sites402 = findSendErrorSites(HANDLERS, 402);
     const sites429 = findSendErrorSites(HANDLERS, 429);
-    expect(sites402).toHaveLength(9);
+    expect(sites402).toHaveLength(10);
     expect(sites429).toHaveLength(6);
     expect(sites402.every((s) => s.code === "TIER_REQUIRED")).toBe(true);
     expect(sites429.filter((s) => s.code === "QUOTA_EXCEEDED")).toHaveLength(4);
@@ -125,11 +129,19 @@ describe("payment-required contract (H2.5) — every 402/429 site is canonical-s
     // `async function buildPaymentRequiredPayload(tool: string, ...)` declaration.
     const calls = [...HANDLERS.matchAll(/await buildPaymentRequiredPayload\(([^)]*)\)/g)].map((m) => m[1]);
     expect(calls.length).toBeGreaterThanOrEqual(11);
-    const withoutTier = calls.filter((args) => !args.includes("auth.account.tier"));
+    // A tier value threads through as `<something>.tier` — most call sites
+    // read it off the function's own `auth.account.tier`; handleAnalyze's
+    // large-body surcharge site (H-x402-cycle-25) reads it off a locally
+    // destructured `account` (named to avoid shadowing this same function's
+    // OWN later `const auth` declaration) as `account.tier` — both are real,
+    // valid tier threading, just different variable names for the same
+    // AuthContext.account object.
+    const withoutTier = calls.filter((args) => !/\bauth\.account\.tier\b|\baccount\.tier\b/.test(args));
     // Exactly one call site has no authenticated account at all (the anonymous
     // free-tier-blocked-programs gate) — every other call site must thread tier.
     expect(withoutTier).toHaveLength(1);
     expect(withoutTier[0]).not.toContain("auth.account.account_id");
+    expect(withoutTier[0]).not.toContain("account.account_id");
   });
 
   it("billing.ts: exactly 3 PAYMENT_REQUIRED sites, each carrying a literal upgrade_url and a PAI'D-only checkout pointer", () => {
