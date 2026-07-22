@@ -16,9 +16,16 @@ import { getMcpToolBazaarInfo } from "./mcp-tools.js";
 // (runDiscoverAgenticCommerceTools advertises the shareable manifest) and the
 // server-meta builders in mcp-server. Kept here so the tool impls can read them
 // without importing from mcp-server (which would create an import cycle).
+//
+// The version was a THIRD hardcoded copy (was "0.5.0", drifted from the real
+// 0.5.3 -- found 2026-07-22 while validating the live GET /v1/mcp/server.json
+// against Glama's registry listing, which correctly showed 0.5.3 from a
+// different source while our own registry metadata endpoint served the
+// stale value to any crawler that hit it directly). Removed; both real call
+// sites now import the single already-correct API_VERSION from counts.ts
+// (the same constant mcp-server.ts's own SERVER_VERSION already aliases).
 export const REGISTRY_DISPLAY_NAME = "Axis' Iliad";
 export const SERVER_SLUG = "axis-iliad";
-export const REGISTRY_VERSION = "0.5.0";
 
 export const RPC_PARSE_ERROR = -32700;
 export const RPC_INVALID_REQUEST = -32600;

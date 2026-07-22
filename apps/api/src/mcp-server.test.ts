@@ -11,6 +11,7 @@ import { PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
 import { getPricingTier } from "./mpp.js";
+import { API_VERSION } from "./counts.js";
 
 let server: Server;
 let TEST_PORT: number;
@@ -1760,11 +1761,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.slug).toBe("axis-iliad");
   });
 
-  it("body contains registry version 0.5.0", async () => {
+  it("body contains the real API_VERSION, not a stale hardcoded registry version", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const server = data.server as Record<string, unknown>;
-    expect(server.version).toBe("0.5.0");
+    expect(server.version).toBe(API_VERSION);
   });
 
   it("body contains server.endpoint", async () => {
@@ -1861,7 +1862,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(typeof parsed.system_prompt_snippet).toBe("string");
     expect(parsed.shareable_manifest.tools).toBe(37);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
-    expect(parsed.shareable_manifest.version).toBe("0.5.0");
+    expect(parsed.shareable_manifest.version).toBe(API_VERSION);
   });
 
   it("shareable_manifest.free_tools never drifts from the top-level free_tools list", async () => {

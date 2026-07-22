@@ -23,7 +23,6 @@ export { MCP_TOOLS };
 import {
   REGISTRY_DISPLAY_NAME,
   SERVER_SLUG,
-  REGISTRY_VERSION,
   RPC_PARSE_ERROR,
   RPC_INVALID_REQUEST,
   RPC_METHOD_NOT_FOUND,
@@ -815,7 +814,7 @@ export function getMcpServerMeta(): Record<string, unknown> {
     server: {
       name: REGISTRY_DISPLAY_NAME,
       slug: SERVER_SLUG,
-      version: REGISTRY_VERSION,
+      version: API_VERSION,
       endpoint: "https://axis-api-6c7z.onrender.com/v1/mcp",
     },
     // Metadata mirrors tools/list — every tool we advertise. Catalog

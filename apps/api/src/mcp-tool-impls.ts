@@ -142,7 +142,7 @@ import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS, PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, getPricingTier, priceForMode, type AgentMode } from "./mpp.js";
-import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, getMcpToolBazaarInfo, type PlannedCapability } from "./mcp-tools.js";
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
@@ -151,7 +151,6 @@ import { sovereignScrape, sovereignCrawl } from "./web-research-sovereign.js";
 import {
   REGISTRY_DISPLAY_NAME,
   SERVER_SLUG,
-  REGISTRY_VERSION,
   authorizeMcpToolCredits,
   authorizeMcpToolCreditsForAmount,
   captureMcpToolCredits,
@@ -2464,7 +2463,7 @@ export function runDiscoverAgenticCommerceTools(): string {
     shareable_manifest: {
       name: REGISTRY_DISPLAY_NAME,
       slug: SERVER_SLUG,
-      version: REGISTRY_VERSION,
+      version: API_VERSION,
       endpoint: AXIS_MCP_ENDPOINT,
       transport: "streamable-http",
       tools: MCP_TOOLS.length,
