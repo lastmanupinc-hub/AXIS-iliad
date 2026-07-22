@@ -2631,7 +2631,7 @@ export async function handleWellKnown(
 // checks this exact path (confirmed via Render log review) — it is a
 // pragmatic pointer at the real mechanism, not a competing standard, and it
 // only ever advertises rails this system can actually settle today.
-export async function handleX402WellKnown(
+export function handleX402WellKnown(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -2652,6 +2652,7 @@ export async function handleX402WellKnown(
     accepted_payment_schemes: paymentRecipient ? ["mppx/tempo", "mppx/stripe"] : ["mppx/stripe"],
     how_to_pay: "Call any metered tool via tools/call without a payment credential to receive a real 402 negotiation body (WWW-Authenticate: Payment challenge, plus a bazaar discovery extension with the tool's real inputSchema). Retry with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
   });
+  return Promise.resolve();
 }
 
 // ─── GET /v1/error-codes  -  H4.2 generated error-code catalog ──────
