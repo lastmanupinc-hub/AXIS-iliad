@@ -1470,7 +1470,25 @@ export async function runWebResearchCrawl(args: Record<string, unknown>, req: In
       ? await firecrawlCrawl(url, limit, args.only_main_content !== false)
       : await sovereignCrawl(url, limit, args.only_main_content !== false);
   const pagesCrawled = "pages_crawled" in result ? result.pages_crawled : 0;
-  const poolDraw = await consumeFreeScrapes(auth.account.account_id, pagesCrawled);
+  // Cycle 26: consumeFreeScrapes (a real Postgres write) ran here unguarded,
+  // AFTER the crawl already incurred its real backend cost. A transient DB
+  // failure would throw past a completed, deliverable crawl -- no charge
+  // captured, no free-pool bookkeeping recorded, caller gets an error for
+  // work AXIS already paid for. Fail safe toward REVENUE (treat the whole
+  // crawl as unfunded, matching the pre-crawl estimate the caller was
+  // already authorized against above) rather than silently charging
+  // nothing; the crawl result itself is still real and still returned.
+  let poolDraw: { consumed: number; unfunded: number; remaining: number };
+  try {
+    poolDraw = await consumeFreeScrapes(auth.account.account_id, pagesCrawled);
+  } catch (err) {
+    log("error", "consume_free_scrapes_failed", {
+      account_id: auth.account.account_id,
+      pages_crawled: pagesCrawled,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    poolDraw = { consumed: 0, unfunded: pagesCrawled, remaining: poolStatus.remaining };
+  }
   const finalAmountCents = perPageCents * poolDraw.unfunded;
   await captureMcpToolCredits(auth.account, { ...charge, amountCents: finalAmountCents });
   return JSON.stringify({
@@ -2391,7 +2409,7 @@ export function deriveMcpToolCatalog(): McpToolCatalogEntry[] {
 }
 
 export function runDiscoverAgenticCommerceTools(): string {
-  // Distribution-facing surface — advertises the full 27-tool catalog
+  // Distribution-facing surface — advertises the full 37-tool catalog
   // (revised catalog-honesty policy: build-not-redact). Each
   // planned-capability stub gets converted to an owned implementation
   // over the v1 push; the name set stays stable so external integrations

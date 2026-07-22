@@ -295,7 +295,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Pricing: $0.50 standard, $0.25 lite budget mode, $250 engineer per run. Every call returns the same full purchasing bundle — focus_areas is recorded and echoed back in the response for the caller's own bookkeeping; it does not filter which artifacts are generated. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration) also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Pricing: $0.50 standard, $0.25 lite budget mode, $250 engineer per run. Lite mode returns the readiness score + top 3 gaps only, with an artifacts_note pointing at standard mode for the full artifact bundle — it does NOT include the artifacts themselves. Standard and engineer modes return the full bundle. focus_areas is recorded and echoed back in the response for the caller's own bookkeeping; it does not filter which artifacts are generated. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration) also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -1246,7 +1246,7 @@ export const MCP_TOOLS = [
         operation: { type: "string", description: "Echo of the operation that ran." },
         namespace: { type: "string", description: "Scoped namespace the call touched." },
         indexed: { type: "number", description: "Documents written (index mode)." },
-        total_in_namespace: { type: "number", description: "Documents currently in the namespace (index, search, count modes)." },
+        total_in_namespace: { type: "number", description: "Documents currently in the namespace (index, search modes -- count mode returns this same figure under the field name `total` instead)." },
         query: { type: "string", description: "Echo of the search query (search mode)." },
         hits: { type: "array", description: "BM25-ranked hits [{doc_id, url, title, snippet, score, metadata}] (search mode)." },
         removed: { type: ["boolean", "number"] as unknown as string, description: "delete: boolean; delete_namespace: count of rows removed." },

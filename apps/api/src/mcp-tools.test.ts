@@ -35,3 +35,14 @@ describe("getMcpToolBazaarInfo", () => {
     expect(info!.example).toBeDefined();
   });
 });
+
+describe("prepare_agentic_purchasing description (Cycle 26 honesty fix)", () => {
+  it("does not claim lite mode returns the same full bundle as standard -- it demonstrably doesn't (mcp-tool-impls.ts's own complianceDepth==='summary' branch withholds artifacts/purchasing_artifacts)", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "prepare_agentic_purchasing");
+    expect(tool).toBeDefined();
+    const description = tool!.description;
+    expect(description).not.toContain("Every call returns the same full purchasing bundle");
+    expect(description.toLowerCase()).toContain("lite mode returns the readiness score");
+    expect(description).toContain("Standard and engineer modes return the full bundle");
+  });
+});

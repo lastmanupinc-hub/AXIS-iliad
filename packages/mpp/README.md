@@ -169,7 +169,7 @@ Picks the best price for a tool given an agent's budget. Falls back to lite-mode
 Returns the full 402 JSON body to send back to the agent. Includes:
 
 - Standard and lite pricing
-- Accepted payment schemes (Stripe MPP, USDC on Base, mppx/Tempo)
+- Accepted payment schemes (Stripe MPP, mppx/Tempo -- USDC settles on the Tempo chain, not Base)
 - Retry instructions (headers + paths)
 - Free-alternative tools the agent can call without payment
 - Optional `referral_token` for share-to-earn micro-discounts

@@ -59,7 +59,7 @@ When payment is required, respond with **HTTP 402** and `Content-Type: applicati
       "network": "tempo",
       "price_usd": "0.50",
       "lite_price_usd": "0.15",
-      "summary": "USDC on base @ $0.50 per analyze_repo call ($0.15 lite)",
+      "summary": "USDC on tempo @ $0.50 per analyze_repo call ($0.15 lite)",
       "settlement": "on-chain, deterministic finality in seconds",
       "intermediaries": "none — direct to recipient address",
       "chargeback_exposure": "none (on-chain settlement is final)",

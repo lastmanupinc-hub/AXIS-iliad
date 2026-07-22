@@ -91,7 +91,7 @@ export function PaidCheckoutPage() {
 
   if (step === "loading") {
     return (
-      <div className="empty-state">
+      <div className="empty-state" role="status" aria-live="polite">
         <span className="spinner" /> Checking subscription availability...
       </div>
     );

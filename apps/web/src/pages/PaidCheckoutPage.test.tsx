@@ -41,3 +41,21 @@ describe("PaidCheckoutPage — cancellation honesty", () => {
     expect(screen.getByText(/one-time charge for your selected plan/)).toBeTruthy();
   });
 });
+
+describe("PaidCheckoutPage — loading state accessibility (Cycle 26)", () => {
+  it("announces the initial 'checking subscription availability' state to screen readers", async () => {
+    // Every other loading indicator in this app (StatusPage, ChangelogPage,
+    // CommercePage, ToolPage since cycle 21) uses role="status"
+    // aria-live="polite" — this was the one page missing it, so a
+    // screen-reader user heard nothing while the availability check ran.
+    stubFetch([["/portal/api/paid/config", { configured: true }]]);
+    render(<PaidCheckoutPage />);
+
+    const status = screen.getByText(/Checking subscription availability/).closest('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status!.getAttribute("aria-live")).toBe("polite");
+
+    // Let the stubbed fetch resolve so the test doesn't leak a pending timer/act warning.
+    await waitFor(() => expect(screen.getByText("Continue to checkout")).toBeTruthy());
+  });
+});
