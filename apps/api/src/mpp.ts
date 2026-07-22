@@ -36,8 +36,28 @@ export {
   priceForMode,
   PRICING_TIERS,
   LEGACY_TOOL_ALIASES,
+  computeLargeBodySurchargeCents,
+  LARGE_BODY_SURCHARGE_FREE_CAP_BYTES,
+  LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES,
 } from "@axis/mpp";
 import type { ChargeOptions, MppResult } from "@axis/mpp";
+import { LARGE_BODY_SURCHARGE_FREE_CAP_BYTES, LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES } from "@axis/mpp";
+
+/**
+ * Env-overridable large-body-surcharge thresholds (mirrors router.ts's own
+ * MAX_BODY_BYTES override pattern) -- lets tests exercise the free-cap/
+ * hard-ceiling boundaries with small real payloads instead of transferring
+ * tens of MB. Unset in production; the @axis/mpp package constants are the
+ * real defaults.
+ */
+export function getLargeBodySurchargeFreeCapBytes(): number {
+  const v = process.env.AXIS_LARGE_BODY_FREE_CAP_BYTES;
+  return v ? parseInt(v, 10) : LARGE_BODY_SURCHARGE_FREE_CAP_BYTES;
+}
+export function getLargeBodySurchargeHardCeilingBytes(): number {
+  const v = process.env.AXIS_LARGE_BODY_HARD_CEILING_BYTES;
+  return v ? parseInt(v, 10) : LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES;
+}
 
 /**
  * H2.5 — the canonical field set every payment/quota-required response

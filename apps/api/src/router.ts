@@ -88,7 +88,7 @@ export class Router {
         if (!res.writableEnded) {
           const msg = err instanceof Error ? err.message : "";
           if (msg === "Request body too large") {
-            sendError(res, 413, ErrorCode.BODY_TOO_LARGE, "Request body exceeds the maximum allowed size (50 MB)");
+            sendError(res, 413, ErrorCode.BODY_TOO_LARGE, `Request body exceeds the maximum allowed size (${(getMaxBodyBytes() / (1024 * 1024)).toFixed(0)} MB)`);
           } else {
             sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Internal server error");
           }
@@ -143,12 +143,24 @@ export function sendError(
   sendJSON(res, status, { ...extra, error: message, error_code: errorCode });
 }
 
-export async function readBody(req: IncomingMessage): Promise<string> {
+/** Default raw-body cap (50MB), overridable via MAX_BODY_BYTES. Single source
+ * of truth for readBody's own default AND anything (e.g. the large-body x402
+ * surcharge in handlers.ts) that needs to know where the free cap sits
+ * without duplicating the literal number and risking drift if an operator
+ * changes MAX_BODY_BYTES. */
+export const DEFAULT_MAX_BODY_BYTES = 52428800;
+
+/** The currently effective raw-body cap (MAX_BODY_BYTES env override, else the default). */
+export function getMaxBodyBytes(): number {
+  return parseInt(process.env.MAX_BODY_BYTES ?? String(DEFAULT_MAX_BODY_BYTES), 10);
+}
+
+export async function readBody(req: IncomingMessage, maxSizeOverride?: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let totalSize = 0;
     let settled = false;
-    const maxSize = parseInt(process.env.MAX_BODY_BYTES ?? "52428800", 10); // default 50MB
+    const maxSize = maxSizeOverride ?? getMaxBodyBytes();
 
     /* v8 ignore start — body reading event callbacks: race conditions hard to simulate */
     req.on("data", (chunk: Buffer) => {

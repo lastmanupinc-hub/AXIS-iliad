@@ -91,6 +91,13 @@ export interface Build402Options {
   referral_token?: string | null;
   /** Omitted entirely when absent -- never emit a bazaar block with a fabricated inputSchema. */
   bazaar?: Build402BazaarInfo;
+  /**
+   * Override the tool's static PRICING_TIERS lookup with a dynamically
+   * computed price (e.g. computeLargeBodySurchargeCents below) -- used for
+   * standard AND lite (a per-call unlock has no natural "lite" discount to
+   * offer). Omit to use the normal getPricingTier(tool) lookup.
+   */
+  priceOverrideCents?: number;
 }
 
 // ─── Pricing Registry ─────────────────────────────────────────────
@@ -348,12 +355,21 @@ export function getPricingTier(tool: string): PricingTier {
   return PRICING_TIERS[canonicalTool] ?? PRICING_TIERS.default;
 }
 
-/** Compute the best price given an agent budget and tool. Returns accepted=false when budget is below minimum. */
+/**
+ * Compute the best price given an agent budget and tool. Returns accepted=false
+ * when budget is below minimum. `tierOverride` lets a caller who already
+ * resolved a dynamically-priced tier (e.g. build402NegotiationBody's
+ * priceOverrideCents) skip the normal PRICING_TIERS registry lookup so the
+ * negotiation math uses the SAME price it's about to display, rather than
+ * silently re-deriving a different (likely PRICING_TIERS.default) one for an
+ * unregistered synthetic tool name.
+ */
 export function negotiatePrice(
   budget: AgentBudget,
   tool: string,
+  tierOverride?: PricingTier,
 ): { amount_cents: number; mode: "standard" | "lite"; accepted: boolean; reason: string } {
-  const tier = getPricingTier(tool);
+  const tier = tierOverride ?? getPricingTier(tool);
 
   if (!budget.budget_per_run_cents && budget.budget_per_run_cents !== 0) {
     return { amount_cents: tier.standard_cents, mode: "standard", accepted: true, reason: "No budget constraint — standard pricing." };
@@ -388,8 +404,15 @@ export function build402NegotiationBody(
   budget?: AgentBudget,
   options: Build402Options = {},
 ): Record<string, unknown> {
-  const tier = getPricingTier(tool);
-  const negotiation = budget ? negotiatePrice(budget, tool) : null;
+  const tier: PricingTier = options.priceOverrideCents !== undefined
+    ? {
+        tool,
+        standard_cents: options.priceOverrideCents,
+        lite_cents: options.priceOverrideCents,
+        lite_description: `${tool} (no lite discount available)`,
+      }
+    : getPricingTier(tool);
+  const negotiation = budget ? negotiatePrice(budget, tool, tier) : null;
   const paymentRecipient = process.env.TEMPO_RECIPIENT_ADDRESS ?? null;
   // Settlement is on the Tempo chain (chainId 4217 mainnet / 42431 testnet,
   // rpc.tempo.xyz / rpc.moderato.tempo.xyz per mppx's own defaults) — NOT
@@ -609,6 +632,45 @@ export function build402NegotiationBody(
         }
       : {}),
   };
+}
+
+// ─── Large-body x402 surcharge ─────────────────────────────────────
+
+// A per-call, size-scaled unlock for requests whose raw JSON body exceeds
+// the free cap (apps/api/src/router.ts's MAX_BODY_BYTES, default 50MB) --
+// previously a flat 413 with zero payable path forward, even for an account
+// that would happily pay to process THIS one oversized call. Deliberately
+// NOT a tier upgrade: raising an account's PERSISTED TIER_LIMITS with a
+// one-time per-call charge doesn't make sense (see handlers.ts's
+// findAccommodatingTier docblock -- an x402-aware client that paid this way
+// would still get rejected on retry, since a per-call charge can't change a
+// persisted account property). Unlocking a bigger ceiling for exactly this
+// one request IS a genuine per-call payable item, consistent with every
+// other mppx charge in this system.
+export const LARGE_BODY_SURCHARGE_FREE_CAP_BYTES = 52428800; // 50MB -- mirrors router.ts's DEFAULT_MAX_BODY_BYTES
+export const LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES = 150 * 1024 * 1024; // 3x -- beyond this, no payment unlocks it
+const LARGE_BODY_SURCHARGE_CENTS_PER_MB = 2;
+
+/**
+ * Cents to unlock a request body of exactly `declaredBytes`. Returns 0 when
+ * no surcharge is needed (within the free cap) and null when NO amount
+ * unlocks it (beyond the hard ceiling -- a resource-protection limit, not a
+ * pricing gap; mirrors findAccommodatingTier's own "no tier fits -> stay a
+ * flat 413" philosophy of never offering a payment that can't actually be
+ * honored). `freeCapBytes`/`hardCeilingBytes` default to the constants above
+ * but are overridable so tests can exercise the free-cap/hard-ceiling
+ * boundaries with small payloads instead of transferring real tens-of-MB
+ * bodies (mirrors router.ts's own MAX_BODY_BYTES override pattern).
+ */
+export function computeLargeBodySurchargeCents(
+  declaredBytes: number,
+  freeCapBytes: number = LARGE_BODY_SURCHARGE_FREE_CAP_BYTES,
+  hardCeilingBytes: number = LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES,
+): number | null {
+  if (declaredBytes <= freeCapBytes) return 0;
+  if (declaredBytes > hardCeilingBytes) return null;
+  const overMb = (declaredBytes - freeCapBytes) / (1024 * 1024);
+  return Math.max(1, Math.ceil(overMb) * LARGE_BODY_SURCHARGE_CENTS_PER_MB);
 }
 
 /**

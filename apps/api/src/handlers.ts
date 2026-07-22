@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFileSync } from "node:fs";
-import { parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
 import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
 import { classifyProbe, captureIntent } from "./intent.js";
@@ -172,6 +172,7 @@ async function buildPaymentRequiredPayload(
   budget?: AgentBudget,
   accountId?: string,
   tier?: BillingTier,
+  priceOverrideCents?: number,
 ): Promise<Record<string, unknown>> {
   const referralToken = accountId ? (await createReferralCode(accountId)).code : null;
   return {
@@ -179,6 +180,7 @@ async function buildPaymentRequiredPayload(
       message,
       referral_token: referralToken,
       bazaar: getMcpToolBazaarInfo(tool),
+      priceOverrideCents,
     }),
     // H2.5: usage_credits present everywhere an authenticated account's
     // credit standing is meaningful — absent (not fabricated) for anonymous
@@ -1620,7 +1622,64 @@ export async function handleAnalyze(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const raw = await readBody(req);
+  // H-x402-cycle-25 DEVELOP: a raw request body over router.ts's MAX_BODY_BYTES
+  // cap (default 50MB) used to be a flat 413 with zero path forward, even for
+  // an authenticated account that would happily pay to unlock room for THIS
+  // one call. Raising the account's PERSISTED tier via a one-time charge
+  // doesn't make sense (see findAccommodatingTier's own comment below), but a
+  // per-call size surcharge is a genuine payable item, same as every other
+  // mppx charge in this system. Content-Length gives the declared size
+  // BEFORE touching the body stream at all; a SEPARATE, early, header-only
+  // resolveAuth (safe -- reads no body) gives the account to charge, without
+  // disturbing the existing resolveAuth+401 check further down (unchanged
+  // error precedence for every other case). Anonymous callers are
+  // deliberately NOT offered this path -- this system never opens a new
+  // anonymous settlement rail (see anon-frontdoor.ts's own note) -- they
+  // keep the pre-existing flat-413 behavior, unchanged.
+  const earlyAuthForSurcharge = await resolveAuth(req);
+  let bodyReadCapOverride: number | undefined;
+  if (earlyAuthForSurcharge.account) {
+    const freeCapBytes = getLargeBodySurchargeFreeCapBytes();
+    const hardCeilingBytes = getLargeBodySurchargeHardCeilingBytes();
+    const declaredContentLength = parseInt(String(req.headers["content-length"] ?? ""), 10);
+    if (Number.isFinite(declaredContentLength) && declaredContentLength > freeCapBytes) {
+      const surchargeCents = computeLargeBodySurchargeCents(declaredContentLength, freeCapBytes, hardCeilingBytes);
+      const account = earlyAuthForSurcharge.account;
+      const declaredMb = (declaredContentLength / (1024 * 1024)).toFixed(1);
+      if (surchargeCents === null) {
+        sendError(
+          res,
+          413,
+          ErrorCode.BODY_TOO_LARGE,
+          `Request body (${declaredMb} MB) exceeds the maximum size any payment can unlock (${(hardCeilingBytes / (1024 * 1024)).toFixed(0)} MB) — split the request into smaller batches`,
+        );
+        return;
+      }
+      if (surchargeCents > 0) {
+        const budget = parseAgentBudget(req);
+        const mppResult = await chargeWithDiscounts(req, res, account.account_id, surchargeCents, {
+          currency: "usd",
+          decimals: 2,
+          description: `AXIS large-request surcharge - $${(surchargeCents / 100).toFixed(2)} to process a ${declaredMb} MB request`,
+          meta: { account_id: account.account_id, tier: account.tier, tool: "large_body_surcharge" },
+        });
+        if (mppResult === null) {
+          const paymentMessage = `This request is ${declaredMb} MB, over the ${(freeCapBytes / (1024 * 1024)).toFixed(0)} MB free limit. Pay a one-time size surcharge to process THIS call, or split the request into smaller batches.`;
+          sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+            declared_bytes: declaredContentLength,
+            free_cap_bytes: freeCapBytes,
+            surcharge_price: `$${(surchargeCents / 100).toFixed(2)}`,
+            ...(await buildPaymentRequiredPayload("large_body_surcharge", paymentMessage, budget, account.account_id, account.tier, surchargeCents)),
+          });
+        }
+        if (mppResult === null || mppResult.status === 402) return;
+        // Paid (or covered by plan credits) — read up to the declared size (bounded by the hard ceiling).
+        bodyReadCapOverride = Math.min(declaredContentLength, hardCeilingBytes);
+      }
+    }
+  }
+
+  const raw = await readBody(req, bodyReadCapOverride);
   let body: Record<string, unknown>;
   try {
     body = JSON.parse(raw);

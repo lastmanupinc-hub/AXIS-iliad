@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import http from "node:http";
 import { chargeMpp, resetMppxCache } from "./mpp.js";
-import { resolveAgentMode, priceForMode, getPricingTier, build402NegotiationBody, PRICING_TIERS } from "./mpp.js";
+import { resolveAgentMode, priceForMode, getPricingTier, build402NegotiationBody, PRICING_TIERS, computeLargeBodySurchargeCents, LARGE_BODY_SURCHARGE_FREE_CAP_BYTES, LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES } from "./mpp.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
 import { resetTestDb } from "@axis/snapshots";
@@ -409,5 +409,59 @@ describe("build402NegotiationBody — bazaar discovery extension (x402 foundatio
     expect(bazaar.info.input.inputSchema).toEqual({ type: "object" });
     expect(bazaar.info.input.description).toBeUndefined();
     expect(bazaar.info.input.example).toBeUndefined();
+  });
+});
+
+describe("computeLargeBodySurchargeCents (H-x402-cycle-25 DEVELOP)", () => {
+  const MB = 1024 * 1024;
+
+  it("charges nothing at or under the free cap", () => {
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_FREE_CAP_BYTES)).toBe(0);
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_FREE_CAP_BYTES - 1)).toBe(0);
+    expect(computeLargeBodySurchargeCents(1024)).toBe(0);
+  });
+
+  it("scales with the amount over the free cap, rounding up to whole MB", () => {
+    // Exactly 1 MB over -> 2 cents/MB * 1 MB = 2 cents.
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_FREE_CAP_BYTES + MB)).toBe(2);
+    // A partial MB over still rounds UP to a full MB, never undercharges.
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_FREE_CAP_BYTES + 1)).toBe(2);
+    // 10 MB over -> 20 cents.
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_FREE_CAP_BYTES + 10 * MB)).toBe(20);
+  });
+
+  it("returns null (no amount unlocks it) beyond the hard ceiling", () => {
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES + 1)).toBeNull();
+    expect(computeLargeBodySurchargeCents(LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES)).not.toBeNull();
+  });
+});
+
+describe("build402NegotiationBody — priceOverrideCents (H-x402-cycle-25 DEVELOP)", () => {
+  it("uses the override for standard/lite/x402.amount instead of the tool's PRICING_TIERS lookup", () => {
+    const body = build402NegotiationBody("large_body_surcharge", undefined, { priceOverrideCents: 20 });
+    expect(body.price).toBe("0.20");
+    expect(body.lite_price).toBe("0.20");
+    const pricing = body.pricing as { standard: { amount_cents: number }; lite: { amount_cents: number } };
+    expect(pricing.standard.amount_cents).toBe(20);
+    expect(pricing.lite.amount_cents).toBe(20);
+    const x402 = body.x402 as { amount: string };
+    expect(x402.amount).toBe(String(20 * 10_000));
+  });
+
+  it("feeds the SAME override into negotiation math, not a re-derived PRICING_TIERS.default lookup", () => {
+    // Before wiring negotiatePrice's own tierOverride param, this would have
+    // silently re-looked-up "large_body_surcharge" (unregistered -> falls
+    // back to PRICING_TIERS.default) and negotiated against THAT price
+    // instead of the real 20-cent surcharge just displayed above.
+    const body = build402NegotiationBody("large_body_surcharge", { budget_per_run_cents: 20 }, { priceOverrideCents: 20 });
+    const negotiation = body.negotiation as { amount_cents: number; accepted: boolean };
+    expect(negotiation.amount_cents).toBe(20);
+    expect(negotiation.accepted).toBe(true);
+  });
+
+  it("without an override, behaves exactly as before (getPricingTier lookup)", () => {
+    const body = build402NegotiationBody("analyze_repo", undefined, {});
+    const tier = getPricingTier("analyze_repo");
+    expect(body.price).toBe((tier.standard_cents / 100).toFixed(2));
   });
 });
