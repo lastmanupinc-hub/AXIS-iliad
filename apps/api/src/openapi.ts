@@ -643,6 +643,26 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/.well-known/x402": {
+        get: {
+          summary: "x402 payment discovery aid (not the foundation's canonical mechanism -- see the endpoint's own note field)",
+          operationId: "getX402WellKnown",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "x402 discovery aid: metered tools, real derived prices, wire protocol note" },
+          },
+        },
+      },
+      "/.well-known/x402.json": {
+        get: {
+          summary: "Same as /.well-known/x402 (extension alias for crawlers that expect .json)",
+          operationId: "getX402WellKnownJson",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Same as /.well-known/x402" },
+          },
+        },
+      },
       "/.well-known/oauth-authorization-server": {
         get: {
           summary: "OAuth 2.0 Authorization Server Metadata (RFC 8414)",

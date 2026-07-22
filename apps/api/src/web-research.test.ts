@@ -845,7 +845,10 @@ describe("POST /v1/research/crawl — Firecrawl transport & malformed-response h
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       const pending = postCrawl({ url: "https://example.com", limit: 5 }, apiKey);
-      for (let i = 0; i < 500 && fetchSpy.mock.calls.length < 1; i++) {
+      // Crawl's handler path does more async work before reaching fetch() than
+      // scrape's (see the scrape-path test above, which uses the same idiom at
+      // 500 iterations) -- give this one more headroom so it isn't a race.
+      for (let i = 0; i < 3000 && fetchSpy.mock.calls.length < 1; i++) {
         await vi.advanceTimersByTimeAsync(0);
         await new Promise<void>((resolve) => setImmediate(resolve));
       }
