@@ -61,7 +61,7 @@ Only the deltas below are new.
 |---|---|---|---|
 | R0.1 | Safety | DONE | `876428d` |
 | R0.2 | Safety | DONE | `c408aee` |
-| R0.3 | Safety | DONE | `<pending>` |
+| R0.3 | Safety | DONE | `8e4499b` |
 | R1.1 | Public truth | pending | |
 | R1.2 | Public truth | pending | |
 | R1.3 | Public truth | pending | |
@@ -585,6 +585,7 @@ Append-only, one line per completed unit: `| R#.# | <what shipped> | <hash> | <v
 | R0.0 | Audit + dead-code sweep: 159 files deleted, 4 staged edits, 26 kill verdicts overturned and protected | `788ffb4` | build clean; 4 guard suites green; generator-core 2403/2403; DATABASE_URL failures reproduced on untouched files as control |
 | R0.1 | Fixed regenerate.sh/.ps1: guard rewritten from a source-presence check (always true, harmless) to a structural self-check that the root-copy loop can only ever touch the fixed allowlist. Confirmed the hazard is LIVE (real dogfood output does emit begin.yaml/continuation.yaml/Dockerfile/docker-compose.yml/Makefile), not theoretical | `876428d` | end-to-end simulation against real generated output + sentinel-content fake root: protected files untouched, allowlist refreshed, .ai/ mirrored 145 files |
 | R0.2 | oauth-server.ts: extracted `resolveJwtKeys()` (env PEM > file PEM > generated, with a loud production log on generated). render.yaml declares JWT_PRIVATE_KEY/JWT_PUBLIC_KEY. New oauth-server.test.ts (was zero coverage) | `c408aee` | 7/7 non-DB tests green (all 3 source branches + prod-log gate firing/not-firing); DB-gated route tests fail only on the pre-existing DATABASE_URL gap; apps/api typecheck clean |
+| R0.3 | Root cause was NOT the workflow generator's pm-branching (already correct) but apps/cli/src/scanner.ts's depth-first alphabetical walk + global MAX_FILES=500 starving root-level manifests on real monorepos (confirmed: "apps/" alone exceeds the cap before the walk reaches "pnpm-lock.yaml"). Fixed to files-before-dirs at every level. Second bug found while verifying end-to-end: publishNpm defaulted true even for a private root package.json -- added `root_package_private` signal. Regenerated .github/workflows/release.yml from the fixed generator | `8e4499b` | apps/cli typecheck clean, 196/196 CLI tests; generator-core 2406/2406 (3 new); re-ran the real dogfood before/after both fixes to prove empirically; full pnpm -r build clean |
 
 ## FAILURES ledger
 
@@ -599,6 +600,11 @@ session fixes the playbook rather than re-hitting the wall.
 
 Do not act on these during Phase R (rule R-a). Append with a receipt; they become the next
 Phase A cycle's input.
+
+| Path | Suspicion | Receipt |
+|---|---|---|
+| `packages/generator-core/src/generators-closer.ts` (generateCloserReleaseWorkflow) | Hardcodes `actions/checkout@v4` / `actions/setup-node@v4`, inconsistent with this repo's own hand-maintained `.github/workflows/ci.yml` (already on `@v5`). Cosmetic/hygiene only, not a correctness bug -- deliberately not bundled into R0.3 | Found 2026-07-25 verifying R0.3's regenerated release.yml against ci.yml's action pins |
+| An open Dependabot PR (npm_and_yarn, "Update #1482212813") | Bumps `@jmondi/oauth2-server` among others -- that dependency was removed from apps/api/package.json in the 2026-07-25 dead-code sweep (`788ffb4`). The PR will now conflict or no-op on merge | Seen in `gh run list` output right after pushing `876428d`; owner-gated per R5.3, do not act |
 
 | Path | Suspicion | Receipt |
 |---|---|---|
