@@ -62,10 +62,10 @@ Only the deltas below are new.
 | R0.1 | Safety | DONE | `876428d` |
 | R0.2 | Safety | DONE | `c408aee` |
 | R0.3 | Safety | DONE | `8e4499b` |
-| R1.1 | Public truth | pending | |
-| R1.2 | Public truth | pending | |
-| R1.3 | Public truth | pending | |
-| R1.4 | Public truth | pending | |
+| R1.1 | Public truth | DONE | `c7b38f2` |
+| R1.2 | Public truth | DONE | `c7b38f2` |
+| R1.3 | Public truth | DONE | `8e1bf24` |
+| R1.4 | Public truth | DONE | `cc9b9a9` |
 | R1.5 | Public truth | pending | |
 | R1.6 | Public truth | pending | |
 | R2.1 | Revive | pending | |
@@ -586,6 +586,9 @@ Append-only, one line per completed unit: `| R#.# | <what shipped> | <hash> | <v
 | R0.1 | Fixed regenerate.sh/.ps1: guard rewritten from a source-presence check (always true, harmless) to a structural self-check that the root-copy loop can only ever touch the fixed allowlist. Confirmed the hazard is LIVE (real dogfood output does emit begin.yaml/continuation.yaml/Dockerfile/docker-compose.yml/Makefile), not theoretical | `876428d` | end-to-end simulation against real generated output + sentinel-content fake root: protected files untouched, allowlist refreshed, .ai/ mirrored 145 files |
 | R0.2 | oauth-server.ts: extracted `resolveJwtKeys()` (env PEM > file PEM > generated, with a loud production log on generated). render.yaml declares JWT_PRIVATE_KEY/JWT_PUBLIC_KEY. New oauth-server.test.ts (was zero coverage) | `c408aee` | 7/7 non-DB tests green (all 3 source branches + prod-log gate firing/not-firing); DB-gated route tests fail only on the pre-existing DATABASE_URL gap; apps/api typecheck clean |
 | R0.3 | Root cause was NOT the workflow generator's pm-branching (already correct) but apps/cli/src/scanner.ts's depth-first alphabetical walk + global MAX_FILES=500 starving root-level manifests on real monorepos (confirmed: "apps/" alone exceeds the cap before the walk reaches "pnpm-lock.yaml"). Fixed to files-before-dirs at every level. Second bug found while verifying end-to-end: publishNpm defaulted true even for a private root package.json -- added `root_package_private` signal. Regenerated .github/workflows/release.yml from the fixed generator | `8e4499b` | apps/cli typecheck clean, 196/196 CLI tests; generator-core 2406/2406 (3 new); re-ran the real dogfood before/after both fixes to prove empirically; full pnpm -r build clean |
+| R1.1/R1.2 | index.html: wrong Pro price ($29 vs live $99), 2-tier offers expanded to the real 4 (Free/Starter/Pro/Growth, copy mirrored from PlansPage.tsx), stale "140 Artifacts" -> 142, WebAPI actions repointed from the web origin to the real api.* origin. robots.txt: Stripe-MPP wording -> x402/PAI'D, sitemap repointed + verified live (200, application/xml). Added index.html to count-honesty's guarded corpus | `c7b38f2` | 41/41 guard-suite tests; caught and fixed a vacuous first-draft guard (visible()'s tag-stripper ate meta content="..." attributes -- proved red-then-green with a deliberate regression before trusting it); live curl confirmed the sitemap fix |
+| R1.3 | TERMS_OF_SERVICE.md section 8 still claimed auto-renewal; the served TermsPage.tsx was already fixed 2026-07-18 (bcbc5e7) but this static twin never was. Rewrote verbatim from the served copy. Self-correction: reverted an R1.1 mistake (index.html's contact email) after git log proved support@jonathanarvay.com is the deliberate app-wide standard, not axis@trustfabric.ai as an 18-day-old memory claimed | `8e1bf24` | 41/41 guard suites; both [CONTACT EMAIL] placeholders resolved |
+| R1.4 | SECURITY.md said security@iliad.trustfabric.ai; the live, tested /.well-known/security.txt serves security@jonathanarvay.com. Aligned the doc to the served+tested value (same domain as the confirmed support standard), added the GitHub Security Advisories link, added a cross-check test | `cc9b9a9` | 41/41 guard suites; standalone check confirms old address is gone; repo-wide sweep found no other reference to the stale address |
 
 ## FAILURES ledger
 
