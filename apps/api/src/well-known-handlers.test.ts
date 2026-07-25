@@ -12,6 +12,9 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { resetTestDb } from "@axis/snapshots";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
@@ -34,6 +37,9 @@ import {
   handlePricingLanding,
   handleX402WellKnown,
 } from "./handlers.js";
+
+// apps/api/src -> repo root
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 // ─── HTTP helper ─────────────────────────────────────────────────
 
@@ -252,6 +258,13 @@ describe("GET /.well-known/security.txt", () => {
 
   it("contains security email", async () => {
     expect(body).toContain("security@jonathanarvay.com");
+  });
+
+  it("SECURITY.md names the same contact this endpoint serves (R1.4)", () => {
+    // SECURITY.md and this served endpoint drifted to two different domains
+    // for weeks with nothing to catch it -- assert they can't diverge again.
+    const securityMd = readFileSync(join(ROOT, "SECURITY.md"), "utf8");
+    expect(securityMd).toContain("security@jonathanarvay.com");
   });
 });
 

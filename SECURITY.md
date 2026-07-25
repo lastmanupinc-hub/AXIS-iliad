@@ -11,7 +11,9 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Report security vulnerabilities to: **security@iliad.trustfabric.ai**
+Report security vulnerabilities to: **<security@jonathanarvay.com>**, or privately via
+[GitHub Security Advisories](https://github.com/lastmanupinc-hub/axis-iliad/security/advisories)
+(also the canonical contacts served at `/.well-known/security.txt`).
 
 Include in your report:
 - Description of the vulnerability
