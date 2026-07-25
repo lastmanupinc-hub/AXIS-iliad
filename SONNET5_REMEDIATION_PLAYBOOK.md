@@ -67,7 +67,7 @@ Only the deltas below are new.
 | R1.3 | Public truth | DONE | `8e1bf24` |
 | R1.4 | Public truth | DONE | `cc9b9a9` |
 | R1.5 | Public truth | DONE | `b7b714e` |
-| R1.6 | Public truth | pending | |
+| R1.6 | Public truth | DONE | `b3fbb17` |
 | R2.1 | Revive | pending | |
 | R2.2 | Revive | pending | |
 | R2.3 | Revive | pending | |
