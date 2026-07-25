@@ -36,6 +36,8 @@ interface ProjectSignals {
   is_server: boolean;
   /** Whether the project has any test runner declared. */
   has_tests: boolean;
+  /** Root package.json declares "private": true — never recommend `npm publish` for it. */
+  root_package_private: boolean;
 }
 
 interface MerkleBundle {
@@ -186,6 +188,21 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
     ),
   );
 
+  // Root-level package.json only (not every nested workspace manifest) — a
+  // monorepo's private root has no single package to `npm publish` from, and
+  // recommending that step by default produces a release workflow that fails
+  // on every tag (observed on this repo: root package.json is private, but
+  // the generic "npm" target_marketplaces default doesn't know that).
+  const rootPackageJson = files?.find(f => f.path === "package.json");
+  let rootPackagePrivate = false;
+  if (rootPackageJson) {
+    try {
+      rootPackagePrivate = JSON.parse(rootPackageJson.content)?.private === true;
+    } catch {
+      // Malformed root package.json — treat as not-private (existing behavior).
+    }
+  }
+
   return {
     detected_frameworks: frameworks,
     primary_language: profile.project.primary_language,
@@ -197,6 +214,7 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
     package_manager,
     is_server: hasServerEntry,
     has_tests: hasTests,
+    root_package_private: rootPackagePrivate,
   };
 }
 
@@ -796,7 +814,7 @@ export function generateCloserReleaseWorkflow(
   const lang = signals.primary_language;
   const pm = signals.package_manager;
   const targets = config.target_marketplaces;
-  const publishNpm = targets.includes("npm") && lang !== "Go" && lang !== "Python";
+  const publishNpm = targets.includes("npm") && lang !== "Go" && lang !== "Python" && !signals.root_package_private;
   const publishDocker = targets.includes("dockerhub") || signals.uses_docker;
 
   // Package-manager-specific setup. We can be more terse than CI here because

@@ -59,9 +59,9 @@ Only the deltas below are new.
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
-| R0.1 | Safety | pending | |
-| R0.2 | Safety | pending | |
-| R0.3 | Safety | pending | |
+| R0.1 | Safety | DONE | `876428d` |
+| R0.2 | Safety | DONE | `c408aee` |
+| R0.3 | Safety | DONE | `<pending>` |
 | R1.1 | Public truth | pending | |
 | R1.2 | Public truth | pending | |
 | R1.3 | Public truth | pending | |
@@ -583,6 +583,8 @@ Append-only, one line per completed unit: `| R#.# | <what shipped> | <hash> | <v
 | Unit | What shipped | Commit | Verified by |
 |---|---|---|---|
 | R0.0 | Audit + dead-code sweep: 159 files deleted, 4 staged edits, 26 kill verdicts overturned and protected | `788ffb4` | build clean; 4 guard suites green; generator-core 2403/2403; DATABASE_URL failures reproduced on untouched files as control |
+| R0.1 | Fixed regenerate.sh/.ps1: guard rewritten from a source-presence check (always true, harmless) to a structural self-check that the root-copy loop can only ever touch the fixed allowlist. Confirmed the hazard is LIVE (real dogfood output does emit begin.yaml/continuation.yaml/Dockerfile/docker-compose.yml/Makefile), not theoretical | `876428d` | end-to-end simulation against real generated output + sentinel-content fake root: protected files untouched, allowlist refreshed, .ai/ mirrored 145 files |
+| R0.2 | oauth-server.ts: extracted `resolveJwtKeys()` (env PEM > file PEM > generated, with a loud production log on generated). render.yaml declares JWT_PRIVATE_KEY/JWT_PUBLIC_KEY. New oauth-server.test.ts (was zero coverage) | `c408aee` | 7/7 non-DB tests green (all 3 source branches + prod-log gate firing/not-firing); DB-gated route tests fail only on the pre-existing DATABASE_URL gap; apps/api typecheck clean |
 
 ## FAILURES ledger
 

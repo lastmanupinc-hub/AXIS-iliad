@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync, type Stats } from "node:fs";
 import { join, relative, extname } from "node:path";
 import type { FileEntry } from "@axis/snapshots";
 
@@ -73,27 +73,40 @@ export function scanDirectory(root: string): ScanResult {
     // pipeline byte-deterministic for the same repo state.
     entries.sort();
 
+    // Stat once per entry, then process this directory's own FILES before
+    // recursing into its SUBDIRECTORIES. A plain alphabetical walk that mixes
+    // files and dirs starves root-level manifests on any repo where an
+    // early-alphabetical top-level directory alone exceeds MAX_FILES — e.g.
+    // a real monorepo with "apps/" (382 files) sorting before "pnpm-lock.yaml":
+    // the DFS recursion into apps/ + packages/ alone blew the 500-file cap
+    // before the walk ever reached pnpm-lock.yaml, pnpm-workspace.yaml or
+    // render.yaml, so package-manager detection silently fell back to npm for
+    // this very repo (confirmed 2026-07-25). Files-before-dirs at every level
+    // guarantees a directory's own immediate manifests are captured before a
+    // sibling subdirectory's depth can exhaust the cap.
+    const dirEntries: string[] = [];
+    const fileEntries: Array<{ name: string; stat: Stats }> = [];
     for (const entry of entries) {
-      if (files.length >= MAX_FILES) break;
-
       const fullPath = join(dir, entry);
-      let stat;
+      let stat: Stats;
       try {
         stat = statSync(fullPath);
       } catch {
         /* v8 ignore next — broken symlinks / ENOENT race, hard to simulate in tests */
         continue;
       }
-
       if (stat.isDirectory()) {
-        if (!SKIP_DIRS.has(entry) && (!entry.startsWith(".") || ALLOW_DOT_DIRS.has(entry))) {
-          walk(fullPath);
-        }
-        continue;
+        dirEntries.push(entry);
+      } else if (stat.isFile()) {
+        fileEntries.push({ name: entry, stat });
       }
+      /* v8 ignore next — non-file, non-directory entries (devices, pipes) hard to simulate in tests */
+    }
 
-      /* v8 ignore next — non-file entries (devices, pipes) hard to simulate in tests */
-      if (!stat.isFile()) continue;
+    for (const { name: entry, stat } of fileEntries) {
+      if (files.length >= MAX_FILES) break;
+
+      const fullPath = join(dir, entry);
 
       // Include lockfiles as marker entries (empty content — parser only checks existence)
       if (entry === "package-lock.json" || entry === "pnpm-lock.yaml" || entry === "yarn.lock" ||
@@ -131,6 +144,13 @@ export function scanDirectory(root: string): ScanResult {
       } catch {
         /* v8 ignore next — read failures on valid files, hard to simulate in tests */
         skipped++;
+      }
+    }
+
+    for (const entry of dirEntries) {
+      if (files.length >= MAX_FILES) break;
+      if (!SKIP_DIRS.has(entry) && (!entry.startsWith(".") || ALLOW_DOT_DIRS.has(entry))) {
+        walk(join(dir, entry));
       }
     }
   }

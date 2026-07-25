@@ -113,6 +113,48 @@ describe("generators-closer", () => {
     expect(release.content).toContain("workflow_dispatch");
   });
 
+  it("release workflow installs with pnpm when a pnpm-lock.yaml marker is present", () => {
+    const pnpmFiles: FileEntry[] = [
+      ...snapshot.files,
+      { path: "pnpm-lock.yaml", content: "", size: 0 },
+    ];
+    const pnpmSnapshot = makeSnapshot({ files: pnpmFiles, file_count: pnpmFiles.length });
+    const pnpmCtx = buildContextMap(pnpmSnapshot);
+    const pnpmProfile = buildRepoProfile(pnpmSnapshot);
+
+    const release = generateCloserReleaseWorkflow(pnpmCtx, pnpmProfile, pnpmSnapshot.files);
+
+    expect(release.content).toContain("pnpm/action-setup@v4");
+    expect(release.content).toContain("pnpm install --frozen-lockfile");
+    expect(release.content).not.toContain("npm ci");
+  });
+
+  it("never recommends `npm publish` for a private root package.json (R0.3)", () => {
+    // A monorepo whose root manifest is private (this repo's own shape) has no
+    // single package to publish from root -- defaulting to "publish to npm"
+    // here produced a release workflow that failed on every tag push.
+    const privateRootFiles: FileEntry[] = [
+      ...snapshot.files,
+      { path: "package.json", content: JSON.stringify({ name: "root", private: true }), size: 40 },
+    ];
+    const privateSnapshot = makeSnapshot({ files: privateRootFiles, file_count: privateRootFiles.length });
+    const privateCtx = buildContextMap(privateSnapshot);
+    const privateProfile = buildRepoProfile(privateSnapshot);
+
+    const release = generateCloserReleaseWorkflow(privateCtx, privateProfile, privateSnapshot.files);
+
+    expect(release.content).not.toContain("Publish to npm");
+    expect(release.content).not.toContain("npm publish");
+  });
+
+  it("still recommends npm publish when the root package.json is not private", () => {
+    // The demo fixture's closer.config.json requests target_marketplaces
+    // including "npm" and has no root package.json at all (root_package_private
+    // stays false) -- publishing should still be recommended by default.
+    const release = generateCloserReleaseWorkflow(ctx, profile, snapshot.files);
+    expect(release.content).toContain("Publish to npm");
+  });
+
   it("generates all marketplace manifests under packaging/manifests", () => {
     const manifests = [
       generateCloserManifestNpm(ctx, profile, snapshot.files),
