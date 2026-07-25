@@ -34,6 +34,11 @@ function docs(): Array<{ name: string; text: string }> {
     // The public SEO/JSON-LD surface (og:title, twitter:title, SoftwareApplication
     // description) carried a stale "140 Artifacts" for weeks with no guard (R1.1).
     { name: "apps/web/index.html", text: indexHtmlText() },
+    // GitHub-visible, linked directly from the production ExamplesPage -- carried
+    // "86 artifacts across 18 programs" (README.json) and a mutually-inconsistent
+    // "102 artifacts across 18 programs" (README.md) for weeks, both wrong (R1.6).
+    { name: "examples/README.md", text: readFileSync(join(ROOT, "examples", "README.md"), "utf8") },
+    { name: "examples/README.json", text: readFileSync(join(ROOT, "examples", "README.json"), "utf8") },
   ];
   const webSrc = join(ROOT, "apps", "web", "src");
   for (const rel of readdirSync(webSrc, { recursive: true }) as unknown as string[]) {

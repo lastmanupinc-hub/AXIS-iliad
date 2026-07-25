@@ -1,6 +1,6 @@
 {
   "title": "Axis' Iliad — Example Repos",
-  "summary": "5 real codebases analyzed by Axis' Iliad. Each example shows the 3 free-tier artifacts (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates 86 artifacts across 18 programs — upgrade to Pro to unlock all of them.",
+  "summary": "5 real codebases analyzed by Axis' Iliad. Each example shows the 3 free-tier artifacts (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates 142 artifacts across 20 programs — upgrade to Pro to unlock all of them.",
   "examples": [
     {
       "id": "01",
@@ -51,109 +51,290 @@
   "shown_artifacts": {
     "description": "Each example includes the free-tier Search program output",
     "files": [
-      { "name": "AGENTS.md", "purpose": "Project structure, routes, architecture layers, agent instructions" },
-      { "name": "CLAUDE.md", "purpose": "10-point condensed cheat sheet for fast onboarding" },
-      { "name": ".cursorrules", "purpose": "Domain-specific coding conventions and constraints" }
+      {
+        "name": "AGENTS.md",
+        "purpose": "Project structure, routes, architecture layers, agent instructions"
+      },
+      {
+        "name": "CLAUDE.md",
+        "purpose": "10-point condensed cheat sheet for fast onboarding"
+      },
+      {
+        "name": ".cursorrules",
+        "purpose": "Domain-specific coding conventions and constraints"
+      }
     ]
   },
   "full_output": {
-    "total_artifacts": 86,
-    "total_programs": 18,
+    "total_artifacts": 142,
+    "total_programs": 20,
     "free_programs": [
       {
         "name": "Search",
         "tier": "free",
         "included_in_examples": true,
-        "outputs": ["AGENTS.md", "CLAUDE.md", ".cursorrules", "context-map.json"]
+        "outputs": [
+          "architecture-summary.md",
+          "context-map.json",
+          "dependency-hotspots.md",
+          "repo-profile.yaml",
+          "repo-run-stats.json",
+          "symbol-index.json"
+        ]
       },
       {
         "name": "Skills",
         "tier": "free",
         "included_in_examples": false,
-        "outputs": ["copilot-instructions.md", "cursor-rules.md", "windsurf-rules.md"]
+        "outputs": [
+          ".cursorrules",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "model-cascade.md",
+          "policy-pack.md",
+          "workflow-pack.md"
+        ]
       },
       {
         "name": "Debug",
         "tier": "free",
         "included_in_examples": false,
-        "outputs": ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "dependency-hotspots.md"]
+        "outputs": [
+          "debug-playbook.md",
+          "incident-template.md",
+          "root-cause-checklist.md",
+          "tracing-rules.md"
+        ]
       }
     ],
     "pro_programs": [
       {
-        "name": "Frontend",
+        "name": "Agentic Purchasing",
         "tier": "pro",
-        "outputs": ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"]
-      },
-      {
-        "name": "SEO",
-        "tier": "pro",
-        "outputs": ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md"]
-      },
-      {
-        "name": "Theme",
-        "tier": "pro",
-        "outputs": ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json"]
-      },
-      {
-        "name": "Brand",
-        "tier": "pro",
-        "outputs": ["brand-guidelines.md", "voice-and-tone.md", "messaging-system.yaml", "channel-rulebook.md"]
-      },
-      {
-        "name": "Optimization",
-        "tier": "pro",
-        "outputs": ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"]
-      },
-      {
-        "name": "MCP",
-        "tier": "pro",
-        "outputs": ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"]
-      },
-      {
-        "name": "Superpowers",
-        "tier": "pro",
-        "outputs": ["superpower-pack.md", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"]
-      },
-      {
-        "name": "Marketing",
-        "tier": "pro",
-        "outputs": ["campaign-brief.md", "funnel-map.md", "cro-playbook.md", "sequence-pack.md"]
-      },
-      {
-        "name": "Notebook",
-        "tier": "pro",
-        "outputs": ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md"]
-      },
-      {
-        "name": "Obsidian",
-        "tier": "pro",
-        "outputs": ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md"]
-      },
-      {
-        "name": "Artifacts",
-        "tier": "pro",
-        "outputs": ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md"]
-      },
-      {
-        "name": "Remotion",
-        "tier": "pro",
-        "outputs": ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md"]
-      },
-      {
-        "name": "Canvas",
-        "tier": "pro",
-        "outputs": ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md"]
+        "outputs": [
+          "agent-purchasing-playbook.md",
+          "ap2-interop-samples.json",
+          "checkout-flow.md",
+          "commerce-registry.json",
+          "negotiation-rules.md",
+          "product-schema.json"
+        ]
       },
       {
         "name": "Algorithmic",
         "tier": "pro",
-        "outputs": ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml"]
+        "outputs": [
+          "collection-map.md",
+          "export-manifest.yaml",
+          "generative-sketch.ts",
+          "parameter-pack.json",
+          "variation-matrix.json"
+        ]
       },
       {
-        "name": "Agentic Purchasing",
+        "name": "Artifacts",
         "tier": "pro",
-        "outputs": ["commerce-registry.json", "product-schema.json"]
+        "outputs": [
+          "artifact-spec.md",
+          "capability-map.yaml",
+          "component-library.json",
+          "context.md",
+          "dashboard-widget.tsx",
+          "design.md",
+          "embed-snippet.ts",
+          "generated-component.tsx",
+          "index.html",
+          "prd.md",
+          "tasks.md"
+        ]
+      },
+      {
+        "name": "Brand",
+        "tier": "pro",
+        "outputs": [
+          "brand-guidelines.md",
+          "channel-rulebook.md",
+          "content-constraints.md",
+          "messaging-system.yaml",
+          "voice-and-tone.md"
+        ]
+      },
+      {
+        "name": "Canvas",
+        "tier": "pro",
+        "outputs": [
+          "asset-guidelines.md",
+          "brand-board.md",
+          "canvas-spec.json",
+          "poster-layouts.md",
+          "social-pack.md"
+        ]
+      },
+      {
+        "name": "Closer",
+        "tier": "pro",
+        "outputs": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/release.yml",
+          "DISTRIBUTABLE.md",
+          "Dockerfile",
+          "Makefile",
+          "docker-compose.yml",
+          "packaging-report.md",
+          "packaging/LICENSE",
+          "packaging/README.md",
+          "packaging/manifests/dockerhub-repository.md",
+          "packaging/manifests/github-marketplace-listing.md",
+          "packaging/manifests/npm-package.json",
+          "packaging/manifests/unreal.uplugin",
+          "packaging/manifests/vscode-extension.json",
+          "packaging/trust-fabric/attestation.json",
+          "packaging/trust-fabric/merkle-proof.json"
+        ]
+      },
+      {
+        "name": "Deploy",
+        "tier": "pro",
+        "outputs": [
+          "deploy/Dockerfile",
+          "deploy/Dockerfile.dockerignore",
+          "deploy/deploy-cloudflare.ps1",
+          "deploy/deploy-cloudflare.sh",
+          "deploy/deploy-qualification-report.md",
+          "deploy/deploy.ps1",
+          "deploy/deploy.sh",
+          "deploy/docker-compose.dev.yml",
+          "deploy/render.yaml",
+          "deploy/vscode-launch.json.template",
+          "deploy/worker.ts",
+          "deploy/wrangler.containers.toml",
+          "deploy/wrangler.pages.toml"
+        ]
+      },
+      {
+        "name": "Frontend",
+        "tier": "pro",
+        "outputs": [
+          "component-guidelines.md",
+          "frontend-rules.md",
+          "layout-patterns.md",
+          "ui-audit.md"
+        ]
+      },
+      {
+        "name": "Marketing",
+        "tier": "pro",
+        "outputs": [
+          "ab-test-plan.md",
+          "campaign-brief.md",
+          "cro-playbook.md",
+          "funnel-map.md",
+          "sequence-pack.md"
+        ]
+      },
+      {
+        "name": "MCP",
+        "tier": "pro",
+        "outputs": [
+          "capability-registry.json",
+          "connector-map.yaml",
+          "mcp-config.json",
+          "mcp-registry-metadata.json",
+          "mcp/README.md",
+          "mcp/build-artifacts.md",
+          "mcp/core-implementation-artifacts.md",
+          "mcp/fintech-domain-schema.yaml",
+          "mcp/fintech-mcp-surface-package.md",
+          "mcp/monorepo-structure.md",
+          "mcp/package-json.package.template.json",
+          "mcp/package-json.root.template.json",
+          "mcp/project-setup.md",
+          "mcp/testing-documentation-polish-artifacts.md",
+          "mcp/tsconfig.package.template.json",
+          "mcp/tsconfig.root.template.json",
+          "protocol-spec.md",
+          "server-manifest.yaml",
+          "spec.types.ts"
+        ]
+      },
+      {
+        "name": "Notebook",
+        "tier": "pro",
+        "outputs": [
+          "citation-index.json",
+          "notebook-summary.md",
+          "research-threads.md",
+          "source-map.json",
+          "study-brief.md"
+        ]
+      },
+      {
+        "name": "Obsidian",
+        "tier": "pro",
+        "outputs": [
+          "graph-prompt-map.json",
+          "linking-policy.md",
+          "obsidian-skill-pack.md",
+          "template-pack.md",
+          "vault-rules.md"
+        ]
+      },
+      {
+        "name": "Optimization",
+        "tier": "pro",
+        "outputs": [
+          "cost-estimate.json",
+          "optimization-rules.md",
+          "prompt-diff-report.md",
+          "token-budget-plan.md"
+        ]
+      },
+      {
+        "name": "Remotion",
+        "tier": "pro",
+        "outputs": [
+          "asset-checklist.md",
+          "remotion-script.ts",
+          "render-config.json",
+          "scene-plan.md",
+          "storyboard.md"
+        ]
+      },
+      {
+        "name": "SEO",
+        "tier": "pro",
+        "outputs": [
+          "content-audit.md",
+          "meta-tag-audit.json",
+          "route-priority-map.md",
+          "schema-recommendations.json",
+          "seo-rules.md"
+        ]
+      },
+      {
+        "name": "Superpowers",
+        "tier": "pro",
+        "outputs": [
+          ".githooks/pre-push",
+          "automation-pipeline.yaml",
+          "refactor-checklist.md",
+          "superpower-pack.md",
+          "test-generation-rules.md",
+          "verify-full.sh",
+          "verify.sh",
+          "workflow-registry.json"
+        ]
+      },
+      {
+        "name": "Theme",
+        "tier": "pro",
+        "outputs": [
+          "component-theme-map.json",
+          "dark-mode-tokens.json",
+          "design-tokens.json",
+          "theme-guidelines.md",
+          "theme.css"
+        ]
       }
     ]
   },
