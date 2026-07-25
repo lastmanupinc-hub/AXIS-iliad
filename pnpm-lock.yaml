@@ -67,9 +67,6 @@ importers:
       '@axis/snapshots':
         specifier: workspace:*
         version: link:../../packages/snapshots
-      '@jmondi/oauth2-server':
-        specifier: ^4.2.2
-        version: 4.2.2
       dockerode:
         specifier: ^5.0.1
         version: 5.0.1
@@ -660,10 +657,6 @@ packages:
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
-
-  '@jmondi/oauth2-server@4.2.2':
-    resolution: {integrity: sha512-m0ZnvC2lzRSQlIWCjgGm7HtuNC0HgynbsQjG+5xunhCSRXnjRH75P9knu3EgscQwVuNijZQKgA831zer4NZUiA==}
-    engines: {node: '>=16'}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3353,12 +3346,6 @@ snapshots:
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
       minipass: 7.1.3
-
-  '@jmondi/oauth2-server@4.2.2':
-    dependencies:
-      jsonwebtoken: 9.0.3
-      ms: 2.1.3
-      uri-js: 4.4.1
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

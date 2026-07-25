@@ -58,7 +58,6 @@
 4. **Direct Outreach** - AI tool partnerships
 
 ### Monitoring Tools
-- Run `node track-trial-users.js` daily to see progress
 - Check GitHub insights for traffic sources
 - Monitor MCP registry downloads
 
@@ -121,9 +120,8 @@ Remember: **Public repo ≠ giving away your business**
 
 Ready? Execute:
 
-1. `node track-trial-users.js` (see current stats)
-2. Post to communities using `launch-content.md`
-3. Apply to Cursor marketplace
-4. Reach out to 5 AI tool builders
+1. Post to communities using `launch-content.md`
+2. Apply to Cursor marketplace
+3. Reach out to 5 AI tool builders
 
 **Your first trial users are waiting. Go get them!** 🚀

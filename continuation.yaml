@@ -90,8 +90,12 @@ project_continuation:
       status: complete
       priority: P0
       user_story: >
-        As a platform operator, I need all 17 program subfolders scaffolded with
-        MEMORY.yaml, begin.yaml, and continuation.yaml so work can begin on each.
+        As a platform operator, I needed all 17 program subfolders scaffolded with
+        MEMORY.yaml, begin.yaml, and continuation.yaml so work could begin on each.
+        Superseded: the scaffolding served its purpose and the subfolders were
+        retired once program truth moved into packages/generator-core and
+        apps/api/src/counts.ts. The root begin.yaml/continuation.yaml pair is now
+        the only live loop state.
       saturation:
         foundation: 100
         runtime: 0
@@ -387,7 +391,7 @@ project_continuation:
     session_goal: "Scaffold all 17 Axis programs with YAML governance files"
     selected_move: "Full platform scaffolding"
     completed_candidates:
-      - "Created 17 program subfolders with MEMORY.yaml, begin.yaml, continuation.yaml"
+      - "Created 17 program subfolders with MEMORY.yaml, begin.yaml, continuation.yaml (retired 2026-07-25 — program truth now lives in packages/generator-core + apps/api/src/counts.ts)"
       - "Ingested axis_all_tools.yaml as canonical spec"
     commit_results: ["4a95e9c", "df830fb"]
 
