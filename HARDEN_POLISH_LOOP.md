@@ -8,6 +8,14 @@ the session ends or the CONVERGENCE test passes. Do not ask permission between u
 only stops are the ESCALATION list. This document is the single source of truth for the
 loop; edit it in place as you work.
 
+**⇢ DISPATCH (added 2026-07-25):** before selecting a unit, open
+`SONNET5_REMEDIATION_PLAYBOOK.md`. **While any unit in its STATE table is `pending` or
+`in-progress`, execute that file's Phase R instead of starting a new Phase A cycle** — it
+holds the confirmed findings of the 2026-07-25 dead-code audit (which counts as Phase A
+cycle 28) and its units touch live production surfaces. When Phase R reports CONVERGED,
+resume Phase A here with dry-count reset to 0. This file remains the loop of record and the
+single entry point for `continue`; Phase R is a delegated batch, not a second loop.
+
 **Mission:** close every known gap in the current system, polish the experience for both
 human users and AI agents, and keep re-auditing until two consecutive audit cycles find
 nothing new — at which point the platform tree and ROI candidate list (Phase T) are the
