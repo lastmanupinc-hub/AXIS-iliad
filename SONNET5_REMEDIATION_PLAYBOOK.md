@@ -66,7 +66,7 @@ Only the deltas below are new.
 | R1.2 | Public truth | DONE | `c7b38f2` |
 | R1.3 | Public truth | DONE | `8e1bf24` |
 | R1.4 | Public truth | DONE | `cc9b9a9` |
-| R1.5 | Public truth | pending | |
+| R1.5 | Public truth | DONE | `<pending>` |
 | R1.6 | Public truth | pending | |
 | R2.1 | Revive | pending | |
 | R2.2 | Revive | pending | |
@@ -74,7 +74,7 @@ Only the deltas below are new.
 | R2.4 | Revive | pending | |
 | R2.5 | Revive | pending | |
 | R2.6 | Revive | pending | |
-| R3.1 | Guards | pending | |
+| R3.1 | Guards | DONE | `<pending>` |
 | R3.2 | Guards | pending | |
 | R3.3 | Guards | pending | |
 | R3.4 | Guards | pending | |
@@ -608,6 +608,7 @@ Phase A cycle's input.
 |---|---|---|
 | `packages/generator-core/src/generators-closer.ts` (generateCloserReleaseWorkflow) | Hardcodes `actions/checkout@v4` / `actions/setup-node@v4`, inconsistent with this repo's own hand-maintained `.github/workflows/ci.yml` (already on `@v5`). Cosmetic/hygiene only, not a correctness bug -- deliberately not bundled into R0.3 | Found 2026-07-25 verifying R0.3's regenerated release.yml against ci.yml's action pins |
 | An open Dependabot PR (npm_and_yarn, "Update #1482212813") | Bumps `@jmondi/oauth2-server` among others -- that dependency was removed from apps/api/package.json in the 2026-07-25 dead-code sweep (`788ffb4`). The PR will now conflict or no-op on merge | Seen in `gh run list` output right after pushing `876428d`; owner-gated per R5.3, do not act |
+| 14 files repo-wide (incl. root `CLAUDE.md`, `AGENTS.md`, `server.json`, `continuation.yaml`, and 7 files under `.ai/`) | Contain mojibake (`â€”` where a UTF-8 em-dash was re-decoded as Latin-1/cp1252) -- e.g. root `package.json`'s description had this before R1.5 fixed it with a plain hyphen instead. Confirmed NOT a live generator bug: grepped `packages/*/src/*.ts` for the same byte pattern and found zero hits, so generator-core's own templates are clean and customers analyzing their own repos are not affected. This is historical corruption in specific committed files (likely a one-time Windows encoding mishap during an edit or regeneration run), not an active code defect | Found via `grep -r` for the mojibake pattern while fixing root package.json's description for R1.5; the .ts-source check ruled out a live generator bug |
 
 | Path | Suspicion | Receipt |
 |---|---|---|
