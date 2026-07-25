@@ -8,7 +8,7 @@
 
 **Effective date:** [EFFECTIVE DATE]
 **Last updated:** [LAST UPDATED]
-**Contact:** [CONTACT EMAIL]
+**Contact:** <support@jonathanarvay.com>
 
 ---
 
@@ -116,17 +116,26 @@ CANNOT LAWFULLY BE LIMITED.
 
 ## 8. Billing, Renewals, and Refunds
 
-- Subscriptions renew automatically each billing cycle (monthly or annual) until
-  cancelled. You can cancel at any time; cancellation takes effect at the end of the
-  current billing period.
+> **This section tracks `apps/web/src/pages/TermsPage.tsx`, the served copy of record.**
+> If the two ever disagree, the served page governs; update this file to match.
+
+- Payment for a paid tier is a single, one-time charge for the plan and billing cycle
+  you select (the monthly-priced or annual-priced amount shown on the Plans page). We
+  do not store your payment method, and a purchase does not automatically renew or
+  re-charge you. Once payment is confirmed, your account's tier and credit allowance
+  take effect and remain in place indefinitely — no further payment is required to
+  keep them active.
 - Per-call charges and metered overage are billed as incurred.
-- Payment processing is handled by Stripe; you agree to Stripe's applicable terms for
-  the payment flow.
-- **Refunds:** [REFUND POLICY PLACEHOLDER — decide before launch. Options to present to
-  counsel: (1) no refunds except where required by law; (2) pro-rated refunds of unused
-  full months on annual plans; (3) 14-day money-back on first subscription purchase.
-  Per-call charges for completed runs are generally non-refundable since the compute is
-  consumed on delivery.]
+- Payments are handled by PAI'D Payments Intelligence, which settles transactions via
+  Stripe, Inc. We do not store your card details. By subscribing you also agree to
+  [Stripe's Services Agreement](https://stripe.com/legal/ssa). All amounts are in USD.
+- Self-serve plan changes are not yet available. To move to a different tier —
+  including returning to the Free tier — email support@jonathanarvay.com. Do not start
+  a new checkout for a different plan on your own: since each purchase is a separate
+  one-time charge, doing so bills you again rather than replacing your current plan.
+- **Refunds:** We do not provide refunds for unused time on a plan you no longer want,
+  except where required by applicable law. Per-call charges for completed runs are
+  non-refundable since the compute is consumed on delivery.
 
 ## 9. Termination
 
@@ -152,5 +161,5 @@ effective date constitutes acceptance.
 
 ## 12. Contact
 
-[CONTACT EMAIL]
+<support@jonathanarvay.com>
 [LEGAL ENTITY NAME AND POSTAL ADDRESS — TO BE COMPLETED BY COUNSEL]
