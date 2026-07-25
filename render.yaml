@@ -57,6 +57,13 @@ services:
         sync: false
       - key: GOOGLE_CALLBACK_URL
         value: https://api.iliad.trustfabric.ai/v1/auth/google/callback
+      # MCP OAuth2 authorization-server signing keys (RS256 PEM strings, oauth-server.ts).
+      # Without these, the process falls back to an ephemeral in-memory keypair and every
+      # issued MCP OAuth token stops verifying on the next restart/deploy (R0.2).
+      - key: JWT_PRIVATE_KEY
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
       - key: AXIS_WEB_URL
         value: https://iliad.trustfabric.ai
       - key: STRIPE_SECRET_KEY

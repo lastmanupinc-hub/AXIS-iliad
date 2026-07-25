@@ -5,55 +5,71 @@ import path from "node:path";
 import { sql } from "@axis/snapshots";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError } from "./router.js";
-import { ErrorCode } from "./logger.js";
+import { ErrorCode, log } from "./logger.js";
 
-// JWT configuration - read from .pem files in project root, with fallback for tests and containers
-let JWT_PRIVATE_KEY: string;
-let JWT_PUBLIC_KEY: string;
+// JWT configuration. Priority: JWT_PRIVATE_KEY/JWT_PUBLIC_KEY env vars (PEM
+// strings, for Render) -> private-key.pem/public-key.pem files on disk (local
+// dev / containers with a mounted volume) -> ephemeral generated keypair.
 const JWT_ALGORITHM = "RS256";
 
-try {
-  // Try multiple possible locations for key files
+export interface JwtKeyResolution {
+  privateKey: string;
+  publicKey: string;
+  source: "env" | "file" | "generated";
+}
+
+/**
+ * Resolve the RSA keypair oauth-server signs/verifies MCP OAuth tokens with.
+ * Exported (not just called at module load) so tests can exercise every
+ * branch directly instead of reimporting the module under different env vars.
+ */
+export function resolveJwtKeys(): JwtKeyResolution {
+  const envPrivateKey = process.env.JWT_PRIVATE_KEY;
+  const envPublicKey = process.env.JWT_PUBLIC_KEY;
+  if (envPrivateKey && envPublicKey) {
+    return { privateKey: envPrivateKey, publicKey: envPublicKey, source: "env" };
+  }
+
   const possiblePaths = [
     path.join(process.cwd(), "..", "..", "private-key.pem"), // From apps/api/src
     path.join(process.cwd(), "..", "private-key.pem"),       // From apps/api
     path.join(process.cwd(), "private-key.pem"),             // From project root
     "/app/private-key.pem",                                   // Docker absolute path
   ];
-
-  let privateKeyPath: string | null = null;
-  let publicKeyPath: string | null = null;
-
   for (const keyPath of possiblePaths) {
     if (fs.existsSync(keyPath)) {
-      privateKeyPath = keyPath;
-      publicKeyPath = keyPath.replace("private-key.pem", "public-key.pem");
+      const publicKeyPath = keyPath.replace("private-key.pem", "public-key.pem");
       if (fs.existsSync(publicKeyPath)) {
-        break;
+        return {
+          privateKey: fs.readFileSync(keyPath, "utf8"),
+          publicKey: fs.readFileSync(publicKeyPath, "utf8"),
+          source: "file",
+        };
       }
     }
   }
 
-  if (!privateKeyPath || !publicKeyPath) {
-    throw new Error("JWT key files not found");
-  }
-
-  JWT_PRIVATE_KEY = fs.readFileSync(privateKeyPath, "utf8");
-  JWT_PUBLIC_KEY = fs.readFileSync(publicKeyPath, "utf8");
-} catch (error) {
-  // Fallback for test environments and containers without keys - generate temporary keys
-  if (process.env.NODE_ENV === "test" || process.env.DOCKER_CONTAINER === "true" || !process.env.JWT_PRIVATE_KEY) {
-    const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: "spki", format: "pem" },
-      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  // Last resort: a throwaway keypair. Fine for tests/local dev; in production
+  // it silently invalidates every previously issued MCP OAuth token on the
+  // next restart, so this must never happen quietly.
+  if (process.env.NODE_ENV === "production") {
+    log("error", "oauth_ephemeral_keys_in_production", {
+      message:
+        "No JWT_PRIVATE_KEY/JWT_PUBLIC_KEY env vars and no private-key.pem/" +
+        "public-key.pem found -- generating a throwaway RSA keypair for this " +
+        "process. Every MCP OAuth token issued before the next restart will " +
+        "stop verifying. Set JWT_PRIVATE_KEY and JWT_PUBLIC_KEY in Render.",
     });
-    JWT_PRIVATE_KEY = privateKey;
-    JWT_PUBLIC_KEY = publicKey;
-  } else {
-    throw error;
   }
+  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+  return { privateKey, publicKey, source: "generated" };
 }
+
+const { privateKey: JWT_PRIVATE_KEY, publicKey: JWT_PUBLIC_KEY } = resolveJwtKeys();
 
 // Simple OAuth server implementation
 
