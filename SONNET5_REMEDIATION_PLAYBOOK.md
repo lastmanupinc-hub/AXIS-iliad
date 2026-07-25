@@ -66,7 +66,7 @@ Only the deltas below are new.
 | R1.2 | Public truth | DONE | `c7b38f2` |
 | R1.3 | Public truth | DONE | `8e1bf24` |
 | R1.4 | Public truth | DONE | `cc9b9a9` |
-| R1.5 | Public truth | DONE | `<pending>` |
+| R1.5 | Public truth | DONE | `b7b714e` |
 | R1.6 | Public truth | pending | |
 | R2.1 | Revive | pending | |
 | R2.2 | Revive | pending | |
@@ -74,7 +74,7 @@ Only the deltas below are new.
 | R2.4 | Revive | pending | |
 | R2.5 | Revive | pending | |
 | R2.6 | Revive | pending | |
-| R3.1 | Guards | DONE | `<pending>` |
+| R3.1 | Guards | DONE | `b7b714e` |
 | R3.2 | Guards | pending | |
 | R3.3 | Guards | pending | |
 | R3.4 | Guards | pending | |
