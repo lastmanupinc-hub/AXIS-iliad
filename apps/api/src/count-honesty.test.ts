@@ -15,8 +15,26 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 // `Programs | 3 | 19 | 19 | 19`) collapses to adjacent visible text the regexes can see.
 const visible = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
+function indexHtmlText(): string {
+  const html = readFileSync(join(ROOT, "apps", "web", "index.html"), "utf8");
+  // visible()'s tag-stripper is built for JSX text nodes (content BETWEEN tags,
+  // e.g. <div>19</div>) -- fed a self-closing <meta ... content="140 Artifacts" />,
+  // it matches the WHOLE tag as `<[^>]+>` and erases the attribute value along
+  // with the markup, so a stale og:title/twitter:title count would be invisible
+  // to every check below. Pull meta content="..." values out as bare text first
+  // (JSON-LD <script> text already survives visible() unchanged, since it sits
+  // between tags, not inside one).
+  const metaContents = [...html.matchAll(/<meta[^>]+content="([^"]*)"/gi)].map((m) => m[1]);
+  return `${html}\n${metaContents.join("\n")}`;
+}
+
 function docs(): Array<{ name: string; text: string }> {
-  const out = [{ name: "README.md", text: readFileSync(join(ROOT, "README.md"), "utf8") }];
+  const out = [
+    { name: "README.md", text: readFileSync(join(ROOT, "README.md"), "utf8") },
+    // The public SEO/JSON-LD surface (og:title, twitter:title, SoftwareApplication
+    // description) carried a stale "140 Artifacts" for weeks with no guard (R1.1).
+    { name: "apps/web/index.html", text: indexHtmlText() },
+  ];
   const webSrc = join(ROOT, "apps", "web", "src");
   for (const rel of readdirSync(webSrc, { recursive: true }) as unknown as string[]) {
     if (typeof rel === "string" && rel.endsWith(".tsx")) {

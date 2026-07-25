@@ -19,7 +19,7 @@ Allow: /v1/
 # This is the Axis' Iliad MCP server (io.github.lastmanupinc-hub/axis-iliad)
 # Primary tool: prepare_agentic_purchasing
 # Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)
-# Pay-per-run: $0.50 via Stripe MPP
+# Pay-per-run: $0.50 via x402 -- PAI'D hosted checkout
 # Full documentation: https://iliad.trustfabric.ai/for-agents
 
-Sitemap: https://iliad.trustfabric.ai/sitemap.xml
+Sitemap: https://api.iliad.trustfabric.ai/sitemap.xml
