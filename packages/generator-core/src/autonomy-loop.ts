@@ -61,6 +61,138 @@ function stackLabel(ctx: ContextMap): string {
   return parts.length ? [...new Set(parts)].join(", ") : "the detected stack";
 }
 
+// ─── Inter-repo ticket system ───────────────────────────────────
+//
+// Productizes the agent-to-agent protocol Axis' Iliad runs against its own
+// sibling repos (see this repo's begin.yaml#project_begin.inter_repo_ticket_system,
+// activated 2026-07-26). The mechanic: when unit A's loop needs work done on a
+// SHARED path owned by unit B (billing, auth, a payments rail, a shared contract),
+// A does NOT edit B's files mid-flight — A appends a ticket to B's begin.yaml
+// inbox, B triages it into its own candidate queue under its own verification
+// discipline, and B writes the completion notice back into A's outbox so A never
+// polls. File-based, no network, no round trip.
+//
+// The KEY NAME is kept identical (`inter_repo_ticket_system`) across every
+// generated implementation on purpose: two agents from unrelated codebases can
+// only speak this protocol if they look for the same key and the same field
+// names. `topology` + `known_units` carry what actually differs per repo.
+
+/** A YAML-key-safe slug for an addressable unit path (`apps/api` → `apps_api`). */
+function unitSlug(path: string): string {
+  return path.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "unit";
+}
+
+/**
+ * Addressable units the ticket protocol can route between, derived from the
+ * analysis (never hardcoded). Monorepo roots (`apps/`, `packages/`, `services/`)
+ * are expanded one level down using the file paths the scan actually saw, so a
+ * unit only appears if it demonstrably has files. Deterministic: sorted, capped.
+ */
+export function detectTicketUnits(ctx: ContextMap): Array<{ slug: string; path: string }> {
+  const MULTI_UNIT_PURPOSES = new Set(["monorepo_apps", "monorepo_packages", "service_layer"]);
+  const roots = (ctx.structure?.top_level_layout ?? [])
+    .filter((d) => MULTI_UNIT_PURPOSES.has(d.purpose))
+    .map((d) => d.name);
+  if (!roots.length) return [];
+
+  const rootSet = new Set(roots);
+  const paths = new Set<string>();
+  for (const entry of ctx.structure?.file_tree_summary ?? []) {
+    const segs = String(entry.path ?? "").split("/");
+    // `<root>/<unit>/<...>` — a unit needs at least one file BELOW it, so a bare
+    // two-segment path (a file sitting directly in the root) is not a unit.
+    if (segs.length >= 3 && rootSet.has(segs[0])) paths.add(`${segs[0]}/${segs[1]}`);
+  }
+  return [...paths]
+    .sort()
+    .slice(0, 24) // bounded output; alphabetical so the cap is deterministic
+    .map((p) => ({ slug: unitSlug(p), path: p }));
+}
+
+/**
+ * The ticket-system block, indented for `project_begin:`. Emitted for every repo:
+ * with detected units it routes between them; without, it still carries the schema
+ * so an agent can file against a sibling repo/service the analysis cannot see.
+ */
+export function buildTicketSystemBlock(ctx: ContextMap): string {
+  const units = detectTicketUnits(ctx);
+  const multi = units.length >= 2;
+  const known = multi
+    ? units.map((u) => `      ${u.slug}: ${yq(u.path)}`).join("\n")
+    : `      # No multi-unit topology detected in this repo. Add the sibling repo or
+      # service you actually coordinate with, as <slug>: "<path-or-repo-name>",
+      # and mirror this whole block into ITS begin.yaml so both speak one protocol.
+      # (This repo still has a working inbox/outbox below — the schema is live.)`;
+
+  return `  # Agent-to-agent work requests across ${multi ? "the units below" : "repo/service boundaries"}. See known_units.
+  inter_repo_ticket_system:
+    activated: ${yq(ctx.generated_at ?? "")}
+    topology: ${multi ? "in_repo_units" : "single_unit"}
+    transport: file_based_no_network   # a ticket is filed by editing the target's begin.yaml directly
+    purpose: >
+      Let one unit ask another for work on a SHARED path (billing, auth,
+      payments, a shared contract or schema) WITHOUT editing that unit's files
+      while its own loop may be mid-candidate. The provider triages the ticket
+      into its own candidate queue, does the work under its own verification
+      discipline, and writes the completion notice back into the requester's
+      outbox — so the requester never polls.
+
+    known_units:
+${known}
+
+    ticket_schema:
+      # Copy this template, fill it in, append it under inbox.tickets in the
+      # unit you are requesting FROM. Do not edit any other section of its file.
+      template:
+        id: ""                    # TICKET-<from_unit>-<short-slug>-<YYYYMMDD>
+        from_unit: ""             # a known_units key
+        from_agent_session: ""    # your session id or a short human label
+        submitted: ""             # YYYY-MM-DD
+        status: submitted         # submitted -> in_progress -> confirmed -> archived
+        severity: normal          # normal | priority_1 (priority_1 pauses the loop like a direct operator report)
+        title: ""                 # one line
+        request: >
+          Exactly what you need: endpoint, field, behavior. Point at your OWN
+          canonical spec file if one exists instead of restating it here.
+        why: ""                   # what this blocks on your side
+        acceptance_criteria: []   # concrete conditions the provider can self-verify
+        pointer_back: ""          # where in YOUR unit to also check/write, if not your own outbox
+
+    inbox:
+      # Tickets other units have filed against THIS one. Every ticket with
+      # status: submitted is triaged before the next candidate is picked.
+      tickets: []
+      archived_tickets: []
+
+    outbox:
+      # Tickets THIS unit has filed elsewhere. The provider updates status
+      # directly here when they act on it, using the same schema.
+      tickets: []
+      archived_tickets: []
+
+    triage_policy:
+      on_new_inbox_ticket:
+        - assign_a_candidate_id_and_add_to_the_candidate_queue
+        - severity_priority_1_is_handled_before_the_next_candidate
+        - severity_normal_takes_its_place_in_normal_priority_rank_order
+        - set_ticket_status_in_progress_and_record_the_assigned_candidate_id
+      on_candidate_close:
+        - set_ticket_status_confirmed_in_inbox
+        - write_the_same_confirmation_into_the_requesters_outbox_entry_with_matching_id
+      on_mutual_confirmation:
+        - move_the_ticket_to_archived_tickets_in_both_places
+
+    notify_protocol:
+      where: "<from_unit>/begin.yaml#project_begin.inter_repo_ticket_system.outbox.tickets[id]"
+      what_to_write:
+        status: confirmed
+        confirmed: ""              # YYYY-MM-DD
+        provider_candidate_id: ""  # the candidate you closed for this ticket
+        evidence: ""               # commit SHA + what was verified
+        summary: ""                # 1-3 sentences
+`;
+}
+
 /**
  * The single most important field: what the owner wants built. We seed it from the
  * project identity but explicitly instruct the agent to CONFIRM it with the human
@@ -133,6 +265,7 @@ project_begin:
   required_read_order:
     - read_this_file_first
     - then_read_continuation_yaml
+    - then_check_the_ticket_inbox      # inter_repo_ticket_system.inbox — requests that arrived since last session
     - then_take_the_highest_priority_open_candidate
 
   # Who decides what. Keeps a non-technical owner in the loop WITHOUT needing them to code.
@@ -156,6 +289,7 @@ project_begin:
     - verify it against its acceptance_check (build/run/test must be green)
     - update continuation.yaml — mark it done, record evidence, append any new candidates discovered
     - commit the change
+    - check the ticket inbox and triage any new tickets into the queue   # inter_repo_ticket_system.triage_policy
     - re-rank the remaining candidates
     - continue_until_stop_condition
 
@@ -173,6 +307,7 @@ project_begin:
     escalate_before_touching_load_bearing_code:
 ${hotspots.length ? hotspots.map((h) => `      - ${yq(h)}`).join("\n") : "      - (none flagged — still confirm before touching auth, payments, or data layers)"}
 
+${buildTicketSystemBlock(ctx)}
   # The loop closes here. After finishing a candidate, do NOT stop — return to the top:
   on_cycle_complete: "Re-read this file and continue:  begin"
 `;

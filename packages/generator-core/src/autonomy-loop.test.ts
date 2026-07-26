@@ -1,7 +1,15 @@
 import { describe, it, expect } from "vitest";
+import { parse as parseYaml } from "yaml";
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratorResult, GeneratedFile } from "./types.js";
-import { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml, CONTINUE_FOOTER_MARKER } from "./autonomy-loop.js";
+import {
+  appendAutonomyLoop,
+  buildBeginYaml,
+  buildContinuationYaml,
+  buildTicketSystemBlock,
+  detectTicketUnits,
+  CONTINUE_FOOTER_MARKER,
+} from "./autonomy-loop.js";
 
 // A minimal ContextMap carrying just the fields the begin-loop reads.
 function ctx(overrides: Partial<ContextMap> = {}): ContextMap {
@@ -126,5 +134,107 @@ describe("buildContinuationYaml", () => {
     expect(buildContinuationYaml(ctx(), files)).toContain('id: "verify-harness"');
     const withTests = ctx({ detection: { frameworks: [], languages: ["TypeScript"], test_frameworks: ["vitest"] } } as Partial<ContextMap>);
     expect(buildContinuationYaml(withTests, files)).not.toContain('id: "verify-harness"');
+  });
+});
+
+// ─── Inter-repo ticket system ───────────────────────────────────
+
+/** A ContextMap with a real multi-unit (monorepo) topology. */
+function monorepoCtx(): ContextMap {
+  return ctx({
+    structure: {
+      top_level_layout: [
+        { name: "apps", purpose: "monorepo_apps", file_count: 40 },
+        { name: "packages", purpose: "monorepo_packages", file_count: 20 },
+        { name: "docs", purpose: "documentation", file_count: 5 },
+      ],
+      file_tree_summary: [
+        { path: "apps/api/src/server.ts", type: "file" },
+        { path: "apps/web/src/main.tsx", type: "file" },
+        { path: "packages/billing/src/index.ts", type: "file" },
+        { path: "docs/readme.md", type: "file" },
+        // A file sitting directly in a root is NOT a unit (needs depth >= 3).
+        { path: "apps/tsconfig.json", type: "file" },
+      ],
+    },
+  } as Partial<ContextMap>);
+}
+
+/** A ContextMap with no multi-unit topology (the common single-repo case). */
+function soloCtx(): ContextMap {
+  return ctx({
+    structure: {
+      top_level_layout: [{ name: "src", purpose: "source_code", file_count: 10 }],
+      file_tree_summary: [{ path: "src/main.py", type: "file" }],
+    },
+  } as Partial<ContextMap>);
+}
+
+describe("detectTicketUnits", () => {
+  it("derives units one level under monorepo roots, from paths the scan actually saw", () => {
+    expect(detectTicketUnits(monorepoCtx())).toEqual([
+      { slug: "apps_api", path: "apps/api" },
+      { slug: "apps_web", path: "apps/web" },
+      { slug: "packages_billing", path: "packages/billing" },
+    ]);
+  });
+
+  it("ignores non-unit top-level dirs and bare files sitting in a root", () => {
+    const units = detectTicketUnits(monorepoCtx()).map((u) => u.path);
+    expect(units).not.toContain("docs/readme.md");
+    // "apps/tsconfig.json" is depth-2 — a file, not a unit.
+    expect(units).not.toContain("apps/tsconfig.json");
+  });
+
+  it("returns no units when the repo has no multi-unit topology", () => {
+    expect(detectTicketUnits(soloCtx())).toEqual([]);
+  });
+
+  it("is deterministic — same input, byte-identical output", () => {
+    expect(buildTicketSystemBlock(monorepoCtx())).toBe(buildTicketSystemBlock(monorepoCtx()));
+  });
+});
+
+describe("buildBeginYaml — inter-repo ticket system", () => {
+  it("emits valid YAML carrying the full ticket schema for a monorepo", () => {
+    const doc = parseYaml(buildBeginYaml(monorepoCtx())) as Record<string, any>;
+    const t = doc.project_begin.inter_repo_ticket_system;
+    expect(t.topology).toBe("in_repo_units");
+    expect(t.known_units).toEqual({
+      apps_api: "apps/api",
+      apps_web: "apps/web",
+      packages_billing: "packages/billing",
+    });
+    // The mechanic only works if both directions exist and start empty.
+    expect(t.inbox.tickets).toEqual([]);
+    expect(t.outbox.tickets).toEqual([]);
+    expect(Object.keys(t.ticket_schema.template)).toEqual([
+      "id", "from_unit", "from_agent_session", "submitted", "status",
+      "severity", "title", "request", "why", "acceptance_criteria", "pointer_back",
+    ]);
+  });
+
+  it("still emits a usable protocol (valid YAML, live inbox) with no units detected", () => {
+    const doc = parseYaml(buildBeginYaml(soloCtx())) as Record<string, any>;
+    const t = doc.project_begin.inter_repo_ticket_system;
+    expect(t.topology).toBe("single_unit");
+    expect(t.inbox.tickets).toEqual([]);
+    expect(t.ticket_schema.template).toBeDefined();
+  });
+
+  it("WIRES the inbox into the loop — an unread inbox makes the protocol inert", () => {
+    const doc = parseYaml(buildBeginYaml(monorepoCtx())) as Record<string, any>;
+    // Read on session start...
+    expect(doc.project_begin.required_read_order.some((s: unknown) => String(s).includes("ticket_inbox"))).toBe(true);
+    // ...and triaged after every completed candidate.
+    expect(doc.project_begin.next_move_selection_algorithm.some((s: unknown) => String(s).includes("triage"))).toBe(true);
+  });
+
+  it("keeps the protocol key name stable across topologies (cross-implementation compatibility)", () => {
+    // Two agents from unrelated codebases can only speak this protocol if they
+    // look for the SAME key — the name must not vary with detected topology.
+    for (const c of [monorepoCtx(), soloCtx()]) {
+      expect(buildBeginYaml(c)).toContain("inter_repo_ticket_system:");
+    }
   });
 });
