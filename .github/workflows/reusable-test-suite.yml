@@ -89,8 +89,18 @@ jobs:
             echo "No affected packages changed — skipping test run."
           fi
 
-      - name: Type-check (${{ inputs.full && 'full' || 'affected' }})
-        run: pnpm ${{ inputs.pnpm_filter }} -r exec tsc --noEmit
+      - name: Type-check (always full)
+        # `pnpm --filter "...[ref]" -r exec tsc --noEmit` looked like the same
+        # pattern as the Build step above, but exec's binary resolution
+        # doesn't compose reliably with the git-ref filter form the way a
+        # package.json "build": "tsc" script does — the first real narrow run
+        # caught it live: tsc fell through to a stray global copy and printed
+        # its own help text instead of type-checking anything. Typecheck was
+        # never the slow part (the Postgres-backed vitest suite is), and
+        # cross-package type errors need full-project context to catch
+        # reliably anyway — same reasoning as Lint below, just discovered the
+        # hard way instead of up front.
+        run: pnpm -r exec tsc --noEmit
 
       - name: Lint
         # Whole-repo, every run: type-aware ESLint rules need full project
