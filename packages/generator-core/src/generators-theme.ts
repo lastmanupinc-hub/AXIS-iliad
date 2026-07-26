@@ -1,7 +1,7 @@
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, detectStyleFiles, renderExcerpts, fileTree, extractExports } from "./file-excerpt-utils.js";
+import { findFiles, detectStyleFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 // Injection defense. theme.css interpolates into CSS block comments (cssComment
 // breaks `*/`); theme-guidelines.md uses md-sanitize; the 3 JSON files are
 // JSON.stringify(obj) (contained by construction).
@@ -1067,7 +1067,6 @@ export function generateComponentThemeMap(ctx: ContextMap, files?: SourceFile[])
 
 export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks;
   // Shared tailwind signal (config file OR detected framework) — matches
   // design-tokens.json's has_tailwind and the guidelines' styling section.
   const { hasTailwind } = detectStyling(ctx);

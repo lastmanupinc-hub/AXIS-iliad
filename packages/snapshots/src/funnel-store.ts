@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sql, pgPlaceholders } from "./pg.js";
-import { getAccount, getMonthlySnapshotCount, getEntitlements, getAccountPaidPlanId } from "./billing-store.js";
+import { getAccount, getMonthlySnapshotCount, getAccountPaidPlanId } from "./billing-store.js";
 import { TIER_LIMITS, ALL_PROGRAMS } from "./billing-types.js";
 import type { BillingTier } from "./billing-types.js";
 import type {
@@ -13,7 +13,6 @@ import type {
 } from "./funnel-types.js";
 import {
   resolveSeatLimit,
-  PLAN_CATALOG,
   ACTIVATION_THRESHOLD,
   ENGAGEMENT_THRESHOLD,
   CHURN_RISK_DAYS,

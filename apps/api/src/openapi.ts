@@ -613,6 +613,16 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/.well-known/agent-card.json": {
+        get: {
+          summary: "MCP-focused agent discovery card (name, skills, capabilities) -- not an A2A protocol conformance claim",
+          operationId: "getAgentCard",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Agent card: name, skills[], capabilities, authentication, cross-links to the other discovery surfaces" },
+          },
+        },
+      },
       "/agents.json": {
         get: {
           summary: "Root-level alias for /.well-known/agent.json",
@@ -649,7 +659,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           operationId: "getX402WellKnown",
           tags: ["Discovery"],
           responses: {
-            200: { description: "x402 discovery aid: metered tools, real derived prices, wire protocol note" },
+            200: { description: "x402 discovery aid: ping_payment demo, programs, utilities, real derived prices, wire protocol note" },
           },
         },
       },

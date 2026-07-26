@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFileSync } from "node:fs";
-import { parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, getPricingTier, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
 import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
 import { classifyProbe, captureIntent } from "./intent.js";
@@ -56,7 +56,8 @@ import { resolveAuth, requireAuth } from "./billing.js";
 import { requireAdmin } from "./admin.js";
 import { ErrorCode, ERROR_CODE_CATALOG, log, getRequestId } from "./logger.js";
 import { MCP_ERROR_CATEGORY_CATALOG, METERED_MCP_TOOLS } from "./mcp-runtime.js";
-import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
+import type { MeteredMcpTool } from "./mcp-runtime.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { MCP_TOOLS, getMcpToolBazaarInfo } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
@@ -922,8 +923,6 @@ export async function handleGetGeneratedFiles(
   }
 
   const latest = snapshots[snapshots.length - 1];
-  const contextMap = await getContextMap(latest.snapshot_id);
-  const repoProfile = await getRepoProfile(latest.snapshot_id);
 
   const generated = (await getGeneratorResult(latest.snapshot_id)) as GeneratorResult | undefined;
   /* v8 ignore next 3  -  V8 quirk: tested but V8 won't credit */
@@ -2713,28 +2712,156 @@ export async function handleWellKnown(
 // checks this exact path (confirmed via Render log review) — it is a
 // pragmatic pointer at the real mechanism, not a competing standard, and it
 // only ever advertises rails this system can actually settle today.
+//
+// Catalog shape: METERED_MCP_TOOLS splits into two honest layers —
+// "programs" (analyze_repo/analyze_files and the 3 dedicated bundle tools:
+// prepare_agentic_purchasing, closer, deploy) and "utilities" (the 15
+// atomic iliad_*/assemble_representment primitives). There is no third
+// "artifacts" layer priced separately: the ~142 generator artifacts are
+// bundled inside the programs above, not sold à la carte today — say so
+// plainly (ARTIFACT_CATALOG_NOTE) instead of implying a purchase path that
+// doesn't exist. list_programs (free, no auth) is the real place to see
+// every artifact a program produces.
+const X402_PROGRAM_TOOLS: readonly MeteredMcpTool[] = ["analyze_repo", "analyze_files", "prepare_agentic_purchasing", "closer", "deploy"];
+
+const X402_PROGRAM_SUMMARIES: Readonly<Record<string, string>> = {
+  analyze_repo: "Analyze a public GitHub repo URL and generate the full AXIS artifact bundle.",
+  analyze_files: "Analyze inline source files (no GitHub URL needed) and generate the full AXIS artifact bundle.",
+  prepare_agentic_purchasing: "Compute a Purchasing Readiness Score and generate AP2/UCP/Visa IC commerce compliance artifacts for an existing or new snapshot.",
+  closer: "Package an existing snapshot into professional packaging + marketplace certification artifacts (Docker, CI, release manifests).",
+  deploy: "Generate a zero-pipeline-minutes deploy bundle (Dockerfile, compose, render.yaml, wrangler configs) for an existing snapshot.",
+};
+
+const X402_UTILITY_SUMMARIES: Readonly<Record<string, string>> = {
+  assemble_representment: "Turn a webhook-ingested dispute into a Stripe representment with CE 3.0 evidence priors.",
+  iliad_object_storage: "Signed-URL minter (Cloudflare R2) for account-scoped PUT/GET storage.",
+  iliad_vector_database: "Account-scoped vector store: upsert vectors, query cosine top-k nearest neighbors.",
+  iliad_embeddings: "Convert text into dense vectors (single string or batch up to 2048).",
+  iliad_transactional_email: "Send a single transactional email via Resend (HTML and/or text body).",
+  iliad_analytics: "Product analytics: capture events (single or batch) or query aggregations.",
+  iliad_llm_inference: "AXIS-hosted LLM chat completion (in-process GGUF model, no external API call).",
+  iliad_code_sandbox: "Execute code in a fresh, network-isolated, read-only-root ephemeral Docker container.",
+  iliad_speech_to_text: "Audio transcription via whisper.cpp (URL or inline audio, max 100 MiB).",
+  iliad_text_to_speech: "Voice synthesis via Piper (1-5000 chars of text, selectable voice).",
+  iliad_web_search: "BM25 search over a corpus your account has already indexed (not a Google/Bing scraper).",
+  iliad_document_parsing: "Extract Markdown from a document (URL or inline base64, max 50 MiB).",
+  iliad_hygiene: "Grade an inline file set's workspace hygiene (A-F) across a closed set of dimensions.",
+  iliad_web_research: "Scrape a single URL with AXIS's own SSRF-guarded, robots.txt-aware crawler.",
+  iliad_web_research_crawl: "Crawl a domain (same-origin BFS, robots.txt compliant, per-host politeness) and scrape pages found.",
+};
+
+const X402_ARTIFACT_CATALOG_NOTE = `The ${PROGRAM_COUNT} generator programs and their ${ARTIFACT_COUNT} artifacts are bundled inside the programs below — they are not sold or refreshed individually today. See the real, live breakdown for free: MCP tool list_programs (no auth), or GET /v1/mcp/tools?q=<keyword> to search by capability.`;
+
 export function handleX402WellKnown(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   const paymentRecipient = process.env.TEMPO_RECIPIENT_ADDRESS ?? null;
+  const priceEntry = (tool: MeteredMcpTool) => {
+    const tier = getPricingTier(tool);
+    return { standard_price_usd: (tier.standard_cents / 100).toFixed(2), lite_price_usd: (tier.lite_cents / 100).toFixed(2) };
+  };
   sendJSON(res, 200, {
-    note: "This file is a pragmatic discovery aid, not the x402 foundation's canonical mechanism. Per the foundation's own spec (specs/extensions/bazaar.md), resource servers do not host a well-known discovery path — real discovery info rides inside each 402 response body via a `bazaar` extension field. Whether a metered tool below actually returns one on a given call depends on the preconditions in how_to_pay.",
-    contract_doc: "https://github.com/lastmanupinc-hub/AXIS-iliad/blob/main/docs/x402/CONTRACT.md",
-    wire_protocol_note: "Iliad speaks the mppx/PaymentAuth wire protocol (WWW-Authenticate: Payment / Authorization: Payment / Payment-Receipt headers) — NOT x402.org's v1 (X-PAYMENT body/header) or v2 (PAYMENT-SIGNATURE header) conventions. See contract_doc for the full wire comparison.",
+    try_it_free: {
+      tool: "ping_payment",
+      how: "MCP tools/call, no API key and no payment credential required",
+      what_it_does: "Exercises the real mppx/PaymentAuth challenge/settle loop end-to-end for $0.00 — see a genuine payment negotiation body before spending real money on a metered tool.",
+    },
+    pricing_model: "Free while your plan credits last. A real 402 payment-required challenge only fires on authenticated overage for a guaranteed-billable tool — see how_to_pay for the exact preconditions.",
     endpoint: {
       url: "/mcp",
       method: "POST",
       transport: "Streamable HTTP (2025-03-26 MCP spec)",
     },
-    metered_tools: METERED_MCP_TOOLS.map((tool) => {
-      const tier = getPricingTier(tool);
-      return { name: tool, standard_price_usd: (tier.standard_cents / 100).toFixed(2), lite_price_usd: (tier.lite_cents / 100).toFixed(2) };
-    }),
+    programs: X402_PROGRAM_TOOLS.map((tool) => ({
+      name: tool,
+      summary: X402_PROGRAM_SUMMARIES[tool],
+      ...priceEntry(tool),
+    })),
+    artifacts_note: X402_ARTIFACT_CATALOG_NOTE,
+    utilities: METERED_MCP_TOOLS.filter((tool) => !X402_PROGRAM_TOOLS.includes(tool)).map((tool) => ({
+      name: tool,
+      summary: X402_UTILITY_SUMMARIES[tool],
+      ...priceEntry(tool),
+    })),
     accepted_payment_schemes: paymentRecipient ? ["mppx/tempo", "mppx/stripe"] : ["mppx/stripe"],
-    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one, free, on every call, and is not gated by account state or deployment config. For the metered tools listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
+    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one, free, on every call, and is not gated by account state or deployment config. For the programs/utilities listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
+    agent_card: "GET /.well-known/agent-card.json — MCP-focused agent discovery card (name, skills, capabilities).",
+    wire_protocol_note: "Iliad speaks the mppx/PaymentAuth wire protocol (WWW-Authenticate: Payment / Authorization: Payment / Payment-Receipt headers) — NOT x402.org's v1 (X-PAYMENT body/header) or v2 (PAYMENT-SIGNATURE header) conventions. See contract_doc for the full wire comparison.",
+    contract_doc: "https://github.com/lastmanupinc-hub/AXIS-iliad/blob/main/docs/x402/CONTRACT.md",
+    note: "This file is a pragmatic discovery aid, not the x402 foundation's canonical mechanism. Per the foundation's own spec (specs/extensions/bazaar.md), resource servers do not host a well-known discovery path — real discovery info rides inside each 402 response body via a `bazaar` extension field. Whether a program or utility above actually returns one on a given call depends on the preconditions in how_to_pay.",
   });
   return Promise.resolve();
+}
+
+// ─── GET /.well-known/agent-card.json  -  MCP-focused agent discovery card ──
+//
+// Not a claim of A2A (Agent2Agent) protocol conformance — Iliad speaks MCP,
+// not A2A. This reuses the A2A community's now-common "agent card" filename
+// and a few of its most-recognized field names (skills[], capabilities) as a
+// courtesy to scanners that look for this path, without pretending to
+// implement the full A2A wire spec (no JSON-RPC agent-to-agent transport,
+// no pushNotifications).
+export async function handleAgentCard(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    name: "Axis' Iliad",
+    description: `Deterministic snapshot-based generation of ${ARTIFACT_COUNT}+ artifacts across ${PROGRAM_COUNT} specialized programs, plus ${METERED_MCP_TOOLS.length - X402_PROGRAM_TOOLS.length} metered infrastructure utilities (storage, vector search, embeddings, email, analytics, LLM inference, code sandbox, speech).`,
+    url: "/mcp",
+    version: API_VERSION,
+    protocol: "MCP (Model Context Protocol), Streamable HTTP transport, 2025-03-26 spec — NOT A2A",
+    provider: {
+      organization: "Axis' Iliad",
+      url: "https://iliad.trustfabric.ai",
+    },
+    capabilities: {
+      streaming: true,
+      pushNotifications: false,
+      stateTransitionHistory: false,
+    },
+    authentication: {
+      schemes: ["bearer"],
+      header: "Authorization: Bearer <api_key>",
+      obtain: "POST /v1/accounts",
+      note: "Free discovery tools (search_and_discover_tools, list_programs, ping_payment, and others) require no authentication at all.",
+    },
+    defaultInputModes: ["application/json"],
+    defaultOutputModes: ["application/json"],
+    skills: [
+      {
+        id: "analyze_repo",
+        name: "Analyze a codebase",
+        description: X402_PROGRAM_SUMMARIES.analyze_repo,
+        tags: ["codebase-analysis", "AGENTS.md", "CLAUDE.md", "context-artifacts"],
+      },
+      {
+        id: "prepare_agentic_purchasing",
+        name: "Prepare for agentic purchasing",
+        description: X402_PROGRAM_SUMMARIES.prepare_agentic_purchasing,
+        tags: ["AP2", "UCP", "Visa-Intelligent-Commerce", "agentic-commerce", "compliance"],
+      },
+      {
+        id: "ping_payment",
+        name: "Try the payment flow for free",
+        description: "Exercise the real mppx/PaymentAuth challenge/settle loop at $0 — no credential required.",
+        tags: ["x402", "payment", "free"],
+      },
+      {
+        id: "search_and_discover_tools",
+        name: "Discover AXIS tools",
+        description: "Keyword search across all AXIS programs and tools. Free, no auth.",
+        tags: ["discovery", "free"],
+      },
+    ],
+    well_known: {
+      x402: "/.well-known/x402",
+      oauth_protected_resource: "/.well-known/oauth-protected-resource",
+      capabilities: "/.well-known/capabilities.json",
+      security_txt: "/.well-known/security.txt",
+    },
+  });
 }
 
 // ─── GET /v1/error-codes  -  H4.2 generated error-code catalog ──────

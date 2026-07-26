@@ -1,7 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+import { hasFw } from "./fw-helpers.js";
+import { findFiles, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, mdBlock, jsString, jsxText, htmlEscape, codeComment } from "./md-sanitize.js";
 import { displayRoutes, isApiRoute } from "./route-utils.js";
 import { detectStyling } from "./theme-detect.js";
@@ -674,11 +674,8 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
 export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const languages = ctx.detection.languages;
-  const deps = ctx.dependency_graph.external_dependencies;
   const routes = displayRoutes(ctx.routes);
 
-  const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
   const hasReact = hasFw(ctx, "React", "Next.js");
   // Framework-appropriate children type — `ReactNode` is React-only; a Vue/Svelte
   // library spec typing children as ReactNode is internally contradictory.

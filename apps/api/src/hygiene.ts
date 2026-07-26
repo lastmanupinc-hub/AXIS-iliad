@@ -62,7 +62,6 @@ export interface RemediationPlan {
 }
 
 const LETTER_RANK: Record<Grade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
-const minGrade = (a: Grade, b: Grade): Grade => (LETTER_RANK[a] <= LETTER_RANK[b] ? a : b);
 
 // ─── config (overridable per call) ──────────────────────────────────────────
 export interface HygieneConfig {

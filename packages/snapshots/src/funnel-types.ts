@@ -1,4 +1,4 @@
-import type { BillingTier, ProgramName } from "./billing-types.js";
+import type { BillingTier } from "./billing-types.js";
 import { MARKETED_TIERS } from "./pricing-constants.js";
 
 // H-Phase-A cycle 10: PLAN_CATALOG's price_annual_cents used to be a

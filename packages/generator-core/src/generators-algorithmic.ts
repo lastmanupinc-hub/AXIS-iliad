@@ -1,6 +1,5 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdBlock, codeComment, yamlFlowScalar } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
@@ -33,8 +32,6 @@ export function deriveAlgoPalette(ctx: ContextMap): AlgoColor[] {
 
 export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const languages = ctx.detection.languages;
-  const patterns = ctx.architecture_signals.patterns_detected;
   const hotspots = ctx.dependency_graph.hotspots;
 
   // Derive visual parameters from project data
@@ -216,7 +213,6 @@ export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]):
 
 export function generateParameterPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const languages = ctx.detection.languages;
   const score = ctx.architecture_signals.separation_score * 100; // 0–100 scale for the thresholds below
   const hotspots = ctx.dependency_graph.hotspots;
 
@@ -573,7 +569,6 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
   const languages = ctx.detection.languages;
   const hotspots = ctx.dependency_graph.hotspots;
   const abstractions = ctx.ai_context.key_abstractions;
-  const deps = ctx.dependency_graph.external_dependencies;
 
   // Build parameter definitions based on project characteristics
   const parameters: Record<string, unknown>[] = [];

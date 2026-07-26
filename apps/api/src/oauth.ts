@@ -80,7 +80,7 @@ export async function handleGitHubOAuthCallback(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const { clientId, clientSecret, callbackUrl, webAppUrl } = getOAuthConfig();
+  const { clientId, clientSecret, webAppUrl } = getOAuthConfig();
   if (!clientId || !clientSecret) {
     sendError(res, 503, ErrorCode.INTERNAL_ERROR, "GitHub OAuth is not configured");
     return;

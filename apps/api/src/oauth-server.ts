@@ -69,7 +69,22 @@ export function resolveJwtKeys(): JwtKeyResolution {
   return { privateKey, publicKey, source: "generated" };
 }
 
-const { privateKey: JWT_PRIVATE_KEY, publicKey: JWT_PUBLIC_KEY } = resolveJwtKeys();
+const JWT_KEYS = resolveJwtKeys();
+const { privateKey: JWT_PRIVATE_KEY, publicKey: JWT_PUBLIC_KEY } = JWT_KEYS;
+
+/**
+ * True when a process signing MCP OAuth tokens with `source` is a throwaway
+ * keypair generated at startup rather than a stable JWT_PRIVATE_KEY/
+ * JWT_PUBLIC_KEY — i.e. every token issued will stop verifying on the next
+ * restart or deploy. Production must not silently mint tokens doomed to
+ * break; handleOAuthToken refuses to issue in this state instead. A pure
+ * function of (source, nodeEnv) — exported so it's unit-testable without
+ * reimporting the module under different env vars (resolveJwtKeys() itself
+ * already covers every source-resolution branch; this only covers the gate).
+ */
+export function isEphemeralKeyInProduction(source: JwtKeyResolution["source"], nodeEnv: string | undefined): boolean {
+  return source === "generated" && nodeEnv === "production";
+}
 
 // Simple OAuth server implementation
 
@@ -78,7 +93,6 @@ export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResp
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const clientId = url.searchParams.get("client_id");
   const redirectUri = url.searchParams.get("redirect_uri");
-  const scope = url.searchParams.get("scope") ?? "mcp:read";
   const responseType = url.searchParams.get("response_type");
   const state = url.searchParams.get("state");
 
@@ -136,6 +150,18 @@ export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse
   );
   if (!client) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Invalid client");
+    return;
+  }
+
+  // Refuse to mint a token that is guaranteed to stop verifying on the next
+  // restart/deploy — see issuingOnEphemeralKeyInProduction's docblock. This is
+  // deliberately narrower than refusing to boot the whole process: every other
+  // endpoint keeps working, only new MCP OAuth token issuance is blocked.
+  if (isEphemeralKeyInProduction(JWT_KEYS.source, process.env.NODE_ENV)) {
+    log("error", "oauth_token_refused_ephemeral_key", {
+      message: "Refusing to issue an MCP OAuth token signed with a throwaway keypair in production. Set JWT_PRIVATE_KEY and JWT_PUBLIC_KEY in Render.",
+    });
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "OAuth token issuance is temporarily unavailable (server misconfiguration) — this is a server-side issue, not a client error. Retry later.");
     return;
   }
 

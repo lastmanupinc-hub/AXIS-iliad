@@ -1,7 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
+import { hasFw } from "./fw-helpers.js";
+import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdCode, cssComment, yamlFlowScalar } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 import { capNote, capMeta } from "./cap-utils.js";
@@ -28,7 +28,6 @@ function rootPackageJson(files: SourceFile[], preferPublishable = false): Source
 
 export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const pkgManagers = ctx.detection.package_managers;
 
   const tools: Array<{ name: string; description: string; category: string; enabled: boolean }> = [];
@@ -2447,7 +2446,6 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
 
 export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks;
   const routes = displayRoutes(ctx.routes);
   const deps = ctx.dependency_graph.external_dependencies;
 

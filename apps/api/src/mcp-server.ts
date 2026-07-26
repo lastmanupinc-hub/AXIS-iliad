@@ -14,7 +14,7 @@ import {
   recordCompensationOwed,
   recordPaymentFunnelEvent,
 } from "@axis/snapshots";
-import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { classifyProbe, captureIntent, detectMcpSource } from "./intent.js";
 // MCP tool catalog + planned-capability machinery live in mcp-tools.ts; MCP_TOOLS is
 // re-exported so importers of mcp-server keep working.

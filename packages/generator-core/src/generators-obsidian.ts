@@ -1,6 +1,5 @@
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findEntryPoints, findConfigs, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, mdBlock, wikiLink, yamlFlowScalar } from "./md-sanitize.js";
 
@@ -679,7 +678,6 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const abstractions = ctx.ai_context.key_abstractions;
-  const conventions = ctx.ai_context.conventions;
 
   const lines: string[] = [];
   lines.push(`# Template Pack — ${mdText(id.name)}`);

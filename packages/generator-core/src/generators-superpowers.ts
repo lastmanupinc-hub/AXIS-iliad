@@ -1,6 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
+import { hasFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, mdBlock, yamlFlowScalar } from "./md-sanitize.js";
 
@@ -497,7 +497,6 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
     if (testFws.includes("vitest") || testFws.includes("jest")) {
       lines.push("```typescript");
       for (const m of models.slice(0, 3)) {
-        const v = m.name.charAt(0).toLowerCase() + m.name.slice(1);
         lines.push(`export function make${mdCode(m.name)}(overrides: Partial<${mdCode(m.name)}> = {}): ${mdCode(m.name)} {`);
         lines.push("  return {");
         lines.push("    // fill in required fields with sensible test defaults");

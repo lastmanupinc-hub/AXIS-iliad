@@ -178,7 +178,7 @@ describe("buildOpenApiSpec", () => {
   });
 
   it("all paths start with /v1/ or are root-level MCP paths", () => {
-    const NON_V1_PATHS = new Set(["/", "/accounts", "/agents.json", "/mcp", "/.well-known/axis.json", "/.well-known/capabilities.json", "/.well-known/security.txt", "/.well-known/agent.json", "/.well-known/mcp.json", "/.well-known/skills/index.json", "/.well-known/glama.json", "/.well-known/ai-plugin.json", "/.well-known/x402", "/.well-known/x402.json", "/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource", "/llms.txt", "/robots.txt", "/sitemap.xml", "/for-agents", "/probe-intent", "/health", "/docs", "/openapi.json", "/mcp/docs", "/begin.yaml", "/continuation.yaml", "/pricing", "/performance", "/performance/reputation", "/oauth/authorize", "/oauth/token", "/oauth/jwks", "/oauth/introspect"]);
+    const NON_V1_PATHS = new Set(["/", "/accounts", "/agents.json", "/mcp", "/.well-known/axis.json", "/.well-known/capabilities.json", "/.well-known/security.txt", "/.well-known/agent.json", "/.well-known/agent-card.json", "/.well-known/mcp.json", "/.well-known/skills/index.json", "/.well-known/glama.json", "/.well-known/ai-plugin.json", "/.well-known/x402", "/.well-known/x402.json", "/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource", "/llms.txt", "/robots.txt", "/sitemap.xml", "/for-agents", "/probe-intent", "/health", "/docs", "/openapi.json", "/mcp/docs", "/begin.yaml", "/continuation.yaml", "/pricing", "/performance", "/performance/reputation", "/oauth/authorize", "/oauth/token", "/oauth/jwks", "/oauth/introspect"]);
     for (const path of Object.keys(spec.paths)) {
       expect(
         path.startsWith("/v1/") || path.startsWith("/portal/api/") || NON_V1_PATHS.has(path),

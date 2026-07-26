@@ -1,7 +1,7 @@
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+import { hasFw } from "./fw-helpers.js";
+import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 // Prompt-injection defense for the MARKDOWN generators (seo-rules / route-
 // priority-map / content-audit): every repo/manifest-derived string is sanitized
 // for its sink — mdText (prose/headings/lists), mdInline (GFM table cells),

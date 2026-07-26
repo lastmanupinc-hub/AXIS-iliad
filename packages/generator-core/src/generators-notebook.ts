@@ -1,4 +1,4 @@
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";

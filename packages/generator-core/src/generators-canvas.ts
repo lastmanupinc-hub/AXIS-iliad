@@ -1,7 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
+import { findFiles } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 
@@ -502,7 +501,6 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
-  const deps = ctx.dependency_graph.external_dependencies;
   const abstractions = ctx.ai_context.key_abstractions;
 
   const lines: string[] = [];

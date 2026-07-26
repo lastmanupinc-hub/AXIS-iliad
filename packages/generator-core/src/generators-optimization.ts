@@ -1,7 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, findConfigs, findEntryPoints, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
+import { hasFw } from "./fw-helpers.js";
+import { findConfigs, findEntryPoints, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 // Prompt-injection defense for the 3 markdown generators; the cost-estimate.json
 // generator emits JSON.stringify(obj), which escapes every value (contained by
 // construction). mdText/mdInline/mdCode/mdCellCode per sink context.

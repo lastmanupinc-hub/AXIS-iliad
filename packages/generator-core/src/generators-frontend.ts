@@ -355,7 +355,6 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
   // Deduped, test/README-noise-free routes — the raw list is hundreds of
   // per-mention rows, so a route→layout table off it would repeat and mislead.
   const routes = displayRoutes(ctx.routes);
-  const layers = ctx.architecture_signals.layer_boundaries;
 
   const lines: string[] = [];
   lines.push(`# Layout Patterns — ${mdText(id.name)}`);

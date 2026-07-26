@@ -424,9 +424,12 @@ export function createApp(router: Router, port: number): Server {
       }
     }
 
-    // MCP endpoint only accepts GET and POST — reject other methods cleanly
-    if (req.url?.startsWith("/mcp") && req.method !== "GET" && req.method !== "POST") {
-      res.writeHead(405, { "Allow": "GET, POST" });
+    // MCP endpoint accepts GET, HEAD, and POST — reject other methods cleanly.
+    // HEAD is allowed (not just GET/POST) so clients that probe with HEAD before
+    // GET don't see a false 405; Router.handle() already matches HEAD to the GET
+    // route and Node's http server auto-suppresses the body for HEAD responses.
+    if (req.url?.startsWith("/mcp") && req.method !== "GET" && req.method !== "HEAD" && req.method !== "POST") {
+      res.writeHead(405, { "Allow": "GET, HEAD, POST" });
       res.end();
       return;
     }

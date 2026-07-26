@@ -294,22 +294,6 @@ function buildVerificationProof(signals: CommerceSignals, generatorName: string)
 
 // ─── TAP/AP2/UCP Interop Schemas ──────────────────────────────────
 
-// Focus areas control how much depth each section gets.
-// "full" = all sections at max depth; specific areas = only those expand.
-type FocusArea = "sca" | "dispute" | "mandate" | "tap" | "tokenization";
-
-function parseFocusAreas(focus?: string): Set<FocusArea> | "all" {
-  if (!focus || focus === "full" || focus === "purchasing") return "all";
-  const valid: FocusArea[] = ["sca", "dispute", "mandate", "tap", "tokenization"];
-  const areas = focus.split(",").map(s => s.trim().toLowerCase() as FocusArea).filter(a => valid.includes(a));
-  return areas.length > 0 ? new Set(areas) : "all";
-}
-
-function shouldExpand(areas: Set<FocusArea> | "all", ...targets: FocusArea[]): boolean {
-  if (areas === "all") return true;
-  return targets.some(t => areas.has(t));
-}
-
 function buildAP2ComplianceScoring(signals: CommerceSignals): string {
   const art2 = (signals.detected_providers.length > 0 ? 5 : 0) + (signals.has_mandate_management ? 5 : 0) + (signals.has_checkout ? 5 : 0);
   const art6 = (signals.has_sca ? 5 : 0) + (signals.has_recurring ? 5 : 0) + (signals.has_mandate_management ? 5 : 0);

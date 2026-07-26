@@ -15,6 +15,7 @@ import {
   requireBearerToken,
   createOAuthClient,
   resolveJwtKeys,
+  isEphemeralKeyInProduction,
 } from "./oauth-server.js";
 
 // ─── resolveJwtKeys — pure key-selection logic, no server/DB needed ───────
@@ -135,6 +136,25 @@ describe("resolveJwtKeys", () => {
 
     expect(resolved.source).toBe("env");
     expect(logSpy).not.toHaveBeenCalledWith("error", "oauth_ephemeral_keys_in_production", expect.anything());
+  });
+});
+
+// ─── isEphemeralKeyInProduction — pure gate, no server/DB/env-reimport needed ──
+
+describe("isEphemeralKeyInProduction", () => {
+  it("is true only for a generated key in production", () => {
+    expect(isEphemeralKeyInProduction("generated", "production")).toBe(true);
+  });
+
+  it("is false for a generated key outside production", () => {
+    expect(isEphemeralKeyInProduction("generated", "test")).toBe(false);
+    expect(isEphemeralKeyInProduction("generated", "development")).toBe(false);
+    expect(isEphemeralKeyInProduction("generated", undefined)).toBe(false);
+  });
+
+  it("is false for env or file keys even in production", () => {
+    expect(isEphemeralKeyInProduction("env", "production")).toBe(false);
+    expect(isEphemeralKeyInProduction("file", "production")).toBe(false);
   });
 });
 

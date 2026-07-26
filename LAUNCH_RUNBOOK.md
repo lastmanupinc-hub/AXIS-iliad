@@ -85,10 +85,32 @@ In the Render dashboard for the `axis-api` service → Environment:
    `STRIPE_SECRET_KEY` (live key), `STRIPE_WEBHOOK_SECRET`, and `MPP_SECRET_KEY`
    are set (the latter keeps x402 challenge signing stable across restarts).
 
-4. **Verify the production flag:** `NODE_ENV=production` (already in
+4. **`JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`** — RS256 keypair `oauth-server.ts`
+   signs/verifies MCP OAuth2 access tokens with (`resolveJwtKeys()`). Without
+   both set, production falls back to a throwaway keypair generated fresh on
+   every process start — every MCP OAuth token issued before the next restart
+   or deploy stops verifying (`oauth_ephemeral_keys_in_production` in the
+   logs). Generate once, set both, and never regenerate unless intentionally
+   invalidating every issued token:
+
+   ```sh
+   openssl genrsa -out private-key.pem 2048
+   openssl rsa -in private-key.pem -pubout -out public-key.pem
+   cat private-key.pem   # paste the full PEM (including BEGIN/END lines) into JWT_PRIVATE_KEY
+   cat public-key.pem    # paste the full PEM into JWT_PUBLIC_KEY
+   # no openssl on Windows? equivalent:
+   node -e "const{generateKeyPairSync}=require('crypto');const k=generateKeyPairSync('rsa',{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}});console.log(k.privateKey);console.log(k.publicKey)"
+   ```
+
+   Render's Environment tab accepts multi-line values — paste each PEM
+   (including the `-----BEGIN/END-----` lines) into its own var as-is, no
+   escaping needed. Delete the local `private-key.pem`/`public-key.pem` files
+   after pasting; do not commit them.
+
+5. **Verify the production flag:** `NODE_ENV=production` (already in
    `render.yaml`; confirm it survived in the dashboard).
 
-5. **Redeploy:** Manual Deploy → "Deploy latest commit" (or push the current
+6. **Redeploy:** Manual Deploy → "Deploy latest commit" (or push the current
    image to `ghcr.io/lastmanupinc-hub/axis-api:latest` and trigger). After deploy:
 
    ```sh
@@ -100,6 +122,22 @@ In the Render dashboard for the `axis-api` service → Environment:
 
    Run the full 6-combination checkout validation from
    `STRIPE_CHANGES_REQUIRED.md` section 6.
+
+   **Verify stable JWT across restart** (confirms step 4 actually took):
+   fetch the JWKS twice with a manual restart in between (Render dashboard →
+   Manual Deploy → "Restart service"), and confirm the key is byte-identical:
+
+   ```sh
+   curl https://axis-api-6c7z.onrender.com/oauth/jwks > /tmp/jwks-before.json
+   # ... restart the service in the Render dashboard, wait for it to report healthy ...
+   curl https://axis-api-6c7z.onrender.com/oauth/jwks > /tmp/jwks-after.json
+   diff /tmp/jwks-before.json /tmp/jwks-after.json   # expect no diff
+   ```
+
+   Also check the Render logs for `oauth_ephemeral_keys_in_production` —
+   if it appears at all post-deploy, `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` did
+   not actually reach the process (typo'd key name, or saved but not
+   redeployed).
 
 ---
 

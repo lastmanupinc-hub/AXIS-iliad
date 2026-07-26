@@ -1,7 +1,7 @@
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, findFile, findEntryPoints, extractExports } from "./file-excerpt-utils.js";
+import { hasFw } from "./fw-helpers.js";
+import { findFiles, findFile, findEntryPoints } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
 import { displayRoutes, isApiRoute } from "./route-utils.js";
 

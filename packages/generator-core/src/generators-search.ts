@@ -1,8 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { extractSymbols } from "@axis/snapshots";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt, extractExports } from "./file-excerpt-utils.js";
-import { hasFw, getFw } from "./fw-helpers.js";
+import { fileTree, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 // Context-aware markdown sanitizers now live in md-sanitize.ts (shared with the
 // skills program, which needs the same variants for its instruction files).
 import { mdInline, mdText, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";

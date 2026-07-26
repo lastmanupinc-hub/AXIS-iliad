@@ -1,5 +1,3 @@
-import type { FileEntry } from "@axis/snapshots";
-
 export interface LanguageStats {
   name: string;
   file_count: number;

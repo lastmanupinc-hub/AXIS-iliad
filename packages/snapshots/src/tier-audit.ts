@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
-import { TIER_LIMITS } from "./billing-types.js";
 import { resolveAccountMonthlyPriceCents } from "./pricing-constants.js";
 import { getAccountPaidPlanId } from "./billing-store.js";
 

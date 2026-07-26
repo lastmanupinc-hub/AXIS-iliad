@@ -30,7 +30,6 @@ import {
 } from "./paid-client.js";
 import {
   getAccountByEmail,
-  updateAccountTier,
   updateAccountTierIfCurrent,
   updateAccountPaidPlanId,
   logTierChange,

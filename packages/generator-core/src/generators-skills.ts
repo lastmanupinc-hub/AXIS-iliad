@@ -1,7 +1,7 @@
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
-import { hasFw, getFw } from "./fw-helpers.js";
+import { findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+import { hasFw } from "./fw-helpers.js";
 // Prompt-injection defense: these artifacts are agent-instruction files, so
 // EVERY repo/manifest-derived string must be sanitized for its sink context —
 // mdText (prose/headings/lists), mdInline (table cells), mdCode (code spans),

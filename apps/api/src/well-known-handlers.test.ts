@@ -22,6 +22,7 @@ import { getPricingTier } from "./mpp.js";
 import { Router } from "./router.js";
 import {
   handleAgentJson,
+  handleAgentCard,
   handleGlamaJson,
   handleSecurityTxt,
   handleCapabilities,
@@ -78,6 +79,7 @@ beforeAll(async () => {
   await resetTestDb();
   const router = new Router();
   router.get("/.well-known/agent.json", handleAgentJson);
+  router.get("/.well-known/agent-card.json", handleAgentCard);
   router.get("/.well-known/glama.json", handleGlamaJson);
   router.get("/.well-known/security.txt", handleSecurityTxt);
   router.get("/.well-known/capabilities.json", handleCapabilities);
@@ -366,15 +368,42 @@ describe("GET /.well-known/x402 and /.well-known/x402.json", () => {
     expect(note).toContain("NOT x402.org's");
   });
 
-  it("lists every real metered tool with its real derived price — not a hand-typed subset", () => {
-    const tools = jsonNoExt.metered_tools as { name: string; standard_price_usd: string; lite_price_usd: string }[];
-    expect(tools.length).toBe(METERED_MCP_TOOLS.length);
+  it("lists every real metered tool across programs+utilities with its real derived price — not a hand-typed subset", () => {
+    const programs = jsonNoExt.programs as { name: string; standard_price_usd: string; lite_price_usd: string }[];
+    const utilities = jsonNoExt.utilities as { name: string; standard_price_usd: string; lite_price_usd: string }[];
+    const combined = [...programs, ...utilities];
+    expect(combined.length).toBe(METERED_MCP_TOOLS.length);
     for (const tool of METERED_MCP_TOOLS) {
-      const entry = tools.find((t) => t.name === tool);
-      expect(entry, `x402.json's metered_tools is missing ${tool}`).toBeDefined();
+      const entry = combined.find((t) => t.name === tool);
+      expect(entry, `x402.json's programs/utilities is missing ${tool}`).toBeDefined();
       const tier = getPricingTier(tool);
       expect(entry!.standard_price_usd).toBe((tier.standard_cents / 100).toFixed(2));
       expect(entry!.lite_price_usd).toBe((tier.lite_cents / 100).toFixed(2));
+    }
+  });
+
+  it("leads with a zero-friction ping_payment action, not the x402-honesty disclaimer", () => {
+    const keys = Object.keys(jsonNoExt);
+    expect(keys[0]).toBe("try_it_free");
+    expect(keys.indexOf("note")).toBeGreaterThan(keys.indexOf("try_it_free"));
+    expect((jsonNoExt.try_it_free as Record<string, unknown>).tool).toBe("ping_payment");
+  });
+
+  it("is honest that artifacts are bundled inside programs, not sold individually", () => {
+    expect(String(jsonNoExt.artifacts_note)).toContain("not sold or refreshed individually today");
+    expect(String(jsonNoExt.artifacts_note)).toContain("list_programs");
+  });
+
+  it("points at the new agent-card.json discovery surface", () => {
+    expect(String(jsonNoExt.agent_card)).toContain("/.well-known/agent-card.json");
+  });
+
+  it("every program and utility entry has a non-empty summary (catches a typo'd lookup key)", () => {
+    const programs = jsonNoExt.programs as Array<Record<string, unknown>>;
+    const utilities = jsonNoExt.utilities as Array<Record<string, unknown>>;
+    for (const entry of [...programs, ...utilities]) {
+      expect(typeof entry.summary, `${entry.name} is missing a summary`).toBe("string");
+      expect((entry.summary as string).length, `${entry.name}'s summary is empty`).toBeGreaterThan(0);
     }
   });
 
@@ -406,6 +435,52 @@ describe("GET /.well-known/x402 and /.well-known/x402.json", () => {
     expect(howToPay).not.toContain("Call any metered tool via tools/call without a payment credential to receive a real 402");
     expect(howToPay).toContain("ping_payment");
     expect(howToPay.toLowerCase()).toContain("overage");
+  });
+});
+
+// ─── GET /.well-known/agent-card.json ────────────────────────────
+
+describe("GET /.well-known/agent-card.json", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/.well-known/agent-card.json");
+    status = r.status;
+    headers = r.headers;
+    json = JSON.parse(r.body);
+  });
+
+  it("returns 200 with application/json", () => {
+    expect(status).toBe(200);
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("points at the real /mcp endpoint", () => {
+    expect(json.url).toBe("/mcp");
+  });
+
+  it("does not claim A2A protocol conformance", () => {
+    expect(String(json.protocol)).toContain("MCP");
+    expect(String(json.protocol)).toContain("NOT A2A");
+  });
+
+  it("lists at least one skill with an id, description, and tags", () => {
+    const skills = json.skills as Array<Record<string, unknown>>;
+    expect(Array.isArray(skills)).toBe(true);
+    expect(skills.length).toBeGreaterThan(0);
+    for (const skill of skills) {
+      expect(typeof skill.id).toBe("string");
+      expect(typeof skill.description).toBe("string");
+      expect(Array.isArray(skill.tags)).toBe(true);
+    }
+  });
+
+  it("cross-references the other well-known discovery surfaces", () => {
+    const wellKnown = json.well_known as Record<string, string>;
+    expect(wellKnown.x402).toBe("/.well-known/x402");
+    expect(wellKnown.oauth_protected_resource).toBe("/.well-known/oauth-protected-resource");
   });
 });
 

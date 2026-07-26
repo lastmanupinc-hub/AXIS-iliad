@@ -5,7 +5,7 @@
 import { bench, describe } from "vitest";
 import type { FileEntry } from "@axis/snapshots";
 import { parseRepo } from "./parser.js";
-import { detectLanguage, countLines } from "./language-detector.js";
+import { detectLanguage } from "./language-detector.js";
 import { detectFrameworks } from "./framework-detector.js";
 import { extractImports } from "./import-resolver.js";
 import { extractSQLSchema } from "./sql-extractor.js";

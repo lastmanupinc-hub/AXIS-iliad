@@ -16,7 +16,6 @@ import {
   type ValidationResult,
   pushIssue,
   isNonEmptyString,
-  isIsoTimestamp,
   validateMoneyAmount,
 } from "./types.js";
 

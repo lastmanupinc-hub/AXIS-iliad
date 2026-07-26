@@ -55,11 +55,10 @@ import {
   handleDbMaintenance,
   handleDeleteSnapshot,
   handleDeleteProject,
-  makeProgramHandler,
-  PROGRAM_OUTPUTS,
   handleSecurityTxt,
   handleGlamaJson,
   handleAgentJson,
+  handleAgentCard,
   handleOAuthAuthorizationServer,
   handleAiPlugin,
   handleOAuthProtectedResource,
@@ -124,7 +123,6 @@ import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js"
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
 import { validateEnv } from "./env.js";
-import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
 // ─── Startup env validation (fail-fast) ─────────────────────────
@@ -244,6 +242,7 @@ router.get("/.well-known/mcp.json", handleMcpServerJson);
 router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/glama.json", handleGlamaJson);
 router.get("/.well-known/agent.json", handleAgentJson);
+router.get("/.well-known/agent-card.json", handleAgentCard);
 router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
 router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
 router.get("/.well-known/ai-plugin.json", handleAiPlugin);

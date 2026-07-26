@@ -1,4 +1,3 @@
-import type { SnapshotRecord } from "@axis/snapshots";
 import type { ParseResult } from "@axis/repo-parser";
 
 export interface ContextMap {

@@ -3,7 +3,7 @@ import { deflateRawSync } from "node:zlib";
 import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap, getUsageSummary, listMemoryEntries, trackEvent, resolveStage } from "@axis/snapshots";
 import type { ContextMap } from "@axis/context-engine";
 import { appendAutonomyLoop, appendProgramFunnel, appendDeltaReport, appendMemoryWeave, MEMORY_WEAVE_LIMIT, type GeneratorResult, type WovenMemoryEntry } from "@axis/generator-core";
-import { sendJSON, sendError } from "./router.js";
+import { sendError } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
 

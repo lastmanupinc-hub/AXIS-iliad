@@ -1,9 +1,8 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
 import { mdText, mdInline, mdCode, mdCellCode, jsxText, codeComment } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
-import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
+import { findFiles } from "./file-excerpt-utils.js";
 
 /**
  * A valid JS/TS component-identifier from an untrusted project name. Strips
@@ -97,7 +96,6 @@ export function deriveScenePlan(ctx: ContextMap): { scenes: RemotionScene[]; tot
 export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
-  const languages = ctx.detection.languages;
   const abstractions = ctx.ai_context.key_abstractions;
   const compName = videoCompName(id.name);
 
