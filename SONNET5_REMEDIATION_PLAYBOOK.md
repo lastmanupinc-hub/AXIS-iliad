@@ -72,7 +72,7 @@ Only the deltas below are new.
 | R2.2 | Revive | DONE | `4f43a3e` |
 | R2.3 | Revive | DONE | `587210c` |
 | R2.4 | Revive | DONE | `6e43387` |
-| R2.5 | Revive | pending | |
+| R2.5 | Revive | DONE | `b9f887e` |
 | R2.6 | Revive | pending | |
 | R3.1 | Guards | DONE | `b7b714e` |
 | R3.2 | Guards | pending | |
