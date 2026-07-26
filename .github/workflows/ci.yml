@@ -5,7 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch: # break-glass: manually re-run the deploy jobs below
+  workflow_dispatch: # break-glass: manually re-run the deploy jobs below, or force a full regression
+    inputs:
+      full_regression:
+        description: "Run the full suite (ignore affected-package narrowing)"
+        type: boolean
+        default: false
 
 # Only the newest run per ref survives. For main this means the latest merge's
 # build+deploy wins the :latest tag (no race between concurrent merges); for PRs
@@ -19,71 +24,59 @@ permissions:
   packages: write
 
 jobs:
-  build-and-test:
+  # Every push/PR used to run the ENTIRE suite twice (Node 20 + 22) regardless
+  # of how small the change was. This job narrows that to the packages a
+  # change actually touches, plus everything that depends on them (pnpm's own
+  # dependency-graph filter, not a hand-rolled one) — see scripts/ci-affected.mjs
+  # for the full design and its fail-safe-to-full rules. The comprehensive,
+  # always-full regression now runs nightly instead (nightly.yml) and on
+  # demand (workflow_dispatch's full_regression input above).
+  determine-affected:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [20, 22]
-
-    # Phase 6 of the Neon migration: the suite runs against a real Postgres
-    # (the data layer is async pg; tests provision/truncate via resetTestDb).
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: axis_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    outputs:
+      full: ${{ steps.affected.outputs.full }}
+      pnpm_filter: ${{ steps.affected.outputs.pnpm_filter }}
+      packages: ${{ steps.affected.outputs.packages }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history required: both git diff and pnpm's "...[ref]" filter need it
 
       - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: pnpm
+          node-version: 22
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Resolve base ref
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.full_regression }}" = "true" ]; then
+            echo "ref=" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            BEFORE="${{ github.event.before }}"
+            if [ -z "$BEFORE" ] || [[ "$BEFORE" =~ ^0+$ ]]; then
+              echo "ref=" >> "$GITHUB_OUTPUT"
+            else
+              echo "ref=$BEFORE" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "ref=" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Dependency audit
-        run: pnpm audit --audit-level=moderate
-        continue-on-error: true
+      - name: Determine affected packages
+        id: affected
+        run: node scripts/ci-affected.mjs "${{ steps.base.outputs.ref }}"
 
-      - name: Build all packages
-        run: pnpm -r build
-
-      - name: Run tests with coverage
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/axis_test
-        run: npx vitest run --coverage --coverage.provider=v8 --coverage.reporter=text --coverage.reporter=json-summary --coverage.reportDir=coverage
-
-      - name: Type-check
-        run: pnpm -r exec tsc --noEmit
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Artifact freshness gate
-        run: npx tsx scripts/check-artifact-freshness.ts
-
-      - name: Upload coverage report
-        if: matrix.node-version == 22
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 14
+  build-and-test:
+    needs: determine-affected
+    uses: ./.github/workflows/reusable-test-suite.yml
+    with:
+      full: ${{ needs.determine-affected.outputs.full == 'true' }}
+      pnpm_filter: ${{ needs.determine-affected.outputs.pnpm_filter }}
+      packages: ${{ needs.determine-affected.outputs.packages }}
 
   docker-build:
     runs-on: ubuntu-latest

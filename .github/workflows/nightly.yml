@@ -1,0 +1,22 @@
+name: Nightly full regression
+
+# ci.yml narrows every push/PR to the packages a change actually touches (see
+# scripts/ci-affected.mjs). This is the comprehensive backstop: the exact same
+# suite ci.yml used to run on every push, unconditionally, on a schedule —
+# so a change whose real impact crosses an affected-detection blind spot
+# (a behavioral coupling with no matching import, for instance) still gets
+# caught within a day, without paying that cost on every single push.
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC ≈ 1-2am US Pacific / 4-5am US Eastern — low-traffic for this team
+  workflow_dispatch: {} # run on demand without waiting for the schedule
+
+concurrency:
+  group: nightly-full-regression
+  cancel-in-progress: false # let an in-flight nightly run finish rather than cutting it off
+
+jobs:
+  build-and-test:
+    uses: ./.github/workflows/reusable-test-suite.yml
+    with:
+      full: true

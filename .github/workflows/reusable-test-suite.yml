@@ -1,0 +1,102 @@
+name: Reusable test suite
+
+# Shared build+test+lint body called by both ci.yml (affected-scoped, on every
+# push/PR) and nightly.yml (always full, on a schedule). Kept in ONE place so
+# the two callers can never drift apart the way the REST/MCP handler twins in
+# this codebase have — see scripts/ci-affected.mjs's docblock for the affected-
+# vs-full design this exists to serve.
+on:
+  workflow_call:
+    inputs:
+      full:
+        description: "Run the full suite (coverage, Node 20+22 matrix) instead of an affected-only subset"
+        type: boolean
+        default: true
+      pnpm_filter:
+        description: 'pnpm --filter expression scoping build/typecheck, e.g. --filter "...[abc123]" (empty = every package)'
+        type: string
+        default: ""
+      packages:
+        description: "Space-separated package directories passed to vitest (empty + full=false means nothing changed — tests are skipped, not widened)"
+        type: string
+        default: ""
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # Affected-only runs check the one Node version the API actually
+        # deploys on; the nightly/full run keeps the real Node 20+22 matrix.
+        node-version: ${{ inputs.full && fromJson('[20,22]') || fromJson('[22]') }}
+
+    # Phase 6 of the Neon migration: the suite runs against a real Postgres
+    # (the data layer is async pg; tests provision/truncate via resetTestDb).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: axis_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Build (${{ inputs.full && 'full' || 'affected' }})
+        run: pnpm ${{ inputs.pnpm_filter }} -r build
+
+      - name: Run tests (${{ inputs.full && 'full + coverage' || 'affected-only' }})
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/axis_test
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            npx vitest run --coverage --coverage.provider=v8 --coverage.reporter=text --coverage.reporter=json-summary --coverage.reportDir=coverage
+          elif [ -n "${{ inputs.packages }}" ]; then
+            npx vitest run ${{ inputs.packages }}
+          else
+            echo "No affected packages changed — skipping test run."
+          fi
+
+      - name: Type-check (${{ inputs.full && 'full' || 'affected' }})
+        run: pnpm ${{ inputs.pnpm_filter }} -r exec tsc --noEmit
+
+      - name: Lint
+        # Whole-repo, every run: type-aware ESLint rules need full project
+        # context to be accurate, and lint itself is cheap next to the
+        # Postgres-backed suite — narrowing it isn't worth the risk of a
+        # scoped run missing a cross-file issue.
+        run: pnpm lint
+
+      - name: Artifact freshness gate
+        run: npx tsx scripts/check-artifact-freshness.ts
+
+      - name: Upload coverage report
+        if: inputs.full && matrix.node-version == 22
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
