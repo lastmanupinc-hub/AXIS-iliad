@@ -81,7 +81,7 @@ export async function handleGitHubOAuthCallback(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const { clientId, clientSecret, webAppUrl } = getOAuthConfig();
+  const { clientId, clientSecret, callbackUrl, webAppUrl } = getOAuthConfig();
   if (!clientId || !clientSecret) {
     sendError(res, 503, ErrorCode.INTERNAL_ERROR, "GitHub OAuth is not configured");
     return;
@@ -112,8 +112,14 @@ export async function handleGitHubOAuthCallback(
   }
 
   try {
-    // Exchange code for access token
-    const tokenResponse = await exchangeGitHubCode(clientId, clientSecret, code);
+    // Exchange code for access token. redirect_uri must byte-match the one
+    // used to authorize — GitHub only enforces this when the OAuth App has
+    // more than one registered callback URL, which silently broke this
+    // exchange the moment a second callback URL (the custom api.iliad domain,
+    // alongside the original raw Render one) was added on GitHub's side
+    // without this call ever being updated to match Google's (which always
+    // sent it — see oauth-store.ts's exchangeGoogleCode).
+    const tokenResponse = await exchangeGitHubCode(clientId, clientSecret, code, callbackUrl);
 
     // Get GitHub user profile
     const ghUser = await getGitHubUser(tokenResponse.access_token);

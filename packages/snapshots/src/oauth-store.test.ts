@@ -188,9 +188,22 @@ describe("exchangeGitHubCode", () => {
       json: async () => ({ access_token: "gho_abc123", token_type: "bearer", scope: "read:user" }),
     } as Response);
 
-    const result = await exchangeGitHubCode("cid", "csecret", "code123");
+    const result = await exchangeGitHubCode("cid", "csecret", "code123", "https://axis-api.example/v1/auth/github/callback");
     expect(result.access_token).toBe("gho_abc123");
     expect(result.token_type).toBe("bearer");
+  });
+
+  it("sends redirect_uri on the exchange request, byte-matching the authorize call (live bug: GitHub rejects the exchange when the OAuth App has multiple registered callback URLs and this is omitted)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: "gho_abc123", token_type: "bearer", scope: "read:user" }),
+    } as Response);
+
+    await exchangeGitHubCode("cid", "csecret", "code123", "https://axis-api.example/v1/auth/github/callback");
+
+    const [, init] = fetchSpy.mock.calls[0];
+    const body = JSON.parse(init?.body as string);
+    expect(body.redirect_uri).toBe("https://axis-api.example/v1/auth/github/callback");
   });
 
   it("throws on non-OK response", async () => {
@@ -199,7 +212,7 @@ describe("exchangeGitHubCode", () => {
       status: 500,
     } as Response);
 
-    await expect(exchangeGitHubCode("cid", "csecret", "bad")).rejects.toThrow("GitHub token exchange failed: 500");
+    await expect(exchangeGitHubCode("cid", "csecret", "bad", "https://axis-api.example/v1/auth/github/callback")).rejects.toThrow("GitHub token exchange failed: 500");
   });
 
   it("throws on GitHub error response", async () => {
@@ -208,7 +221,7 @@ describe("exchangeGitHubCode", () => {
       json: async () => ({ error: "bad_verification_code", error_description: "The code has expired" }),
     } as Response);
 
-    await expect(exchangeGitHubCode("cid", "csecret", "expired")).rejects.toThrow("The code has expired");
+    await expect(exchangeGitHubCode("cid", "csecret", "expired", "https://axis-api.example/v1/auth/github/callback")).rejects.toThrow("The code has expired");
   });
 
   it("uses error field when no description", async () => {
@@ -217,7 +230,7 @@ describe("exchangeGitHubCode", () => {
       json: async () => ({ error: "bad_code" }),
     } as Response);
 
-    await expect(exchangeGitHubCode("cid", "csecret", "x")).rejects.toThrow("bad_code");
+    await expect(exchangeGitHubCode("cid", "csecret", "x", "https://axis-api.example/v1/auth/github/callback")).rejects.toThrow("bad_code");
   });
 
   it("throws when a 200 response carries no access_token", async () => {
@@ -226,7 +239,7 @@ describe("exchangeGitHubCode", () => {
       json: async () => ({ token_type: "bearer", scope: "read:user" }), // no access_token, no error
     } as Response);
 
-    await expect(exchangeGitHubCode("cid", "csecret", "weird")).rejects.toThrow("no access_token");
+    await expect(exchangeGitHubCode("cid", "csecret", "weird", "https://axis-api.example/v1/auth/github/callback")).rejects.toThrow("no access_token");
   });
 });
 

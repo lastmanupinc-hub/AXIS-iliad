@@ -73,6 +73,7 @@ export async function exchangeGitHubCode(
   clientId: string,
   clientSecret: string,
   code: string,
+  redirectUri: string,
 ): Promise<GitHubTokenResponse> {
   const res = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
@@ -84,6 +85,7 @@ export async function exchangeGitHubCode(
       client_id: clientId,
       client_secret: clientSecret,
       code,
+      redirect_uri: redirectUri,
     }),
   });
 
@@ -183,9 +185,8 @@ export async function upsertAccountByGitHub(
 }
 
 // ─── Google OAuth helpers ───────────────────────────────────────
-// Google differs from GitHub in three ways: the token endpoint is
-// form-encoded (not JSON), it REQUIRES the redirect_uri on exchange (must
-// byte-match the one used to authorize), and userinfo returns OIDC claims
+// Google differs from GitHub in two remaining ways: the token endpoint is
+// form-encoded (not JSON), and userinfo returns OIDC claims
 // (`sub`, `email_verified`) rather than GitHub's numeric id/login.
 
 export function getGoogleAuthUrl(clientId: string, redirectUri: string, state: string): string {
