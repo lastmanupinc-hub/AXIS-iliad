@@ -90,7 +90,7 @@ export function categorizeError(msg: string): { code: ErrorCategory; retryable: 
   return { code: "internal", retryable: false };
 }
 
-// Doc-facing catalog of the 6 categories above (H4.2) — categorizeError itself can't be
+// Doc-facing catalog of the 7 categories above (H4.2) — categorizeError itself can't be
 // introspected for a static list (it's a chain of regex tests), so this is a hand-kept
 // summary of its branches. Kept directly below the function it documents so a change to
 // one is hard to miss when reading the other.

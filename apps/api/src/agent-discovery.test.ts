@@ -893,11 +893,11 @@ describe("GET /v1/error-codes", () => {
     }
   });
 
-  it("returns mcp_tool_error_categories with the 6 MCP categories", () => {
+  it("returns mcp_tool_error_categories with the 7 MCP categories", () => {
     const mcp = data.mcp_tool_error_categories as { note: string; categories: Array<{ code: string }> };
     expect(typeof mcp.note).toBe("string");
     expect(mcp.categories.map((c) => c.code).sort()).toEqual(
-      ["auth", "external", "internal", "quota", "tier_limit", "validation"].sort(),
+      ["auth", "content_discarded", "external", "internal", "quota", "tier_limit", "validation"].sort(),
     );
   });
 
