@@ -78,7 +78,7 @@ export interface OpenApiSpec {
 
 // ─── Client ─────────────────────────────────────────────────────
 
-const DEFAULT_BASE = "https://axis-api-6c7z.onrender.com";
+const DEFAULT_BASE = "https://api.iliad.trustfabric.ai";
 
 export class AxisClient {
   private readonly base: string;

@@ -332,6 +332,19 @@ describe("web config.ts is the single source and matches the code (WO-F5)", () =
     expect(bad).toEqual([]);
   });
 
+  it("the legacy onrender API host appears nowhere in the published @axis/sdk (R2.1)", () => {
+    // @axis/sdk defaulted to the legacy Render hostname until R2.1 -- caught while
+    // preparing it for a real npm publish, where a stale default would ship to
+    // every consumer who doesn't pass an explicit baseUrl.
+    const sdkSrc = join(ROOT, "packages", "sdk", "src");
+    const bad = (readdirSync(sdkSrc) as string[])
+      .filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
+      .map((f) => ({ f, text: readFileSync(join(sdkSrc, f), "utf8") }))
+      .filter(({ text }) => text.includes("axis-api-6c7z.onrender.com"))
+      .map(({ f }) => f);
+    expect(bad).toEqual([]);
+  });
+
   it("the canonical API origin is hardcoded only in config.ts", () => {
     const bad = webFiles()
       .filter((f) => f.rel !== "config.ts" && f.text.includes("api.iliad.trustfabric.ai"))

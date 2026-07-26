@@ -42,7 +42,7 @@ describe("AxisClient constructor", () => {
     const f = mockFetch(200, { status: "ok" });
     client.health();
     expect(f).toHaveBeenCalledWith(
-      expect.stringContaining("axis-api-6c7z.onrender.com"),
+      expect.stringContaining("api.iliad.trustfabric.ai"),
       expect.anything(),
     );
   });
