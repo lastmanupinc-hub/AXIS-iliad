@@ -26,6 +26,7 @@ const QAPage = lazy(() => import("./pages/QAPage.tsx").then((m) => ({ default: m
 const ProgramsPage = lazy(() => import("./pages/ProgramsPage.tsx").then((m) => ({ default: m.ProgramsPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage.tsx").then((m) => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage.tsx").then((m) => ({ default: m.PrivacyPage })));
+const FleetPage = lazy(() => import("./pages/FleetPage.tsx").then((m) => ({ default: m.FleetPage })));
 const ForAgentsPage = lazy(() => import("./pages/ForAgentsPage.tsx").then((m) => ({ default: m.ForAgentsPage })));
 const ExamplesPage = lazy(() => import("./pages/ExamplesPage.tsx").then((m) => ({ default: m.ExamplesPage })));
 const McpPage = lazy(() => import("./pages/McpPage.tsx").then((m) => ({ default: m.McpPage })));
@@ -117,6 +118,7 @@ export type PageId =
   | "programs"
   | "terms"
   | "privacy"
+  | "fleet"
   | "for-agents"
   | "examples"
   | "mcp"
@@ -517,6 +519,22 @@ export const ROUTES: RouteDef[] = [
     authOnly: true,
     nav: { group: "ACCOUNT", icon: "bar-chart" },
     render: () => <UsagePage />,
+  },
+  {
+    // R2.6: GET /v1/account/fleet (paid/suite tier) had a real handler and an
+    // api.ts wrapper (getFleetReport) but no UI anywhere -- a Pro/Growth
+    // customer had no way to discover or use a feature their subscription
+    // unlocks. Free-tier signed-in users still hit the route; FleetPage
+    // itself renders the upgrade upsell for them (matches how usage/billing
+    // pages handle tier gating inline rather than at the route level).
+    page: "fleet",
+    pattern: "fleet",
+    label: "Fleet",
+    tabLabel: "fleet.json",
+    section: "ACCOUNT",
+    authOnly: true,
+    nav: { group: "ACCOUNT", icon: "wrench" },
+    render: (ctx) => <FleetPage onNavigate={ctx.navigate} />,
   },
   {
     // WO-P12: no longer a sidebar/rail/shortcut destination — "settings"

@@ -10,6 +10,7 @@ import {
   getCredits,
   createCreditTopup,
   getPaidConfig,
+  getBillingHistory,
   apiErrorDetails,
   type Account,
   type UsageSummary,
@@ -17,6 +18,7 @@ import {
   type SubscriptionInfo,
   type CreditsInfo,
   type UsageBucket,
+  type BillingHistoryResponse,
 } from "../api.ts";
 import { SectionHeader, StatTile, Sparkline, BarChart, Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
 import { DangerButton } from "../components/DangerButton.tsx";
@@ -62,6 +64,7 @@ interface Data {
   buckets: UsageBucket[];
   subscription: SubscriptionInfo | null;
   credits: CreditsInfo | null;
+  billingHistory: BillingHistoryResponse | null;
 }
 
 export function UsagePage() {
@@ -83,7 +86,7 @@ export function UsagePage() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [account, planId, quota, usage, timeseries, subscription, credits] = await Promise.all([
+      const [account, planId, quota, usage, timeseries, subscription, credits, billingHistory] = await Promise.all([
         getAccount(),
         getAccountPlanId().catch(() => null),
         getQuota(),
@@ -91,8 +94,9 @@ export function UsagePage() {
         getUsageTimeseries({ sinceDays: TIMESERIES_DAYS }),
         getSubscription().catch(() => null),
         getCredits().catch(() => null),
+        getBillingHistory().catch(() => null),
       ]);
-      setData({ account, planId, quota, usage, buckets: timeseries.buckets, subscription, credits });
+      setData({ account, planId, quota, usage, buckets: timeseries.buckets, subscription, credits, billingHistory });
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to load usage & billing", details: apiErrorDetails(err) });
     }
@@ -160,7 +164,7 @@ export function UsagePage() {
     );
   }
 
-  const { account, planId, quota, usage, buckets, subscription, credits } = data;
+  const { account, planId, quota, usage, buckets, subscription, credits, billingHistory } = data;
   const currentPlanLabel = planLabel(account.tier, planId);
   const maxSnapshots = quota.resource_quota?.max_snapshots_per_month ?? 0;
   const runsInWindow = buckets.reduce((s, b) => s + b.runs, 0);
@@ -375,6 +379,43 @@ export function UsagePage() {
                     <td style={{ textAlign: "right" }}>{p.total_runs}</td>
                     <td style={{ textAlign: "right" }}>{p.total_generators}</td>
                     <td style={{ textAlign: "right" }}>{p.total_input_files}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        </div>
+      )}
+
+      {/* Billing history (R2.6 — GET /v1/billing/history had a real handler and
+          an api.ts wrapper but no UI anywhere; a signed-in user could never see
+          their own tier-change history in the product). Tier changes only —
+          PAI'D's one-time-charge model has no recurring invoices to list. */}
+      {billingHistory && billingHistory.history && billingHistory.history.length > 0 && (
+        <div className="card">
+          <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Billing History</h2>
+          <p className="text-muted text-sm mb-2">
+            Tier changes on this account. Each plan purchase is a separate one-time charge — see the
+            amount charged for each change below.
+          </p>
+          <TableWrap label="Billing history">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Change</th><th style={{ textAlign: "right" }}>Amount</th><th>Reason</th></tr>
+              </thead>
+              <tbody>
+                {billingHistory.history.map((h) => (
+                  <tr key={h.change_id}>
+                    <td className="text-xs">{new Date(h.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <span className={tierBadgeClass(h.from_tier)}>{TIER_LABELS[h.from_tier]}</span>
+                      {" → "}
+                      <span className={tierBadgeClass(h.to_tier)}>{TIER_LABELS[h.to_tier]}</span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      {h.proration_amount > 0 ? `$${(h.proration_amount / 100).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="text-sm">{h.reason}</td>
                   </tr>
                 ))}
               </tbody>

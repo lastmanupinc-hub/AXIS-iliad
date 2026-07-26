@@ -9,7 +9,7 @@
 // routing/auth-gate lives in app-routing.test.tsx.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { UsagePage } from "./UsagePage.tsx";
 
 function stubFetch(handlers: Array<[match: string, body: unknown, status?: number]>) {
@@ -48,6 +48,7 @@ function baseHandlers(overrides: Array<[match: string, body: unknown, status?: n
     ["/v1/account/usage", USAGE],
     ["/v1/account/subscription", {}, 404],
     ["/v1/account/credits", {}, 404],
+    ["/v1/billing/history", { account_id: "acct_1", current_tier: "free", history: [] }],
     ["/v1/account", ACCOUNT],
   ] as Array<[match: string, body: unknown, status?: number]>;
 }
@@ -290,5 +291,47 @@ describe("UsagePage — subscription & credits", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Redirecting…" })).toBeTruthy());
     expect(fetchFn.mock.calls.some((c) => String(c[0]).includes("/v1/credits/topup"))).toBe(true);
     resolveTopup();
+  });
+});
+
+describe("UsagePage — billing history (R2.6)", () => {
+  it("renders no Billing History card when the account has no tier changes", async () => {
+    stubFetch(baseHandlers());
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText("Usage & Billing")).toBeTruthy());
+    expect(screen.queryByText("Billing History")).toBeNull();
+  });
+
+  it("renders each tier change with its from/to badges, charge amount, and reason", async () => {
+    stubFetch(baseHandlers([
+      ["/v1/billing/history", {
+        account_id: "acct_1",
+        current_tier: "paid",
+        history: [
+          { change_id: "ch_1", from_tier: "free", to_tier: "paid", reason: "self-serve upgrade", proration_amount: 2900, created_at: "2026-07-01T00:00:00Z" },
+        ],
+      }],
+    ]));
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText("Billing History")).toBeTruthy());
+    const card = within(screen.getByText("Billing History").closest(".card") as HTMLElement);
+    expect(card.getByText("Free")).toBeTruthy();
+    expect(card.getByText("Starter")).toBeTruthy();
+    expect(card.getByText("$29.00")).toBeTruthy();
+    expect(card.getByText("self-serve upgrade")).toBeTruthy();
+  });
+
+  it("does not crash when the billing-history endpoint returns a malformed body (defensive against R2.6's own near-miss)", async () => {
+    // A first draft of this feature crashed the whole page here: the guard
+    // checked `billingHistory && billingHistory.history.length` without
+    // confirming `.history` itself exists, so any 200 response missing that
+    // field threw "Cannot read properties of undefined" during render.
+    stubFetch(baseHandlers([["/v1/billing/history", {}]]));
+    render(<UsagePage />);
+
+    await waitFor(() => expect(screen.getByText("Usage & Billing")).toBeTruthy());
+    expect(screen.queryByText("Billing History")).toBeNull();
   });
 });
