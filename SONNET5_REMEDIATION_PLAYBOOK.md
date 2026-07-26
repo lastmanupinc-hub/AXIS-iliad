@@ -75,7 +75,7 @@ Only the deltas below are new.
 | R2.5 | Revive | DONE | `b9f887e` |
 | R2.6 | Revive | DONE | `5fa126e` |
 | R3.1 | Guards | DONE | `b7b714e` |
-| R3.2 | Guards | pending | |
+| R3.2 | Guards | DONE | `b685b8b` |
 | R3.3 | Guards | pending | |
 | R3.4 | Guards | pending | |
 | R4.1 | Archive | pending | |
