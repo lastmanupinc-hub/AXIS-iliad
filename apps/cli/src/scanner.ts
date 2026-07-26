@@ -55,16 +55,16 @@ export function scanDirectory(root: string): ScanResult {
   let skipped = 0;
   let totalBytes = 0;
 
-  function walk(dir: string): void {
-    /* v8 ignore next — MAX_FILES guard requires >10000 files to trigger */
-    if (files.length >= MAX_FILES) return;
-
+  // Read one directory's own entries: this directory's files (in scan order,
+  // already cap-checked and content-loaded) plus its scannable subdirectories
+  // (name only — the caller decides when to visit them).
+  function readOwnFiles(dir: string): { subdirs: string[] } {
     let entries: string[];
     try {
       entries = readdirSync(dir);
     } catch {
       /* v8 ignore next — permission denied / unreadable, hard to simulate in tests */
-      return; // Permission denied or unreadable
+      return { subdirs: [] };
     }
 
     // readdirSync order is filesystem-dependent (sorted on NTFS, arbitrary on
@@ -73,17 +73,6 @@ export function scanDirectory(root: string): ScanResult {
     // pipeline byte-deterministic for the same repo state.
     entries.sort();
 
-    // Stat once per entry, then process this directory's own FILES before
-    // recursing into its SUBDIRECTORIES. A plain alphabetical walk that mixes
-    // files and dirs starves root-level manifests on any repo where an
-    // early-alphabetical top-level directory alone exceeds MAX_FILES — e.g.
-    // a real monorepo with "apps/" (382 files) sorting before "pnpm-lock.yaml":
-    // the DFS recursion into apps/ + packages/ alone blew the 500-file cap
-    // before the walk ever reached pnpm-lock.yaml, pnpm-workspace.yaml or
-    // render.yaml, so package-manager detection silently fell back to npm for
-    // this very repo (confirmed 2026-07-25). Files-before-dirs at every level
-    // guarantees a directory's own immediate manifests are captured before a
-    // sibling subdirectory's depth can exhaust the cap.
     const dirEntries: string[] = [];
     const fileEntries: Array<{ name: string; stat: Stats }> = [];
     for (const entry of entries) {
@@ -147,15 +136,43 @@ export function scanDirectory(root: string): ScanResult {
       }
     }
 
-    for (const entry of dirEntries) {
-      if (files.length >= MAX_FILES) break;
-      if (!SKIP_DIRS.has(entry) && (!entry.startsWith(".") || ALLOW_DOT_DIRS.has(entry))) {
-        walk(join(dir, entry));
-      }
-    }
+    const scannable = dirEntries.filter(
+      (entry) => !SKIP_DIRS.has(entry) && (!entry.startsWith(".") || ALLOW_DOT_DIRS.has(entry)),
+    );
+    return { subdirs: scannable };
   }
 
-  walk(root);
+  // Root's own files first (e.g. package.json, pnpm-lock.yaml), unconditionally.
+  const { subdirs: topLevelDirs } = readOwnFiles(root);
+
+  // Round-robin ONE FIFO queue PER TOP-LEVEL DIRECTORY, not a single shared
+  // queue. This is deliberately NOT plain level-by-level BFS: a shared queue
+  // still lets one wide top-level directory (e.g. "apps/", expanding into
+  // apps/api + apps/web + apps/cli in a single step) push all of ITS children
+  // onto the queue back-to-back, consuming the whole remaining budget before a
+  // sibling top-level directory's OWN, far-fewer children ever get a turn —
+  // "breadth-first" in name only. Giving every top-level directory its own
+  // queue and strictly alternating ONE directory's turn per queue per round
+  // means no top-level directory's subtree width can crowd out another's
+  // chance to contribute anything at all, however many children it happens to
+  // expand into on any given round. (Confirmed both failure modes empirically
+  // dogfooding this very repo, 2026-07-26: pure depth-first left only 3 of its
+  // ~10 real top-level directories represented; a shared-queue breadth-first
+  // still left "apps/"'s 3 children starving "packages/"'s 2 in the same
+  // fixture-scale test below.)
+  const queues: string[][] = topLevelDirs.map((name) => [join(root, name)]);
+  let anyNonEmpty = true;
+  while (files.length < MAX_FILES && anyNonEmpty) {
+    anyNonEmpty = false;
+    for (const queue of queues) {
+      if (files.length >= MAX_FILES) break;
+      const dir = queue.shift();
+      if (dir === undefined) continue; // this top-level directory's subtree is exhausted; skip its turn
+      anyNonEmpty = true;
+      const { subdirs } = readOwnFiles(dir);
+      for (const name of subdirs) queue.push(join(dir, name));
+    }
+  }
 
   return { files, skipped_count: skipped, total_bytes: totalBytes };
 }
