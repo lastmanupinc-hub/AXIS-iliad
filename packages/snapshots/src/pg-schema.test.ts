@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
-// Runs only when PG_TEST_URL points at a real Postgres. CI without a Postgres
-// service skips this (Phase 6 wires the CI Postgres service). Locally:
-//   docker run -d --name iliad-pg -e POSTGRES_PASSWORD=test -e POSTGRES_DB=iliad -p 55432:5432 postgres:16
-//   PG_TEST_URL=postgres://postgres:test@127.0.0.1:55432/iliad pnpm vitest run packages/snapshots/src/pg-schema.test.ts
-const PG_TEST_URL = process.env.PG_TEST_URL;
+// Runs whenever a real Postgres connection string is available. CI supplies
+// DATABASE_URL (Phase 6's CI Postgres service) and test-ci-mirror.mjs mirrors
+// that, so this now actually executes in CI instead of always skipping --
+// PG_TEST_URL alone (nothing ever set it) meant this suite silently never ran
+// anywhere, and its assertions rotted 7 schema versions behind (R2.2). Locally:
+//   docker start axis-test-pg   (or: docker run -d --name axis-test-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=axis_test -p 5433:5432 postgres:16)
+//   PG_TEST_URL=postgres://postgres:postgres@127.0.0.1:5433/axis_test pnpm vitest run packages/snapshots/src/pg-schema.test.ts
+const PG_TEST_URL = process.env.PG_TEST_URL ?? process.env.DATABASE_URL;
 const d = PG_TEST_URL ? describe : describe.skip;
 
 d("Postgres schema + async sql helper (real Postgres)", () => {
@@ -23,8 +26,12 @@ d("Postgres schema + async sql helper (real Postgres)", () => {
     if (pg) await pg.closePool();
   });
 
-  it("stands up the schema at v32 with all core tables", async () => {
-    expect(await schema.getPgSchemaVersion()).toBe(32);
+  it("stands up the schema at the latest migration version with all core tables", async () => {
+    // Derived from the same PG_MIGRATIONS list runPgMigrations() applies, not a
+    // hand-copied literal -- a hardcoded v32 pin here is exactly what rotted
+    // silently for months while the gate above kept this suite from ever running.
+    const expectedVersion = Math.max(schema.PG_LATEST_VERSION, ...schema.PG_MIGRATIONS.map((m) => m.version));
+    expect(await schema.getPgSchemaVersion()).toBe(expectedVersion);
     const rows = await pg.sql.many<{ tablename: string }>(
       "SELECT tablename FROM pg_tables WHERE schemaname = current_schema()",
     );

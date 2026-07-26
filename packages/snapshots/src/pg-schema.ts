@@ -512,8 +512,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 `;
 
 // Future Postgres-only migrations (version > PG_LATEST_VERSION) go here.
-interface PgMigration { version: number; name: string; sql: string }
-const PG_MIGRATIONS: PgMigration[] = [
+export interface PgMigration { version: number; name: string; sql: string }
+export const PG_MIGRATIONS: PgMigration[] = [
   {
     // Existing DBs created before the seq column: add it so the created_at-DESC
     // ordering has a deterministic tiebreaker. Fresh DBs already have it from the
