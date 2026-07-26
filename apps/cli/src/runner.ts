@@ -108,6 +108,7 @@ function buildInMemorySnapshot(scan: ScanResult, manifest: SnapshotManifest): Sn
     files: scan.files,
     status: "ready",
     account_id: null,
+    content_discarded_at: null,
   };
 }
 

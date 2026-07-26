@@ -258,7 +258,15 @@ router.get("/agents.json", handleAgentJson);
 
 // MCP discovery under prefixed paths (for compatibility)
 router.get("/mcp/.well-known/mcp.json", handleMcpServerJson);
+router.get("/mcp/.well-known/mcp", handleMcpServerJson);
 router.get("/mcp/.well-known/agent.json", handleAgentJson);
+// OAuth discovery mounted under the resource path itself — RFC 8414/RFC 9728
+// path-insertion means a spec-compliant MCP client resolves these RELATIVE TO
+// the resource URL (here, /mcp), not just site-root. Same handlers as the
+// site-root registration above; production logs showed real 404s on exactly
+// these two paths before this fix.
+router.get("/mcp/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
+router.get("/mcp/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
 
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);
@@ -448,8 +456,9 @@ const handleAccountsMethodHint = async (_req: IncomingMessage, res: ServerRespon
   const { sendJSON } = await import("./router.js");
   sendJSON(res, 405, {
     error: "Method not allowed",
-    message: "Use POST /v1/accounts (or POST /accounts) to create an account.",
+    message: "POST /v1/accounts (or POST /accounts) creates an account. To read the authenticated caller's own account, use GET /v1/account (singular) with Authorization: Bearer <api_key> instead.",
     allowed_methods: ["POST"],
+    see_also: "/v1/account",
   });
 };
 router.get("/v1/accounts", handleAccountsMethodHint);

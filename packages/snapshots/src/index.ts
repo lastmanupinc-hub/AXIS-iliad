@@ -16,6 +16,7 @@ export {
   getRepoProfile,
   saveGeneratorResult,
   getGeneratorResult,
+  discardAccountSnapshotContent,
 } from "./store.js";
 // Postgres (Neon) async data core — the migration target. Stores now run on `sql`;
 // callers init with runPgMigrations() and shut down with closePool(). See NEON_MIGRATION_PLAN.md.

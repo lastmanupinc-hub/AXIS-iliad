@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, createOAuthState, getAccountByGitHubId, getAccountByGoogleId, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createOAuthState, getAccountByGitHubId, getAccountByGoogleId, createAccount, createApiKey, createSnapshot, getSnapshot, saveGeneratorResult, getGeneratorResult } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
@@ -365,6 +365,50 @@ describe("OAuth API routes", () => {
     expect(res.headers["set-cookie"]).toContain("axis_session=;");
     expect(res.headers["set-cookie"]).toContain("Max-Age=0");
     expect(res.headers["set-cookie"]).toContain("HttpOnly");
+  });
+
+  it("anonymous logout (no session cookie) is a harmless no-op — never crashes", async () => {
+    const res = await req("POST", "/v1/auth/logout", undefined, { Cookie: "axis_session=not-a-real-key" });
+    expect(res.status).toBe(200);
+  });
+
+  // ─── R5.7: logout discards uploaded source content ────────────────
+
+  it("logging out discards the account's snapshot source content, but keeps generated deliverables", async () => {
+    const account = await createAccount("Logout Discard User", "logout-discard@example.com");
+    const { rawKey } = await createApiKey(account.account_id);
+    const snap = await createSnapshot(
+      {
+        input_method: "api_submission",
+        manifest: { project_name: "logout-discard-project", project_type: "saas_web_app", frameworks: [], goals: [], requested_outputs: [] },
+        files: [{ path: "index.ts", content: "console.log('my secret ip')", size: 28 }],
+      },
+      account.account_id,
+    );
+    await saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2025-01-01T00:00:00Z", files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }], skipped: [] });
+
+    // Establish the web session cookie for this account.
+    const session = await req("POST", "/v1/auth/session", { api_key: rawKey });
+    const cookie = session.headers["set-cookie"].split(";")[0];
+
+    // Content is live before logout.
+    expect((await getSnapshot(snap.snapshot_id))!.files[0].content).toBe("console.log('my secret ip')");
+
+    const logout = await req("POST", "/v1/auth/logout", undefined, { Cookie: cookie });
+    expect(logout.status).toBe(200);
+
+    const after = await getSnapshot(snap.snapshot_id);
+    expect(after!.files[0].content).toBe("");
+    expect(after!.files[0].path).toBe("index.ts"); // path/size metadata survives
+    expect(after!.content_discarded_at).toBeTruthy();
+
+    // The paid, generated deliverable is untouched by source discard.
+    expect(await getGeneratorResult(snap.snapshot_id)).toEqual({
+      snapshot_id: snap.snapshot_id,
+      generated_at: "2025-01-01T00:00:00Z",
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+      skipped: [],
+    });
   });
 
   // ─── /v1/auth/session (api_key → HttpOnly cookie, H1 C2) ──────────

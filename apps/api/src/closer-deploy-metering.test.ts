@@ -19,6 +19,7 @@ import {
   createSnapshot,
   saveContextMap,
   saveRepoProfile,
+  discardAccountSnapshotContent,
 } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { BillingTier } from "@axis/snapshots";
@@ -151,6 +152,15 @@ describe("runCloser meters through authorize/capture", () => {
     const after = await getUsageCreditSummary(accountId, "free");
     expect(after.included_credits_used).toBe(before.included_credits_used);
   });
+
+  it("R5.7: a snapshot whose source was discarded on web logout is rejected before any charge", async () => {
+    const { accountId, rawKey, snapshotId } = await makeAccountWithSnapshot("Closer Discarded", "suite");
+    await discardAccountSnapshotContent(accountId);
+    const before = await getUsageCreditSummary(accountId, "suite");
+    await expect(runCloser({ snapshot_id: snapshotId }, reqWithKey(rawKey))).rejects.toThrow("discarded after web logout");
+    const after = await getUsageCreditSummary(accountId, "suite");
+    expect(after.included_credits_used).toBe(before.included_credits_used);
+  });
 });
 
 describe("runDeploy meters through authorize/capture", () => {
@@ -191,6 +201,15 @@ describe("runDeploy meters through authorize/capture", () => {
     const before = await getUsageCreditSummary(accountId, "free");
     await expect(runDeploy({ snapshot_id: snapshotId }, reqWithKey(rawKey))).rejects.toThrow("deploy requires a paid plan");
     const after = await getUsageCreditSummary(accountId, "free");
+    expect(after.included_credits_used).toBe(before.included_credits_used);
+  });
+
+  it("R5.7: a snapshot whose source was discarded on web logout is rejected before any charge", async () => {
+    const { accountId, rawKey, snapshotId } = await makeAccountWithSnapshot("Deploy Discarded", "suite");
+    await discardAccountSnapshotContent(accountId);
+    const before = await getUsageCreditSummary(accountId, "suite");
+    await expect(runDeploy({ snapshot_id: snapshotId }, reqWithKey(rawKey))).rejects.toThrow("discarded after web logout");
+    const after = await getUsageCreditSummary(accountId, "suite");
     expect(after.included_credits_used).toBe(before.included_credits_used);
   });
 });

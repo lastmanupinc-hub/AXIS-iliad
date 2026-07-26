@@ -44,4 +44,6 @@ export interface SnapshotRecord {
   files: FileEntry[];
   status: SnapshotStatus;
   account_id: string | null;
+  /** ISO timestamp when discardAccountSnapshotContent blanked files[].content, or null while content is still live. */
+  content_discarded_at: string | null;
 }

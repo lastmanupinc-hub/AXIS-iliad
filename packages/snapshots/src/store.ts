@@ -34,6 +34,7 @@ export async function createSnapshot(input: SnapshotInput, account_id?: string):
     files: input.files,
     status: "processing",
     account_id: account_id ?? null,
+    content_discarded_at: null,
   };
 
   await sql.run(
@@ -69,10 +70,50 @@ function rowToSnapshot(row: Record<string, unknown>): SnapshotRecord | undefined
       files: JSON.parse(row.files as string),
       status: row.status as SnapshotStatus,
       account_id: (row.account_id as string) ?? null,
+      content_discarded_at: (row.content_discarded_at as string) ?? null,
     };
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Blank files[].content for every snapshot owned by an account, preserving
+ * path/size metadata (listing UIs and byte accounting keep working; source
+ * content does not). Stamps content_discarded_at so callers can tell
+ * "discarded" apart from "genuinely empty file" instead of guessing from a
+ * content/size mismatch. Only ever touches snapshots.files — never
+ * generator_results, which holds the customer's paid, generated deliverables.
+ * Called from handleOAuthLogout (R5.7: web-dashboard logout discards source,
+ * matching TermsPage.tsx's "we don't keep your source" claim). Skips
+ * snapshots already discarded or with no files, so a duplicate logout is a
+ * cheap no-op. Best-effort per row: a corrupted files JSON blob is skipped
+ * (matching rowToSnapshot's own silent-skip convention above) rather than
+ * aborting the whole account's discard.
+ */
+export async function discardAccountSnapshotContent(account_id: string): Promise<number> {
+  const rows = await sql.many<{ snapshot_id: string; files: string }>(
+    "SELECT snapshot_id, files FROM snapshots WHERE account_id = ? AND content_discarded_at IS NULL AND file_count > 0",
+    [account_id],
+  );
+
+  const discardedAt = new Date().toISOString();
+  let discarded = 0;
+  for (const row of rows) {
+    let files: FileEntry[];
+    try {
+      files = JSON.parse(row.files) as FileEntry[];
+    } catch {
+      continue;
+    }
+    const wiped = files.map((f) => ({ ...f, content: "" }));
+    await sql.run(
+      "UPDATE snapshots SET files = ?, content_discarded_at = ? WHERE snapshot_id = ?",
+      [JSON.stringify(wiped), discardedAt, row.snapshot_id],
+    );
+    discarded++;
+  }
+  return discarded;
 }
 
 export async function getSnapshot(snapshot_id: string): Promise<SnapshotRecord | undefined> {

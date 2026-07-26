@@ -153,12 +153,26 @@ describe("Server route wiring", () => {
     expect(versioned.status).toBe(405);
     const versionedData = versioned.data as Record<string, unknown>;
     expect(versionedData.error).toBe("Method not allowed");
-    expect(versionedData.message).toBe("Use POST /v1/accounts (or POST /accounts) to create an account.");
+    expect(versionedData.message).toBe("POST /v1/accounts (or POST /accounts) creates an account. To read the authenticated caller's own account, use GET /v1/account (singular) with Authorization: Bearer <api_key> instead.");
+    expect(versionedData.see_also).toBe("/v1/account");
 
     const unversioned = await req("GET", "/accounts");
     expect(unversioned.status).toBe(405);
     const unversionedData = unversioned.data as Record<string, unknown>;
     expect(unversionedData.error).toBe("Method not allowed");
+  });
+
+  // Bug report (2026-07): production logs showed real 404s on these two paths.
+  // RFC 8414/RFC 9728 path-insertion means a spec-compliant MCP client resolves
+  // OAuth discovery RELATIVE TO the resource URL (/mcp), not just site-root.
+  it("OAuth discovery is also served mounted under /mcp (RFC 8414/9728 path-insertion)", async () => {
+    const authServer = await req("GET", "/mcp/.well-known/oauth-authorization-server");
+    expect(authServer.status).toBe(200);
+    expect((authServer.data as Record<string, unknown>).issuer).toBeTruthy();
+
+    const protectedResource = await req("GET", "/mcp/.well-known/oauth-protected-resource");
+    expect(protectedResource.status).toBe(200);
+    expect((protectedResource.data as Record<string, unknown>).resource).toBeTruthy();
   });
 
   it("unknown route returns 404", async () => {

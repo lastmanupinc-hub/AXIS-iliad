@@ -47,6 +47,9 @@ export const ErrorCode = {
   // 409
   CONFLICT: "CONFLICT",
 
+  // 410
+  CONTENT_DISCARDED: "CONTENT_DISCARDED",
+
   // 413
   PAYLOAD_TOO_LARGE: "PAYLOAD_TOO_LARGE",
   BODY_TOO_LARGE: "BODY_TOO_LARGE",
@@ -145,6 +148,9 @@ export const ERROR_CODE_CATALOG: readonly ErrorCodeCatalogEntry[] = [
   { code: ErrorCode.CONFLICT, statuses: [409], retryable: "no",
     retry_guidance: "Resolve the conflict described in the message (e.g. use a different email) and resend.",
     description: "The request conflicts with existing state." },
+  { code: ErrorCode.CONTENT_DISCARDED, statuses: [410], retryable: "no",
+    retry_guidance: "Re-upload the source via POST /v1/snapshots to regenerate — the account's source content was discarded when its web session logged out.",
+    description: "The snapshot exists, but its uploaded source content was discarded on web logout and generation can no longer read it." },
   { code: ErrorCode.PAYLOAD_TOO_LARGE, statuses: [], retryable: "no",
     retry_guidance: "Reserved — not currently produced by any endpoint. If encountered, treat like FILE_TOO_LARGE/BODY_TOO_LARGE.",
     description: "Defined for future use; the current request-body-size condition uses BODY_TOO_LARGE instead." },

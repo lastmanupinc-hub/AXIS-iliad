@@ -371,6 +371,14 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     // the victim's source (cross-tenant IDOR).
     if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
 
+    // R5.7: source content is gone once the owning account's web session logged
+    // out (discardAccountSnapshotContent) — reject before any charge fires, so
+    // callers are never billed for a run degraded to empty source.
+    if (snapshot?.content_discarded_at) {
+      sendError(res, 410, ErrorCode.CONTENT_DISCARDED, "Source content for this snapshot was discarded after web logout. Re-upload via POST /v1/snapshots to regenerate.");
+      return;
+    }
+
     // Charge only now that the request is validated — a 400/404/cross-tenant rejection above
     // returns before any billing, so callers are never charged for output they never receive
     // (audit #11 over-charge). A generation failure after this point is the rare residual case.
@@ -817,7 +825,10 @@ export async function handleGetSnapshot(
     file_count: snapshot.file_count,
     total_size_bytes: snapshot.total_size_bytes,
     status: snapshot.status,
-    compliance_grade: gradeCompliance(snapshot.files),
+    // R5.7: once content is discarded, files[].content is blanked — grading it would
+    // silently report a misleading (near-empty) score instead of explaining why.
+    content_discarded_at: snapshot.content_discarded_at,
+    compliance_grade: snapshot.content_discarded_at ? null : gradeCompliance(snapshot.files),
   });
 }
 
@@ -1091,6 +1102,12 @@ export async function handleSkillsGenerate(
   const snapshot = await getSnapshot(snapshotId);
   // Tenancy: an owned snapshot is only readable by its owner (cross-tenant IDOR otherwise).
   if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
+  // R5.7: see makeProgramHandler's identical guard — source content is gone
+  // once the owning account's web session logged out.
+  if (snapshot?.content_discarded_at) {
+    sendError(res, 410, ErrorCode.CONTENT_DISCARDED, "Source content for this snapshot was discarded after web logout. Re-upload via POST /v1/snapshots to regenerate.");
+    return;
+  }
   const result = generateFiles({
     context_map: contextMap,
     repo_profile: repoProfile,
@@ -1362,6 +1379,13 @@ export async function handleSearchIndex(
     return;
   }
   if (!(await assertSnapshotAccess(req, res, snapshot))) return;
+
+  // R5.7: content is blanked once the owning account's web session logged out —
+  // indexing it would silently build an empty index instead of explaining why.
+  if (snapshot.content_discarded_at) {
+    sendError(res, 410, ErrorCode.CONTENT_DISCARDED, "Source content for this snapshot was discarded after web logout. Re-upload via POST /v1/snapshots to regenerate.");
+    return;
+  }
 
   const files = (snapshot.files as Array<{ path: string; content: string }>).filter(
     (f) => typeof f.path === "string" && typeof f.content === "string",

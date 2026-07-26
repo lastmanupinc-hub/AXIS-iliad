@@ -50,6 +50,7 @@ function makeSnapshot(overrides: Partial<SnapshotRecord> = {}): SnapshotRecord {
     files,
     status: "ready",
     account_id: null,
+    content_discarded_at: null,
     ...overrides,
   };
 }

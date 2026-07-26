@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, sql, recordUsage } from "@axis/snapshots";
+import { resetTestDb, sql, recordUsage, discardAccountSnapshotContent } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, handleGetSnapshot, makeProgramHandler, handleSkillsGenerate, handleSearchExport } from "./handlers.js";
@@ -358,6 +358,52 @@ describe("snapshot retrieval", () => {
     expect(r.data.status).toBe("ready");
     expect(r.data.file_count).toBe(1);
     expect(r.data.manifest).toBeTruthy();
+  });
+});
+
+// ─── R5.7: discarded source content (web-logout) ─────────────────
+// discardAccountSnapshotContent is exercised end-to-end via the cookie-based
+// /v1/auth/logout flow in oauth.test.ts; here we simulate "already discarded"
+// directly (this file's router uses Bearer-key auth, not cookies) to prove
+// every source-reading endpoint degrades to a clear 410, never a silent
+// empty-content generation or a misleading compliance grade.
+
+describe("discarded snapshot content (post-logout)", () => {
+  it("GET /v1/snapshots/:id reports content_discarded_at and a null compliance_grade", async () => {
+    const { key, accountId } = await createTestAccount();
+    const created = await req("POST", "/v1/snapshots", validSnapshot(), key);
+    await discardAccountSnapshotContent(accountId);
+
+    const r = await req("GET", `/v1/snapshots/${created.data.snapshot_id}`, undefined, key);
+    expect(r.status).toBe(200);
+    expect(r.data.content_discarded_at).toBeTruthy();
+    expect(r.data.compliance_grade).toBeNull();
+  });
+
+  it("POST /v1/debug/analyze returns 410 CONTENT_DISCARDED instead of generating from empty source", async () => {
+    const { key, accountId } = await createTestAccount();
+    const created = await req("POST", "/v1/snapshots", validSnapshot(), key);
+    await discardAccountSnapshotContent(accountId);
+
+    const r = await req("POST", "/v1/debug/analyze", { snapshot_id: created.data.snapshot_id }, key);
+    expect(r.status).toBe(410);
+    expect(r.data.error_code).toBe("CONTENT_DISCARDED");
+  });
+
+  it("POST /v1/skills/generate returns 410 CONTENT_DISCARDED instead of generating from empty source", async () => {
+    const { key, accountId } = await createTestAccount();
+    const created = await req("POST", "/v1/snapshots", validSnapshot(), key);
+    await discardAccountSnapshotContent(accountId);
+
+    const r = await req("POST", "/v1/skills/generate", { snapshot_id: created.data.snapshot_id }, key);
+    expect(r.status).toBe(410);
+    expect(r.data.error_code).toBe("CONTENT_DISCARDED");
+  });
+
+  it("an anonymous (unowned) snapshot can never be discarded, so it keeps generating normally", async () => {
+    const created = await req("POST", "/v1/snapshots", validSnapshot());
+    const r = await req("POST", "/v1/debug/analyze", { snapshot_id: created.data.snapshot_id });
+    expect(r.status).toBe(200);
   });
 });
 

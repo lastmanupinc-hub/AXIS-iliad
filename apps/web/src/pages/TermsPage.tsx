@@ -193,17 +193,26 @@ export function TermsPage() {
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.1 Source Code</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              <strong>Your source code is never persistently stored.</strong> When you upload a
-              repository or submit a GitHub URL, the files are processed in memory, analysis artifacts
-              are generated, and the raw source is discarded immediately upon snapshot completion.
-              We do not retain copies of your code on disk after analysis.
+              <strong>We discard your uploaded source code when you log out of the web dashboard.</strong>{" "}
+              While you're logged in, your uploaded files are kept so you can request additional
+              analyses of the same snapshot without re-uploading. The moment you log out, we discard
+              that source content — we keep only file paths, sizes, and the analysis artifacts already
+              generated for you; the underlying code itself is gone. Logging back in and uploading
+              again starts a fresh snapshot.
+            </p>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
+              This logout-triggered discard applies to the web dashboard specifically. If you use the
+              API, CLI, or MCP server directly, there is no login/logout session to trigger it, so
+              source content you submit is retained until you delete the snapshot, delete the project,
+              or delete your account (see 5.5).
             </p>
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.2 AI Training</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               <strong>Your code is never used to train AI or machine-learning models</strong> — by us
-              or any third party. Generated artifacts (context maps, governance files) are stored in
-              your account only for the duration of your session or until you delete them.
+              or any third party. Generated artifacts (context maps, governance files) are retained in
+              your account until you delete them — independently of source-code discard — so you can
+              always retrieve past results without re-submitting your code.
             </p>
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.3 Account Data</h3>

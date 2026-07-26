@@ -299,7 +299,10 @@ describe("buildOpenApiSpec", () => {
       "get /.well-known/security.txt", "get /.well-known/skills/index.json",
       // MCP protocol transport + discovery (documented via the MCP manifest, not REST)
       "get /mcp", "post /mcp", "get /mcp/sse", "post /mcp/sse", "get /mcp/docs",
-      "get /mcp/.well-known/agent.json", "get /mcp/.well-known/mcp.json",
+      "get /mcp/.well-known/agent.json", "get /mcp/.well-known/mcp.json", "get /mcp/.well-known/mcp",
+      // RFC 8414/9728 path-insertion mounts of the two oauth-* .well-known files
+      // above, relative to the /mcp resource — same handlers, not a distinct API.
+      "get /mcp/.well-known/oauth-authorization-server", "get /mcp/.well-known/oauth-protected-resource",
       "get /mcp/mcp", "post /mcp/mcp", "delete /mcp/mcp",
       "get /v1/mcp", "post /v1/mcp", "get /v1/mcp/server.json", "get /v1/mcp/tools",
       // OAuth 2.0 authorization-server endpoints (RFC 8414 / RFC 7662), not the product API

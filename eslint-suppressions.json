@@ -180,9 +180,6 @@
   "apps/api/src/oauth.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 2
-    },
-    "@typescript-eslint/require-await": {
-      "count": 1
     }
   },
   "apps/api/src/object-storage.ts": {

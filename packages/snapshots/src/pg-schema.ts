@@ -738,6 +738,21 @@ CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_created ON payment_funnel_e
     name: "accounts_paid_plan_id",
     sql: `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS paid_plan_id TEXT;`,
   },
+  {
+    // R5.7 (web-logout content discard): TermsPage.tsx told users "we don't
+    // save your source" while snapshots.files kept the raw uploaded content
+    // indefinitely. The real policy, per product decision, is retain-while-
+    // logged-in / discard-on-logout for the web dashboard specifically (API/
+    // CLI/MCP callers have no session concept and are unaffected). This
+    // column is the audit trail: NULL means content is still live; a
+    // timestamp means discardAccountSnapshotContent (store.ts) already
+    // blanked every FileEntry.content for this snapshot, so callers can
+    // distinguish "discarded" from "genuinely empty file" instead of
+    // guessing from content/size mismatch.
+    version: 40,
+    name: "snapshots_content_discarded_at",
+    sql: `ALTER TABLE snapshots ADD COLUMN IF NOT EXISTS content_discarded_at TEXT;`,
+  },
 ];
 
 /**

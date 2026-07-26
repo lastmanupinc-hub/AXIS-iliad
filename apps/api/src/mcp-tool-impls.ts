@@ -2974,6 +2974,7 @@ export async function runGetSnapshot(
       manifest: snapshot.manifest,
       file_count: snapshot.file_count,
       status: snapshot.status,
+      content_discarded_at: snapshot.content_discarded_at,
       artifact_count: generated?.files.length ?? 0,
       artifacts:
         generated?.files.map(f => ({
@@ -3052,6 +3053,13 @@ export async function runCloser(
   if (!snapshot) throw new Error(`Snapshot not found: ${snapshotId}`);
   if (snapshot.account_id && snapshot.account_id !== auth.account.account_id) {
     throw new Error("Snapshot not found");
+  }
+
+  // R5.7: mirrors makeProgramHandler's REST-side guard (handlers.ts) — reject
+  // before any credits are authorized, so a call is never billed for a run
+  // degraded to empty source after the owning account's web session logged out.
+  if (snapshot.content_discarded_at) {
+    throw new Error("Source content for this snapshot was discarded after web logout. Re-upload via POST /v1/snapshots or analyze_files/analyze_repo to regenerate.");
   }
 
   // H-Phase-A cycle 16: this used to hard-block on isProgramEnabled regardless of
@@ -3177,6 +3185,13 @@ export async function runDeploy(
   if (!snapshot) throw new Error(`Snapshot not found: ${snapshotId}`);
   if (snapshot.account_id && snapshot.account_id !== auth.account.account_id) {
     throw new Error("Snapshot not found");
+  }
+
+  // R5.7: mirrors makeProgramHandler's REST-side guard (handlers.ts) — reject
+  // before any credits are authorized, so a call is never billed for a run
+  // degraded to empty source after the owning account's web session logged out.
+  if (snapshot.content_discarded_at) {
+    throw new Error("Source content for this snapshot was discarded after web logout. Re-upload via POST /v1/snapshots or analyze_files/analyze_repo to regenerate.");
   }
 
   // H-Phase-A cycle 16: only genuinely free-tier callers are blocked here now — see

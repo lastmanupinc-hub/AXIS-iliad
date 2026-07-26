@@ -40,6 +40,14 @@ data) via `DELETE /v1/projects/:project_id`, or use the dashboard. In addition, 
 automated maintenance routine periodically purges stale operational data (expired
 rate-limit windows, and revoked API keys and seats older than 90 days).
 
+**Web dashboard logout:** if you access Axis through the web dashboard, logging out
+discards your uploaded source content immediately — we keep only file paths, sizes, and
+any artifacts already generated for you, not the underlying code. Logging back in and
+uploading again starts a fresh snapshot. This logout-triggered discard is specific to the
+web dashboard's login session; it does not apply to snapshots created via the API, CLI, or
+MCP server, which have no login/logout concept — that source content is retained until
+explicitly deleted as described above.
+
 We do not sell, license, or train machine-learning models on your source code.
 
 ### 2.2 Code fetched from GitHub on your behalf

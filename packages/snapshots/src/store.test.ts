@@ -13,6 +13,7 @@ import {
   getRepoProfile,
   saveGeneratorResult,
   getGeneratorResult,
+  discardAccountSnapshotContent,
 } from "./store.js";
 import { resetTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
@@ -148,6 +149,67 @@ describe("GeneratorResult persistence", () => {
     await saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2025-01-02", files: [], v: 2 });
     const found = (await getGeneratorResult(snap.snapshot_id)) as Record<string, unknown>;
     expect(found.v).toBe(2);
+  });
+});
+
+// ─── R5.7: web-logout content discard ────────────────────────────
+
+describe("discardAccountSnapshotContent", () => {
+  it("blanks content but preserves path/size, and stamps content_discarded_at", async () => {
+    const account = await createAccount("Discard Test", "discard-test@example.com");
+    const snap = await createSnapshot(
+      makeInput({ files: [{ path: "index.ts", content: "console.log('secret')", size: 22 }] }),
+      account.account_id,
+    );
+    expect(snap.content_discarded_at).toBeNull();
+
+    const discarded = await discardAccountSnapshotContent(account.account_id);
+    expect(discarded).toBe(1);
+
+    const found = await getSnapshot(snap.snapshot_id);
+    expect(found!.files).toEqual([{ path: "index.ts", content: "", size: 22 }]);
+    expect(found!.content_discarded_at).toBeTruthy();
+    // size/file_count (byte accounting) survive untouched — only content is wiped.
+    expect(found!.total_size_bytes).toBe(22);
+    expect(found!.file_count).toBe(1);
+  });
+
+  it("never touches another account's snapshots", async () => {
+    const owner = await createAccount("Owner", "owner-discard@example.com");
+    const other = await createAccount("Other", "other-discard@example.com");
+    const ownerSnap = await createSnapshot(makeInput(), owner.account_id);
+    const otherSnap = await createSnapshot(makeInput(), other.account_id);
+
+    await discardAccountSnapshotContent(owner.account_id);
+
+    expect((await getSnapshot(ownerSnap.snapshot_id))!.content_discarded_at).toBeTruthy();
+    const untouched = await getSnapshot(otherSnap.snapshot_id);
+    expect(untouched!.content_discarded_at).toBeNull();
+    expect(untouched!.files[0].content).toBe("console.log('hello')");
+  });
+
+  it("never touches generator_results — the paid deliverable survives source discard", async () => {
+    const account = await createAccount("Deliverable Owner", "deliverable-owner@example.com");
+    const snap = await createSnapshot(makeInput(), account.account_id);
+    const result = { snapshot_id: snap.snapshot_id, generated_at: "2025-01-01T00:00:00Z", files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }], skipped: [] };
+    await saveGeneratorResult(snap.snapshot_id, result);
+
+    await discardAccountSnapshotContent(account.account_id);
+
+    expect(await getGeneratorResult(snap.snapshot_id)).toEqual(result);
+  });
+
+  it("is a no-op on a second call (already-discarded snapshots are skipped)", async () => {
+    const account = await createAccount("Idempotent", "idempotent-discard@example.com");
+    await createSnapshot(makeInput(), account.account_id);
+
+    expect(await discardAccountSnapshotContent(account.account_id)).toBe(1);
+    expect(await discardAccountSnapshotContent(account.account_id)).toBe(0);
+  });
+
+  it("returns 0 for an account with no snapshots", async () => {
+    const account = await createAccount("Empty", "empty-discard@example.com");
+    expect(await discardAccountSnapshotContent(account.account_id)).toBe(0);
   });
 });
 

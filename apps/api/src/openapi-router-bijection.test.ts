@@ -64,8 +64,15 @@ const WAIVED_ROUTER_ONLY = new Set<string>([
   key("POST", "/mcp/mcp/*"),
   key("DELETE", "/mcp/mcp/*"),
   // MCP-prefixed duplicates of the already-documented /.well-known/*.json files.
+  // The oauth-* pair is mounted here too because RFC 8414/RFC 9728 path-insertion
+  // means a spec-compliant MCP client resolves these RELATIVE TO the resource URL
+  // (/mcp), not just site-root — production logs showed real 404s on exactly
+  // these two paths before they were added.
   key("GET", "/mcp/.well-known/mcp.json"),
+  key("GET", "/mcp/.well-known/mcp"),
   key("GET", "/mcp/.well-known/agent.json"),
+  key("GET", "/mcp/.well-known/oauth-authorization-server"),
+  key("GET", "/mcp/.well-known/oauth-protected-resource"),
   // Static asset, not a JSON API resource.
   key("GET", "/favicon.ico"),
   // Trailing-slash aliases of the documented /v1/accounts and /accounts.

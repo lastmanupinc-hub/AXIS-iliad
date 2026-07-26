@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError, readBody } from "./router.js";
-import { ErrorCode } from "./logger.js";
-import { SESSION_COOKIE } from "./billing.js";
+import { ErrorCode, log } from "./logger.js";
+import { SESSION_COOKIE, resolveAuth } from "./billing.js";
 import {
   createOAuthState,
   consumeOAuthState,
@@ -17,6 +17,7 @@ import {
   getGoogleUser,
   upsertAccountByGoogle,
   resolveApiKey,
+  discardAccountSnapshotContent,
 } from "@axis/snapshots";
 
 function getOAuthConfig() {
@@ -286,11 +287,33 @@ export async function handleCreateSession(
   sendJSON(res, 200, { ok: true });
 }
 
-/** POST /v1/auth/logout — clear the first-party session cookie (HttpOnly, so it must be cleared server-side). */
+/**
+ * POST /v1/auth/logout — clear the first-party session cookie (HttpOnly, so it
+ * must be cleared server-side) and discard the account's uploaded source
+ * content (R5.7: "we don't keep your source" is a real guarantee only for the
+ * web dashboard, whose login/logout gives us a discard trigger — API/CLI/MCP
+ * callers have no session concept and are unaffected; see TermsPage.tsx).
+ * Account is resolved from the session BEFORE the cookie is cleared. The
+ * discard is best-effort: a failure here must never block logout itself.
+ */
 export async function handleOAuthLogout(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  const ctx = await resolveAuth(req);
+  if (ctx.account) {
+    try {
+      const discarded = await discardAccountSnapshotContent(ctx.account.account_id);
+      if (discarded > 0) {
+        log("info", "logout_content_discarded", { account_id: ctx.account.account_id, snapshots: discarded });
+      }
+    } catch (err) {
+      log("error", "logout_discard_failed", {
+        account_id: ctx.account.account_id,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Set-Cookie", sessionCookie("", 0, getOAuthConfig().webAppUrl));
   sendJSON(res, 200, { ok: true });

@@ -541,19 +541,44 @@ These are correct to do and **wrong to do unilaterally**. Present findings, wait
   digests are currently stale and therefore make **provably false integrity claims**. Either
   make `make attest` regenerate them at ship time or mark the files `SAMPLE`; do not leave a
   false attestation present. Owner decides which.
-- **R5.7 · `TermsPage.tsx` section 5.1's false retention claim — LIVE, SERVED, HIGH PRIORITY.**
-  Promoted from the FINDINGS queue at Phase R convergence (found 2026-07-25, never fixed
-  because the remedy is a real product/legal choice). The served page claims *"Your source
-  code is never persistently stored... discarded immediately upon snapshot completion... We
-  do not retain copies of your code on disk after analysis."* This is false: `FileEntry.content`
-  is JSON-stringified into the `snapshots` table's `files` column (`pg-schema.ts`) with no
-  scrubbing or expiry job anywhere in the codebase — full raw source persists in Postgres
-  indefinitely until the customer calls `DELETE /v1/snapshots/:id`. Verified directly against
-  `packages/snapshots/src/types.ts` and `pg-schema.ts`, not inferred. Two honest remedies,
-  owner picks one: **(a)** implement real deletion/expiry so the claim becomes true, or
-  **(b)** rewrite section 5.1 to disclose actual retention (mirroring `PRIVACY_POLICY.md`'s
-  already-accurate parallel claim, fixed for R2.4). Do not ship a third option that quietly
-  softens the wording without either fixing the behavior or disclosing it honestly.
+- ~~**R5.7 · `TermsPage.tsx` section 5.1's false retention claim — LIVE, SERVED, HIGH
+  PRIORITY.**~~ **RESOLVED 2026-07-26 — owner picked remedy (a), for real, not just disclosure.**
+  Owner's explicit product decision: *"we need to hold only as long as the user is logged in
+  then discard. they pay for repeat anlysis so their ip is safe"* — followed by an explicit
+  choice among three offered trigger designs (discard-after-analysis / discard-on-web-logout /
+  both-layered): **discard on web logout only**. Implemented, not just disclosed: `snapshots`
+  gained a `content_discarded_at` column (`pg-schema.ts` migration v40);
+  `discardAccountSnapshotContent` (`packages/snapshots/src/store.ts`) blanks every
+  `FileEntry.content` for the account's snapshots while preserving `path`/`size` (byte
+  accounting and listing UIs keep working) and stamping the column so "discarded" is never
+  confused with "genuinely empty file"; `handleOAuthLogout` (`apps/api/src/oauth.ts`) resolves
+  the account from the session cookie **before** clearing it and calls the discard, best-effort
+  (a discard failure logs but never blocks logout itself). Never touches `generator_results` —
+  the customer's paid, generated deliverables are a separate table and separately verified
+  untouched by direct test. Every downstream reader of `snapshot.files` content was individually
+  triaged (not just the ones that crash): `makeProgramHandler`, `handleSkillsGenerate`, and
+  `handleSearchIndex` now reject with a new `410 CONTENT_DISCARDED` **before** any charge fires
+  (a money-path guard, not just a correctness one — a paid-program call must never bill for a
+  run silently degraded to empty source); `handleGetSnapshot` exposes `content_discarded_at` and
+  returns `compliance_grade: null` instead of a misleading near-zero grade computed on blanked
+  content. The four snapshot-creation handlers (`handleCreateSnapshot`, `handleGitHubAnalyze`,
+  `handleAnalyze`, `handlePreparePurchasing`) all call `createSnapshot` inline and use the result
+  immediately, so `content_discarded_at` is structurally `null` at that point — no guard needed,
+  verified by reading every `getSnapshot(`/`createSnapshot(` call site in `handlers.ts`, not
+  assumed. `TermsPage.tsx` §5.1 and `PRIVACY_POLICY.md` §2.1 rewritten to state the real,
+  correctly-scoped behavior — web-dashboard logout discards source; API/CLI/MCP calls have no
+  session concept and are unaffected, so their source is retained until explicit deletion (same
+  as before). Also fixed, in the same edit, an adjacent pre-existing false claim in TermsPage
+  §5.2 ("generated artifacts stored only for the duration of your session") that directly
+  contradicted the corrected §5.1 and was never true — artifacts are retained until deleted,
+  independent of source discard, by design (so repeat analysis doesn't require re-upload).
+  Tests: real-Postgres unit coverage in `store.test.ts` (blank+preserve+stamp, cross-account
+  isolation, `generator_results` survival, idempotency, zero-snapshot no-op), a full HTTP
+  integration test in `oauth.test.ts` (session cookie → logout → content gone, deliverable
+  intact), and handler-level 410 coverage in `snapshot-auth.test.ts` (`GET /v1/snapshots/:id`,
+  `/v1/debug/analyze`, `/v1/skills/generate`, plus a control case proving an anonymous/unowned
+  snapshot — which can never be discarded — keeps generating normally) and `search-api.test.ts`
+  (`handleSearchIndex`).
 
 ---
 
@@ -651,6 +676,7 @@ Append-only, one line per completed unit: `| R#.# | <what shipped> | <hash> | <v
 | scanner.ts fix | Root-caused and fixed the FINDINGS-queue breadth-starvation bug blocking R4.3: one independent FIFO queue per top-level directory, round-robined, so no top-level directory's subtree width or depth can crowd out a sibling's turn. Two prior algorithms (pure depth-first; single shared BFS queue) were tried and proven insufficient by test before landing on this one | `05838a2` | 6 new scanner.test.ts tests against real filesystem fixtures sized past MAX_FILES=500 (the only way to distinguish the algorithms); the key test is proven non-vacuous -- fails under both prior algorithms, passes only under the round-robin fix. Full apps/cli suite 202/202. Confirmed on this repo's own dogfood: 9 top-level directories (was 3) |
 | R4.3 | Re-attempted after the scanner.ts fix landed. Ran the dogfood steps directly (build, `axis analyze . --output .ai-output`, refresh `.ai/`, refresh root allowlist) rather than through `regenerate:sh`, to avoid its bundled `npx vitest run` self-test step entirely after it segfaulted on the first attempt earlier this session | `6e13a89` | Regenerated CLAUDE.md/AGENTS.md correctly report 9 top-level directories; this session's x402/agent-card/OAuth work and the new inter-repo ticket system are reflected in the refreshed `.ai/` mirror too; all 4 guard suites green (44/44) |
 | Inter-repo ticket system | Productized the proven, already-committed `inter_repo_ticket_system` protocol (this repo's own `begin.yaml`, `7ca9c47`) into `autonomy-loop.ts`'s `buildBeginYaml`, generated for every analyzed repo. `detectTicketUnits()` derives addressable units from the analysis itself (monorepo roots expanded one level using real scanned paths, never hardcoded); the schema/key names stay identical across topologies since two independent agents can only speak the protocol if they look for the same key; wired into `required_read_order` and the move-selection algorithm so the inbox is actually read and triaged, not just documented. User-directed (not an authored Phase R unit) but landed the same session | `426915c` | 9 new autonomy-loop.test.ts tests (18/18 in file); a red-check confirmed the inbox-wiring test is non-vacuous (removing the read-order step fails it). Verified against this repo's own real context-map.json (5 real units detected) and a synthetic single-unit repo. Full generator-core suite 2426/2426 with DATABASE_URL set, zero regressions |
+| R5.7 | Web-logout content discard, real behavior not just disclosure -- owner's explicit product decision, remedy (a). `pg-schema.ts` migration v40 adds `snapshots.content_discarded_at`; `discardAccountSnapshotContent` (store.ts) blanks `FileEntry.content` per account, preserves path/size, never touches `generator_results`; `handleOAuthLogout` resolves the account from the session cookie before clearing it and calls the discard, best-effort (never blocks logout on failure). Triaged every downstream reader of `snapshot.files`, not just the ones that would crash: `makeProgramHandler`/`handleSkillsGenerate`/`handleSearchIndex` reject with a new `410 CONTENT_DISCARDED` before any charge fires (money-path guard); `handleGetSnapshot` reports `content_discarded_at` and returns `compliance_grade: null` instead of a misleading grade on blanked content; the 4 create-and-generate-inline handlers verified structurally exempt (fresh snapshot, discard impossible in the same request) by reading every call site rather than assumed. `TermsPage.tsx` §5.1 and `PRIVACY_POLICY.md` §2.1 rewritten to the real, correctly-scoped behavior (web dashboard only -- API/CLI/MCP have no session concept and are unaffected); also fixed an adjacent pre-existing false claim in TermsPage §5.2 that contradicted the corrected §5.1 | `<pending commit>` | Real-Postgres unit tests in store.test.ts (blank+preserve+stamp, cross-account isolation, generator_results survival, idempotency, zero-snapshot no-op); full HTTP integration test in oauth.test.ts (session cookie -> logout -> content gone, deliverable intact); handler-level 410 coverage in snapshot-auth.test.ts (GET snapshot, debug/analyze, skills/generate, plus an anonymous-snapshot control proving unowned snapshots keep generating) and search-api.test.ts (handleSearchIndex) |
 
 ## FAILURES ledger
 

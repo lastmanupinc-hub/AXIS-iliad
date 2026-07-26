@@ -53,6 +53,7 @@ vi.mock("@axis/snapshots", () => ({
       total_size_bytes: input.files.reduce((s, f) => s + f.size, 0),
       status: "processing",
       account_id: null,
+      content_discarded_at: null,
     };
   }),
   getProjectSnapshots: vi.fn(async (project_id: string) => {

@@ -110,6 +110,19 @@ async function seedSnapshot(snapshotId = "snap1") {
   return files;
 }
 
+/** R5.7: same shape as seedSnapshot, but already discarded (post web-logout). */
+async function seedDiscardedSnapshot(snapshotId = "snap-discarded") {
+  const projectExists = await sql.one("SELECT 1 FROM projects WHERE project_id = 'p1'");
+  if (!projectExists) {
+    await sql.run("INSERT INTO projects (project_id, project_name) VALUES ('p1', 'Test Project')");
+  }
+  const files = [{ path: "src/index.ts", content: "", size: 50 }];
+  await sql.run(
+    "INSERT INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status, content_discarded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET files = EXCLUDED.files, content_discarded_at = EXCLUDED.content_discarded_at",
+    [snapshotId, "p1", "2024-01-01", "api_submission", "{}", files.length, 50, JSON.stringify(files), "ready", "2024-06-01T00:00:00.000Z"],
+  );
+}
+
 beforeEach(async () => {
   await resetTestDb();
 });
@@ -141,6 +154,16 @@ describe("handleSearchIndex", () => {
     const { res, captured } = makeRes();
     await handleSearchIndex(req, res);
     expect(captured().statusCode).toBe(400);
+  });
+
+  it("R5.7: returns 410 CONTENT_DISCARDED instead of silently indexing blanked content", async () => {
+    await seedDiscardedSnapshot();
+    const req = makeReq({ snapshot_id: "snap-discarded" });
+    const { res, captured } = makeRes();
+    await handleSearchIndex(req, res);
+    const result = captured();
+    expect(result.statusCode).toBe(410);
+    expect((result.body as Record<string, unknown>).error_code).toBe("CONTENT_DISCARDED");
   });
 });
 
