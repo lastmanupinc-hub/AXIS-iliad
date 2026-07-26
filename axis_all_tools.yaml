@@ -1,3 +1,6 @@
+# [2026-07-26] HISTORICAL SPEC — demoted from canonical_dependency_truth in
+# continuation.yaml (see that file's boundary_truth block). Not regenerated
+# from the live catalog; do not treat as current architecture truth.
 spec_version: 1.0.0
 
 axis:

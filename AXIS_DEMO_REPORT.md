@@ -1,4 +1,6 @@
 # AXIS DEMO REPORT
+
+> **[2026-07-26]** Point-in-time demo record, 2026-04; live counts in `counts.ts`.
 ## Target: Axis' Iliad (Self-Referential Analysis)
 
 | Field | Value |

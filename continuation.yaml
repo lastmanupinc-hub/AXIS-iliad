@@ -47,7 +47,7 @@ project_continuation:
       - api_submission
       - cli_submission
     canonical_dependency_truth:
-      axis_all_tools_yaml: canonical_spec
+      axis_all_tools_yaml: historical_spec  # demoted 2026-07-26 (R4.2) -- not regenerated from the live catalog, do not source claims from it
       axis_master_blueprint_yaml: original_spec_superseded
       begin_yaml: session_gate
       continuation_yaml: state_ledger

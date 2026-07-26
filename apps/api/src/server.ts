@@ -174,7 +174,8 @@ router.get("/v1/docs", async (_req, res) => {
   sendJSON(res, 200, buildOpenApiSpec());
 });
 
-// Snapshot endpoints (per axis_all_tools.yaml api_architecture)
+// Snapshot endpoints (originally per axis_all_tools.yaml's api_architecture,
+// since demoted to a historical spec -- see continuation.yaml's boundary_truth)
 router.post("/v1/snapshots", handleCreateSnapshot);
 router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
 router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);

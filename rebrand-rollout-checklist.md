@@ -1,5 +1,8 @@
 # Axis' Iliad Rebrand Rollout Checklist
 
+> **[2026-07-26]** Point-in-time checklist -- open items below remain genuinely
+> open, this is not a stale/completed record. Banner added for dating only.
+
 ## GitHub
 - Repository should use `axis-iliad` as the canonical slug.
 - Add repository description with the new name and positioning.

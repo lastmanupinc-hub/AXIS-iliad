@@ -1,5 +1,10 @@
 # External Setup — Paid (PAI'D) · Stripe · MCP
 
+> **[2026-07-26]** Track A1 (direct-Stripe checkout price creation) is
+> superseded by PAI'D-only checkout -- see its own annotation below. The
+> rest of this runbook (webhook, PAI'D, Render env, MCP distribution, ops)
+> remains current.
+
 **Scope:** the dashboard / account / CLI steps that **only you can do** (they live outside
 this repo — Stripe, PAI'D, Render, npm, the MCP registry). The code is already wired; what's
 missing is the external configuration that turns it on. Work top-to-bottom — each track
@@ -44,6 +49,14 @@ depends on the ones above it.
 Stripe moves the actual money. PAI'D and the per-call x402 tools both settle through it.
 
 ### A1. Create 3 products, each with monthly + annual price
+
+> **[2026-07-26] SUPERSEDED by PAI'D-only checkout** — new subscriptions go
+> through PAI'D's hosted checkout (Track B), not this direct-Stripe price
+> creation. Not deleted: the six price IDs below may still be load-bearing
+> for legacy/existing subscribers created via this path, and Track A2's
+> webhook still processes subscription lifecycle events regardless of which
+> checkout created them. Do not use this section to set up a NEW deployment's
+> checkout flow.
 
 | Product | Monthly | Annual (20% off) | Env vars to record |
 |---|---|---|---|
