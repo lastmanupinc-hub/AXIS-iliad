@@ -27,7 +27,96 @@ project_begin:
   required_read_order:
     - read_this_file_first
     - then_read_continuation_yaml
+    - then_check_inter_repo_ticket_inbox   # inter_repo_ticket_system.inbox — sibling-repo requests that may have arrived since last session
     - then_choose_next_valid_move
+
+  inter_repo_ticket_system:
+    # 2026-07-26: this repo (Iliad / axis-odyssey) is a sibling of PAID
+    # (the AXIS ecosystem's payments-orchestration layer) and AXIS Foundry.
+    # Agents here must NOT edit files in a sibling repo directly while that
+    # repo's own autonomous loop may be mid-candidate — file a ticket in
+    # THEIR begin.yaml instead. Mirrored (identical schema and mechanics)
+    # in ../payment processing/begin.yaml#project_begin.inter_repo_ticket_system
+    # and ../AXIS Avatar Foundry/begin.yaml#project_begin.inter_repo_ticket_system
+    # so all three repos speak one protocol. Checked every loop cycle — see
+    # required_read_order's then_check_inter_repo_ticket_inbox step and
+    # autonomous_execution_policy.completion_after_each_candidate's
+    # check_inter_repo_ticket_inbox_and_triage_new_tickets_into_queue step.
+    activated: "2026-07-26"
+    purpose: >
+      Let this repo ask a sibling repo for something (most often PAID, for
+      payments/settlement/contract work — this repo's own x402/MPP contract
+      at docs/x402/CONTRACT.md is the canonical spec PAID consumes) without
+      touching that repo's files directly, and let sibling repos ask THIS
+      repo for something the same way. The provider repo triages the
+      ticket into its own ROI-ordered candidate queue, does the work under
+      its own verification discipline, and writes a completion notice
+      directly into the requester's own begin.yaml so the requester never
+      has to poll the provider's file to find out.
+
+    known_repos:
+      # Local sibling folders under "No Fate Platform\", same machine — a
+      # ticket is filed/confirmed by editing the target repo's begin.yaml
+      # directly, no network call or MCP round trip involved.
+      paid:         "payment processing"    # payments-orchestration layer
+      axis_toolbox: "AXIS Toolbox"          # this repo (Iliad / axis-odyssey)
+      axis_foundry: "AXIS Avatar Foundry"   # = AXIS Foundry
+
+    ticket_schema:
+      # Copy this block, fill it in, append it under inbox.tickets in the
+      # repo you are requesting FROM. Do not edit any other section of
+      # that repo's begin.yaml.
+      template:
+        id: ""                    # TICKET-<your_repo>-<short-slug>-<YYYYMMDD>, e.g. TICKET-AXIS_TOOLBOX-x402-payto-field-20260726
+        from_repo: ""              # one of known_repos keys, e.g. axis_toolbox
+        from_agent_session: ""     # your session id or a short human label
+        submitted: ""              # YYYY-MM-DD
+        status: submitted          # submitted -> in_progress -> confirmed -> archived
+        severity: normal           # normal | priority_1 (priority_1 gets the same loop-pause treatment as a direct operator report)
+        title: ""                  # one line
+        request: >
+          Exactly what you need: endpoint, field, behavior. Point at your
+          OWN repo's canonical spec file (e.g. docs/x402/CONTRACT.md)
+          instead of restating it here if one already exists.
+        why: ""                    # why this matters / what it blocks in your repo
+        acceptance_criteria: []    # concrete, checkable conditions the provider can self-verify
+        pointer_back: ""           # where in YOUR repo the provider should also check/write, if different from your own begin.yaml#inter_repo_ticket_system.outbox
+
+    inbox:
+      # Tickets sibling repos have filed against THIS repo. Every ticket
+      # here with status: submitted gets triaged into the unified
+      # candidate queue before the next loop candidate is picked — see
+      # triage_policy below.
+      tickets: []
+      archived_tickets: []
+
+    outbox:
+      # Tickets THIS repo has filed against a sibling repo (most often
+      # PAID). The sibling repo updates status directly here (in THIS
+      # file) when they act on it, using the same schema.
+      tickets: []
+      archived_tickets: []
+
+    triage_policy:
+      on_new_inbox_ticket:
+        - assign_a_candidate_id_and_add_to_the_unified_roi_queue
+        - severity_priority_1_pauses_the_loop_like_a_direct_operator_report_and_is_handled_before_the_next_candidate
+        - severity_normal_is_scored_by_the_normal_roi_policy_like_any_other_candidate_and_takes_its_place_in_rank_order
+        - set_ticket_status_in_progress_and_record_the_assigned_candidate_id_on_the_ticket
+      on_candidate_close:
+        - set_ticket_status_confirmed_in_inbox
+        - write_the_same_status_confirmed_update_into_from_repo_begin_yaml_outbox_entry_with_matching_id
+      on_mutual_confirmation:
+        - move_the_ticket_from_tickets_to_archived_tickets_in_both_inbox_and_the_requesters_outbox
+
+    notify_protocol:
+      where: "<from_repo>/begin.yaml#project_begin.inter_repo_ticket_system.outbox.tickets[id]"
+      what_to_write:
+        status: confirmed
+        confirmed: ""                # YYYY-MM-DD
+        provider_candidate_id: ""     # the candidate id this repo closed for this ticket
+        evidence: ""                  # commit SHA + what was verified
+        summary: ""                    # 1-3 sentences
 
   optimization_policy:
     primary_rule: >
@@ -289,6 +378,7 @@ project_begin:
         - record_vertical_saturation_delta
         - commit_changes
         - push_changes_if_policy_allows
+        - check_inter_repo_ticket_inbox_and_triage_new_tickets_into_queue   # see inter_repo_ticket_system
         - rescore_remaining_candidates
 
     stop_conditions:
