@@ -5,7 +5,7 @@
 // Usage:  node e2e_full_human_ai_x402.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 
-const BASE = process.env.AXIS_E2E_BASE ?? "https://axis-api-6c7z.onrender.com";
+const BASE = process.env.AXIS_E2E_BASE ?? "https://api.iliad.trustfabric.ai";
 const CALL_DELAY_MS = 1300;
 
 const results = [];
@@ -61,7 +61,6 @@ async function go(method, path, body, headers = {}) {
 // ─── State shared across sections ────────────────────────────────
 let humanKey = "";
 let humanAccountId = "";
-let paidKey = "";
 let snapshotId = "";
 let projectId = "";
 let freeKey = "";
@@ -184,12 +183,14 @@ async function phase2_human_account() {
       : fail(S, "get plans", plans.status, plans.ms);
   await delay(CALL_DELAY_MS);
 
-  // Upgrade/downgrade tier
+  // Self-serve tier upgrade is deny-by-default in production
+  // (AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=false, render.yaml) -- upgrades must go
+  // through POST /v1/checkout since the PAI'D cutover. A 200 here would mean
+  // the deny-by-default law regressed; expect the 402 checkout redirect.
   const upPaid = await go("POST", "/v1/account/tier", { tier: "paid" }, auth);
-  upPaid.status === 200 && (upPaid.data.account?.tier === "paid" || upPaid.data.tier === "paid")
-    ? pass(S, "upgrade to paid → 200", upPaid.status, upPaid.ms)
-    : fail(S, "upgrade to paid", upPaid.status, upPaid.ms, JSON.stringify(upPaid.data).slice(0, 80));
-  paidKey = humanKey; // now paid
+  upPaid.status === 402 && !!upPaid.data.checkout_endpoint
+    ? xref(S, "self-serve upgrade to paid blocked → 402 checkout redirect", upPaid.status, upPaid.ms)
+    : fail(S, "upgrade to paid should be deny-by-default (402 + checkout_endpoint)", upPaid.status, upPaid.ms, JSON.stringify(upPaid.data).slice(0, 80));
   await delay(CALL_DELAY_MS);
 
   const downFree = await go("POST", "/v1/account/tier", { tier: "free" }, auth);

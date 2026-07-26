@@ -316,6 +316,16 @@ Run through the entire funnel once as a stranger:
 2. `POST /v1/accounts` → key → MCP `tools/list` → one free tool call.
 3. Checkout a Starter plan with a real card in live mode, then refund it.
 4. Uptime monitor green; backup file from Step 4 exists and restores.
+5. Run the Day-Zero x402/human/AI rehearsal harness:
+   `node e2e_full_human_ai_x402.mjs` (defaults to production; override with
+   `AXIS_E2E_BASE=<url>` for a staging target). Covers 12 phases / ~93 checks —
+   account lifecycle, free-vs-paid program gating, x402 budget negotiation,
+   MCP JSON-RPC, agent-discovery endpoints, and basic security probes. Expect
+   `FAIL: 0` (refusals/`⛔` lines are intentional negative-path checks, not
+   failures). **Creates real accounts/keys against whatever `AXIS_E2E_BASE`
+   points at and can trigger real x402/PAI'D negotiation** — run against
+   staging first; a production run is a deliberate, real rehearsal, not a
+   side effect of following this checklist.
 
 ---
 
