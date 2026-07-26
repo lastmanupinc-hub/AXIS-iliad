@@ -1645,8 +1645,8 @@ function CliSection() {
           <div>&nbsp; <span style={{ color: "var(--accent)" }}>analyze:</span></div>
           <div>&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>runs-on:</span> ubuntu-latest</div>
           <div>&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>steps:</span></div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>uses:</span> actions/checkout@v4</div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>uses:</span> actions/setup-node@v4</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>uses:</span> actions/checkout@v5</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>uses:</span> actions/setup-node@v5</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>with:</span></div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>node-version:</span> 22</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>run:</span> |</div>
@@ -1655,7 +1655,7 @@ function CliSection() {
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --output ./axis-output</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>env:</span></div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>AXIS_API_KEY:</span> {"${{ secrets.AXIS_API_KEY }}"}</div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>uses:</span> actions/upload-artifact@v4</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - <span style={{ color: "var(--accent)" }}>uses:</span> actions/upload-artifact@v6</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>with:</span></div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>name:</span> axis-output</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style={{ color: "var(--accent)" }}>path:</span> ./axis-output</div>
