@@ -48,7 +48,16 @@ jobs:
           --health-retries 5
 
     steps:
+      # fetch-depth: 0 (full history) — not just for THIS job's own diffing (it
+      # does none), but because pnpm_filter can be a `--filter "...[ref]"`
+      # expression referencing a commit determine-affected already resolved.
+      # This job gets its own fresh checkout (job state doesn't carry over in
+      # Actions), so a shallow clone here would 404 on that same ref even
+      # though it resolved fine when determine-affected computed it — pnpm
+      # then fails hard (ERR_PNPM_FILTER_CHANGED: bad object), not silently.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
 
