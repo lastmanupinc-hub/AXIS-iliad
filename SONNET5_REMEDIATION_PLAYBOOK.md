@@ -68,9 +68,9 @@ Only the deltas below are new.
 | R1.4 | Public truth | DONE | `cc9b9a9` |
 | R1.5 | Public truth | DONE | `b7b714e` |
 | R1.6 | Public truth | DONE | `b3fbb17` |
-| R2.1 | Revive | pending | |
-| R2.2 | Revive | pending | |
-| R2.3 | Revive | pending | |
+| R2.1 | Revive | DONE | `734fa7d` |
+| R2.2 | Revive | DONE | `4f43a3e` |
+| R2.3 | Revive | DONE | `587210c` |
 | R2.4 | Revive | pending | |
 | R2.5 | Revive | pending | |
 | R2.6 | Revive | pending | |
