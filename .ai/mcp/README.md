@@ -12,13 +12,13 @@ This package README documents the MCP surface area, local setup, runtime compati
 
 - Git
 - A supported runtime (Node.js, Bun, or Deno)
-- Package manager: npm
+- Package manager: pnpm
 
 ### Install Dependencies
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 ## Quickstart
@@ -75,13 +75,13 @@ npx vitest run
 ## Implementation Notes
 
 - Primary language: TypeScript
-- Package manager(s): unknown
+- Package manager(s): pnpm
 - Detected frameworks: React@^19.1.0
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `mcp/README.md` — agent step 32 of 70.
+- **You are here:** `mcp/README.md` — agent step 32 of 71.
 - **Next:** `mcp/project-setup.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

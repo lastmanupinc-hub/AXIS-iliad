@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -39,6 +39,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - Getting started guide
 
 ### Content Needs
+- Quickstart showing core entry points: `apps/api/src/server.ts`, `apps/web/src/App.tsx`, `apps/web/src/main.tsx`
 - Architecture overview explaining design decisions
 - Comparison table vs alternatives
 
@@ -55,8 +56,6 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - Clear installation instructions
 - Minimum viable example that proves value in < 5 minutes
 - Known limitations documented honestly
-- Current known issues:
-  - No lockfile found — dependency versions may be inconsistent
 
 ### Metrics
 - First install to first successful run time
@@ -88,6 +87,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## 5. Advocacy
 
+**Goal**: Turn satisfied users into advocates and contributors.
 
 ### Triggers
 - User shares on social media
@@ -108,13 +108,12 @@ Map these to funnel stages — each is a potential conversion surface:
 - `apps/api/src/server.ts`
 - `apps/web/src/App.tsx`
 - `apps/web/src/main.tsx`
-- `packages/context-engine/src/index.ts`
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `funnel-map.md` — agent step 22 of 70.
+- **You are here:** `funnel-map.md` — agent step 22 of 71.
 - **Next:** `sequence-pack.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

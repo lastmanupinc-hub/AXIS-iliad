@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -23,7 +23,7 @@
       "name": "Build Project",
       "category": "build",
       "provider": "vite",
-      "command": "npm run build",
+      "command": "pnpm run build",
       "available": true
     },
     {
@@ -31,7 +31,7 @@
       "name": "Start Dev Server",
       "category": "build",
       "provider": "vite",
-      "command": "npm run dev",
+      "command": "pnpm run dev",
       "available": true
     },
     {
@@ -63,7 +63,7 @@
       "name": "Lint Code",
       "category": "analysis",
       "provider": "eslint",
-      "command": "npm run lint",
+      "command": "pnpm run lint",
       "available": false
     },
     {
@@ -71,15 +71,15 @@
       "name": "Format Code",
       "category": "analysis",
       "provider": "prettier",
-      "command": "npm run format",
+      "command": "pnpm run format",
       "available": false
     },
     {
       "id": "install",
       "name": "Install Dependencies",
       "category": "setup",
-      "provider": "npm",
-      "command": "npm install",
+      "provider": "pnpm",
+      "command": "pnpm install",
       "available": true
     },
     {
@@ -100,9 +100,20 @@
     }
   ],
   "source_scripts": [
-    "\"dev\": \"npx tsx watch src/server.ts\"",
-    "\"build\": \"tsc\"",
-    "\"start\": \"node dist/server.js\"",
-    "\"test\": \"echo skipped â€” run vitest from root\""
+    "dev: pnpm --filter @axis/api dev",
+    "build: pnpm -r build",
+    "test: npx vitest run",
+    "test:coverage: npx vitest run --coverage",
+    "test:ci-mirror: node scripts/test-ci-mirror.mjs",
+    "live-probe: node scripts/live-probe.mjs",
+    "bench: vitest bench",
+    "bench:compliance: vitest bench packages/generator-core/src/perf.bench.ts",
+    "lint: eslint .",
+    "generate-posts: node scripts/generate-posts.js",
+    "post-content: node scripts/post-content.js",
+    "test-webhook: node scripts/test-webhook-server.js",
+    "setup-posting: node scripts/setup-posting.js",
+    "regenerate: pwsh scripts/regenerate.ps1",
+    "regenerate:sh: bash scripts/regenerate.sh"
   ]
 }

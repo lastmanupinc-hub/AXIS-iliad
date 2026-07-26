@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "product": "Axis' Iliad",
+  "generated_for": "axis-iliad",
+  "generated_at": "1970-01-01",
+  "codec_package": "@axis/ap2",
+  "scope_caveat": "Scope: these samples are produced and verified by @axis/ap2's real encode/sign/verify codecs — conformant to AXIS's TypeScript encoding of the public AP2 mandate schema, and to TAP/UCP message shapes modeled from public documentation (neither protocol has a public wire schema to conform against). Verified only against self-authored, frozen golden-vector fixtures — NOT certified against an official AP2/TAP/UCP conformance suite, nor exercised against a live Visa/Mastercard network or counterparty.",
+  "determinism_note": "Samples below use a FIXED demo keypair + fixed IDs/timestamps — byte-identical across every run of this generator, independent of the analyzed repository. Real integrations MUST use generateEd25519() (or an equivalent real keypair) plus a real secret store, never this demo keypair.",
+  "repo_commerce_signals": {
+    "has_tap_protocol": true,
+    "has_network_tokenization": true,
+    "has_mandate_management": true
+  },
+  "public_key": "MCowBQYDK2VwAyEAlwlnemiDewSPFgpxCXanLx1bZFCDASsoHbuf3eHjCac=",
+  "ap2_mandates": {
+    "intent": {
+      "mandate": {
+        "kind": "intent",
+        "version": "ap2/1",
+        "id": "intent_axis_demo_001",
+        "user_id": "agent_demo_001",
+        "description": "Autonomous purchase of an AXIS analysis program",
+        "constraints": {
+          "max_amount": {
+            "currency": "USD",
+            "value": "5.00"
+          }
+        },
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "expires_at": "2026-01-08T00:00:00.000Z"
+      },
+      "jws": {
+        "protected": "eyJhbGciOiJFZERTQSJ9",
+        "signature": "Uc6neiD60408Q4hGks8yN0BCCIl8JGa1UbeRwhbf90aIaeeIaTkISV8_nvrqT-SBZ9KoC-EsqyghNeub-fSHCw"
+      },
+      "verified": true
+    },
+    "cart": {
+      "mandate": {
+        "kind": "cart",
+        "version": "ap2/1",
+        "id": "cart_axis_demo_001",
+        "intent_ref": "intent_axis_demo_001",
+        "merchant_id": "AXIS_ILIAD",
+        "items": [
+          {
+            "sku": "program-agentic-purchasing",
+            "name": "AXIS agentic-purchasing program",
+            "quantity": 1,
+            "unit_price": {
+              "currency": "USD",
+              "value": "0.50"
+            }
+          }
+        ],
+        "total": {
+          "currency": "USD",
+          "value": "0.50"
+        },
+        "created_at": "2026-01-01T00:01:00.000Z"
+      },
+      "jws": {
+        "protected": "eyJhbGciOiJFZERTQSJ9",
+        "signature": "1xvPMSTZ8YVDGtuhXzQJS4w5i3crvm_kv1ea2GF5zQZTKAm9vicF0WEf11LnOT80KuyI9UMmNk6GQlgTM7q-BA"
+      },
+      "verified": true
+    },
+    "payment": {
+      "mandate": {
+        "kind": "payment",
+        "version": "ap2/1",
+        "id": "payment_axis_demo_001",
+        "cart_ref": "cart_axis_demo_001",
+        "method": {
+          "type": "token",
+          "token_ref": "tok_axis_demo_001"
+        },
+        "amount": {
+          "currency": "USD",
+          "value": "0.50"
+        },
+        "created_at": "2026-01-01T00:02:00.000Z"
+      },
+      "jws": {
+        "protected": "eyJhbGciOiJFZERTQSJ9",
+        "signature": "Lfr9NKl6Lgvws-5BTiO1erm3I1npc5-5IAQUhwXvhR3ve5hNCQOgHRRHgKBTlgwaNeEkCNjB9XTgN6DukBPpDw"
+      },
+      "verified": true
+    }
+  },
+  "tap_token": {
+    "message": {
+      "kind": "tap.token",
+      "version": "tap/1",
+      "token_id": "token_axis_demo_001",
+      "event": "provision",
+      "token_requestor_id": "trid_axis_demo_001",
+      "dpan_last4": "4242",
+      "mandate_ref": "cart_axis_demo_001",
+      "occurred_at": "2026-01-01T00:03:00.000Z"
+    },
+    "jws": {
+      "protected": "eyJhbGciOiJFZERTQSJ9",
+      "signature": "W-Et6eo7zXIHTi2PYTYwi6U82PHyLxVdh8KIczebrU45cjbPgdUMzRDe0LqMLcY_Ny6kACcj13DygN_4X7MTAg"
+    },
+    "verified": true
+  },
+  "ucp_settlement": {
+    "message": {
+      "kind": "ucp.settlement",
+      "version": "ucp/1",
+      "settlement_id": "settlement_axis_demo_001",
+      "payment_ref": "payment_axis_demo_001",
+      "clearing_system": "VISA_NET",
+      "amount": {
+        "currency": "USD",
+        "value": "0.50"
+      },
+      "value_date": "2026-01-02",
+      "settlement_finality": "final"
+    },
+    "jws": {
+      "protected": "eyJhbGciOiJFZERTQSJ9",
+      "signature": "ME1w0jm4uzZZF_DlZaCaMRhF1NYnYclbTbAMwKzGWW2Ek9hlUzFkJ2M-hll7NhvaHIU33obvDzFWAOBb3HLRDg"
+    },
+    "verified": true
+  }
+}

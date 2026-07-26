@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 115,124 |
-| Average LOC / file | 230 |
-| Estimated token count | ~518,058 |
+| Total LOC | 108,805 |
+| Average LOC / file | 218 |
+| Estimated token count | ~489,623 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -21,16 +21,22 @@ Include these files first when constructing prompts — they carry the most arch
 
 | File | Inbound | Outbound | Risk |
 |------|---------|----------|------|
-| `apps/api/src/router.ts` | 96 | 4 | 1.0 |
-| `apps/api/src/test-helpers.ts` | 41 | 1 | 1.0 |
-| `apps/api/src/billing.ts` | 28 | 3 | 1.0 |
-| `apps/api/src/handlers.ts` | 23 | 14 | 1.0 |
-| `apps/api/src/rate-limiter.ts` | 36 | 2 | 1.0 |
-| `apps/api/src/logger.ts` | 25 | 0 | 1.0 |
-| `apps/api/src/server.ts` | 1 | 35 | 1.0 |
-| `apps/web/src/App.tsx` | 1 | 24 | 1.0 |
-| `packages/generator-core/src/generate.ts` | 30 | 6 | 1.0 |
-| `apps/api/src/mcp-tool-impls.ts` | 0 | 24 | 1.0 |
+| `apps/api/src/router.ts` | 113 | 4 | 1.0 |
+| `apps/api/src/test-helpers.ts` | 54 | 1 | 1.0 |
+| `apps/api/src/billing.ts` | 44 | 3 | 1.0 |
+| `apps/api/src/handlers.ts` | 36 | 21 | 1.0 |
+| `apps/api/src/rate-limiter.ts` | 46 | 2 | 1.0 |
+| `apps/api/src/mcp-tool-impls.ts` | 18 | 27 | 1.0 |
+| `apps/api/src/mpp.ts` | 19 | 1 | 1.0 |
+| `apps/api/src/logger.ts` | 34 | 0 | 1.0 |
+| `apps/api/src/mcp-server.ts` | 17 | 15 | 1.0 |
+| `apps/api/src/server.ts` | 2 | 35 | 1.0 |
+
+### Entry Points
+
+- `apps/api/src/server.ts`
+- `apps/web/src/App.tsx`
+- `apps/web/src/main.tsx`
 
 ## Low-Value Files (Exclude from Prompts)
 
@@ -51,16 +57,17 @@ Detected stack: `React`. Anchor every prompt in the real files below so generate
 
 ### Always-include configuration (constrains generated code)
 
-- `.github/actions/compliance-check/action.yml`
-- `.github/actions/context-freshness/README.md`
-- `.github/actions/context-freshness/action.yml`
-- `.github/app-manifest.json`
-- `.github/workflows/ci.yml`
-- `.github/workflows/compliance-check.yml`
-- `.github/workflows/context-freshness.yml`
-- `.github/workflows/release.yml`
 - `.gitignore`
 - `.prettierrc.json`
+- `.tmp-vitest.json`
+- `docker-compose.yml`
+- `package.json`
+- `tsconfig.base.json`
+- `vitest.config.ts`
+- `.github/app-manifest.json`
+- `.github/dependabot.yml`
+- `mcp/tsconfig.package.template.json`
+- *… 31 more (see context-map.json)*
 
 ### React Projects
 
@@ -75,6 +82,7 @@ Include these as system-level constraints when generating code:
 - TypeScript strict mode
 - Linter configured
 - Formatter configured
+- pnpm workspaces
 - Makefile build
 
 ## Architecture Patterns
@@ -84,13 +92,17 @@ Reference these patterns in prompts for architectural consistency:
 - monorepo
 - containerized
 
-## Optimization Warnings
-
-- ⚠️ No lockfile found — dependency versions may be inconsistent
-
 ## Context Bloat (deterministic)
 
 > Static scan of the uploaded files — grep + a rule table, **no AI**. These low-signal files inflate prompt token cost; exclude them from context.
+
+**Excluding these 3 low-signal file(s) removes ~127,841 tokens (7% of the ~1,802,937 total) — safe to drop from prompts.**
+
+| File | ~Tokens | Reason |
+|------|---------|--------|
+| `ls-coverage.txt` | 63,970 | generated/build output |
+| `coverage-full.txt` | 63,866 | generated/build output |
+| `pnpm-lock.yaml` | 5 | dependency lockfile |
 
 ### Oversized source files (review — don't blindly exclude)
 
@@ -98,19 +110,22 @@ These are large but likely real source. Include them SELECTIVELY (only when rele
 
 | File | ~Tokens |
 |------|---------|
-| `packages/generator-core/src/generator-branches.test.ts` | 22,073 |
-| `apps/api/src/handlers.ts` | 17,213 |
-| `apps/api/src/mcp-tool-impls.ts` | 13,383 |
-| `apps/api/src/mcp-server.test.ts` | 11,898 |
-| `packages/generator-core/src/generators-artifacts.ts` | 9,774 |
-| `apps/api/src/openapi.ts` | 8,919 |
-| `apps/api/src/mcp-tools.ts` | 6,732 |
-| `coverage-full.txt` | 6,647 |
-| `ls-coverage.txt` | 6,543 |
-| `packages/generator-core/src/generators-closer.ts` | 6,444 |
-| `packages/generator-core/src/generate.test.ts` | 6,201 |
-| `apps/web/src/index.css` | 6,071 |
-| `packages/generator-core/src/generators-agentic-purchasing.ts` | 6,044 |
+| `vitest-output.txt` | 64,941 |
+| `vitest-full.txt` | 64,537 |
+| `apps/api/src/handlers.ts` | 62,866 |
+| `apps/api/src/mcp-tool-impls.ts` | 49,217 |
+| `vitest_requested_output.txt` | 37,942 |
+| `apps/api/src/mcp-server.test.ts` | 35,354 |
+| `apps/api/src/mcp-tools.ts` | 32,528 |
+| `apps/api/src/openapi.ts` | 25,619 |
+| `repo_snapshot.yaml` | 20,627 |
+| `.tmp-vitest.json` | 17,490 |
+| `apps/web/src/api.test.ts` | 16,652 |
+| `apps/web/src/api.ts` | 16,244 |
+| `docs/archive/static_analysis_phase.yaml` | 16,005 |
+| `docs/agentic-asset/WORK_ORDERS.yaml` | 14,566 |
+| `apps/web/src/app-routing.test.tsx` | 13,819 |
+| *… 37 more* | |
 
 ## Configuration Files (Include in Prompts)
 
@@ -126,93 +141,107 @@ These are large but likely real source. Include them SELECTIVELY (only when rele
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-    "@axis/paid-client": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-    "@axis/snapshots": "workspace:*",
-    "@jmondi/oauth2-server": "^4.2.2",
-    "dockerode": "^4.0.12",
-... (17 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+    "llm-context",
+    "visa-compliance",
+    "x402",
+    "ap2",
+    "agentic-commerce"
+... (48 more lines)
 ```
 
-### `apps/api/tsconfig.json`
+### `tsconfig.base.json`
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }
 
 ```
 
-### `apps/cli/package.json`
+### `vitest.config.ts`
 
-```json
-{
-  "name": "@axis/cli",
-  "version": "0.5.3",
-  "private": true,
-  "type": "module",
-  "bin": {
-    "axis": "./bin/axis.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/cli.js"
-  },
-  "dependencies": {
-    "@axis/snapshots": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*"
-  },
-  "devDependencies": {
-    "typescript": "^5.7.0"
-... (3 more lines)
+```typescript
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.{ts,tsx}"],
+    setupFiles: ["./vitest.setup.ts"],
+    environment: "node",
+    pool: "threads",
+    // The Postgres-backed suite (Phase 6 of the Neon migration) shares one test
+    // database, so test files must not run concurrently (they truncate tables
+    // between tests). Within a file, tests already run sequentially.
+    fileParallelism: false,
+    maxWorkers: process.env.CI ? 4 : undefined,
+    hookTimeout: 300_000,
+    environmentOptions: {
+      happyDom: {},
+    },
+    coverage: {
+      provider: "v8",
+      include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts"],
+... (19 more lines)
 ```
 
 ## File Tree
 
 ```
-.github/actions/compliance-check/action.yml (12.3 KB)
+.github/actions/compliance-check/action.yml (13.0 KB)
 .github/actions/context-freshness/README.md (5.3 KB)
 .github/actions/context-freshness/action.yml (6.0 KB)
-.github/app-manifest.json (0.9 KB)
-.github/workflows/ci.yml (8.5 KB)
-.github/workflows/compliance-check.yml (0.7 KB)
+.github/app-manifest.json (1.0 KB)
+.github/dependabot.yml (1.6 KB)
+.github/workflows/ci.yml (11.0 KB)
+.github/workflows/compliance-check.yml (1.7 KB)
 .github/workflows/context-freshness.yml (0.9 KB)
-.github/workflows/release.yml (0.6 KB)
-.gitignore (0.6 KB)
+.github/workflows/release.yml (1.9 KB)
+.github/workflows/synthetic.yml (3.6 KB)
+.gitignore (1.2 KB)
 .prettierrc.json (0.1 KB)
 .tmp-vitest.json (68.7 KB)
-ACTIVATION_TRACKER.md (7.6 KB)
+ACTIVATION_TRACKER.md (7.9 KB)
 AGENTS.md (7.0 KB)
 AXIS_Board_Pitch.md (30.7 KB)
-AXIS_DEMO_REPORT.md (12.3 KB)
+AXIS_DEMO_REPORT.md (12.4 KB)
 CHANGELOG.md (7.8 KB)
-CLAUDE.md (7.0 KB)
+CLAUDE.md (7.9 KB)
+CODE_TO_DOCS_BUILD_STRATEGY.md (11.1 KB)
+COMPLIANCE_KIT_BUILD_SPEC.md (10.9 KB)
 CONTRIBUTING.md (6.4 KB)
 DEPLOY_OFF_ACTIONS_RUNBOOK.md (10.6 KB)
 DISTRIBUTABLE.md (0.6 KB)
@@ -220,22 +249,18 @@ Dockerfile (0.9 KB)
 E5_LIVING_ARCHITECTURE_DESIGN.md (4.7 KB)
 E9_COMMERCE_INTEGRATION_DESIGN.md (4.0 KB)
 ENV_ROUTING_MAP.md (10.5 KB)
-FRONTEND_DEEP_DIVE.md (19.1 KB)
 HARDENING_AUDIT.md (8.8 KB)
 ILIAD_PRODUCT_READINESS_SCORECARD.yaml (13.9 KB)
-LAUNCH_CLAIMS.yaml (4.2 KB)
-LAUNCH_RUNBOOK.md (14.9 KB)
+LAUNCH_CLAIMS.yaml (4.6 KB)
+LAUNCH_RUNBOOK.md (17.7 KB)
 Makefile (0.4 KB)
 NEON_MIGRATION_PLAN.md (8.8 KB)
-PRIVACY_POLICY.md (9.4 KB)
-ProgramPipeline.js (11.3 KB)
-README.md (17.4 KB)
+PRIVACY_POLICY.md (9.8 KB)
+README.md (19.2 KB)
 ROUTING_GO_LIVE_RUNBOOK.md (5.1 KB)
-SECURITY.md (2.2 KB)
-SESSION_COOKIE_CUTOVER.md (2.4 KB)
-SETUP_PAID_STRIPE_MCP.md (12.9 KB)
+SECURITY.md (2.3 KB)
+SETUP_PAID_STRIPE_MCP.md (13.6 KB)
 SHARED_PAID_CLIENT_PLAN.md (3.6 KB)
-STRIPE_CHANGES_REQUIRED.md (9.5 KB)
 ... and 460 more files (see context-map.json for the full tree)
 ```
 
@@ -254,7 +279,10 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
@@ -263,13 +291,10 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getUsageByDay,
   getApiCallSummary,
-  recordUsage,
-  isProgramEnabled,
   trackEvent,
-  saveGitHubToken,
-  getGitHubTokens,
-... (831 more lines)
+... (1032 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -291,6 +316,7 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
@@ -299,8 +325,7 @@ interface Route {
 export class Router {
   private routes: Route[] = [];
 
-  post(path: string, handler: RouteHandler) {
-... (466 more lines)
+... (542 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -339,6 +364,6 @@ export async function startTestServer(router: Router): Promise<TestServer> {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `optimization-rules.md` — agent step 12 of 70.
+- **You are here:** `optimization-rules.md` — agent step 12 of 71.
 - **Next:** `prompt-diff-report.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

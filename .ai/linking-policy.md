@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -49,14 +49,15 @@ Map high-importance code files to vault notes for traceability:
 
 | Code File | Risk | Vault Note |
 |-----------|------|-----------|
-| `apps/api/src/router.ts` | 1.0 | `[[Code/apps-api-src-router]]` |
-| `apps/api/src/test-helpers.ts` | 1.0 | `[[Code/apps-api-src-test-helpers]]` |
-| `apps/api/src/billing.ts` | 1.0 | `[[Code/apps-api-src-billing]]` |
-| `apps/api/src/handlers.ts` | 1.0 | `[[Code/apps-api-src-handlers]]` |
-| `apps/api/src/rate-limiter.ts` | 1.0 | `[[Code/apps-api-src-rate-limiter]]` |
-| `apps/api/src/logger.ts` | 1.0 | `[[Code/apps-api-src-logger]]` |
-| `apps/api/src/server.ts` | 1.0 | `[[Code/apps-api-src-server]]` |
-| `apps/web/src/App.tsx` | 1.0 | `[[Code/apps-web-src-App]]` |
+| `apps/api/src/router.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-router-ts]]` |
+| `apps/api/src/test-helpers.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-test-helpers-ts]]` |
+| `apps/api/src/billing.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-billing-ts]]` |
+| `apps/api/src/handlers.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-handlers-ts]]` |
+| `apps/api/src/rate-limiter.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-rate-limiter-ts]]` |
+| `apps/api/src/mcp-tool-impls.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-mcp-tool-impls-ts]]` |
+| `apps/api/src/mpp.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-mpp-ts]]` |
+| `apps/api/src/logger.ts` | 1.0 | `[[Projects/axis-iliad/Code/apps-api-src-logger-ts]]` |
+| … | | +12 more |
 
 ## Anti-Patterns
 
@@ -82,16 +83,15 @@ Track these metrics to ensure vault health:
 
 ## Source Entry Points as Hub Note Candidates
 
-- `apps/api/src/server.ts` → exports: export const app = ...
+- `apps/api/src/server.ts` → exports: export const router = ..., export const app = ...
 - `apps/web/src/App.tsx` → exports: export function App() { ... }
 - `apps/web/src/main.tsx` → exports: default
-- `packages/context-engine/src/index.ts` → exports: export type { ... }, export { ... }
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `linking-policy.md` — agent step 30 of 70.
+- **You are here:** `linking-policy.md` — agent step 30 of 71.
 - **Next:** `protocol-spec.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

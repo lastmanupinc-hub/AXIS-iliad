@@ -9,15 +9,15 @@ Establish a reproducible local setup for developing and validating this MCP serv
 - Git
 - Node.js 20+
 - One runtime adapter (Node.js, Bun, or Deno)
-- Preferred package manager: npm
+- Preferred package manager: pnpm
 
 ## Bootstrap
 
 ```bash
 git clone <repo-url>
 cd axis-iliad
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 ## Local Verification
@@ -45,6 +45,6 @@ curl http://localhost:4000/.well-known/mcp.json
 
 ## ⟳ Continue the loop
 
-- **You are here:** `mcp/project-setup.md` — agent step 33 of 70.
+- **You are here:** `mcp/project-setup.md` — agent step 33 of 71.
 - **Next:** `mcp/build-artifacts.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

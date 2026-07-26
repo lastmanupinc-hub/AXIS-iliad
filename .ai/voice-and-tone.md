@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -79,20 +79,20 @@ Before publishing any user-facing text:
 
 ## Documentation Tone Samples
 
-Found 78 documentation files to audit for tone consistency.
+Found 115 documentation files to audit for tone consistency.
 
-- `.github/actions/context-freshness/README.md`
 - `ACTIVATION_TRACKER.md`
 - `AGENTS.md`
 - `AXIS_Board_Pitch.md`
 - `AXIS_DEMO_REPORT.md`
 - `CHANGELOG.md`
+- `CLAUDE.md`
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `voice-and-tone.md` — agent step 16 of 70.
+- **You are here:** `voice-and-tone.md` — agent step 16 of 71.
 - **Next:** `content-constraints.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

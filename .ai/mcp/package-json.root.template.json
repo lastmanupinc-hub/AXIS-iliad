@@ -3,15 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "packageManager": "npm@10",
+  "packageManager": "pnpm@9",
   "scripts": {
-    "build": "npm run --workspaces --if-present build",
-    "dev": "npm run dev --workspaces --if-present",
-    "test": "npm run --workspaces --if-present test",
-    "lint": "npm run --workspaces --if-present lint",
-    "typecheck": "npm run --workspaces --if-present typecheck",
-    "format": "npm run --workspaces --if-present format",
-    "clean": "npm run --workspaces --if-present clean"
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter \"./apps/*\" --parallel dev",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "pnpm -r format",
+    "clean": "pnpm -r clean"
   },
   "engines": {
     "node": ">=20"

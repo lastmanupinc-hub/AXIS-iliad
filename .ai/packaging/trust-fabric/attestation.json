@@ -2,26 +2,26 @@
   "schema_version": "1.0",
   "certlib_profile": "certlib-offline-v1",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "snapshot_id": "cli-dc287bfb6acf261b63d4f30ec497f13b",
-  "project_id": "cli-a45515042b8b8ca8795f2aba22574e2c",
+  "snapshot_id": "cli-c9f0956084ce3ab72831a44197522fbc",
+  "project_id": "cli-6bbe3da2aecbb153268b44260843bcae",
   "product_name": "axis-iliad",
   "package_root": "./",
   "attests": "Build & configuration artifacts that ship byte-for-byte (Dockerfile, docker-compose, CI/release workflows, LICENSE, Makefile, package manifests). Markdown docs are excluded — the autonomy loop appends a footer to each after generation, so their shipped bytes are not knowable here.",
-  "merkle_root": "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18",
+  "merkle_root": "b664b43d48c75b224ee351252e618dc8ce8b9ce675c4aaf3d4f3519f03a8dc14",
   "signature": {
     "algorithm": "sha256-pseudo-signature",
     "signer": "axis-closer",
-    "value": "716d7e6b68d828093ed5c36106efa79ffea30265c44009b1c52bc7d55b758618"
+    "value": "039650e5f02e0023501ddb5d7a0ff0ede982d70d8b1b2770e070ff723458dbc9"
   },
   "leaf_count": 9,
   "leaves": [
     {
       "path": "packaging/LICENSE",
-      "digest": "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e"
+      "digest": "25d4403f7978cae095a407fafa83ef7795363b75a288543652d400fca70d67c3"
     },
     {
       "path": "Dockerfile",
-      "digest": "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0"
+      "digest": "091f4be6ebf51726e53b4359f975415c1086978b69d1fe77cd187c3d69c2720a"
     },
     {
       "path": "docker-compose.yml",
@@ -29,11 +29,11 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "digest": "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2"
+      "digest": "9a6b9e01e23a0218355599adf10b96e391abcce305b39df0231df0547d446def"
     },
     {
       "path": ".github/workflows/release.yml",
-      "digest": "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad"
+      "digest": "ea068a855210af40dda60cb68ba3fa8f3618ff97c9d77b928b64798f5322cc3f"
     },
     {
       "path": "packaging/manifests/npm-package.json",
@@ -49,7 +49,7 @@
     },
     {
       "path": "Makefile",
-      "digest": "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
+      "digest": "b0b5cc318586eb325895b524c8e58dc71167b4698cbc3cf98b3c78567d5bb399"
     }
   ]
 }

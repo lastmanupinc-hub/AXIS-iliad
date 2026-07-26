@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -54,18 +54,18 @@ export function MyComponent({ title, children }: MyComponentProps) {
 ## Detected Components
 
 - **`apps/web/src/App.tsx`**: `export function App() { ... }`
-- **`apps/web/src/components/AuthButtons.tsx`**: `export function AuthButtons({ ... }`
-- **`apps/web/src/components/AxisIcons.tsx`**: `export function Icon({ ... }`
-- **`apps/web/src/components/CommandPalette.tsx`**: `export interface PaletteAction { ... }`, `export function CommandPalette({ ... }`
-- **`apps/web/src/components/FilesTab.tsx`**: `export function FilesTab({ ... }`
-- **`apps/web/src/components/GeneratedTab.tsx`**: `export function GeneratedTab({ ... }`
-- **`apps/web/src/components/GraphTab.tsx`**: `export function GraphTab({ ... }`
-- **`apps/web/src/components/Icon.tsx`**: `export function Icon({ ... }`
-- **`apps/web/src/components/OverviewTab.tsx`**: `export function OverviewTab({ ... }`
-- **`apps/web/src/components/ProgramLauncher.tsx`**: `export function ProgramLauncher({ ... }`
-- **`apps/web/src/components/SearchTab.tsx`**: `export function SearchTab({ ... }`
-- **`apps/web/src/components/SignUpModal.tsx`**: `export function SignUpModal({ ... }`
-- *... and 23 more*
+- `apps/web/src/app-routing.test.tsx`
+- `apps/web/src/heading-structure.test.tsx`
+- `apps/web/src/main.tsx`
+- `apps/web/src/pages.test.tsx`
+- `apps/web/src/routes.test.tsx`
+- **`apps/web/src/routes.tsx`**: `export type PageId = ...`, `export type RouteParams = ...`, `export interface NavContext { ... }`
+- `apps/web/src/theme-toggle.test.tsx`
+- `apps/web/src/useFocusRetention.test.tsx`
+- `apps/web/src/useTabList.test.tsx`
+- `apps/web/src/components/ArtifactExplorer.test.tsx`
+- **`apps/web/src/components/ArtifactExplorer.tsx`**: `export function ArtifactExplorer({ ... }`
+- *... and 14 more*
 
 ## Reference Component (from your codebase)
 
@@ -102,7 +102,7 @@ const PATHS: Record<string, ReactNode> = {
   sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
   menu: <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>,
   x: <><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></>,
-... (23 more lines)
+... (33 more lines)
 ```
 
 ---
@@ -113,6 +113,6 @@ const PATHS: Record<string, ReactNode> = {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `component-guidelines.md` — agent step 8 of 70.
+- **You are here:** `component-guidelines.md` — agent step 8 of 71.
 - **Next:** `seo-rules.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

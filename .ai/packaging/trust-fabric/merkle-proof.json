@@ -1,48 +1,48 @@
 {
   "schema_version": "1.0",
-  "merkle_root": "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18",
+  "merkle_root": "b664b43d48c75b224ee351252e618dc8ce8b9ce675c4aaf3d4f3519f03a8dc14",
   "levels": [
     [
-      "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e",
-      "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0",
+      "25d4403f7978cae095a407fafa83ef7795363b75a288543652d400fca70d67c3",
+      "091f4be6ebf51726e53b4359f975415c1086978b69d1fe77cd187c3d69c2720a",
       "a5ab2b574fbbcc845917547f5fcfc58702e285e72cb23178d338cb45910b6c7c",
-      "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2",
-      "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad",
+      "9a6b9e01e23a0218355599adf10b96e391abcce305b39df0231df0547d446def",
+      "ea068a855210af40dda60cb68ba3fa8f3618ff97c9d77b928b64798f5322cc3f",
       "e5cbee85c965b5717bbea83a195e9cb92c59d11566e087024a8f6b4645ffb4c0",
       "c2df0ed39e2f94c2ab6d932c413153fc5b99a8a584f7d9355a349004eeb352fd",
       "328ea322352f1e320d238afb577140d54e895efc3969aee722bfac28e12ec9a6",
-      "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
+      "b0b5cc318586eb325895b524c8e58dc71167b4698cbc3cf98b3c78567d5bb399"
     ],
     [
-      "9f4f7d6599115cd6d987c360d8070bd011a6f8d075ce872a70af3101a1590137",
-      "4cd8a4c4daa1736e7a2644964ed4bfd3bf9b70aa62551e7f52b2823423368fd1",
-      "ae3f1874665f37517d61158aac82c12e3bed2fbb2c47309c518ae1b98a925839",
+      "18972b0ebcfd2d6f3c2353c33c90a341720b9c70b6f28e7643b0dc07a346df0f",
+      "3d0624455ec9f627cca532a3a126e7936b087bb0bc9336774a0555ca556c61e1",
+      "f5f3a560d0377108e0381b5f344dd2c588fa2c76cf3cc8def8d1f39a9cd3c1f1",
       "0da395d912e2b6b8a666aaccc110ccc2582b58f278a30b321a80b8726508722d",
-      "ed5bb941af16da52c48fe372d826da4b4b301194778c81c4171a5b74e6c92f21"
+      "87db75b18a1319a7b0f1502dcd6fba5b00f96875d65df4400cee6641d079697f"
     ],
     [
-      "2234b30e3db587cd42ab7a990b056332640d1e17071bf5de4cf8dd13301b7860",
-      "ce834066aa1b7058b3ce17c3496749a18a362b47b625a10f1eb9702309f2e554",
-      "844d25f301a5016b770f0bd1ed7f67053949570ef92703db0b776431a287e648"
+      "40c98353819d45c962925690ec6f59eee4b88db7a8dd1ed967a59d267dd26a8c",
+      "2fe9d84a6e42f412159aebc288c2ae04c054358f817f485887698066981d4fe1",
+      "7163c105cd45b31e49a895a975b5924a557257b82aa634aa7cfd53b8f9539ea4"
     ],
     [
-      "fa1d4e4c6fb30e60344bd19897351122404e6ac48c123122200619c6ab75b350",
-      "16b078b4bbc84b220d9f523c76b8afaa4570e188768061363980c975b137a4ea"
+      "0bcb3c4b04aed5f3172b8ecbc4663c7c9dc175cba8f33d2e007d40677fa67d00",
+      "e226637031f9172cef6fd4645dbc249ac1336bd2ea4cc493502dfb04d4bbedc4"
     ],
     [
-      "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18"
+      "b664b43d48c75b224ee351252e618dc8ce8b9ce675c4aaf3d4f3519f03a8dc14"
     ]
   ],
   "leaf_index": [
     {
       "index": 0,
       "path": "packaging/LICENSE",
-      "digest": "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e"
+      "digest": "25d4403f7978cae095a407fafa83ef7795363b75a288543652d400fca70d67c3"
     },
     {
       "index": 1,
       "path": "Dockerfile",
-      "digest": "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0"
+      "digest": "091f4be6ebf51726e53b4359f975415c1086978b69d1fe77cd187c3d69c2720a"
     },
     {
       "index": 2,
@@ -52,12 +52,12 @@
     {
       "index": 3,
       "path": ".github/workflows/ci.yml",
-      "digest": "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2"
+      "digest": "9a6b9e01e23a0218355599adf10b96e391abcce305b39df0231df0547d446def"
     },
     {
       "index": 4,
       "path": ".github/workflows/release.yml",
-      "digest": "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad"
+      "digest": "ea068a855210af40dda60cb68ba3fa8f3618ff97c9d77b928b64798f5322cc3f"
     },
     {
       "index": 5,
@@ -77,14 +77,14 @@
     {
       "index": 8,
       "path": "Makefile",
-      "digest": "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
+      "digest": "b0b5cc318586eb325895b524c8e58dc71167b4698cbc3cf98b3c78567d5bb399"
     }
   ],
   "verification": {
     "algorithm": "sha256",
     "certlib_profile": "certlib-offline-v1",
     "leaf_formula": "sha256(path + \"\\n\" + file_bytes)",
-    "recompute_leaf": "{ printf '%s\\n' <path>; cat <path>; } | sha256sum",
+    "recompute_leaf": "{ printf '%s\\n' <path>; tr -d '\\r' < <path>; } | sha256sum   # tr strips CR so the digest is line-ending-independent (matches the generator)",
     "note": "Recompute each leaf digest from its file, rebuild the tree pairwise (sha256 of concatenated child digests, last node duplicated when odd), and compare the root to .merkle_root in attestation.json."
   }
 }

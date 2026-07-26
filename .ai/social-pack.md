@@ -4,7 +4,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -40,11 +40,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Stat | Value |
 |------|-------|
-| TypeScript | 80% |
-| YAML | 9.5% |
-| Markdown | 5.6% |
+| TypeScript | 72% |
+| YAML | 12.6% |
+| Markdown | 8.8% |
 | Frameworks | 1 |
-| Architecture Score | 65/100 |
+| Architecture Score | 64/100 |
 
 ## Twitter/X Card
 
@@ -53,7 +53,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 🧵 1/ Just analyzed axis-iliad with @AxisIliad
 
 📊 2/ Tech stack: React
-Architecture score: 65/100
+Architecture score: 64/100
 
 🔍 3/ Found 0 entry points and 20 hotspots
 
@@ -68,13 +68,13 @@ I ran axis-iliad through Axis' Iliad and here's what it found:
 • Type: monorepo
 • Primary Language: TypeScript
 • Frameworks: React
-• Architecture Score: 65/100
+• Architecture Score: 64/100
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `social-pack.md` — agent step 46 of 70.
+- **You are here:** `social-pack.md` — agent step 46 of 71.
 - **Next:** `poster-layouts.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

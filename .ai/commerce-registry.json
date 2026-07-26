@@ -10,7 +10,6 @@
       "adyen",
       "affirm",
       "afterpay",
-      "amazon_pay",
       "apple_pay",
       "braintree",
       "google_pay",
@@ -27,7 +26,7 @@
     "has_tap_protocol": true,
     "has_network_tokenization": true,
     "has_mandate_management": true,
-    "total_payment_files": 116
+    "total_payment_files": 171
   },
   "ap2_compliance_assessment": {
     "methodology": "Keyword-signal scan of repository files — a checklist starting point, not a certification, audit, or legal/compliance advice.",
@@ -43,15 +42,13 @@
     },
     "dispute_readiness": {
       "has_dispute_code": true,
-      "pre_dispute_mechanism": "CDRN-capable",
+      "pre_dispute_mechanism": "webhook-event-source-present",
       "rapid_dispute_resolution": "requires-enrollment-verification",
       "evidence_automation": "automatable",
       "compelling_evidence_3": {
         "supported": true,
         "auto_assembly_ready": true,
         "target_reason_codes": [
-          "10.2",
-          "10.3",
           "10.4"
         ],
         "evidence_requirements": {
@@ -76,6 +73,181 @@
       "grade": "A"
     }
   },
+  "verified_decisions": {
+    "compliance": {
+      "grade": "B",
+      "checks_passed": 7,
+      "checks_total": 8,
+      "score": 84,
+      "checks": [
+        {
+          "name": "sca_readiness",
+          "title": "SCA / 3DS2 Readiness",
+          "status": "pass",
+          "weight": 18,
+          "score": 18,
+          "evidence": [
+            "PSD2",
+            "exemption"
+          ],
+          "remediation": "3DS2/PSD2 authentication with a working exemption/frictionless path detected — keep exemption thresholds current with your acquirer."
+        },
+        {
+          "name": "ap2_mandate_validity",
+          "title": "AP2 Mandate Validity",
+          "status": "pass",
+          "weight": 16,
+          "score": 16,
+          "evidence": [
+            "mandate_id",
+            "scope"
+          ],
+          "remediation": "Mandate has an identifier and a spend/time bound — keep enforcing max_amount/expiry on every mandate."
+        },
+        {
+          "name": "tokenization_posture",
+          "title": "Tokenization Posture",
+          "status": "fail",
+          "weight": 16,
+          "score": 0,
+          "evidence": [],
+          "remediation": "Raw PAN storage antipattern detected — remove raw card-number persistence and replace with network-tokenized (VTS/MDES/DPAN) references immediately."
+        },
+        {
+          "name": "ce3_readiness",
+          "title": "Compelling Evidence 3.0 Readiness",
+          "status": "pass",
+          "weight": 10,
+          "score": 10,
+          "evidence": [
+            "prior_transaction",
+            "device_id",
+            "AVS",
+            "ce3"
+          ],
+          "remediation": "CE 3.0 readiness signals present across 2+ dimensions — keep collecting prior-transaction and device/IP evidence for every order."
+        },
+        {
+          "name": "dispute_rail_wiring",
+          "title": "Dispute Rail Wiring",
+          "status": "pass",
+          "weight": 14,
+          "score": 14,
+          "evidence": [
+            "dispute",
+            "webhook",
+            "representment"
+          ],
+          "remediation": "Dispute rail fully wired (dispute detection + network rail + evidence submission) — keep SLA timers current with card-network deadlines."
+        },
+        {
+          "name": "idempotency_receipt",
+          "title": "Idempotency & Receipt Hygiene",
+          "status": "pass",
+          "weight": 12,
+          "score": 12,
+          "evidence": [
+            "Idempotency-Key",
+            "receipt"
+          ],
+          "remediation": "Idempotency-key usage and receipt/txn_id emission both detected — keep enforcing idempotency on every charge path."
+        },
+        {
+          "name": "budget_negotiation",
+          "title": "Budget Negotiation Conformance",
+          "status": "pass",
+          "weight": 6,
+          "score": 6,
+          "evidence": [
+            "X-Agent-Budget",
+            "lite"
+          ],
+          "remediation": "Budget header and lite/mode negotiation both detected — keep the reduced-price path in sync with pricing changes."
+        },
+        {
+          "name": "refund_cancel_path",
+          "title": "Refund / Cancel Path",
+          "status": "pass",
+          "weight": 8,
+          "score": 8,
+          "evidence": [
+            "refund",
+            "void"
+          ],
+          "remediation": "Refund/reversal and cancel/void paths both detected — keep both in sync with your mandate lifecycle."
+        }
+      ],
+      "methodology": "Deterministic static source-signal analysis of the submitted files — a checklist starting point, not a live compliance audit, PCI assessment, or card-network certification. This is NOT a certification. It cannot verify runtime behavior, real network-token enrollment, or cryptographically-signed mandates."
+    },
+    "sca_samples": [
+      {
+        "input": {
+          "amount_eur": 20
+        },
+        "decision": {
+          "exemption": "low_value",
+          "priority": 1,
+          "sca_required": false,
+          "rationale": "Transaction amount (€20) is at or below the €30 low-value exemption threshold (PSD2 RTS Art. 11); SCA not required.",
+          "fallback": "3ds2_challenge",
+          "candidates": [
+            "low_value"
+          ]
+        }
+      },
+      {
+        "input": {
+          "amount_eur": 400,
+          "tra_acquirer_fraud_bps": 1
+        },
+        "decision": {
+          "exemption": "transaction_risk_analysis",
+          "priority": 6,
+          "sca_required": false,
+          "rationale": "Acquirer transaction-risk analysis qualifies this €400 transaction under the €500 EBA RTS Art. 15 fraud-band cap; SCA not required.",
+          "fallback": "3ds2_challenge",
+          "candidates": [
+            "transaction_risk_analysis"
+          ],
+          "tra_cap_eur": 500
+        }
+      },
+      {
+        "input": {
+          "amount_eur": 1000
+        },
+        "decision": {
+          "exemption": "3ds2_challenge",
+          "priority": 8,
+          "sca_required": true,
+          "rationale": "No lighter SCA path applies to this transaction; a 3DS2 SCA challenge is required.",
+          "fallback": "3ds2_challenge",
+          "candidates": []
+        }
+      }
+    ],
+    "sca_matrix_digest": {
+      "algo": "sha256",
+      "digest": "1cc1423e37c296f12374037204d48360aba12427b55374392f9d5197ca44d0e0",
+      "over": [
+        "renderScaExemptionMatrix() markdown"
+      ]
+    },
+    "engines": {
+      "compliance": "@axis/generator-core gradeCompliance(files) — also exposed as the grade_compliance MCP tool",
+      "sca": "@axis/generator-core decideScaExemption(ctx) — also exposed as the sca_exemption_decision MCP tool",
+      "matrix": "@axis/generator-core renderScaExemptionMatrix() — single source for every SCA matrix table"
+    },
+    "proof": {
+      "algo": "sha256",
+      "digest": "dafc150987da4e497d29cad1c1c143f9b514d8dceab9cc3e92799b6b7256edb7",
+      "over": [
+        "repo_commerce_signals",
+        "compliance_grade",
+        "sca_samples"
+      ]
+    }
+  },
   "catalog": [
     {
       "id": "free-bundle",
@@ -85,11 +257,11 @@
         "skills",
         "debug"
       ],
-      "outputs": 15,
+      "outputs": 16,
       "tier": "free",
       "price_cents": 0,
       "price_interval": "per_call",
-      "description": "Context map, AGENTS.md, debug playbook, and 12 more artifacts — no purchase required",
+      "description": "Context map, AGENTS.md, debug playbook, and 13 more artifacts — no purchase required",
       "api_call": {
         "method": "tools/call",
         "tool": "analyze_repo",
@@ -121,11 +293,11 @@
         "closer",
         "deploy"
       ],
-      "outputs": 140,
+      "outputs": 142,
       "tier": "pro",
       "price_cents": 5000,
       "price_interval": "per_call",
-      "description": "All 140 structured artifacts across 20 programs — full AI-native governance layer",
+      "description": "All 142 structured artifacts across 20 programs — full AI-native governance layer",
       "api_call": {
         "method": "tools/call",
         "tool": "analyze_repo",
@@ -143,7 +315,7 @@
         "optimization",
         "superpowers"
       ],
-      "outputs": 31,
+      "outputs": 32,
       "tier": "pro",
       "price_cents": 2500,
       "price_interval": "per_call",

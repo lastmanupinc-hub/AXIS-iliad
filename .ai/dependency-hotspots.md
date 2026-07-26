@@ -4,7 +4,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -16,70 +16,70 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Severity | Count |
 |----------|-------|
-| High (>70%) | 13 |
-| Medium (40–70%) | 5 |
-| Low (≤40%) | 2 |
+| High (>70%) | 12 |
+| Medium (40–70%) | 8 |
+| Low (≤40%) | 0 |
 | **Total** | **20** |
 
 ## Hotspot Files
 
 | File | Risk | Inbound | Outbound | Total Connections |
 |------|------|---------|----------|-------------------|
-| `apps/api/src/router.ts` | 🔴 100% | 96 | 4 | 100 |
-| `apps/api/src/test-helpers.ts` | 🔴 100% | 41 | 1 | 42 |
-| `apps/api/src/billing.ts` | 🔴 100% | 28 | 3 | 31 |
-| `apps/api/src/handlers.ts` | 🔴 100% | 23 | 14 | 37 |
-| `apps/api/src/rate-limiter.ts` | 🔴 100% | 36 | 2 | 38 |
-| `apps/api/src/logger.ts` | 🔴 100% | 25 | 0 | 25 |
-| `apps/api/src/server.ts` | 🔴 100% | 1 | 35 | 36 |
-| `apps/web/src/App.tsx` | 🔴 100% | 1 | 24 | 25 |
-| `packages/generator-core/src/generate.ts` | 🔴 100% | 30 | 6 | 36 |
-| `apps/api/src/mcp-tool-impls.ts` | 🔴 100% | 0 | 24 | 24 |
-| `apps/api/src/mcp-server.ts` | 🔴 95% | 11 | 8 | 19 |
-| `apps/web/src/api.ts` | 🔴 95% | 19 | 0 | 19 |
-| `apps/web/src/pages.test.tsx` | 🔴 90% | 0 | 18 | 18 |
-| `apps/api/src/counts.ts` | 🟡 60% | 12 | 0 | 12 |
-| `apps/web/src/pages/DashboardPage.tsx` | 🟡 55% | 1 | 10 | 11 |
-| `apps/api/src/metrics.ts` | 🟡 50% | 9 | 1 | 10 |
+| `apps/api/src/router.ts` | 🔴 100% | 113 | 4 | 117 |
+| `apps/api/src/test-helpers.ts` | 🔴 100% | 54 | 1 | 55 |
+| `apps/api/src/billing.ts` | 🔴 100% | 44 | 3 | 47 |
+| `apps/api/src/handlers.ts` | 🔴 100% | 36 | 21 | 57 |
+| `apps/api/src/rate-limiter.ts` | 🔴 100% | 46 | 2 | 48 |
+| `apps/api/src/mcp-tool-impls.ts` | 🔴 100% | 18 | 27 | 45 |
+| `apps/api/src/mpp.ts` | 🔴 100% | 19 | 1 | 20 |
+| `apps/api/src/logger.ts` | 🔴 100% | 34 | 0 | 34 |
+| `apps/api/src/mcp-server.ts` | 🔴 100% | 17 | 15 | 32 |
+| `apps/api/src/server.ts` | 🔴 100% | 2 | 35 | 37 |
+| `apps/web/src/api.ts` | 🔴 90% | 17 | 1 | 18 |
+| `apps/api/src/counts.ts` | 🔴 80% | 16 | 0 | 16 |
+| `apps/api/src/mcp-runtime.ts` | 🟡 60% | 10 | 2 | 12 |
+| `apps/cli/src/cli.ts` | 🟡 60% | 6 | 6 | 12 |
+| `apps/api/src/mcp-tools.ts` | 🟡 55% | 10 | 1 | 11 |
+| `apps/api/src/metrics.ts` | 🟡 55% | 10 | 1 | 11 |
+| `apps/api/src/cashier.ts` | 🟡 50% | 7 | 3 | 10 |
+| `apps/api/src/stripe.ts` | 🟡 50% | 5 | 5 | 10 |
 | `apps/api/src/env.ts` | 🟡 50% | 10 | 0 | 10 |
-| `apps/api/src/export.ts` | 🟡 45% | 6 | 3 | 9 |
-| `apps/api/src/architecture-drift-webhook.ts` | 🟢 40% | 2 | 6 | 8 |
-| `apps/cli/src/scanner.ts` | 🟢 40% | 8 | 0 | 8 |
+| `apps/api/src/lite-caps.test.ts` | 🟡 50% | 0 | 10 | 10 |
 
 ## Coupling Analysis
 
 ### `apps/api/src/router.ts`
 
 - **Risk Score**: 100%
-- **Inbound**: 96 files depend on this
+- **Inbound**: 113 files depend on this
 - **Outbound**: 4 dependencies
 - **Refactor Priority**: HIGH — extract interface or split module
 
 ### `apps/api/src/test-helpers.ts`
 
 - **Risk Score**: 100%
-- **Inbound**: 41 files depend on this
+- **Inbound**: 54 files depend on this
 - **Outbound**: 1 dependencies
 - **Refactor Priority**: HIGH — extract interface or split module
 
 ### `apps/api/src/billing.ts`
 
 - **Risk Score**: 100%
-- **Inbound**: 28 files depend on this
+- **Inbound**: 44 files depend on this
 - **Outbound**: 3 dependencies
 - **Refactor Priority**: HIGH — extract interface or split module
 
 ### `apps/api/src/handlers.ts`
 
 - **Risk Score**: 100%
-- **Inbound**: 23 files depend on this
-- **Outbound**: 14 dependencies
+- **Inbound**: 36 files depend on this
+- **Outbound**: 21 dependencies
 - **Refactor Priority**: HIGH — extract interface or split module
 
 ### `apps/api/src/rate-limiter.ts`
 
 - **Risk Score**: 100%
-- **Inbound**: 36 files depend on this
+- **Inbound**: 46 files depend on this
 - **Outbound**: 2 dependencies
 - **Refactor Priority**: HIGH — extract interface or split module
 
@@ -87,21 +87,21 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Package | Version | Risk Factor |
 |---------|---------|-------------|
+| @axis/agentic-compliance | workspace:* | Internal workspace package |
+| @axis/ap2 | workspace:* | Internal workspace package |
 | @axis/context-engine | workspace:* | Internal workspace package |
 | @axis/generator-core | workspace:* | Internal workspace package |
 | @axis/mpp | workspace:* | Internal workspace package |
 | @axis/paid-client | workspace:* | Internal workspace package |
 | @axis/repo-parser | workspace:* | Internal workspace package |
 | @axis/snapshots | workspace:* | Internal workspace package |
-| @jmondi/oauth2-server | ^4.2.2 | Stable |
-| dockerode | ^4.0.12 | Stable |
+| dockerode | ^5.0.1 | Stable |
 | ffmpeg-static | ^5.3.0 | Stable |
 | jsonwebtoken | ^9.0.3 | Stable |
 | mammoth | ^1.12.0 | Stable |
 | mppx | ^0.5.12 | Pre-1.0 — unstable API |
 | node-llama-cpp | ^3.18.1 | Stable |
 | pdfjs-dist | ^4.10.38 | Stable |
-| tesseract.js | ^7.0.0 | Stable |
 
 ## Recommendations
 
@@ -121,15 +121,16 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - `export function constantTimeEqual(a: string, b: string): boolean { ... }`
 - `export async function handleCreateAccount(`
 - `export async function handleGetAccount(`
+- `export async function handlePatchAccount(`
+- `export async function handleDeleteAccount(`
 - `export async function handleCreateApiKey(`
 - `export async function handleListApiKeys(`
 - `export async function handleRevokeApiKey(`
-- `export async function handleGetUsage(`
-- `export async function handleGetAnalyticsSummary(`
 
 ### `apps/api/src/handlers.ts`
 
 - `export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }`
+- `export async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolea`
 - `export const PROGRAM_OUTPUTS: Record<string, string[]> = ...`
 - `export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }`
 - `export const handleDebugAnalyze = ...`
@@ -140,14 +141,15 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - `export const handleBrandGenerate = ...`
 - `export const handleSuperpowersGenerate = ...`
 - `export const handleMarketingGenerate = ...`
-- `export const handleNotebookGenerate = ...`
 
 ### `apps/api/src/router.ts`
 
 - `export class Router { ... }`
 - `export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }`
 - `export function sendError(`
-- `export async function readBody(req: IncomingMessage): Promise<string> { ... }`
+- `export const DEFAULT_MAX_BODY_BYTES = ...`
+- `export function getMaxBodyBytes(): number { ... }`
+- `export async function readBody(req: IncomingMessage, maxSizeOverride?: number): Promise<string> { ... }`
 - `export interface AppHandle { ... }`
 - `export function isShuttingDown(): boolean { ... }`
 - `export function scheduleBootMigrations(`
@@ -173,7 +175,10 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
@@ -182,20 +187,19 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getUsageByDay,
   getApiCallSummary,
-  recordUsage,
-  isProgramEnabled,
   trackEvent,
-  saveGitHubToken,
-  getGitHubTokens,
-... (831 more lines)
+... (1032 more lines)
 ```
 
 ### `apps/api/src/handlers.ts`
 
 ```typescript
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { chargeMpp, parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import { readFileSync } from "node:fs";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, getPricingTier, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
+import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
 import { classifyProbe, captureIntent } from "./intent.js";
 import {
@@ -217,9 +221,7 @@ import {
   trackEvent,
   resolveStage,
   TIER_LIMITS,
-  ALL_PROGRAMS,
-  isProgramEnabled,
-... (3800 more lines)
+... (4929 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -241,6 +243,7 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
@@ -249,8 +252,7 @@ interface Route {
 export class Router {
   private routes: Route[] = [];
 
-  post(path: string, handler: RouteHandler) {
-... (466 more lines)
+... (542 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -289,6 +291,6 @@ export async function startTestServer(router: Router): Promise<TestServer> {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `dependency-hotspots.md` — agent step 50 of 70.
+- **You are here:** `dependency-hotspots.md` — agent step 50 of 71.
 - **Next:** `root-cause-checklist.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

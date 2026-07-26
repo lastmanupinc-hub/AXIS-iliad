@@ -16,6 +16,7 @@ rules:
   - convention: "TypeScript strict mode"
   - convention: "Linter configured"
   - convention: "Formatter configured"
+  - convention: "pnpm workspaces"
   - convention: "Makefile build"
 ```
 
@@ -26,7 +27,7 @@ id: boundary-enforcement
 scope: architecture-layers
 rules:
   - layer: presentation
-    directories: [apps, frontend]
+    directories: [apps]
     allowed_imports: same-layer-or-below
 ```
 
@@ -45,43 +46,38 @@ rules:
   - no_debug_logging_in_production: true
 ```
 
-## Policy: Testing Requirements
+## Policy: Testing Requirements (recommended baseline)
 
 ```yaml
 id: testing-requirements
 scope: all-changes
-rules:
+recommended_rules:
   - new_code_requires_tests: true
   - bug_fixes_require_regression_tests: true
-  - minimum_test_coverage: 80%
-  - no_skipped_tests_in_ci: true
+  - target_min_test_coverage: 80%   # a suggested target, not a measured value
+  - avoid_skipped_tests_in_ci: true
   - test_frameworks: [vitest]
 ```
-
-## Policy: Known Warnings
-
-These project-specific warnings must be addressed in all AI-generated code:
-
-- ⚠️ No lockfile found — dependency versions may be inconsistent
 
 ## Policy: Framework-Specific Rules
 
 ### React
 
-- Use functional components only
-- Prefer server components where possible (Next.js App Router)
-- No inline styles — use design tokens or Tailwind
+- Use functional components with hooks only (no class components)
+- Keep components small and pure; lift state deliberately
+- No inline styles — use design tokens or your styling system
 
 ## Detected Project Configs
 
 - `.prettierrc.json`
+- `package.json`
+- `tsconfig.base.json`
+- `vitest.config.ts`
+- `mcp/tsconfig.package.template.json`
+- `mcp/tsconfig.root.template.json`
 - `apps/api/package.json`
 - `apps/api/tsconfig.json`
-- `apps/cli/package.json`
-- `apps/cli/tsconfig.json`
-- `apps/web/package.json`
-- `apps/web/tsconfig.json`
-- `apps/web/vite.config.ts`
+- *… 19 more config files*
 
 ## Config Contents
 
@@ -97,40 +93,46 @@ These project-specific warnings must be addressed in all AI-generated code:
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-... (22 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+... (53 more lines)
 ```
 
-### `apps/api/tsconfig.json`
+### `tsconfig.base.json`
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
-    "rootDir": "src"
-  },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
-}
-
+... (5 more lines)
 ```
 
 
@@ -138,6 +140,6 @@ These project-specific warnings must be addressed in all AI-generated code:
 
 ## ⟳ Continue the loop
 
-- **You are here:** `policy-pack.md` — agent step 53 of 70.
-- **Next:** `layout-patterns.md`.
+- **You are here:** `policy-pack.md` — agent step 53 of 71.
+- **Next:** `model-cascade.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

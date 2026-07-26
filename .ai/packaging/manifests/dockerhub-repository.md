@@ -35,6 +35,6 @@ docker push <your-org>/axis-iliad:latest
 
 ## ⟳ Continue the loop
 
-- **You are here:** `packaging/manifests/dockerhub-repository.md` — agent step 66 of 70.
+- **You are here:** `packaging/manifests/dockerhub-repository.md` — agent step 67 of 71.
 - **Next:** `packaging/manifests/github-marketplace-listing.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

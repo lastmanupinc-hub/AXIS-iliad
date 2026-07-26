@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -67,9 +67,9 @@ These models were detected in the codebase. Each should have factory helpers and
 | `AnalyticsEvent` | interface | 4 | `apps/api/src/analytics.ts` |
 | `AnalyticsQuery` | interface | 8 | `apps/api/src/analytics.ts` |
 | `WhereClause` | interface | 2 | `apps/api/src/analytics.ts` |
+| `ChallengeWindow` | interface | 2 | `apps/api/src/anon-frontdoor.ts` |
 | `DriftDeps` | interface | 5 | `apps/api/src/architecture-drift-webhook.ts` |
-| `DriftOutcome` | interface | 3 | `apps/api/src/architecture-drift-webhook.ts` |
-| *... and 227 more* | | | |
+| *... and 263 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -101,11 +101,11 @@ export function makeDebounceState(overrides: Partial<DebounceState> = {}): Debou
 
 ### High-Complexity Models (prioritize edge-case coverage)
 
-- **`ContextMap`** (69 fields) — test with partial input, null fields, and boundary values
 - **`ContextMap`** (61 fields) — test with partial input, null fields, and boundary values
-- **`ResellCapability`** (29 fields) — test with partial input, null fields, and boundary values
+- **`AdminRevenue`** (29 fields) — test with partial input, null fields, and boundary values
 - **`RepoProfile`** (26 fields) — test with partial input, null fields, and boundary values
-- **`RepoProfile`** (21 fields) — test with partial input, null fields, and boundary values
+- **`AnalyzeQuickResponse`** (24 fields) — test with partial input, null fields, and boundary values
+- **`RouteContext`** (24 fields) — test with partial input, null fields, and boundary values
 
 ## Test Categories
 
@@ -157,88 +157,90 @@ export function makeDebounceState(overrides: Partial<DebounceState> = {}): Debou
 
 | File | Lines |
 |------|-------|
-| `apps/api/src/admin.test.ts` | 336 |
-| `apps/api/src/agent-discovery.test.ts` | 597 |
-| `apps/api/src/alerting.test.ts` | 77 |
+| `apps/api/src/account-lifecycle.test.ts` | 226 |
+| `apps/api/src/admin.test.ts` | 352 |
+| `apps/api/src/agent-discovery.test.ts` | 910 |
+| `apps/api/src/alerting.test.ts` | 136 |
 | `apps/api/src/analytics.test.ts` | 327 |
 | `apps/api/src/analyze-repo-success.test.ts` | 138 |
-| `apps/api/src/analyze.test.ts` | 487 |
+| `apps/api/src/analyze.test.ts` | 656 |
+| `apps/api/src/anon-frontdoor.test.ts` | 126 |
 | `apps/api/src/api-branches.test.ts` | 606 |
 | `apps/api/src/api-layer5.test.ts` | 284 |
-| `apps/api/src/api.test.ts` | 463 |
-| `apps/api/src/architecture-drift-webhook.test.ts` | 96 |
-| `apps/api/src/architecture-drift.test.ts` | 105 |
-| `apps/api/src/attestation.test.ts` | 99 |
+| `apps/api/src/api.test.ts` | 466 |
+| `apps/api/src/architecture-drift-webhook.test.ts` | 270 |
+| *… and 165 more* | |
 
 ## Reference Test
 
-### `apps/api/src/alerting.test.ts`
+### `apps/api/src/attestation.test.ts`
 
 ```typescript
-import { describe, it, expect } from "vitest";
-import { evalErrorRate, decideFire } from "./alerting.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { attestRun, verifyAttestation, verifyChainLink, hashInput, hashOutput, resetChainForTests, resetKeyForTests, type Attestation } from "./attestation.js";
 
-const T = { errorRatePct: 5, minSample: 20 };
+const input = { language: "python", code: "print(1)", stdin: "" };
+const output = { stdout: "1\n", stderr: "", exit_code: 0 };
 
-describe("evalErrorRate", () => {
-  it("is not breached below the min sample, even at a high rate", () => {
-    const r = evalErrorRate({ requestCount: 0, errorCount: 0 }, { requestCount: 10, errorCount: 10 }, T);
-    expect(r.sample).toBe(10);
-    expect(r.errorRatePct).toBe(100);
-    expect(r.breached).toBe(false); // 10 < minSample 20
+beforeEach(() => {
+  resetChainForTests();
+  resetKeyForTests();
+  delete process.env.AXIS_ATTESTATION_PRIVATE_KEY;
+});
+
+describe("hashInput / hashOutput", () => {
+  it("are deterministic and input-sensitive", () => {
+    expect(hashInput(input)).toBe(hashInput(input));
+    expect(hashInput(input)).not.toBe(hashInput({ ...input, code: "print(2)" }));
+    expect(hashInput(input)).not.toBe(hashInput({ ...input, language: "node" }));
   });
 
-  it("breaches above the threshold with enough sample", () => {
-    const r = evalErrorRate({ requestCount: 0, errorCount: 0 }, { requestCount: 100, errorCount: 10 }, T);
-    expect(r.sample).toBe(100);
-    expect(r.errors).toBe(10);
-    expect(r.errorRatePct).toBe(10);
-    expect(r.breached).toBe(true);
+  it("has unambiguous field boundaries (no code/stdin separator collision)", () => {
+    expect(hashInput({ language: "python", code: "a", stdin: "b c" })).not.toBe(
+      hashInput({ language: "python", code: "a b", stdin: "c" }),
+    );
   });
 
-  it("does not breach when the rate is under the threshold", () => {
-    const r = evalErrorRate({ requestCount: 0, errorCount: 0 }, { requestCount: 100, errorCount: 2 }, T);
-    expect(r.errorRatePct).toBe(2);
-    expect(r.breached).toBe(false);
+  it("output hash covers only stdout/stderr/exit_code (duration/image ignored)", () => {
+    const withNoise = { ...output, duration_ms: 999, image: "img" } as unknown as typeof output;
+    expect(hashOutput(output)).toBe(hashOutput(withNoise));
+    expect(hashOutput(output)).not.toBe(hashOutput({ ...output, exit_code: 1 }));
   });
+});
 
-  it("returns 0% (not breached) when no requests landed in the window", () => {
-    const r = evalErrorRate({ requestCount: 50, errorCount: 1 }, { requestCount: 50, errorCount: 1 }, T);
-    expect(r.sample).toBe(0);
-    expect(r.errorRatePct).toBe(0);
-    expect(r.breached).toBe(false);
-  });
-
-  it("clamps to 0 if the counters reset (curr < prev)", () => {
-    const r = evalErrorRate({ requestCount: 100, errorCount: 5 }, { requestCount: 10, errorCount: 0 }, T);
-    expect(r.sample).toBe(0);
-    expect(r.errors).toBe(0);
-    expect(r.breached).toBe(false);
-  });
-... (37 more lines)
+describe("attestRun / verifyAttestation", () => {
+  it("produces a self-verifying attestation bound to the input + output", () => {
+    const att = attestRun(input, output, "acc-1");
+    expect(att.version).toBe("axis-attestation/1");
+    expect(att.code_sha256).toBe(hashInput(input));
+    expect(att.output_sha256).toBe(hashOutput(output));
+    expect(att.key_source).toBe("ephemeral"); // no env key in tests
+    expect(verifyAttestation(att)).toBe(true);
+... (59 more lines)
 ```
 
 ## Untested Exports
 
 These source files export functions without matching test files:
 
+- `eslint.config.js` — export default [
+- `vitest.config.ts` — export default defineConfig({ ... }
+- `apps/web/vite.config.ts` — export default defineConfig({ ... }
+- `apps/api/src/cashier.ts` — export interface SettleOptions { ... }, export function centsToFabricCredits(cents: number): number { ... }, export function isOwnerEntityAccount(accountId: string): boolean { ... }, export async function settleOverageViaPaidWallet(, export async function settleOverageCash(
 - `apps/api/src/counts.ts` — export const ARTIFACT_COUNT = ..., export const PROGRAM_COUNT = ..., export const MCP_TOOL_COUNT = ..., export const ENDPOINT_COUNT = ..., export const API_VERSION = ...
 - `apps/api/src/credit-pack-handlers.ts` — export async function handleListCreditPacks(, export async function handleCreateCreditTopup(, export async function handleListMyPurchases(
 - `apps/api/src/funnel.ts` — export async function handleGetPlans(, export async function handleInviteSeat(, export async function handleListSeats(, export async function handleAcceptSeat(, export async function handleRevokeSeat(, export async function handleGetUpgradePrompt(, export async function handleDismissUpgradePrompt(, export async function handleGetFunnelStatus(, export async function handleGetFunnelMetrics(, export async function handleTrackAnalyticsEvent(
-- `apps/api/src/handlers.ts` — export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }, export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze = ..., export const handleFrontendAudit = ..., export const handleSeoAnalyze = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate = ..., export const handleBrandGenerate = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate = ..., export const handleNotebookGenerate = ..., export const handleObsidianAnalyze = ..., export const handleMcpProvision = ..., export const handleArtifactsGenerate = ..., export const handleRemotionGenerate = ..., export const handleCanvasGenerate = ..., export const handleAlgorithmicGenerate = ..., export const handleAgenticPurchasingGenerate = ..., export const handleCloserGenerate = ..., export const handleDeployGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats(, export async function handleDbMaintenance(
+- `apps/api/src/handlers.ts` — export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }, export async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolea, export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze = ..., export const handleFrontendAudit = ..., export const handleSeoAnalyze = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate = ..., export const handleBrandGenerate = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate = ..., export const handleNotebookGenerate = ..., export const handleObsidianAnalyze = ..., export const handleMcpProvision = ..., export const handleArtifactsGenerate = ..., export const handleRemotionGenerate = ..., export const handleCanvasGenerate = ..., export const handleAlgorithmicGenerate = ..., export const handleAgenticPurchasingGenerate = ..., export const handleCloserGenerate = ..., export const handleDeployGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats(
 - `apps/api/src/intent.ts` — export type ProbeClass = ..., export function classifyProbe(userAgent: string): ProbeClass { ... }, export function detectMcpSource(userAgent: string): string { ... }, export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }, export function getIntentLog(): IntentCapture[] { ... }
-- `apps/api/src/mcp-runtime.ts` — export const REGISTRY_DISPLAY_NAME = ..., export const SERVER_SLUG = ..., export const REGISTRY_VERSION = ..., export const RPC_PARSE_ERROR = ..., export const RPC_INVALID_REQUEST = ..., export const RPC_METHOD_NOT_FOUND = ..., export const RPC_INVALID_PARAMS = ..., export const RPC_INTERNAL_ERROR = ..., export interface RpcSuccess { ... }, export interface RpcError { ... }, export function rpcOk(id: string | number | null, result: unknown): RpcSuccess { ... }, export function rpcErr(, export function toolOk(text: string) { ... }, export function toolErr(text: string) { ... }, export type ErrorCategory = ..., export function categorizeError(msg: string): { ... }, export { ... }, export type MeteredMcpTool = ..., export async function authorizeMcpToolCredits(, export async function captureMcpToolCredits(, export async function meterMcpToolCredits(, export function readIdempotencyKey(req: IncomingMessage): string | null { ... }, export function hashToolRequest(tool: string, args: Record<string, unknown>): string { ... }
-- `apps/api/src/mcp-tool-impls.ts` — export function runPlannedCapability(capability: PlannedCapability): string { ... }, export async function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runTransactionalEmail(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... , export async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runLlmInference(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {, export async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runWebResearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runWebResearchCrawl(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export function runPreparePurchasingPreview(args: Record<string, unknown>): string { ... }, export async function runHygiene(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runAnalyzeFiles(, export async function runAnalyzeRepo(, export function runSearchTools(args: Record<string, unknown>): string { ... }, export function runDiscoverAgenticCommerceTools(): string { ... }, export async function runImproveMyAgent(, export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>): string { ... }, export async function runGetReferralCode(req: IncomingMessage): Promise<string> { ... }, export async function runCheckReferralCredits(req: IncomingMessage): Promise<string> { ... }, export function runListPrograms(): string { ... }, export async function runGetSnapshot(, export async function runGetArtifact(, export async function runCloser(, export async function runDeploy(, export async function runPreparePurchasing(
-- `apps/api/src/mcp-tools.ts` — export interface PlannedCapability { ... }, export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = ..., export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = ..., export const MCP_TOOLS = ...
-- `apps/api/src/oauth-server.ts` — export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }, export async function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ...
-- `apps/api/src/server.ts` — export const app = ...
-- *… and 42 more untested*
+- `apps/api/src/mcp-tool-impls.ts` — export function runPlannedCapability(capability: PlannedCapability): string { ... }, export async function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runTransactionalEmail(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... , export async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export const LITE_VECTOR_NAMESPACE_MAX_VECTORS = ..., export async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runLlmInference(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runNetworkTokenization(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ..., export const LITE_DOC_INPUT_MAX_BYTES = ..., export const LITE_DOC_MARKDOWN_MAX_CHARS = ..., export async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {, export async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runWebResearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runWebResearchCrawl(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export function runPreparePurchasingPreview(args: Record<string, unknown>): string { ... }, export async function runHygiene(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }, export async function runAnalyzeFiles(, export async function runAnalyzeRepo(, export const FREE_MCP_TOOL_COUNT = ..., export function runSearchTools(args: Record<string, unknown>): string { ... }, export interface McpToolCatalogEntry { ... }, export function deriveMcpToolCatalog(): McpToolCatalogEntry[] { ... }, export function runDiscoverAgenticCommerceTools(): string { ... }, export async function runImproveMyAgent(, export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>): string { ... }, export async function runGetReferralCode(req: IncomingMessage): Promise<string> { ... }
+- *… and 12 more untested*
+- *(scanned the first 150 of 155 source files; files past that weren't checked)*
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `test-generation-rules.md` — agent step 19 of 70.
+- **You are here:** `test-generation-rules.md` — agent step 19 of 71.
 - **Next:** `refactor-checklist.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

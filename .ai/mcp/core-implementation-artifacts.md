@@ -415,6 +415,6 @@ packages/
 
 ## ⟳ Continue the loop
 
-- **You are here:** `mcp/core-implementation-artifacts.md` — agent step 36 of 70.
+- **You are here:** `mcp/core-implementation-artifacts.md` — agent step 36 of 71.
 - **Next:** `mcp/testing-documentation-polish-artifacts.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

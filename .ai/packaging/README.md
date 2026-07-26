@@ -24,8 +24,8 @@ make install && make start
 
 ## Trust Signals
 
-- Packaging readiness score: **96/100**
-- License strategy: **Proprietary**
+- Input-repo readiness score (pre-packaging): **100/100**
+- License strategy: **Apache-2.0**
 - Build + release automation included
 - Merkle integrity attestation (content-derived digest, not a cryptographic signature) included in packaging/trust-fabric
 
@@ -45,6 +45,6 @@ make install && make start
 
 ## ⟳ Continue the loop
 
-- **You are here:** `packaging/README.md` — agent step 65 of 70.
+- **You are here:** `packaging/README.md` — agent step 66 of 71.
 - **Next:** `packaging/manifests/dockerhub-repository.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

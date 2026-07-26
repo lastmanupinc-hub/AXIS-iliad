@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -10,7 +10,7 @@
     }
   ],
   "framework": "react",
-  "styling": "css-modules",
+  "styling": "plain-css",
   "total_components": 10,
   "categories": [
     "primitives",
@@ -212,7 +212,7 @@
       "usage": "Data listings, reports, admin views"
     },
     {
-      "name": "V1HealthPage",
+      "name": "HealthPage",
       "category": "pages",
       "props": [
         {
@@ -226,10 +226,10 @@
         "loading",
         "error"
       ],
-      "usage": "Page component for route /v1/health"
+      "usage": "Page component for route /health"
     },
     {
-      "name": "V1AdminStatsPage",
+      "name": "ForagentsPage",
       "category": "pages",
       "props": [
         {
@@ -243,10 +243,10 @@
         "loading",
         "error"
       ],
-      "usage": "Page component for route /v1/admin/stats"
+      "usage": "Page component for route /for-agents"
     },
     {
-      "name": "V1AdminAccountsPage",
+      "name": "HomePage",
       "category": "pages",
       "props": [
         {
@@ -260,10 +260,10 @@
         "loading",
         "error"
       ],
-      "usage": "Page component for route /v1/admin/accounts"
+      "usage": "Page component for route /"
     },
     {
-      "name": "V1AdminActivityPage",
+      "name": "OauthAuthorizePage",
       "category": "pages",
       "props": [
         {
@@ -277,7 +277,7 @@
         "loading",
         "error"
       ],
-      "usage": "Page component for route /v1/admin/activity"
+      "usage": "Page component for route /oauth/authorize"
     }
   ],
   "source_components": [
@@ -286,14 +286,57 @@
       "exports": [
         "export function App() { ... }"
       ],
-      "size": 31228
+      "size": 34533
+    },
+    {
+      "path": "apps/web/src/main.tsx",
+      "exports": [],
+      "size": 350
+    },
+    {
+      "path": "apps/web/src/routes.tsx",
+      "exports": [
+        "export type PageId = ...",
+        "export type RouteParams = ...",
+        "export interface NavContext { ... }",
+        "export interface RouteContext extends NavContext { ... }",
+        "export type NavGroup = ...",
+        "export const NAV_GROUPS: readonly NavGroup[] = ...",
+        "export interface NavEntry { ... }",
+        "export interface RouteDef { ... }",
+        "export const ROUTES: RouteDef[] = ...",
+        "export const AUTH_ONLY_PAGES: ReadonlySet<PageId> = ...",
+        "export function routeForPage(page: PageId): RouteDef { ... }",
+        "export function matchPattern(pattern: string, hash: string): RouteParams | null { ... }",
+        "export interface RouteMatch { ... }",
+        "export function matchHash(rawHash: string): RouteMatch | null { ... }",
+        "export function hashForPage(page: PageId, params: RouteParams = ...",
+        "export function routeFromPathname(pathname: string): RouteDef | null { ... }",
+        "export function isRouteVisible(route: RouteDef, ctx: NavContext): boolean { ... }",
+        "export function navLabelFor(route: RouteDef, ctx: NavContext): string { ... }",
+        "export function tabLabelFor(route: RouteDef, ctx: NavContext): string { ... }",
+        "export function routeForShortcut(digit: number, ctx: NavContext): RouteDef | null { ... }",
+        "export function ownsShortcut(route: RouteDef, ctx: NavContext): boolean { ... }",
+        "export type NavRouteDef = ...",
+        "export function visibleNavRoutes(ctx: NavContext): NavRouteDef[] { ... }",
+        "export function visibleRailRoutes(ctx: NavContext): NavRouteDef[] { ... }",
+        "export function visibleGroupRoutes(group: NavGroup, ctx: NavContext): NavRouteDef[] { ... }"
+      ],
+      "size": 39149
+    },
+    {
+      "path": "apps/web/src/components/ArtifactExplorer.tsx",
+      "exports": [
+        "export function ArtifactExplorer({ ... }"
+      ],
+      "size": 18843
     },
     {
       "path": "apps/web/src/components/AuthButtons.tsx",
       "exports": [
         "export function AuthButtons({ ... }"
       ],
-      "size": 5209
+      "size": 5213
     },
     {
       "path": "apps/web/src/components/AxisIcons.tsx",
@@ -308,21 +351,30 @@
         "export interface PaletteAction { ... }",
         "export function CommandPalette({ ... }"
       ],
-      "size": 6773
+      "size": 8785
+    },
+    {
+      "path": "apps/web/src/components/DangerButton.tsx",
+      "exports": [
+        "export function DangerButton({ ... }"
+      ],
+      "size": 3226
+    },
+    {
+      "path": "apps/web/src/components/DiffViewer.tsx",
+      "exports": [
+        "export function computeLineDiff(oldText: string, newText: string): DiffLine[] { ... }",
+        "export interface DiffViewerProps { ... }",
+        "export function DiffViewer({ ... }"
+      ],
+      "size": 9260
     },
     {
       "path": "apps/web/src/components/FilesTab.tsx",
       "exports": [
         "export function FilesTab({ ... }"
       ],
-      "size": 4774
-    },
-    {
-      "path": "apps/web/src/components/GeneratedTab.tsx",
-      "exports": [
-        "export function GeneratedTab({ ... }"
-      ],
-      "size": 4237
+      "size": 5940
     },
     {
       "path": "apps/web/src/components/GraphTab.tsx",
@@ -336,35 +388,11 @@
       "exports": [
         "export function Icon({ ... }"
       ],
-      "size": 4555
-    },
-    {
-      "path": "apps/web/src/components/OverviewTab.tsx",
-      "exports": [
-        "export function OverviewTab({ ... }"
-      ],
-      "size": 8987
-    },
-    {
-      "path": "apps/web/src/components/ProgramLauncher.tsx",
-      "exports": [
-        "export function ProgramLauncher({ ... }"
-      ],
-      "size": 8125
-    },
-    {
-      "path": "apps/web/src/components/SearchTab.tsx",
-      "exports": [
-        "export function SearchTab({ ... }"
-      ],
-      "size": 11316
-    },
-    {
-      "path": "apps/web/src/components/SignUpModal.tsx",
-      "exports": [
-        "export function SignUpModal({ ... }"
-      ],
-      "size": 1032
+      "size": 5538
     }
-  ]
+  ],
+  "source_components_meta": {
+    "shown": 12,
+    "total": 14
+  }
 }

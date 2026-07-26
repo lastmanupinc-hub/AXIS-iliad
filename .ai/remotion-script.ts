@@ -45,7 +45,7 @@ function TechStackScene() {
 function ArchitectureScene() {
   const frame = useCurrentFrame();
   const patterns = ["monorepo","containerized"];
-  const score = 65;
+  const score = 64;
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>
       <h2 style={{ color: THEME.accent, fontSize: 48 }}>Architecture</h2>
@@ -61,7 +61,7 @@ function ArchitectureScene() {
 
 function AbstractionsScene() {
   const frame = useCurrentFrame();
-  const items = ["apps/ (monorepo_apps)","packages/ (monorepo_packages)","docs/ (documentation)","examples/ (project_directory)","mcp/ (project_directory)",".github/ (project_directory)"];
+  const items = ["apps/ (monorepo_apps)","docs/ (documentation)","packages/ (monorepo_packages)","mcp/ (project_directory)","examples/ (project_directory)","scripts/ (build_scripts)"];
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>
       <h2 style={{ color: THEME.accent, fontSize: 48 }}>Key Abstractions</h2>

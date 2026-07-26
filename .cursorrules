@@ -17,10 +17,18 @@ class_components = false
 test_framework = "vitest"
 test_before_commit = true
 
+# === Tooling ===
+package_manager = "pnpm"
+ci = "github_actions"
+
 # === Architecture Boundaries ===
-# presentation: apps, frontend
+# presentation: apps
 
 # === Domain Models ===
+# AlertThresholds (interface, 2 fields) @ apps/api/src/alerting.ts
+# Counters (type_alias, 2 fields) @ apps/api/src/alerting.ts
+# DebounceState (interface, 2 fields) @ apps/api/src/alerting.ts
+# WindowResult (interface, 4 fields) @ apps/api/src/alerting.ts
 # AnalyticsCountByBucketResult (interface, 3 fields) @ apps/api/src/analytics.ts
 # AnalyticsCountByBucketRow (interface, 2 fields) @ apps/api/src/analytics.ts
 # AnalyticsCountByEventResult (interface, 2 fields) @ apps/api/src/analytics.ts
@@ -28,94 +36,83 @@ test_before_commit = true
 # AnalyticsCountResult (interface, 2 fields) @ apps/api/src/analytics.ts
 # AnalyticsDistinctUsersResult (interface, 2 fields) @ apps/api/src/analytics.ts
 # AnalyticsEvent (interface, 4 fields) @ apps/api/src/analytics.ts
-# AnalyticsQuery (interface, 7 fields) @ apps/api/src/analytics.ts
+# AnalyticsQuery (interface, 8 fields) @ apps/api/src/analytics.ts
 # WhereClause (interface, 2 fields) @ apps/api/src/analytics.ts
-# AuthContext (interface, 3 fields) @ apps/api/src/billing.ts
-# NotConfiguredResult (interface, 4 fields) @ apps/api/src/code-sandbox.ts
-# SandboxOptions (interface, 4 fields) @ apps/api/src/code-sandbox.ts
-# SandboxResult (interface, 6 fields) @ apps/api/src/code-sandbox.ts
-# DocxExtractResult (interface, 2 fields) @ apps/api/src/document-parsing.ts
-# NotConfiguredResult (interface, 5 fields) @ apps/api/src/document-parsing.ts
-# ParseOptions (interface, 3 fields) @ apps/api/src/document-parsing.ts
-# ParseResult (interface, 6 fields) @ apps/api/src/document-parsing.ts
-# PdfExtractResult (interface, 2 fields) @ apps/api/src/document-parsing.ts
-# EmailConfig (interface, 2 fields) @ apps/api/src/email.ts
-# ResendErrorResponse (interface, 3 fields) @ apps/api/src/email.ts
-# ... and 265 more
+# ChallengeWindow (interface, 2 fields) @ apps/api/src/anon-frontdoor.ts
+# DriftDeps (interface, 5 fields) @ apps/api/src/architecture-drift-webhook.ts
+# DriftOutcome (interface, 3 fields) @ apps/api/src/architecture-drift-webhook.ts
+# DriftResult (interface, 3 fields) @ apps/api/src/architecture-drift.ts
+# PushInfo (interface, 7 fields) @ apps/api/src/architecture-drift.ts
+# Attestation (interface, 12 fields) @ apps/api/src/attestation.ts
+# AttestationInput (interface, 3 fields) @ apps/api/src/attestation.ts
+# ... and 258 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode
 # - Linter configured
 # - Formatter configured
+# - pnpm workspaces
 # - Makefile build
 
 # === Project File Tree ===
-# .github/actions/compliance-check/action.yml
-# .github/actions/context-freshness/action.yml
-# .github/actions/context-freshness/README.md
-# .github/app-manifest.json
-# .github/workflows/ci.yml
-# .github/workflows/compliance-check.yml
-# .github/workflows/context-freshness.yml
-# .github/workflows/release.yml
 # .gitignore
 # .prettierrc.json
 # .tmp-vitest.json
-# ab-test-plan.md
-# agent-purchasing-playbook.md
+# ACTIVATION_TRACKER.md
 # AGENTS.md
-# algorithmic/begin.yaml
-# algorithmic/continuation.yaml
-# algorithmic/MEMORY.yaml
-# algorithmic/schemas/output-contract.schema.json
+# AXIS_Board_Pitch.md
+# AXIS_DEMO_REPORT.md
+# CHANGELOG.md
+# CLAUDE.md
+# CODE_TO_DOCS_BUILD_STRATEGY.md
+# COMPLIANCE_KIT_BUILD_SPEC.md
+# CONTRIBUTING.md
+# DEPLOY_OFF_ACTIONS_RUNBOOK.md
+# DISTRIBUTABLE.md
+# Dockerfile
+# E5_LIVING_ARCHITECTURE_DESIGN.md
+# E9_COMMERCE_INTEGRATION_DESIGN.md
+# ENV_ROUTING_MAP.md
+# HARDENING_AUDIT.md
+# ILIAD_PRODUCT_READINESS_SCORECARD.yaml
+# LAUNCH_CLAIMS.yaml
+# LAUNCH_RUNBOOK.md
+# Makefile
+# NEON_MIGRATION_PLAN.md
+# PRIVACY_POLICY.md
+# README.md
+# ROUTING_GO_LIVE_RUNBOOK.md
+# SECURITY.md
+# SETUP_PAID_STRIPE_MCP.md
+# SHARED_PAID_CLIENT_PLAN.md
+# SONNET5_REMEDIATION_PLAYBOOK.md
+# STRIPE_CHANGES_REQUIRED.md
+# TERMS_OF_SERVICE.md
+# V1_LAUNCH_TODO.md
+# V1_ROI_CANDIDATES.md
 # algorithmic-pack.json
-# apps/api/check-table.js
-# apps/api/gen-keys.js
-# apps/api/keys.env
-# apps/api/mcp-server.json
-# apps/api/package.json
-# apps/api/src/admin.test.ts
-# apps/api/src/admin.ts
-# apps/api/src/agent-discovery.test.ts
-# apps/api/src/analytics.test.ts
-# apps/api/src/analytics.ts
-# apps/api/src/analyze-repo-success.test.ts
-# apps/api/src/analyze.test.ts
-# apps/api/src/api-branches.test.ts
-# apps/api/src/api-layer5.test.ts
-# apps/api/src/api.test.ts
-# apps/api/src/b-grade-upgrade.test.ts
-# apps/api/src/billing-flow.test.ts
-# apps/api/src/billing.test.ts
-# apps/api/src/billing.ts
-# apps/api/src/budget-probe.test.ts
-# apps/api/src/checkout-email.test.ts
-# apps/api/src/code-sandbox.test.ts
-# apps/api/src/code-sandbox.ts
-# apps/api/src/counts-consistency.test.ts
-# apps/api/src/counts.ts
-# apps/api/src/crash-resilience.test.ts
-# apps/api/src/credits-api.test.ts
-# apps/api/src/db-endpoints.test.ts
-# apps/api/src/deletion.test.ts
-# apps/api/src/deployment.test.ts
-# apps/api/src/document-parsing.test.ts
+# automated remedial action.yaml
+# axis_all_tools.yaml
+# axis_master_blueprint.yaml
+# begin.yaml
+# canvas-pack.md
+# capability_inventory.yaml
+# cloudflare-pages.md
+# competitive-gap-matrix.yaml
+# coverage-full.txt
+# daily-maintenance-runbook.yaml
+# docker-ci-run3.txt
+# docker-compose.yml
+# e2e_full_human_ai_x402.mjs
+# ecosystem.registry.yaml
 # ... and 450 more files
 
 # === Key Entry Points ===
 # apps/api/src/server.ts
+#   export const router = ...
 #   export const app = ...
 # apps/web/src/App.tsx
 #   export function App() { ... }
 # apps/web/src/main.tsx
-# packages/context-engine/src/index.ts
-#   export type { ... }
-#   export { ... }
-# packages/generator-core/src/index.ts
-#   export type { ... }
-#   export { ... }
-#   export { ... }
-#   export { ... }
-#   export { ... }
 
 # Generated by axis-iliad skills program. Regenerate after significant code changes.

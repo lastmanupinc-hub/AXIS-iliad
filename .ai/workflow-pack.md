@@ -17,7 +17,7 @@ steps:
   - name: write_tests
     action: Add tests using vitest
   - name: validate
-    action: Run vite && make
+    action: Run `pnpm run build` then `pnpm test`
   - name: review
     action: Check against component-guidelines.md and frontend-rules.md
 ```
@@ -78,18 +78,22 @@ steps:
     action: Run full suite, check for regressions
 ```
 
+## Model Cascade
+
+These workflows describe WHAT each step does. `model-cascade.md` maps WHO should run it — which capability tier (planner / executor / mechanical) fits each task type, derived from this repo's own detected signals.
+
 ## Detected Config Files
 
 - `.prettierrc.json` (7 lines)
-- `apps/api/package.json` (37 lines)
-- `apps/api/tsconfig.json` (10 lines)
-- `apps/cli/package.json` (23 lines)
-- `apps/cli/tsconfig.json` (18 lines)
-- `apps/web/package.json` (24 lines)
-- `apps/web/tsconfig.json` (20 lines)
-- `apps/web/vite.config.ts` (13 lines)
+- `package.json` (68 lines)
+- `tsconfig.base.json` (20 lines)
+- `vitest.config.ts` (39 lines)
 - `mcp/tsconfig.package.template.json` (36 lines)
 - `mcp/tsconfig.root.template.json` (60 lines)
+- `apps/api/package.json` (38 lines)
+- `apps/api/tsconfig.json` (10 lines)
+- `packages/agentic-compliance/package.json` (48 lines)
+- `packages/agentic-compliance/tsconfig.json` (10 lines)
 
 ## Entry Points
 
@@ -116,33 +120,33 @@ import {
   handleSuperpowersGenerate,
   handleMarketingGenerate,
   handleNotebookGenerate,
-... (477 more lines)
+... (532 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-... (559 more lines)
+import { StatusBar } from "./components/StatusBar.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
+import { Icon } from "./components/Icon.tsx";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
+import { APP_VERSION } from "./version.ts";
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+... (696 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -151,6 +155,7 @@ import { CommandPalette, type PaletteAction } from "./components/CommandPalette.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import "./theme.css"; // generated design-system contract (app copy) — must load before index.css
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -161,19 +166,11 @@ createRoot(document.getElementById("root")!).render(
 
 ```
 
-### `packages/context-engine/src/index.ts`
-
-```typescript
-export type { ContextMap, RepoProfile } from "./types.js";
-export { buildContextMap, buildRepoProfile } from "./engine.js";
-
-```
-
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `workflow-pack.md` — agent step 52 of 70.
+- **You are here:** `workflow-pack.md` — agent step 52 of 71.
 - **Next:** `policy-pack.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

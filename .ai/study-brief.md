@@ -17,18 +17,22 @@ Before diving into this codebase, you should be comfortable with:
 1. Read the project README and any CONTRIBUTING.md
 2. Understand the top-level directory structure:
 
-   - `apps` — monorepo_apps (235 files)
-   - `packages` — monorepo_packages (93 files)
-   - `docs` — documentation (21 files)
-   - `examples` — project_directory (17 files)
-   - `mcp` — project_directory (16 files)
-   - `.github` — project_directory (8 files)
-   - `algorithmic` — project_directory (4 files)
-   - `artifacts` — project_directory (4 files)
+   - `apps` — monorepo_apps (295 files)
+   - `docs` — documentation (48 files)
+   - `packages` — monorepo_packages (19 files)
+   - `mcp` — project_directory (12 files)
+   - `examples` — project_directory (11 files)
+   - `scripts` — build_scripts (11 files)
+   - `.github` — project_directory (10 files)
+   - `packaging` — project_directory (6 files)
 
 ### Phase 2: Entry Points
 
-Identify the main entry point by checking package.json `main` or `bin` fields.
+Start with these files to understand the application flow:
+
+- `apps/api/src/server.ts`
+- `apps/web/src/App.tsx`
+- `apps/web/src/main.tsx`
 
 ### Phase 3: Core Domain Models
 
@@ -46,7 +50,7 @@ These are the core data structures that define what the system works with:
 | `AnalyticsCountByEventRow` | interface | 2 | `apps/api/src/analytics.ts` |
 | `AnalyticsCountResult` | interface | 2 | `apps/api/src/analytics.ts` |
 | `AnalyticsDistinctUsersResult` | interface | 2 | `apps/api/src/analytics.ts` |
-| *(+232 more)* | | | |
+| *(+268 more)* | | | |
 
 ### Phase 4: Data Flow
 
@@ -54,11 +58,11 @@ Trace the flow of data through the system:
 
 Key routes to trace:
 
-- `GET /v1/health` → `apps/api/src/admin.test.ts`
-- `POST /v1/accounts` → `apps/api/src/admin.test.ts`
-- `POST /v1/snapshots` → `apps/api/src/admin.test.ts`
-- `GET /v1/admin/stats` → `apps/api/src/admin.test.ts`
-- `GET /v1/admin/accounts` → `apps/api/src/admin.test.ts`
+- `GET /health` → `docs/archive/e2e_ui_audit.yaml`
+- `GET /v1/health` → `docs/archive/e2e_ui_audit.yaml`
+- `POST /v1/accounts` → `apps/api/src/server.ts`
+- `GET /v1/account` → `apps/api/src/server.ts`
+- `PATCH /v1/account` → `apps/api/src/server.ts`
 
 ### Phase 5: Testing
 
@@ -86,14 +90,14 @@ Read the codebase **bottom-up**: the modules the most other files depend on firs
 
 | # | Module | Depended-on by | Depends on | Role |
 |---|--------|----------------|------------|------|
-| 1 | `apps/api/src/router.ts` | 96 | 4 | foundational |
-| 2 | `apps/api/src/test-helpers.ts` | 41 | 1 | foundational |
-| 3 | `apps/api/src/rate-limiter.ts` | 36 | 2 | foundational |
-| 4 | `apps/api/src/billing.ts` | 28 | 3 | foundational |
-| 5 | `apps/api/src/logger.ts` | 25 | 0 | foundational |
-| 6 | `packages/generator-core/src/generate.ts` | 30 | 6 | foundational |
-| 7 | `apps/web/src/api.ts` | 19 | 0 | foundational |
-| 8 | `apps/api/src/counts.ts` | 12 | 0 | foundational |
+| 1 | `apps/api/src/router.ts` | 113 | 4 | foundational |
+| 2 | `apps/api/src/test-helpers.ts` | 54 | 1 | foundational |
+| 3 | `apps/api/src/rate-limiter.ts` | 46 | 2 | foundational |
+| 4 | `apps/api/src/billing.ts` | 44 | 3 | foundational |
+| 5 | `apps/api/src/logger.ts` | 34 | 0 | foundational |
+| 6 | `apps/api/src/mpp.ts` | 19 | 1 | foundational |
+| 7 | `apps/web/src/api.ts` | 17 | 1 | foundational |
+| 8 | `apps/api/src/counts.ts` | 16 | 0 | foundational |
 
 ## Key Files to Read
 
@@ -122,33 +126,33 @@ import {
   handleSuperpowersGenerate,
   handleMarketingGenerate,
   handleNotebookGenerate,
-... (477 more lines)
+... (532 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-... (559 more lines)
+import { StatusBar } from "./components/StatusBar.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
+import { Icon } from "./components/Icon.tsx";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
+import { APP_VERSION } from "./version.ts";
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+... (696 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -157,6 +161,7 @@ import { CommandPalette, type PaletteAction } from "./components/CommandPalette.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import "./theme.css"; // generated design-system contract (app copy) — must load before index.css
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -181,25 +186,25 @@ createRoot(document.getElementById("root")!).render(
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-... (22 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+... (53 more lines)
 ```
 
 
@@ -207,6 +212,6 @@ createRoot(document.getElementById("root")!).render(
 
 ## ⟳ Continue the loop
 
-- **You are here:** `study-brief.md` — agent step 26 of 70.
+- **You are here:** `study-brief.md` — agent step 26 of 71.
 - **Next:** `research-threads.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

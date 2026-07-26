@@ -3,7 +3,7 @@
 ## Project Context
 
 This is a **monorepo** built with **TypeScript**.
-> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
+\> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
 
 ### Stack
 
@@ -19,23 +19,28 @@ This is a **monorepo** built with **TypeScript**.
 - TypeScript strict mode
 - Linter configured
 - Formatter configured
+- pnpm workspaces
 - Makefile build
 
 ### Key Directories
 
 - apps/ (monorepo_apps)
-- packages/ (monorepo_packages)
 - docs/ (documentation)
-- examples/ (project_directory)
+- packages/ (monorepo_packages)
 - mcp/ (project_directory)
+- examples/ (project_directory)
+- scripts/ (build_scripts)
 - .github/ (project_directory)
-- algorithmic/ (project_directory)
-- artifacts/ (project_directory)
+- packaging/ (project_directory)
 
 ### Routes
 
-- `GET /v1/health` → apps/api/src/server.ts
+- `GET /health` → docs/archive/e2e_ui_audit.yaml
+- `GET /v1/health` → docs/archive/e2e_ui_audit.yaml
 - `POST /v1/accounts` → apps/api/src/server.ts
+- `GET /v1/account` → apps/api/src/server.ts
+- `PATCH /v1/account` → apps/api/src/server.ts
+- `DELETE /v1/account` → apps/api/src/server.ts
 - `POST /v1/snapshots` → apps/api/src/server.ts
 - `GET /v1/admin/stats` → apps/api/src/server.ts
 - `GET /v1/admin/accounts` → apps/api/src/server.ts
@@ -50,6 +55,7 @@ This is a **monorepo** built with **TypeScript**.
 - `GET /v1/install` → apps/api/src/server.ts
 - `GET /v1/install/:platform` → apps/api/src/server.ts
 - `POST /probe-intent` → apps/api/src/server.ts
+- `GET /v1/error-codes` → apps/api/src/server.ts
 - `POST /mcp` → apps/api/src/server.ts
 - `POST /v1/analyze` → apps/api/src/server.ts
 - `GET /v1/snapshots/:snapshot_id` → apps/api/src/server.ts
@@ -79,12 +85,7 @@ This is a **monorepo** built with **TypeScript**.
 - `GET /v1/account/webhooks/:webhook_id/deliveries` → apps/api/src/server.ts
 - `POST /v1/account/programs` → apps/api/src/server.ts
 - `POST /v1/account/github-token` → apps/api/src/server.ts
-- `GET /health` → apps/api/src/server.ts
-- `POST /v1/search/export` → apps/api/src/server.ts
-- `POST /v1/skills/generate` → apps/api/src/server.ts
-- `POST /v1/frontend/audit` → apps/api/src/server.ts
-- `POST /v1/seo/analyze` → apps/api/src/server.ts
-- *… 113 more (see OpenAPI spec or `/v1/docs`)*
+- *… 124 more (see OpenAPI spec or `/v1/docs`)*
 
 ### Domain Models
 
@@ -103,14 +104,14 @@ This is a **monorepo** built with **TypeScript**.
 | `AnalyticsEvent` | interface | 4 | apps/api/src/analytics.ts |
 | `AnalyticsQuery` | interface | 8 | apps/api/src/analytics.ts |
 | `WhereClause` | interface | 2 | apps/api/src/analytics.ts |
+| `ChallengeWindow` | interface | 2 | apps/api/src/anon-frontdoor.ts |
 | `DriftDeps` | interface | 5 | apps/api/src/architecture-drift-webhook.ts |
 | `DriftOutcome` | interface | 3 | apps/api/src/architecture-drift-webhook.ts |
 | `DriftResult` | interface | 3 | apps/api/src/architecture-drift.ts |
 | `PushInfo` | interface | 7 | apps/api/src/architecture-drift.ts |
 | `Attestation` | interface | 12 | apps/api/src/attestation.ts |
 | `AttestationInput` | interface | 3 | apps/api/src/attestation.ts |
-| `AttestationOutput` | interface | 3 | apps/api/src/attestation.ts |
-| *… 222 more* | | | |
+| *… 258 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 
@@ -121,23 +122,19 @@ When working in this codebase:
 - Use strict TypeScript. Avoid `any` types.
 - Prefer functional components with hooks over class components.
 - Run tests with vitest before committing.
-
-## Known Issues
-
-- No lockfile found — dependency versions may be inconsistent
+- Use `pnpm` for dependency management. Do not mix package managers.
 
 ## Architecture Boundaries
 
 Respect these layer separations:
 
-- **presentation**: apps, frontend
+- **presentation**: apps
 
 ## Key Entry Points
 
-- **`apps/api/src/server.ts`**: `export const app = ...`
+- **`apps/api/src/server.ts`**: `export const router = ...`, `export const app = ...`
 - **`apps/web/src/App.tsx`**: `export function App() { ... }`
 - `apps/web/src/main.tsx`
-- **`packages/context-engine/src/index.ts`**: `export type { ... }`, `export { ... }`
 
 ## Configuration Files
 
@@ -153,40 +150,46 @@ Respect these layer separations:
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-... (22 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+... (53 more lines)
 ```
 
-### `apps/api/tsconfig.json`
+### `tsconfig.base.json`
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
-    "rootDir": "src"
-  },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
-}
-
+... (5 more lines)
 ```
 
 <!-- Generated by axis-iliad skills program. Regenerate after significant code changes. -->
@@ -196,6 +199,6 @@ Respect these layer separations:
 
 ## ⟳ Continue the loop
 
-- **You are here:** `AGENTS.md` — agent step 2 of 70.
+- **You are here:** `AGENTS.md` — agent step 2 of 71.
 - **Next:** `CLAUDE.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

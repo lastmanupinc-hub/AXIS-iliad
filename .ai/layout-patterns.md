@@ -4,7 +4,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -50,18 +50,18 @@ src/
 
 | Route | Suggested Layout |
 |-------|-----------------|
-| GET /v1/health | DashboardLayout |
-| POST /v1/accounts | DashboardLayout |
-| POST /v1/snapshots | DashboardLayout |
-| GET /v1/admin/stats | DashboardLayout |
-| GET /v1/admin/accounts | DashboardLayout |
-| GET /v1/admin/activity | DashboardLayout |
-| GET /v1/admin/mcp-usage | DashboardLayout |
-| GET /v1/admin/revenue | DashboardLayout |
-| GET /llms.txt | DashboardLayout |
-| GET /.well-known/skills/index.json | DashboardLayout |
-| GET /v1/docs.md | DashboardLayout |
-| GET /.well-known/axis.json | DashboardLayout |
+| GET /health | DashboardLayout |
+| GET /v1/health | N/A (API) |
+| POST /v1/accounts | N/A (API) |
+| GET /v1/account | N/A (API) |
+| PATCH /v1/account | N/A (API) |
+| DELETE /v1/account | N/A (API) |
+| POST /v1/snapshots | N/A (API) |
+| GET /v1/admin/stats | N/A (API) |
+| GET /v1/admin/accounts | N/A (API) |
+| GET /v1/admin/activity | N/A (API) |
+| GET /v1/admin/mcp-usage | N/A (API) |
+| GET /v1/admin/revenue | N/A (API) |
 
 ## Grid System
 
@@ -82,6 +82,6 @@ src/
 
 ## ⟳ Continue the loop
 
-- **You are here:** `layout-patterns.md` — agent step 54 of 70.
+- **You are here:** `layout-patterns.md` — agent step 55 of 71.
 - **Next:** `ui-audit.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -32,22 +32,24 @@ Generated: 1970-01-01T00:00:00.000Z
 **Stats Grid**
 - Entry Points: 0
 - Hotspots: 20
-- Architecture Score: 65/100
-- Dependencies: 32
+- Architecture Score: 64/100
+- Dependencies: 41
 
 **Language Breakdown**
-- TypeScript: 80% (89597 LOC)
-- YAML: 9.5% (10597 LOC)
-- Markdown: 5.6% (6295 LOC)
-- JavaScript: 2% (2273 LOC)
-- JSON: 1.7% (1922 LOC)
-- CSS: 1% (1149 LOC)
-- HTML: 0.1% (158 LOC)
-- Dockerfile: 0% (21 LOC)
+- TypeScript: 72% (73592 LOC)
+- YAML: 12.6% (12895 LOC)
+- Markdown: 8.8% (8954 LOC)
+- JSON: 2.9% (2991 LOC)
+- JavaScript: 1.8% (1815 LOC)
+- CSS: 1.7% (1744 LOC)
+- HTML: 0.2% (172 LOC)
+- PowerShell: 0% (39 LOC)
+- Shell: 0% (38 LOC)
+- Dockerfile: 0% (22 LOC)
 
 **Architecture Diagram**
 - Patterns: monorepo, containerized
-- presentation: apps, frontend
+- presentation: apps
 
 **Framework Badges**
 - React ^19.1.0
@@ -59,6 +61,7 @@ Generated: 1970-01-01T00:00:00.000Z
 - WindowResult (interface, 4 fields)
 - AnalyticsCountByBucketResult (interface, 3 fields)
 - AnalyticsCountByBucketRow (interface, 2 fields)
+- …and 272 more
 
 ## Layout B: Minimal Card (Landscape)
 
@@ -72,7 +75,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 - Name: axis-iliad
 - Type: monorepo
-- Score: 65/100
+- Score: 64/100
 - Badges: React
 
 ## Layout C: Data Dashboard
@@ -93,6 +96,6 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## ⟳ Continue the loop
 
-- **You are here:** `poster-layouts.md` — agent step 47 of 70.
+- **You are here:** `poster-layouts.md` — agent step 47 of 71.
 - **Next:** `asset-guidelines.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

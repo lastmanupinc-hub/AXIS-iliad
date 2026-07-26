@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -17,8 +17,8 @@
       "category": "build",
       "trigger": "Before commit / Before PR",
       "steps": [
-        "npm install",
-        "npm run build",
+        "pnpm install",
+        "pnpm run build",
         "npx vitest run",
         "npx tsc --noEmit"
       ],
@@ -40,8 +40,8 @@
       "category": "maintenance",
       "trigger": "Weekly / Before release",
       "steps": [
-        "npm audit",
-        "npm outdated",
+        "pnpm audit",
+        "pnpm outdated",
         "Review dependency hotspots in optimization-rules.md"
       ],
       "applicable": true
@@ -80,20 +80,20 @@
     }
   ],
   "source_config_files": [
-    ".github/actions/compliance-check/action.yml",
-    ".github/actions/context-freshness/action.yml",
-    ".github/app-manifest.json",
-    ".github/workflows/ci.yml",
-    ".github/workflows/compliance-check.yml",
-    ".github/workflows/context-freshness.yml",
-    ".github/workflows/release.yml",
     ".prettierrc.json",
     ".tmp-vitest.json",
     "Dockerfile",
     "ILIAD_PRODUCT_READINESS_SCORECARD.yaml",
     "LAUNCH_CLAIMS.yaml",
     "Makefile",
-    "algorithmic/MEMORY.yaml",
-    "algorithmic/begin.yaml"
+    "algorithmic-pack.json",
+    "automated remedial action.yaml",
+    "axis_all_tools.yaml",
+    "axis_master_blueprint.yaml",
+    "begin.yaml",
+    "capability_inventory.yaml",
+    "competitive-gap-matrix.yaml",
+    "daily-maintenance-runbook.yaml",
+    "docker-compose.yml"
   ]
 }

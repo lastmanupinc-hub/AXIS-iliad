@@ -2,9 +2,9 @@
   "schema_version": "1.0",
   "generated_at": "1970-01-01T00:00:00.000Z",
   "registry": {
-    "name": "@axis/api",
-    "version": "0.5.3",
-    "description": "MCP server metadata for axis-iliad publishing and discovery.",
+    "name": "axis-iliad",
+    "version": "1.0.0",
+    "description": "Axis' Iliad CLI — fully-offline codebase analysis that turns any repository into deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, .cursorrules, debug playbooks, and 100+ more)",
     "capabilities": [
       "tools",
       "resources",

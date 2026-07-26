@@ -35,7 +35,7 @@
 
 ### Affected Layers
 
-- [ ] **presentation** — apps, frontend
+- [ ] **presentation** — apps
 
 ## Root Cause
 
@@ -43,14 +43,14 @@
 
 ### Likely Suspect Files (by coupling risk)
 
-- [ ] `apps/api/src/router.ts` — 96 inbound, 4 outbound (risk 100%)
-- [ ] `apps/api/src/test-helpers.ts` — 41 inbound, 1 outbound (risk 100%)
-- [ ] `apps/api/src/billing.ts` — 28 inbound, 3 outbound (risk 100%)
-- [ ] `apps/api/src/handlers.ts` — 23 inbound, 14 outbound (risk 100%)
-- [ ] `apps/api/src/rate-limiter.ts` — 36 inbound, 2 outbound (risk 100%)
-- [ ] `apps/api/src/logger.ts` — 25 inbound, 0 outbound (risk 100%)
-- [ ] `apps/api/src/server.ts` — 1 inbound, 35 outbound (risk 100%)
-- [ ] `apps/web/src/App.tsx` — 1 inbound, 24 outbound (risk 100%)
+- [ ] `apps/api/src/router.ts` — 113 inbound, 4 outbound (risk 100%)
+- [ ] `apps/api/src/test-helpers.ts` — 54 inbound, 1 outbound (risk 100%)
+- [ ] `apps/api/src/billing.ts` — 44 inbound, 3 outbound (risk 100%)
+- [ ] `apps/api/src/handlers.ts` — 36 inbound, 21 outbound (risk 100%)
+- [ ] `apps/api/src/rate-limiter.ts` — 46 inbound, 2 outbound (risk 100%)
+- [ ] `apps/api/src/mcp-tool-impls.ts` — 18 inbound, 27 outbound (risk 100%)
+- [ ] `apps/api/src/mpp.ts` — 19 inbound, 1 outbound (risk 100%)
+- [ ] `apps/api/src/logger.ts` — 34 inbound, 0 outbound (risk 100%)
 
 ### Domain Entities to Check
 
@@ -67,6 +67,7 @@
 - [ ] `AnalyticsEvent` (interface, 4 fields) — apps/api/src/analytics.ts
 - [ ] `AnalyticsQuery` (interface, 8 fields) — apps/api/src/analytics.ts
 - [ ] `WhereClause` (interface, 2 fields) — apps/api/src/analytics.ts
+- [ ] `ChallengeWindow` (interface, 2 fields) — apps/api/src/anon-frontdoor.ts
 - [ ] `DriftDeps` (interface, 5 fields) — apps/api/src/architecture-drift-webhook.ts
 - [ ] `DriftOutcome` (interface, 3 fields) — apps/api/src/architecture-drift-webhook.ts
 - [ ] `DriftResult` (interface, 3 fields) — apps/api/src/architecture-drift.ts
@@ -76,15 +77,14 @@
 - [ ] `AttestationOutput` (interface, 3 fields) — apps/api/src/attestation.ts
 - [ ] `ChainLink` (interface, 3 fields) — apps/api/src/attestation.ts
 - [ ] `AuthContext` (interface, 3 fields) — apps/api/src/billing.ts
-- [ ] `NotConfiguredResult` (interface, 4 fields) — apps/api/src/code-sandbox.ts
+- [ ] `SettleOptions` (interface, 4 fields) — apps/api/src/cashier.ts
+- [ ] `NotConfiguredResult` (interface, 6 fields) — apps/api/src/code-sandbox.ts
 - [ ] `SandboxOptions` (interface, 4 fields) — apps/api/src/code-sandbox.ts
 - [ ] `SandboxResult` (interface, 6 fields) — apps/api/src/code-sandbox.ts
 - [ ] `CommerceArtifact` (interface, 3 fields) — apps/api/src/commerce-integration.ts
 - [ ] `DisputeReadiness` (interface, 5 fields) — apps/api/src/commerce-integration.ts
-- [ ] `PurchaseDeps` (interface, 1 fields) — apps/api/src/commerce-integration.ts
-- [ ] `ReadinessDimension` (interface, 4 fields) — apps/api/src/commerce-integration.ts
-- [ ] `DeliverabilityKit` (interface, 7 fields) — apps/api/src/deliverability.ts
-- [ ] *… 212 more entities*
+- [ ] `NetworkToken` (interface, 6 fields) — apps/api/src/commerce-integration.ts
+- [ ] *… 248 more entities*
 
 ## Fix
 
@@ -127,7 +127,10 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
@@ -136,13 +139,10 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getUsageByDay,
   getApiCallSummary,
-  recordUsage,
-  isProgramEnabled,
   trackEvent,
-  saveGitHubToken,
-  getGitHubTokens,
-... (831 more lines)
+... (1032 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -164,6 +164,7 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
@@ -172,8 +173,7 @@ interface Route {
 export class Router {
   private routes: Route[] = [];
 
-  post(path: string, handler: RouteHandler) {
-... (466 more lines)
+... (542 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -232,33 +232,33 @@ import {
   handleSuperpowersGenerate,
   handleMarketingGenerate,
   handleNotebookGenerate,
-... (477 more lines)
+... (532 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-... (559 more lines)
+import { StatusBar } from "./components/StatusBar.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
+import { Icon } from "./components/Icon.tsx";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
+import { APP_VERSION } from "./version.ts";
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+... (696 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -267,6 +267,7 @@ import { CommandPalette, type PaletteAction } from "./components/CommandPalette.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import "./theme.css"; // generated design-system contract (app copy) — must load before index.css
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -282,6 +283,6 @@ createRoot(document.getElementById("root")!).render(
 
 ## ⟳ Continue the loop
 
-- **You are here:** `incident-template.md` — agent step 5 of 70.
+- **You are here:** `incident-template.md` — agent step 5 of 71.
 - **Next:** `tracing-rules.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

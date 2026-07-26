@@ -1,28 +1,28 @@
 # Automation Pipeline
 # Project: axis-iliad
 # Generated: "1970-01-01T00:00:00.000Z"
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 pipeline:
   name: "axis-iliad-automation"
   ci_platform: github_actions
-  package_manager: npm
+  package_manager: pnpm
 
   stages:
 
     - name: install
       description: Install dependencies
       commands:
-        - npm install
+        - pnpm install
       cache:
         key: dependencies
-        paths: [node_modules]
+        paths: [~/.pnpm-store]
 
     - name: lint
       description: Static analysis and linting
       depends_on: [install]
       commands:
-        - npx tsc --noEmit
+        - pnpm tsc --noEmit
       fail_fast: true
 
     - name: test
@@ -39,7 +39,7 @@ pipeline:
       description: Build production artifacts
       depends_on: [lint, test]
       commands:
-        - npm build
+        - pnpm -r build
       artifacts:
         paths: [dist/, build/]
         retention: 30d
@@ -49,7 +49,7 @@ pipeline:
       depends_on: [install]
       parallel_with: [lint, test]
       commands:
-        - npm audit --audit-level=high
+        - pnpm audit --audit-level=high
       allow_failure: true
 
     - name: deploy_staging
@@ -93,27 +93,27 @@ pipeline:
 
   # ─── Detected CI / Config Files ─────────────────────
   source_files:
-    - path: ".github/actions/compliance-check/action.yml"
-      lines: 284
-    - path: ".github/actions/context-freshness/action.yml"
-      lines: 173
-    - path: ".github/workflows/ci.yml"
-      lines: 227
-    - path: ".github/workflows/compliance-check.yml"
-      lines: 29
-    - path: ".github/workflows/context-freshness.yml"
-      lines: 38
-    - path: ".github/workflows/release.yml"
-      lines: 25
     - path: "Dockerfile"
-      lines: 25
+      lines: 26
     - path: "ILIAD_PRODUCT_READINESS_SCORECARD.yaml"
       lines: 217
     - path: "LAUNCH_CLAIMS.yaml"
-      lines: 113
+      lines: 120
     - path: "Makefile"
       lines: 19
-    - path: "algorithmic/MEMORY.yaml"
-      lines: 41
-    - path: "algorithmic/begin.yaml"
-      lines: 27
+    - path: "automated remedial action.yaml"
+      lines: 106
+    - path: "axis_all_tools.yaml"
+      lines: 849
+    - path: "axis_master_blueprint.yaml"
+      lines: 415
+    - path: "begin.yaml"
+      lines: 489
+    - path: "capability_inventory.yaml"
+      lines: 888
+    - path: "competitive-gap-matrix.yaml"
+      lines: 694
+    - path: "daily-maintenance-runbook.yaml"
+      lines: 128
+    - path: "docker-compose.yml"
+      lines: 25

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -41,8 +41,12 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Route | Method | SEO Action |
 |-------|--------|------------|
+| `/health` | GET | Add WebPage schema · unique title + description required |
 | `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/accounts` | POST | API route — exclude from sitemap |
+| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/account` | PATCH | API route — exclude from sitemap |
+| `/v1/account` | DELETE | API route — exclude from sitemap |
 | `/v1/snapshots` | POST | API route — exclude from sitemap |
 | `/v1/admin/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/admin/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
@@ -57,6 +61,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/install` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/install/:platform` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/probe-intent` | POST | API route — exclude from sitemap |
+| `/v1/error-codes` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/mcp` | POST | API route — exclude from sitemap |
 | `/v1/analyze` | POST | API route — exclude from sitemap |
 | `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
@@ -86,7 +91,6 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/account/webhooks/:webhook_id/deliveries` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/programs` | POST | API route — exclude from sitemap |
 | `/v1/account/github-token` | POST | API route — exclude from sitemap |
-| `/health` | GET | Add WebPage schema · unique title + description required |
 | `/v1/search/export` | POST | API route — exclude from sitemap |
 | `/v1/skills/generate` | POST | API route — exclude from sitemap |
 | `/v1/frontend/audit` | POST | API route — exclude from sitemap |
@@ -97,11 +101,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/superpowers/generate` | POST | API route — exclude from sitemap |
 | `/v1/marketing/generate` | POST | API route — exclude from sitemap |
 | `/v1/notebook/generate` | POST | API route — exclude from sitemap |
-| `/v1/obsidian/analyze` | POST | API route — exclude from sitemap |
-| `/v1/mcp/provision` | POST | API route — exclude from sitemap |
-| `/v1/artifacts/generate` | POST | API route — exclude from sitemap |
-| `/v1/remotion/generate` | POST | API route — exclude from sitemap |
-| *… 103 more* | | |
+| *… 114 more* | | |
 
 ## Domain Models as Content Entities
 
@@ -122,8 +122,8 @@ These domain models represent structured content — mapping them to schema type
 | `AnalyticsEvent` | interface | 4 | Event |
 | `AnalyticsQuery` | interface | 8 | WebPage |
 | `WhereClause` | interface | 2 | WebPage |
+| `ChallengeWindow` | interface | 2 | WebPage |
 | `DriftDeps` | interface | 5 | WebPage |
-| `DriftOutcome` | interface | 3 | WebPage |
 
 ## Contact & Support Page SEO
 
@@ -154,6 +154,9 @@ These domain models represent structured content — mapping them to schema type
 ## Detected SEO Files
 
 - `.github/app-manifest.json` (25 lines)
+- `packaging/manifests/dockerhub-repository.md` (41 lines)
+- `packaging/manifests/github-marketplace-listing.md` (80 lines)
+- `packaging/manifests/vscode-extension.json` (24 lines)
 - `apps/web/public/robots.txt` (26 lines)
 
 ## SEO File Contents
@@ -172,7 +175,7 @@ These domain models represent structured content — mapping them to schema type
   "callback_urls": [
     "https://iliad.trustfabric.ai/install/github/callback"
   ],
-  "description": "Runs AP2/Visa agentic-commerce compliance grading on every push and pull request. Installs the Axis' Iliad GitHub Action under .github/workflows/ and surfaces a 'Axis Compliance: <grade>' Check Run on the head commit. Snapshots prime the analyze cache so subsequent CLI / MCP calls return in <1s.",
+  "description": "Runs AP2/Visa agentic-commerce compliance grading on every push and pull request and posts an 'Axis Compliance: <grade>' Check Run on the head commit. No workflow file or repository secret required — the App grades and reports via webhook once installed. (A standalone GitHub Action offering the same grading is available separately for repositories that prefer not to install an App.)",
   "public": true,
   "default_events": [
     "push",
@@ -184,54 +187,69 @@ These domain models represent structured content — mapping them to schema type
 ... (5 more lines)
 ```
 
-### `apps/web/public/robots.txt`
+### `packaging/manifests/dockerhub-repository.md`
 
+````markdown
+# Docker Hub Listing — axis-iliad
+
+## Overview
+Packaging and release kit for axis-iliad
+
+## Tags
+- `latest` — current stable build
+- `1.0.0` — pinned semver
+
+## Quick Start
+```bash
+docker run --rm -p ${PORT:-8080}:8080 <your-org>/axis-iliad:latest
 ```
-# robots.txt for Axis' Iliad
-# Built specifically for agentic commerce and autonomous purchasing agents
 
-User-agent: *
-Allow: /
+## Environment
+| Var | Default | Description |
+|-----|---------|-------------|
+| `PORT` | `8080` | HTTP listen port. Honored by the container entrypoint. |
+| `NODE_ENV` | `production` | Runtime mode. Set to `development` for verbose logging. |
 
-# Special directives for AI / MCP / agent probes
-User-agent: GPTBot
-User-agent: OAI-SearchBot
-User-agent: Google-Extended
-User-agent: 402.ad-mcp-probe
-User-agent: *
-Disallow: /private/
-Allow: /mcp
-Allow: /for-agents
-Allow: /v1/
+... (21 more lines)
+````
 
-# Helpful message for agents
-# This is the Axis' Iliad MCP server (io.github.lastmanupinc-hub/axis-iliad)
-# Primary tool: prepare_agentic_purchasing
-... (6 more lines)
+### `packaging/manifests/github-marketplace-listing.md`
+
+```markdown
+# GitHub Marketplace Listing — Axis Iliad Compliance
+
+**Status:** draft copy for the App listing (WO-G7). This file is submission content, not
+executable config — the machine-readable source of truth for the App itself is
+`.github/app-manifest.json`. Update both together if scope changes.
+
+## Listing name
+
+Axis Iliad Compliance
+
+## Tagline (one line, shown in search results)
+
+Automatic AP2/Visa agentic-commerce compliance grading on every push and pull request.
+
+## Description
+
+Axis Iliad Compliance watches your repository's `push` and `pull_request` events and posts an
+"Axis Compliance: `<grade>`" Check Run on the head commit — no workflow file, no repository
+secret, and no change to your CI required. Install it once; every commit after that gets graded
+automatically.
+... (60 more lines)
 ```
 
 ## Detected Page Files
 
 | Page | Exports | Lines |
 |------|---------|-------|
-| `apps/web/index.html` | default | 167 |
-| `apps/web/src/components/ToolPage.tsx` | export interface ToolPricing { ... }, export interface ToolPageProps { ... }, export function ToolPage({ ... } | 189 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 599 |
-| `apps/web/src/pages/AdminPage.tsx` | export function AdminPage() { ... } | 334 |
-| `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 197 |
-| `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1293 |
-| `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 679 |
-| `apps/web/src/pages/ForAgentsPage.tsx` | export function ForAgentsPage() { ... } | 206 |
-| `apps/web/src/pages/HelpPage.tsx` | export function HelpPage() { ... } | 770 |
-| `apps/web/src/pages/InstallPage.tsx` | export function InstallPage() { ... } | 205 |
-| `apps/web/src/pages/MyAnalyticsPage.tsx` | export function MyAnalyticsPage() { ... } | 241 |
-| `apps/web/src/pages/PaidCheckoutPage.tsx` | export function PaidCheckoutPage() { ... } | 177 |
+| `apps/web/index.html` | default | 181 |
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `seo-rules.md` — agent step 9 of 70.
+- **You are here:** `seo-rules.md` — agent step 9 of 71.
 - **Next:** `route-priority-map.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

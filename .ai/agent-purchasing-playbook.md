@@ -16,17 +16,16 @@
 
 Detection results from `500` source files:
 
-- **adyen** detected in 5 files
-- **affirm** detected in 3 files
-- **afterpay** detected in 2 files
-- **amazon_pay** detected in 1 file
-- **apple_pay** detected in 2 files
-- **braintree** detected in 3 files
-- **google_pay** detected in 3 files
-- **klarna** detected in 3 files
-- **paypal** detected in 7 files
-- **square** detected in 2 files
-- **stripe** detected in 70 files
+- **adyen** detected in 6 files
+- **affirm** detected in 1 file
+- **afterpay** detected in 1 file
+- **apple_pay** detected in 1 file
+- **braintree** detected in 4 files
+- **google_pay** detected in 2 files
+- **klarna** detected in 1 file
+- **paypal** detected in 8 files
+- **square** detected in 1 file
+- **stripe** detected in 110 files
 - Checkout flow code: ✅ Detected
 - Recurring/mandate billing: ✅ Detected
 - SCA/3DS2 handling: ✅ Detected
@@ -41,22 +40,21 @@ Detection results from `500` source files:
 | Provider | Mandate Types | Network Tokenization | SCA Required |
 |----------|---------------|---------------------|--------------|
 | adyen | mandate, recurring, single | detected in repo | detected in repo |
-| affirm | mandate, recurring, single | detected in repo | detected in repo |
-| afterpay | mandate, recurring, single | detected in repo | detected in repo |
-| amazon_pay | mandate, recurring, single | detected in repo | detected in repo |
-| apple_pay | mandate, recurring, single | detected in repo | detected in repo |
-| braintree | mandate, recurring, single | detected in repo | detected in repo |
-| google_pay | mandate, recurring, single | detected in repo | detected in repo |
-| klarna | mandate, recurring, single | detected in repo | detected in repo |
+| affirm | mandate | detected in repo | detected in repo |
+| afterpay | mandate | detected in repo | detected in repo |
+| apple_pay | mandate, recurring | detected in repo | detected in repo |
+| braintree | mandate, recurring | detected in repo | detected in repo |
+| google_pay | mandate, recurring | detected in repo | detected in repo |
+| klarna | mandate | detected in repo | detected in repo |
 | paypal | mandate, recurring, single | detected in repo | detected in repo |
-| square | mandate, recurring, single | detected in repo | detected in repo |
+| square | mandate | detected in repo | detected in repo |
 | stripe | mandate, recurring, single | detected in repo | detected in repo |
 
 > These cells report what was **detected in this repository** for each provider (patterns co-occurring in the files that reference it) — not the provider's own capabilities. "Not found in repo" means this codebase shows no such code yet; confirm actual support with your PSP.
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 140 structured artifacts across 20 programs.
+Axis' Iliad analyzes codebases and generates 142 structured artifacts across 20 programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 
@@ -144,40 +142,52 @@ An agent SHOULD NOT purchase when:
 
 ## TAP / AP2 / UCP Interoperability
 
+Every JSON block below is the REAL output of `@axis/ap2`'s `encode*` functions for a fixed
+demo sample — not a hand-typed literal. Each one round-trips through `decode*`/`validate*`
+and is signed with a detached JWS (EdDSA/Ed25519) that `verify*` confirms. Scope: these samples are produced and verified by @axis/ap2's real encode/sign/verify codecs — conformant to AXIS's TypeScript encoding of the public AP2 mandate schema, and to TAP/UCP message shapes modeled from public documentation (neither protocol has a public wire schema to conform against). Verified only against self-authored, frozen golden-vector fixtures — NOT certified against an official AP2/TAP/UCP conformance suite, nor exercised against a live Visa/Mastercard network or counterparty.
+
 ### Token Action Protocol (TAP) Integration
 
 TAP status: ✅ TAP protocol references detected
 Network tokenization: ✅ Detected
 
+Signed sample TAP token-lifecycle message (`encodeTapMessage` output):
+
 ```json
-{
-  "tap_token_lifecycle": {
-    "provision": "POST /tokens — request DPAN from TSP (Visa VTS or Mastercard MDES)",
-    "activate": "Token status ACTIVE after device binding verification",
-    "suspend": "On fraud signal → status SUSPENDED, pending review",
-    "resume": "After review clear → status ACTIVE, resume transactions",
-    "delete": "On card expiry/replacement → de-provision token"
-  },
-  "interop_mapping": {
-    "visa_vts_token": "DPAN → cryptogram → authorization",
-    "mastercard_mdes": "DPAN → CVC3/DSRP → authorization",
-    "ap2_mandate_ref": "mandate_id links to token_requestor_id for recurring"
-  }
-}
+{"dpan_last4":"4242","event":"provision","kind":"tap.token","mandate_ref":"cart_axis_demo_001","occurred_at":"2026-01-01T00:03:00.000Z","token_id":"token_axis_demo_001","token_requestor_id":"trid_axis_demo_001","version":"tap/1"}
 ```
+
+Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=W-Et6eo7zXIHTi2PYTYwi6U8…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
+
+| TAP Event | Meaning |
+|-----------|---------|
+| provision | POST /tokens — request DPAN from TSP (Visa VTS or Mastercard MDES) |
+| activate | Token status ACTIVE after device binding verification |
+| suspend | On fraud signal → status SUSPENDED, pending review |
+| resume | After review clear → status ACTIVE, resume transactions |
+| delete | On card expiry/replacement → de-provision token |
+
+> AXIS network-tokenization capability (honest scope): the token lifecycle above is an
+> EXECUTABLE state machine (illegal transitions rejected) plus a live Stripe network-token
+> READ adapter — `is_network_token` is true only when Stripe reports a provisioned network
+> token, never inferred from co-badging metadata. Direct VTS/MDES provisioning is
+> capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID /
+> AXIS_MDES_TOKEN_REQUESTOR_ID) and returns a structured `_not_configured` envelope until
+> Visa/Mastercard onboarding exists — NOT unconditional live VTS+MDES.
 
 ### SCA Exemption Decision Matrix
 
-| Exemption | Condition | Notes | Agent Action |
-|-----------|-----------|-------|-------------|
-| low_value | Transaction < 30 EUR | Issuer-tracked cumulative limits apply | Auto-apply when amount qualifies |
-| trusted_beneficiary | Merchant in trusted list | Cardholder must opt in after a prior SCA | Requires prior SCA + opt-in |
-| recurring_fixed | Fixed-amount subscription | Subsequent collections exempt after first SCA | SCA on first, exempt subsequent |
-| merchant_initiated | MIT with stored credential | Out of SCA scope; original SCA reference needed | No SCA; requires original SCA ref |
-| secure_corporate | Dedicated corporate card | Secure corporate processes are exempt | Exempt from SCA entirely |
-| transaction_risk_analysis | TRA via acquirer | Cap depends on acquirer fraud rate | Exempt up to threshold (€500 max) |
+| Priority | Exemption | Label | Condition | Max Amount (EUR) |
+|----------|-----------|-------|-----------|-------------------|
+| 1 | `low_value` | Low-value transaction | Transaction amount is at or below €30 (PSD2 RTS Art. 11) | €30 |
+| 2 | `secure_corporate` | Secure corporate payment | Payment made through a dedicated/lodged corporate card program (PSD2 RTS Art. 16) | Unlimited |
+| 3 | `merchant_initiated` | Merchant-initiated transaction (out of SCA scope, not a formal RTS exemption) | Merchant-initiated transaction (MIT) using a stored credential with an original SCA reference | Unlimited |
+| 4 | `recurring_fixed` | Recurring fixed-amount collection | Fixed-amount subsequent collection under a mandate, with a prior SCA on file (PSD2 RTS Art. 13) | Unlimited |
+| 5 | `trusted_beneficiary` | Trusted beneficiary | Merchant is on the cardholder's trusted-beneficiary list, added after a prior SCA (PSD2 RTS Art. 12) | Unlimited |
+| 6 | `transaction_risk_analysis` | Transaction risk analysis (TRA) | Acquirer's reference fraud rate qualifies the transaction for an EBA RTS Art. 15 fraud-rate-band cap | €500 |
+| 7 | `one_leg_out` | One-leg-out transaction (territorial scope, not a formal RTS exemption) | Payer or payee is located outside the EEA, so SCA is not territorially mandated for this leg | Unlimited |
 
-> Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.
+> Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer. Priority order is AXIS's recommended agent-optimized preference, not a regulatory mandate.
 
 ### AP2 Mandate Lifecycle
 
@@ -190,22 +200,51 @@ CREATE → mandate_id assigned, status=pending_authorization
                       └─ CANCEL → status=cancelled, no further collections
 ```
 
-### UCP Settlement Path
+Signed sample Intent mandate (`encodeMandate` output):
 
 ```json
-{
-  "ucp_settlement": {
-    "clearing_system": "VISA_NET | MASTERCARD_CLEARING | ACH | SEPA_SCT",
-    "settlement_currency": "USD | EUR | GBP",
-    "value_date_rule": "T+1 for domestic, T+2 for cross-border",
-    "settlement_finality": "irrevocable after clearing_cutoff",
-    "dispute_window": "120 days from settlement for Visa, 120 days for MC",
-    "representment_deadline": "45 days from dispute notification"
-  }
-}
+{"constraints":{"max_amount":{"currency":"USD","value":"5.00"}},"created_at":"2026-01-01T00:00:00.000Z","description":"Autonomous purchase of an AXIS analysis program","expires_at":"2026-01-08T00:00:00.000Z","id":"intent_axis_demo_001","kind":"intent","user_id":"agent_demo_001","version":"ap2/1"}
 ```
 
+Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=Uc6neiD60408Q4hGks8yN0BC…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
+
+Signed sample Cart mandate, referencing the Intent above (`encodeMandate` output):
+
+```json
+{"created_at":"2026-01-01T00:01:00.000Z","id":"cart_axis_demo_001","intent_ref":"intent_axis_demo_001","items":[{"name":"AXIS agentic-purchasing program","quantity":1,"sku":"program-agentic-purchasing","unit_price":{"currency":"USD","value":"0.50"}}],"kind":"cart","merchant_id":"AXIS_ILIAD","total":{"currency":"USD","value":"0.50"},"version":"ap2/1"}
+```
+
+Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=1xvPMSTZ8YVDGtuhXzQJS4w5…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
+
+Signed sample Payment mandate, referencing the Cart above (`encodeMandate` output):
+
+```json
+{"amount":{"currency":"USD","value":"0.50"},"cart_ref":"cart_axis_demo_001","created_at":"2026-01-01T00:02:00.000Z","id":"payment_axis_demo_001","kind":"payment","method":{"token_ref":"tok_axis_demo_001","type":"token"},"version":"ap2/1"}
+```
+
+Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=Lfr9NKl6Lgvws-5BTiO1erm3…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
+
+### UCP Settlement Path
+
+Signed sample UCP settlement message (`encodeUcpMessage` output):
+
+```json
+{"amount":{"currency":"USD","value":"0.50"},"clearing_system":"VISA_NET","kind":"ucp.settlement","payment_ref":"payment_axis_demo_001","settlement_finality":"final","settlement_id":"settlement_axis_demo_001","value_date":"2026-01-02","version":"ucp/1"}
+```
+
+Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=ME1w0jm4uzZZF_DlZaCaMRhF…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
+
+| Field | Meaning |
+|-------|---------|
+| clearing_system | VISA_NET \| MASTERCARD_CLEARING \| ACH \| SEPA_SCT |
+| value_date | Calendar date settlement is expected to post (T+1 domestic, T+2 cross-border is typical, but varies by rail) |
+| settlement_finality | "final" once irrevocable after the clearing cutoff; "pending" before that |
+
+> Dispute windows (120 days from settlement is typical for Visa/Mastercard) and representment deadlines (45 days is typical) are network-published policy, not fields this message type carries — verify current values with your acquirer.
+
 ## Dispute Resolution & Chargeback Flow
+
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
 
 Dispute handling: ✅ Detected in codebase
 
@@ -260,6 +299,8 @@ Transaction → Cardholder Dispute Filed
 ```
 
 ## Compelling Evidence 3.0 (CE 3.0) — Auto-Generated Payloads
+
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
 
 CE 3.0 reduces fraud-related chargebacks by proving legitimate cardholder engagement.
 AXIS auto-generates the evidence payload structure — agents fill transaction-specific fields at dispute time.
@@ -352,18 +393,21 @@ operator's dispute policy — AXIS does not publish win-rate estimates.
 
 ## Lighter SCA Paths — Agent-Optimized Flow
 
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
+
 Goal: minimize friction for autonomous agent purchases. Prefer exemptions over challenges.
 
 ### Agent SCA Decision Tree
 
 ```
 Transaction arrives:
-  ├─ Amount < €30? → LOW_VALUE exemption (no SCA)
-  ├─ Merchant in trusted list? → TRUSTED_BENEFICIARY (no SCA)
-  ├─ Fixed recurring + prior SCA? → RECURRING_FIXED (no SCA)
-  ├─ Merchant-initiated (MIT)? → MIT exemption (no SCA)
-  ├─ Corporate card (secure_corporate)? → EXEMPT (no SCA)
-  ├─ TRA score < threshold? → TRA exemption (no SCA, up to €500)
+  ├─ Low-value transaction? → LOW_VALUE (no SCA)
+  ├─ Secure corporate payment? → SECURE_CORPORATE (no SCA)
+  ├─ Merchant-initiated transaction (out of SCA scope, not a formal RTS exemption)? → MERCHANT_INITIATED (no SCA)
+  ├─ Recurring fixed-amount collection? → RECURRING_FIXED (no SCA)
+  ├─ Trusted beneficiary? → TRUSTED_BENEFICIARY (no SCA)
+  ├─ Transaction risk analysis (TRA)? → TRANSACTION_RISK_ANALYSIS (no SCA)
+  ├─ One-leg-out transaction (territorial scope, not a formal RTS exemption)? → ONE_LEG_OUT (no SCA)
   └─ None apply? → Request frictionless 3DS2 first
        ├─ Issuer approves frictionless? → PROCEED (no redirect)
        └─ Issuer requires challenge? → ABORT agent flow, escalate to operator
@@ -371,15 +415,17 @@ Transaction arrives:
 
 ### Exemption Priority for Agents (prefer top → bottom)
 
-| Priority | Exemption | Max Amount | Agent Action | Fallback |
-|----------|-----------|-----------|--------------|----------|
-| 1 | low_value | €30 | Auto-apply | Next rule |
-| 2 | trusted_beneficiary | Unlimited | Check trusted list | Next rule |
-| 3 | recurring_fixed | Per mandate | Verify mandate active | Next rule |
-| 4 | merchant_initiated | Per agreement | Verify MIT flag | Next rule |
-| 5 | secure_corporate | Unlimited | Verify card program | Next rule |
-| 6 | transaction_risk_analysis | €500 | Check TRA eligibility | 3DS2 frictionless |
-| 7 | 3ds2_frictionless | Unlimited | Request frictionless | Escalate to human |
+> Priority order below is AXIS's recommended agent-optimized preference — PSD2/EBA RTS defines these paths but assigns no priority ordering of its own; issuers/acquirers may apply their own order.
+
+| Priority | Exemption | Label | Condition | Max Amount (EUR) |
+|----------|-----------|-------|-----------|-------------------|
+| 1 | `low_value` | Low-value transaction | Transaction amount is at or below €30 (PSD2 RTS Art. 11) | €30 |
+| 2 | `secure_corporate` | Secure corporate payment | Payment made through a dedicated/lodged corporate card program (PSD2 RTS Art. 16) | Unlimited |
+| 3 | `merchant_initiated` | Merchant-initiated transaction (out of SCA scope, not a formal RTS exemption) | Merchant-initiated transaction (MIT) using a stored credential with an original SCA reference | Unlimited |
+| 4 | `recurring_fixed` | Recurring fixed-amount collection | Fixed-amount subsequent collection under a mandate, with a prior SCA on file (PSD2 RTS Art. 13) | Unlimited |
+| 5 | `trusted_beneficiary` | Trusted beneficiary | Merchant is on the cardholder's trusted-beneficiary list, added after a prior SCA (PSD2 RTS Art. 12) | Unlimited |
+| 6 | `transaction_risk_analysis` | Transaction risk analysis (TRA) | Acquirer's reference fraud rate qualifies the transaction for an EBA RTS Art. 15 fraud-rate-band cap | €500 |
+| 7 | `one_leg_out` | One-leg-out transaction (territorial scope, not a formal RTS exemption) | Payer or payee is located outside the EEA, so SCA is not territorially mandated for this leg | Unlimited |
 
 ### Provider-Specific SCA Thresholds
 
@@ -428,7 +474,7 @@ Your repo: ✅ SCA code detected — wire the decision tree into your existing f
 
 | Check | Status | Evidence |
 |-------|--------|----------|
-| payment_provider_integration | PASS | adyen, affirm, afterpay, amazon_pay, apple_pay, braintree, google_pay, klarna, paypal, square, stripe |
+| payment_provider_integration | PASS | adyen, affirm, afterpay, apple_pay, braintree, google_pay, klarna, paypal, square, stripe |
 | checkout_flow_implementation | PASS | checkout patterns detected |
 | sca_3ds2_handling | PASS | SCA/3DS2 code found |
 | dispute_resolution_flow | PASS | dispute/refund patterns found |
@@ -442,6 +488,6 @@ Your repo: ✅ SCA code detected — wire the decision tree into your existing f
 
 ## ⟳ Continue the loop
 
-- **You are here:** `agent-purchasing-playbook.md` — agent step 62 of 70.
+- **You are here:** `agent-purchasing-playbook.md` — agent step 63 of 71.
 - **Next:** `checkout-flow.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

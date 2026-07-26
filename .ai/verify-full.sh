@@ -4,9 +4,9 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-echo "→ npm run build --if-present"
-npm run build --if-present || { echo "✗ verify-full failed: npm run build --if-present"; exit 1; }
-echo "→ npm run test --if-present"
-npm run test --if-present || { echo "✗ verify-full failed: npm run test --if-present"; exit 1; }
+echo "→ pnpm run build --if-present"
+pnpm run build --if-present || { echo "✗ verify-full failed: pnpm run build --if-present"; exit 1; }
+echo "→ pnpm run test --if-present"
+pnpm run test --if-present || { echo "✗ verify-full failed: pnpm run test --if-present"; exit 1; }
 
 echo "✅ verify-full passed"

@@ -9,7 +9,7 @@
         "#3178C6",
         "#64748B",
         "#64748B",
-        "#F7DF1E"
+        "#64748B"
       ],
       "description": "Base color derived from project language palette"
     },
@@ -39,7 +39,7 @@
         200,
         400
       ],
-      "description": "Element density based on project scale (492 files)"
+      "description": "Element density based on project scale (500 files)"
     },
     {
       "name": "layout",
@@ -289,18 +289,13 @@
       "style": "hero"
     },
     {
-      "text": "packages/ (monorepo_packages)",
-      "position": "top",
-      "style": "caption"
-    },
-    {
       "text": "docs/ (documentation)",
       "position": "top",
       "style": "caption"
     },
     {
-      "text": "examples/ (project_directory)",
-      "position": "bottom",
+      "text": "packages/ (monorepo_packages)",
+      "position": "top",
       "style": "caption"
     },
     {
@@ -309,7 +304,12 @@
       "style": "caption"
     },
     {
-      "text": ".github/ (project_directory)",
+      "text": "examples/ (project_directory)",
+      "position": "bottom",
+      "style": "caption"
+    },
+    {
+      "text": "scripts/ (build_scripts)",
       "position": "bottom",
       "style": "caption"
     }

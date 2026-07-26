@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -82,20 +82,21 @@ This project uses: React
 | CLI commands | kebab-case | `generate-report` |
 | API endpoints | kebab-case | `/v1/search/export` |
 | Config keys | snake_case | `max_file_size` |
-| Environment vars | SCREAMING_SNAKE | `AXIS_DB_PATH` |
+| Environment vars | SCREAMING_SNAKE | `DATABASE_URL` |
 
 ## Existing Brand Assets
 
-- `.github/actions/context-freshness/README.md` (5411 bytes)
-- `CONTRIBUTING.md` (6516 bytes)
-- `README.md` (17793 bytes)
-- `docs/agentic-asset/README.md` (2807 bytes)
+- `CONTRIBUTING.md` (6602 bytes)
+- `README.md` (19705 bytes)
+- `examples/README.json` (9346 bytes)
+- `examples/README.md` (5761 bytes)
+- … and 15 more
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `brand-guidelines.md` — agent step 15 of 70.
+- **You are here:** `brand-guidelines.md` — agent step 15 of 71.
 - **Next:** `voice-and-tone.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

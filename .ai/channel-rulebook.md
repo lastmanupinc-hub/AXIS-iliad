@@ -1,10 +1,9 @@
 # Channel Rulebook — axis-iliad
 
-Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -44,7 +43,7 @@ Channel-specific brand and content rules for consistent communication.
 | Tone | Confident, concise, technical-but-approachable |
 | Max length | 280 chars (aim for < 200) |
 | Hashtags | Max 2 per post |
-| Branded hashtags | #axisiliad, #BuiltWithaxisiliad |
+| Branded hashtags | #AxisIliad, #BuiltWithAxisIliad |
 | Thread style | Numbered, each tweet self-contained |
 | Media | Screenshot or GIF with every thread |
 
@@ -104,16 +103,17 @@ Channel-specific brand and content rules for consistent communication.
 
 These files should comply with channel rules:
 
-- `.github/actions/context-freshness/README.md` (5411 bytes)
-- `README.md` (17793 bytes)
-- `docs/agentic-asset/README.md` (2807 bytes)
-- `examples/01-paid-platform/README.md` (947 bytes)
+- `README.md` (19705 bytes)
+- `examples/README.json` (9346 bytes)
+- `examples/README.md` (5761 bytes)
+- `mcp/README.md` (1995 bytes)
+- … and 14 more
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `channel-rulebook.md` — agent step 57 of 70.
+- **You are here:** `channel-rulebook.md` — agent step 58 of 71.
 - **Next:** `ab-test-plan.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

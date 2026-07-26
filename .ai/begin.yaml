@@ -20,6 +20,7 @@ project_begin:
   required_read_order:
     - read_this_file_first
     - then_read_continuation_yaml
+    - then_check_the_ticket_inbox      # inter_repo_ticket_system.inbox — requests that arrived since last session
     - then_take_the_highest_priority_open_candidate
 
   # Who decides what. Keeps a non-technical owner in the loop WITHOUT needing them to code.
@@ -43,6 +44,7 @@ project_begin:
     - verify it against its acceptance_check (build/run/test must be green)
     - update continuation.yaml — mark it done, record evidence, append any new candidates discovered
     - commit the change
+    - check the ticket inbox and triage any new tickets into the queue   # inter_repo_ticket_system.triage_policy
     - re-rank the remaining candidates
     - continue_until_stop_condition
 
@@ -63,9 +65,85 @@ project_begin:
       - "apps/api/src/billing.ts"
       - "apps/api/src/handlers.ts"
       - "apps/api/src/rate-limiter.ts"
+      - "apps/api/src/mcp-tool-impls.ts"
+      - "apps/api/src/mpp.ts"
       - "apps/api/src/logger.ts"
-      - "apps/api/src/server.ts"
-      - "apps/web/src/App.tsx"
+
+  # Agent-to-agent work requests across the units below. See known_units.
+  inter_repo_ticket_system:
+    activated: "1970-01-01T00:00:00.000Z"
+    topology: in_repo_units
+    transport: file_based_no_network   # a ticket is filed by editing the target's begin.yaml directly
+    purpose: >
+      Let one unit ask another for work on a SHARED path (billing, auth,
+      payments, a shared contract or schema) WITHOUT editing that unit's files
+      while its own loop may be mid-candidate. The provider triages the ticket
+      into its own candidate queue, does the work under its own verification
+      discipline, and writes the completion notice back into the requester's
+      outbox — so the requester never polls.
+
+    known_units:
+      apps_api: "apps/api"
+      apps_cli: "apps/cli"
+      apps_web: "apps/web"
+      packages_agentic_compliance: "packages/agentic-compliance"
+      packages_ap2: "packages/ap2"
+      packages_context_engine: "packages/context-engine"
+      packages_generator_core: "packages/generator-core"
+      packages_iliad_md: "packages/iliad-md"
+      packages_mpp: "packages/mpp"
+      packages_paid_client: "packages/paid-client"
+
+    ticket_schema:
+      # Copy this template, fill it in, append it under inbox.tickets in the
+      # unit you are requesting FROM. Do not edit any other section of its file.
+      template:
+        id: ""                    # TICKET-<from_unit>-<short-slug>-<YYYYMMDD>
+        from_unit: ""             # a known_units key
+        from_agent_session: ""    # your session id or a short human label
+        submitted: ""             # YYYY-MM-DD
+        status: submitted         # submitted -> in_progress -> confirmed -> archived
+        severity: normal          # normal | priority_1 (priority_1 pauses the loop like a direct operator report)
+        title: ""                 # one line
+        request: >
+          Exactly what you need: endpoint, field, behavior. Point at your OWN
+          canonical spec file if one exists instead of restating it here.
+        why: ""                   # what this blocks on your side
+        acceptance_criteria: []   # concrete conditions the provider can self-verify
+        pointer_back: ""          # where in YOUR unit to also check/write, if not your own outbox
+
+    inbox:
+      # Tickets other units have filed against THIS one. Every ticket with
+      # status: submitted is triaged before the next candidate is picked.
+      tickets: []
+      archived_tickets: []
+
+    outbox:
+      # Tickets THIS unit has filed elsewhere. The provider updates status
+      # directly here when they act on it, using the same schema.
+      tickets: []
+      archived_tickets: []
+
+    triage_policy:
+      on_new_inbox_ticket:
+        - assign_a_candidate_id_and_add_to_the_candidate_queue
+        - severity_priority_1_is_handled_before_the_next_candidate
+        - severity_normal_takes_its_place_in_normal_priority_rank_order
+        - set_ticket_status_in_progress_and_record_the_assigned_candidate_id
+      on_candidate_close:
+        - set_ticket_status_confirmed_in_inbox
+        - write_the_same_confirmation_into_the_requesters_outbox_entry_with_matching_id
+      on_mutual_confirmation:
+        - move_the_ticket_to_archived_tickets_in_both_places
+
+    notify_protocol:
+      where: "<from_unit>/begin.yaml#project_begin.inter_repo_ticket_system.outbox.tickets[id]"
+      what_to_write:
+        status: confirmed
+        confirmed: ""              # YYYY-MM-DD
+        provider_candidate_id: ""  # the candidate you closed for this ticket
+        evidence: ""               # commit SHA + what was verified
+        summary: ""                # 1-3 sentences
 
   # The loop closes here. After finishing a candidate, do NOT stop — return to the top:
   on_cycle_complete: "Re-read this file and continue:  begin"

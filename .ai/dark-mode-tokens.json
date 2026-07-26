@@ -94,12 +94,13 @@
     "media_query": "@media (prefers-color-scheme: dark)",
     "tailwind_config": null,
     "css_variables": {
-      "prefix": "--color",
-      "example": "--color-bg-base: #070b11",
-      "selector": ":root[data-theme='dark']"
+      "prefix": "--surface / --color",
+      "example": "--surface-page: #070b11",
+      "selector": "[data-theme=\"dark\"]"
     }
   },
   "contrast_ratios": {
+    "note": "Approximate — computed for the preset palette; re-verify after you restyle the tokens.",
     "primary-on-base": {
       "ratio": "15.3:1",
       "passes": "AAA"
@@ -122,6 +123,7 @@
     }
   },
   "source_theme_files": [
-    "apps/web/src/index.css"
+    "apps/web/src/index.css",
+    "apps/web/src/theme.css"
   ]
 }

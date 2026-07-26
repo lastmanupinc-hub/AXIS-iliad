@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -48,6 +48,7 @@ Detected from codebase analysis — enforce in all generated content:
 - TypeScript strict mode
 - Linter configured
 - Formatter configured
+- pnpm workspaces
 - Makefile build
 
 ## Controlled Terminology
@@ -72,10 +73,11 @@ Detected from codebase analysis — enforce in all generated content:
 ## Detected Formatting Configs
 
 - `.prettierrc.json`
-- `apps/api/package.json`
-- `apps/api/tsconfig.json`
-- `apps/cli/package.json`
-- `apps/cli/tsconfig.json`
+- `package.json`
+- `tsconfig.base.json`
+- `vitest.config.ts`
+- `mcp/tsconfig.package.template.json`
+- … and 22 more
 
 ## Detected Content Violations (deterministic)
 
@@ -85,22 +87,24 @@ Detected from codebase analysis — enforce in all generated content:
 |-------|-------|
 | PLACEHOLDER | 1 |
 | MARKETING | 3 |
-| DISMISSIVE | 2 |
+| DISMISSIVE | 4 |
 
 | File | Line | Term | Class |
 |------|------|------|-------|
-| `TERMS_OF_SERVICE.md` | 125 | PLACEHOLDER | PLACEHOLDER |
-| `AXIS_DEMO_REPORT.md` | 89 | revolutionary | MARKETING |
+| `docs/x402/CONTRACT.md` | 145 | TBD | PLACEHOLDER |
+| `AXIS_DEMO_REPORT.md` | 91 | revolutionary | MARKETING |
 | `launch-content.md` | 101 | seamlessly | MARKETING |
 | `launch-content.md` | 161 | seamless | MARKETING |
 | `HARDENING_AUDIT.md` | 30 | simple | DISMISSIVE |
 | `docs/MERCHANT_INTEGRATION_DOGFOODING.md` | 76 | simple | DISMISSIVE |
+| `docs/runbooks/live-collection-verification.md` | 109 | simply | DISMISSIVE |
+| `packages/iliad-md/README.md` | 26 | simply | DISMISSIVE |
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `content-constraints.md` — agent step 17 of 70.
+- **You are here:** `content-constraints.md` — agent step 17 of 71.
 - **Next:** `superpower-pack.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -4,7 +4,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -23,14 +23,16 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Language Distribution
 
-- **TypeScript**: 80% ████████████████ (312 files, 89597 LOC)
-- **YAML**: 9.5% ██ (57 files, 10597 LOC)
-- **Markdown**: 5.6% █ (77 files, 6295 LOC)
-- **JavaScript**: 2% █ (9 files, 2273 LOC)
-- **JSON**: 1.7% █ (34 files, 1922 LOC)
-- **CSS**: 1% █ (1 files, 1149 LOC)
-- **HTML**: 0.1% █ (1 files, 158 LOC)
-- **Dockerfile**: 0% █ (1 files, 21 LOC)
+- **TypeScript**: 72% ██████████████ (284 files, 73592 LOC)
+- **YAML**: 12.6% ███ (35 files, 12895 LOC)
+- **Markdown**: 8.8% ██ (109 files, 8954 LOC)
+- **JSON**: 2.9% █ (42 files, 2991 LOC)
+- **JavaScript**: 1.8% █ (11 files, 1815 LOC)
+- **CSS**: 1.7% █ (2 files, 1744 LOC)
+- **HTML**: 0.2% █ (1 files, 172 LOC)
+- **PowerShell**: 0% █ (1 files, 39 LOC)
+- **Shell**: 0% █ (1 files, 38 LOC)
+- **Dockerfile**: 0% █ (1 files, 22 LOC)
 
 ## Architecture
 
@@ -39,7 +41,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - containerized
 
 ### Layer Boundaries
-- **presentation**: apps, frontend
+- **presentation**: apps
 
 ## Entry Points
 
@@ -49,16 +51,16 @@ No entry points detected.
 
 | Path | Inbound | Outbound | Risk |
 |------|---------|----------|------|
-| `apps/api/src/router.ts` | 96 | 4 | 1.0 |
-| `apps/api/src/test-helpers.ts` | 41 | 1 | 1.0 |
-| `apps/api/src/billing.ts` | 28 | 3 | 1.0 |
-| `apps/api/src/handlers.ts` | 23 | 14 | 1.0 |
-| `apps/api/src/rate-limiter.ts` | 36 | 2 | 1.0 |
-| `apps/api/src/logger.ts` | 25 | 0 | 1.0 |
-| `apps/api/src/server.ts` | 1 | 35 | 1.0 |
-| `apps/web/src/App.tsx` | 1 | 24 | 1.0 |
-| `packages/generator-core/src/generate.ts` | 30 | 6 | 1.0 |
-| `apps/api/src/mcp-tool-impls.ts` | 0 | 24 | 1.0 |
+| `apps/api/src/router.ts` | 113 | 4 | 1.0 |
+| `apps/api/src/test-helpers.ts` | 54 | 1 | 1.0 |
+| `apps/api/src/billing.ts` | 44 | 3 | 1.0 |
+| `apps/api/src/handlers.ts` | 36 | 21 | 1.0 |
+| `apps/api/src/rate-limiter.ts` | 46 | 2 | 1.0 |
+| `apps/api/src/mcp-tool-impls.ts` | 18 | 27 | 1.0 |
+| `apps/api/src/mpp.ts` | 19 | 1 | 1.0 |
+| `apps/api/src/logger.ts` | 34 | 0 | 1.0 |
+| `apps/api/src/mcp-server.ts` | 17 | 15 | 1.0 |
+| `apps/api/src/server.ts` | 2 | 35 | 1.0 |
 
 ## Artifact Generation Rules
 
@@ -68,48 +70,46 @@ When generating artifacts for this project:
 2. **Widget artifacts** should render project metrics from real data
 3. **Embed snippets** should include all conventions and warnings
 4. **File naming** should follow TypeScript conventions
-5. **Architecture score**: 65/100
+5. **Architecture score**: 64/100
 
 ## Dependencies (Top 10)
 
+- `@axis/agentic-compliance` @ workspace:*
+- `@axis/ap2` @ workspace:*
 - `@axis/context-engine` @ workspace:*
 - `@axis/generator-core` @ workspace:*
 - `@axis/mpp` @ workspace:*
 - `@axis/paid-client` @ workspace:*
 - `@axis/repo-parser` @ workspace:*
 - `@axis/snapshots` @ workspace:*
-- `@jmondi/oauth2-server` @ ^4.2.2
-- `dockerode` @ ^4.0.12
+- `dockerode` @ ^5.0.1
 - `ffmpeg-static` @ ^5.3.0
-- `jsonwebtoken` @ ^9.0.3
 
 ## Source Entry Points
 
 | File | Exports |
 |------|---------|
-| `apps/api/src/server.ts` | export const app = ... |
+| `apps/api/src/server.ts` | export const router = ..., export const app = ... |
 | `apps/web/src/App.tsx` | export function App() { ... } |
 | `apps/web/src/main.tsx` | default |
-| `packages/context-engine/src/index.ts` | export type { ... }, export { ... } |
 
 ## Component Signatures
 
 - `apps/web/src/App.tsx`: export function App() { ... }
+- `apps/web/src/routes.tsx`: export type PageId = ..., export type RouteParams = ..., export interface NavContext { ... }, export interface RouteContext extends NavContext { ... }, export type NavGroup = ..., export const NAV_GROUPS: readonly NavGroup[] = ..., export interface NavEntry { ... }, export interface RouteDef { ... }, export const ROUTES: RouteDef[] = ..., export const AUTH_ONLY_PAGES: ReadonlySet<PageId> = ..., export function routeForPage(page: PageId): RouteDef { ... }, export function matchPattern(pattern: string, hash: string): RouteParams | null { ... }, export interface RouteMatch { ... }, export function matchHash(rawHash: string): RouteMatch | null { ... }, export function hashForPage(page: PageId, params: RouteParams = ..., export function routeFromPathname(pathname: string): RouteDef | null { ... }, export function isRouteVisible(route: RouteDef, ctx: NavContext): boolean { ... }, export function navLabelFor(route: RouteDef, ctx: NavContext): string { ... }, export function tabLabelFor(route: RouteDef, ctx: NavContext): string { ... }, export function routeForShortcut(digit: number, ctx: NavContext): RouteDef | null { ... }, export function ownsShortcut(route: RouteDef, ctx: NavContext): boolean { ... }, export type NavRouteDef = ..., export function visibleNavRoutes(ctx: NavContext): NavRouteDef[] { ... }, export function visibleRailRoutes(ctx: NavContext): NavRouteDef[] { ... }, export function visibleGroupRoutes(group: NavGroup, ctx: NavContext): NavRouteDef[] { ... }
+- `apps/web/src/components/ArtifactExplorer.tsx`: export function ArtifactExplorer({ ... }
 - `apps/web/src/components/AuthButtons.tsx`: export function AuthButtons({ ... }
 - `apps/web/src/components/AxisIcons.tsx`: export function Icon({ ... }
 - `apps/web/src/components/CommandPalette.tsx`: export interface PaletteAction { ... }, export function CommandPalette({ ... }
+- `apps/web/src/components/DangerButton.tsx`: export function DangerButton({ ... }
+- `apps/web/src/components/DiffViewer.tsx`: export function computeLineDiff(oldText: string, newText: string): DiffLine[] { ... }, export interface DiffViewerProps { ... }, export function DiffViewer({ ... }
 - `apps/web/src/components/FilesTab.tsx`: export function FilesTab({ ... }
-- `apps/web/src/components/GeneratedTab.tsx`: export function GeneratedTab({ ... }
-- `apps/web/src/components/GraphTab.tsx`: export function GraphTab({ ... }
-- `apps/web/src/components/Icon.tsx`: export function Icon({ ... }
-- `apps/web/src/components/OverviewTab.tsx`: export function OverviewTab({ ... }
-- `apps/web/src/components/ProgramLauncher.tsx`: export function ProgramLauncher({ ... }
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `artifact-spec.md` — agent step 39 of 70.
+- **You are here:** `artifact-spec.md` — agent step 39 of 71.
 - **Next:** `prd.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

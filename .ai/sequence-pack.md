@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -26,11 +26,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ### Email 2: Core Feature (Day 2)
 
-**Subject**: The one axis-iliad feature everyone uses first
+**Subject**: Getting started with axis-iliad's core concepts
 
 **Body**:
-- Highlight these domain entities: **AlertThresholds**, **Counters**, **DebounceState**
-- Show how to create and interact with a `AlertThresholds` end-to-end
+- Detected domain entities to consider featuring: **AlertThresholds**, **Counters**, **DebounceState**
+- Pick the most user-facing one and show how to create/interact with it end-to-end
 - Step-by-step walkthrough with code/screenshots
 - CTA: Try this feature
 
@@ -80,13 +80,13 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Detected Contributor Assets
 
-- `CONTRIBUTING.md` (6516 bytes)
+- `CONTRIBUTING.md` (6602 bytes)
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `sequence-pack.md` — agent step 23 of 70.
+- **You are here:** `sequence-pack.md` — agent step 23 of 71.
 - **Next:** `cro-playbook.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

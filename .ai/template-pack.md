@@ -4,7 +4,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -102,7 +102,7 @@ What was changed and why.
 ---
 type: concept
 project: axis-iliad
-tags: ["apps/ (monorepo_apps)", "packages/ (monorepo_packages)", "docs/ (documentation)"]
+tags: ["apps-monorepo-apps", "docs-documentation", "packages-monorepo-packages"]
 ---
 # {{title}}
 
@@ -150,13 +150,13 @@ sprint:
 ## Source File Summary
 
 Total source files: 500
-Config files: .prettierrc.json, apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json
+Config files: .prettierrc.json, package.json, tsconfig.base.json, vitest.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, apps/api/package.json, apps/api/tsconfig.json, packages/agentic-compliance/package.json, packages/agentic-compliance/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, packages/ap2/package.json, packages/ap2/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json, packages/generator-core/tsconfig.json, packages/iliad-md/package.json, packages/iliad-md/tsconfig.json, packages/mpp/package.json, packages/mpp/tsconfig.json, packages/paid-client/package.json, packages/paid-client/tsconfig.json
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `template-pack.md` — agent step 59 of 70.
+- **You are here:** `template-pack.md` — agent step 60 of 71.
 - **Next:** `storyboard.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

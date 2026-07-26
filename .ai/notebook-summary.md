@@ -4,16 +4,16 @@
 
 ## Project Synopsis
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Architecture Overview
 
-- **Files**: 500 files across 57 directories
-- **Lines of Code**: 115,124
+- **Files**: 500 files across 45 directories
+- **Lines of Code**: 108,805
 - **Primary Language**: TypeScript
 - **Frameworks**: React
 - **Patterns**: monorepo, containerized
-- **Separation Score**: 0.65 / 1.0
+- **Separation Score**: 0.64 / 1.0
 
 ## Key Concepts
 
@@ -27,44 +27,41 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - **`AnalyticsCountByEventRow`** — interface (2 fields in `apps/api/src/analytics.ts`)
 - **`AnalyticsCountResult`** — interface (2 fields in `apps/api/src/analytics.ts`)
 - **`AnalyticsDistinctUsersResult`** — interface (2 fields in `apps/api/src/analytics.ts`)
+- *(+268 more)*
 
 ## Conventions
 
 - TypeScript strict mode
 - Linter configured
 - Formatter configured
+- pnpm workspaces
 - Makefile build
-
-## Warnings & Notes
-
-- ⚠ No lockfile found — dependency versions may be inconsistent
 
 ## Dependency Snapshot
 
-Total external dependencies: **32**
+Total external dependencies: **41**
 
 | Package | Version |
 |---------|---------|
+| @axis/agentic-compliance | workspace:* |
+| @axis/ap2 | workspace:* |
 | @axis/context-engine | workspace:* |
 | @axis/generator-core | workspace:* |
 | @axis/mpp | workspace:* |
 | @axis/paid-client | workspace:* |
 | @axis/repo-parser | workspace:* |
 | @axis/snapshots | workspace:* |
-| @jmondi/oauth2-server | ^4.2.2 |
-| dockerode | ^4.0.12 |
+| dockerode | ^5.0.1 |
 | ffmpeg-static | ^5.3.0 |
-| jsonwebtoken | ^9.0.3 |
-| ... | +22 more |
+| ... | +31 more |
 
 ## Entry Point Source
 
 | File | Exports |
 |------|---------|
-| `apps/api/src/server.ts` | export const app = ... |
+| `apps/api/src/server.ts` | export const router = ..., export const app = ... |
 | `apps/web/src/App.tsx` | export function App() { ... } |
-| `apps/web/src/main.tsx` | default |
-| `packages/context-engine/src/index.ts` | export type { ... }, export { ... } |
+| `apps/web/src/main.tsx` | (no exports) |
 
 ## Configuration Files
 
@@ -80,40 +77,46 @@ Total external dependencies: **32**
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-... (22 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+... (53 more lines)
 ```
 
-### `apps/api/tsconfig.json`
+### `tsconfig.base.json`
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
-    "rootDir": "src"
-  },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
-}
-
+... (5 more lines)
 ```
 
 
@@ -121,6 +124,6 @@ Total external dependencies: **32**
 
 ## ⟳ Continue the loop
 
-- **You are here:** `notebook-summary.md` — agent step 25 of 70.
+- **You are here:** `notebook-summary.md` — agent step 25 of 71.
 - **Next:** `study-brief.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -6,7 +6,7 @@ Comprehensive visual identity reference for all project-branded outputs.
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Color Palette
 
@@ -85,17 +85,17 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Stack Badge Bar
 
 - `React`
-- `TypeScript` — 80% of codebase
-- `YAML` — 10% of codebase
-- `Markdown` — 6% of codebase
+- `TypeScript` — 72.0% of codebase
+- `YAML` — 12.6% of codebase
+- `Markdown` — 8.8% of codebase
 
 ### Key Abstractions for Branding
 
 - **apps/ (monorepo_apps)** — candidate for conceptual branding element
-- **packages/ (monorepo_packages)** — candidate for conceptual branding element
 - **docs/ (documentation)** — candidate for conceptual branding element
-- **examples/ (project_directory)** — candidate for conceptual branding element
+- **packages/ (monorepo_packages)** — candidate for conceptual branding element
 - **mcp/ (project_directory)** — candidate for conceptual branding element
+- **examples/ (project_directory)** — candidate for conceptual branding element
 
 ### Domain Models
 
@@ -107,10 +107,7 @@ Consider domain-specific iconography for:
 - **WindowResult** (interface) — 4 fields, from apps/api/src/alerting.ts
 - **AnalyticsCountByBucketResult** (interface) — 3 fields, from apps/api/src/analytics.ts
 - **AnalyticsCountByBucketRow** (interface) — 2 fields, from apps/api/src/analytics.ts
-
-### Brand Warnings
-
-> ⚠ No lockfile found — dependency versions may be inconsistent
+- …and 272 more
 
 ## Spacing & Layout Tokens
 
@@ -136,24 +133,11 @@ Consider domain-specific iconography for:
 | GitHub Social | 1280×640 | Minimal, mark + wordmark centered |
 | LinkedIn Banner | 1584×396 | Brand gradient, wordmark left-aligned |
 
-## Detected Brand Assets
-
-- `apps/web/src/components/AxisIcons.tsx`
-- `apps/web/src/components/Icon.tsx`
-- `brand/MEMORY.yaml`
-- `brand/begin.yaml`
-- `brand/continuation.yaml`
-- `brand/schemas/output-contract.schema.json`
-- `packages/generator-core/src/generators-brand-develop.test.ts`
-- `packages/generator-core/src/generators-brand-injection.test.ts`
-- `packages/generator-core/src/generators-brand-polish.test.ts`
-- `packages/generator-core/src/generators-brand.ts`
-
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `brand-board.md` — agent step 61 of 70.
+- **You are here:** `brand-board.md` — agent step 62 of 71.
 - **Next:** `agent-purchasing-playbook.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

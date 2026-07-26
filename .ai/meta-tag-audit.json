@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -39,11 +39,11 @@
   },
   "per_route_audit": [
     {
-      "route": "/llms.txt",
-      "source_file": "apps/api/src/server.ts",
+      "route": "/health",
+      "source_file": "docs/archive/e2e_ui_audit.yaml",
       "required_tags": {
         "title": {
-          "template": "llms.txt | axis-iliad",
+          "template": "health | axis-iliad",
           "max_length": 60,
           "status": "verify"
         },
@@ -53,119 +53,7 @@
           "status": "verify"
         },
         "canonical": {
-          "value": "https://example.com/llms.txt",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/.well-known/skills/index.json",
-      "source_file": "apps/api/src/server.ts",
-      "required_tags": {
-        "title": {
-          "template": "index.json | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive founda",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/.well-known/skills/index.json",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/.well-known/axis.json",
-      "source_file": "apps/api/src/server.ts",
-      "required_tags": {
-        "title": {
-          "template": "axis.json | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive founda",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/.well-known/axis.json",
+          "value": "https://example.com/health",
           "status": "verify"
         }
       },
@@ -222,174 +110,6 @@
         },
         "canonical": {
           "value": "https://example.com/for-agents",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/health",
-      "source_file": "apps/api/src/server.ts",
-      "required_tags": {
-        "title": {
-          "template": "health | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive founda",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/health",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/mcp",
-      "source_file": "apps/api/src/server.ts",
-      "required_tags": {
-        "title": {
-          "template": "mcp | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive founda",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/mcp",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/mcp/docs",
-      "source_file": "apps/api/src/server.ts",
-      "required_tags": {
-        "title": {
-          "template": "docs | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive founda",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/mcp/docs",
           "status": "verify"
         }
       },
@@ -599,11 +319,11 @@
       }
     },
     {
-      "route": "/.well-known/capabilities.json",
+      "route": "/docs",
       "source_file": "apps/api/src/server.ts",
       "required_tags": {
         "title": {
-          "template": "capabilities.json | axis-iliad",
+          "template": "docs | axis-iliad",
           "max_length": 60,
           "status": "verify"
         },
@@ -613,7 +333,7 @@
           "status": "verify"
         },
         "canonical": {
-          "value": "https://example.com/.well-known/capabilities.json",
+          "value": "https://example.com/docs",
           "status": "verify"
         }
       },
@@ -655,11 +375,11 @@
       }
     },
     {
-      "route": "/.well-known/mcp.json",
+      "route": "/pricing",
       "source_file": "apps/api/src/server.ts",
       "required_tags": {
         "title": {
-          "template": "mcp.json | axis-iliad",
+          "template": "pricing | axis-iliad",
           "max_length": 60,
           "status": "verify"
         },
@@ -669,7 +389,7 @@
           "status": "verify"
         },
         "canonical": {
-          "value": "https://example.com/.well-known/mcp.json",
+          "value": "https://example.com/pricing",
           "status": "verify"
         }
       },
@@ -711,11 +431,11 @@
       }
     },
     {
-      "route": "/.well-known/security.txt",
+      "route": "/accounts",
       "source_file": "apps/api/src/server.ts",
       "required_tags": {
         "title": {
-          "template": "security.txt | axis-iliad",
+          "template": "accounts | axis-iliad",
           "max_length": 60,
           "status": "verify"
         },
@@ -725,7 +445,7 @@
           "status": "verify"
         },
         "canonical": {
-          "value": "https://example.com/.well-known/security.txt",
+          "value": "https://example.com/accounts",
           "status": "verify"
         }
       },
@@ -767,11 +487,11 @@
       }
     },
     {
-      "route": "/.well-known/glama.json",
+      "route": "/accounts/",
       "source_file": "apps/api/src/server.ts",
       "required_tags": {
         "title": {
-          "template": "glama.json | axis-iliad",
+          "template": " | axis-iliad",
           "max_length": 60,
           "status": "verify"
         },
@@ -781,63 +501,7 @@
           "status": "verify"
         },
         "canonical": {
-          "value": "https://example.com/.well-known/glama.json",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/.well-known/agent.json",
-      "source_file": "apps/api/src/server.ts",
-      "required_tags": {
-        "title": {
-          "template": "agent.json | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive founda",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/.well-known/agent.json",
+          "value": "https://example.com/accounts/",
           "status": "verify"
         }
       },
@@ -881,17 +545,7 @@
   ],
   "structured_data_recommendations": [
     {
-      "route": "/llms.txt",
-      "schema_type": "WebPage",
-      "priority": "medium"
-    },
-    {
-      "route": "/.well-known/skills/index.json",
-      "schema_type": "WebPage",
-      "priority": "medium"
-    },
-    {
-      "route": "/.well-known/axis.json",
+      "route": "/health",
       "schema_type": "WebPage",
       "priority": "medium"
     },
@@ -901,24 +555,34 @@
       "priority": "medium"
     },
     {
-      "route": "/health",
-      "schema_type": "WebPage",
-      "priority": "medium"
-    },
-    {
-      "route": "/mcp",
-      "schema_type": "WebPage",
-      "priority": "medium"
-    },
-    {
-      "route": "/mcp/docs",
-      "schema_type": "WebPage",
-      "priority": "medium"
-    },
-    {
       "route": "/",
       "schema_type": "WebSite",
       "priority": "high"
+    },
+    {
+      "route": "/performance",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/performance/reputation",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/docs",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/pricing",
+      "schema_type": "Product",
+      "priority": "medium"
+    },
+    {
+      "route": "/accounts",
+      "schema_type": "WebPage",
+      "priority": "medium"
     }
   ],
   "issues": [
@@ -955,83 +619,6 @@
       "has_og_tags": true,
       "has_structured_data": true,
       "has_description": true
-    },
-    {
-      "path": "apps/web/src/components/ToolPage.tsx",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": true
-    },
-    {
-      "path": "apps/web/src/index.css",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/AccountPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/AdminPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/DashboardPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/DocsPage.tsx",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": true
-    },
-    {
-      "path": "apps/web/src/pages/ExamplesPage.tsx",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": true
-    },
-    {
-      "path": "apps/web/src/pages/ForAgentsPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/HelpPage.tsx",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": true
-    },
-    {
-      "path": "apps/web/src/pages/InstallPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/MyAnalyticsPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
     }
   ]
 }

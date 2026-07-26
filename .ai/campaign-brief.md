@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -36,10 +36,10 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Value Propositions
 
 1. **React Stack** — Built on React ^19.1.0 with stack-native patterns throughout
-2. **163 Routes** — 92 GET, 66 POST, 5 DELETE across 2 source files
-3. **242 Domain Entities** — AlertThresholds, Counters, DebounceState, WindowResult, AnalyticsCountByBucketResult and 237 more
-4. **Test-Driven Quality** — Verified with vitest across 189 test files
-5. **Clean Architecture** — monorepo, containerized (0.65 separation score)
+2. **174 Routes** — 102 GET, 65 POST, 6 DELETE, 1 PATCH across 3 source files
+3. **278 Domain Entities** — AlertThresholds, Counters, DebounceState, WindowResult, AnalyticsCountByBucketResult and 273 more
+4. **Test-Driven Quality** — Verified with vitest across 177 test files
+5. **Clean Architecture** — monorepo, containerized (0.64 separation score)
 
 ## Distribution Channels
 
@@ -62,14 +62,16 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Source-Derived Messaging
 
-- **README tagline**: A composite GitHub Action that checks whether a repo's agent-context files have
-- **README tagline**: > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors t
+- **Package description**: Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)
+- **Keywords**: ai, agents, mcp, codebase-analysis, artifact-generation, agents-md, claude-md, cursorrules, llm-context, visa-compliance, x402, ap2, agentic-commerce
+- **README tagline**: Iliad is the **x402 showcase** in the Trust Fabric stack. Full registry: [`ecosystem.registry.yaml`](ecosystem.registry…
+- **README tagline**: "title": "Axis' Iliad — Example Repos",
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `campaign-brief.md` — agent step 21 of 70.
+- **You are here:** `campaign-brief.md` — agent step 21 of 71.
 - **Next:** `funnel-map.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -30,6 +30,6 @@ Open an issue on the source repository for bug reports or feature requests. Comm
 
 ## ⟳ Continue the loop
 
-- **You are here:** `packaging/manifests/github-marketplace-listing.md` — agent step 67 of 70.
+- **You are here:** `packaging/manifests/github-marketplace-listing.md` — agent step 68 of 71.
 - **Next:** `packaging-report.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

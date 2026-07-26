@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -9,12 +9,12 @@
       "confidence": 0.95
     }
   ],
-  "total_nodes": 74,
-  "total_edges": 73,
+  "total_nodes": 82,
+  "total_edges": 81,
   "truncated": {
     "domain_models": {
       "shown": 60,
-      "total": 242
+      "total": 278
     }
   },
   "nodes": [
@@ -40,49 +40,97 @@
       "id": "abs_0",
       "type": "concept",
       "label": "apps/ (monorepo_apps)",
-      "note_path": "Projects/axis-iliad/Concepts/apps/-(monorepo_apps).md"
+      "note_path": "Projects/axis-iliad/Concepts/apps-monorepo_apps.md"
     },
     {
       "id": "abs_1",
       "type": "concept",
-      "label": "packages/ (monorepo_packages)",
-      "note_path": "Projects/axis-iliad/Concepts/packages/-(monorepo_packages).md"
+      "label": "docs/ (documentation)",
+      "note_path": "Projects/axis-iliad/Concepts/docs-documentation.md"
     },
     {
       "id": "abs_2",
       "type": "concept",
-      "label": "docs/ (documentation)",
-      "note_path": "Projects/axis-iliad/Concepts/docs/-(documentation).md"
+      "label": "packages/ (monorepo_packages)",
+      "note_path": "Projects/axis-iliad/Concepts/packages-monorepo_packages.md"
     },
     {
       "id": "abs_3",
       "type": "concept",
-      "label": "examples/ (project_directory)",
-      "note_path": "Projects/axis-iliad/Concepts/examples/-(project_directory).md"
+      "label": "mcp/ (project_directory)",
+      "note_path": "Projects/axis-iliad/Concepts/mcp-project_directory.md"
     },
     {
       "id": "abs_4",
       "type": "concept",
-      "label": "mcp/ (project_directory)",
-      "note_path": "Projects/axis-iliad/Concepts/mcp/-(project_directory).md"
+      "label": "examples/ (project_directory)",
+      "note_path": "Projects/axis-iliad/Concepts/examples-project_directory.md"
     },
     {
       "id": "abs_5",
       "type": "concept",
-      "label": ".github/ (project_directory)",
-      "note_path": "Projects/axis-iliad/Concepts/.github/-(project_directory).md"
+      "label": "scripts/ (build_scripts)",
+      "note_path": "Projects/axis-iliad/Concepts/scripts-build_scripts.md"
     },
     {
       "id": "abs_6",
       "type": "concept",
-      "label": "algorithmic/ (project_directory)",
-      "note_path": "Projects/axis-iliad/Concepts/algorithmic/-(project_directory).md"
+      "label": ".github/ (project_directory)",
+      "note_path": "Projects/axis-iliad/Concepts/.github-project_directory.md"
     },
     {
       "id": "abs_7",
       "type": "concept",
-      "label": "artifacts/ (project_directory)",
-      "note_path": "Projects/axis-iliad/Concepts/artifacts/-(project_directory).md"
+      "label": "packaging/ (project_directory)",
+      "note_path": "Projects/axis-iliad/Concepts/packaging-project_directory.md"
+    },
+    {
+      "id": "hotspot_0",
+      "type": "code",
+      "label": "apps/api/src/router.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-router-ts.md"
+    },
+    {
+      "id": "hotspot_1",
+      "type": "code",
+      "label": "apps/api/src/test-helpers.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-test-helpers-ts.md"
+    },
+    {
+      "id": "hotspot_2",
+      "type": "code",
+      "label": "apps/api/src/billing.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-billing-ts.md"
+    },
+    {
+      "id": "hotspot_3",
+      "type": "code",
+      "label": "apps/api/src/handlers.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-handlers-ts.md"
+    },
+    {
+      "id": "hotspot_4",
+      "type": "code",
+      "label": "apps/api/src/rate-limiter.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-rate-limiter-ts.md"
+    },
+    {
+      "id": "hotspot_5",
+      "type": "code",
+      "label": "apps/api/src/mcp-tool-impls.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-mcp-tool-impls-ts.md"
+    },
+    {
+      "id": "hotspot_6",
+      "type": "code",
+      "label": "apps/api/src/mpp.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-mpp-ts.md"
+    },
+    {
+      "id": "hotspot_7",
+      "type": "code",
+      "label": "apps/api/src/logger.ts",
+      "note_path": "Projects/axis-iliad/Code/apps-api-src-logger-ts.md"
     },
     {
       "id": "model_0",
@@ -165,284 +213,284 @@
     {
       "id": "model_13",
       "type": "domain_model",
+      "label": "ChallengeWindow",
+      "note_path": "Projects/axis-iliad/Models/ChallengeWindow.md"
+    },
+    {
+      "id": "model_14",
+      "type": "domain_model",
       "label": "DriftDeps",
       "note_path": "Projects/axis-iliad/Models/DriftDeps.md"
     },
     {
-      "id": "model_14",
+      "id": "model_15",
       "type": "domain_model",
       "label": "DriftOutcome",
       "note_path": "Projects/axis-iliad/Models/DriftOutcome.md"
     },
     {
-      "id": "model_15",
+      "id": "model_16",
       "type": "domain_model",
       "label": "DriftResult",
       "note_path": "Projects/axis-iliad/Models/DriftResult.md"
     },
     {
-      "id": "model_16",
+      "id": "model_17",
       "type": "domain_model",
       "label": "PushInfo",
       "note_path": "Projects/axis-iliad/Models/PushInfo.md"
     },
     {
-      "id": "model_17",
+      "id": "model_18",
       "type": "domain_model",
       "label": "Attestation",
       "note_path": "Projects/axis-iliad/Models/Attestation.md"
     },
     {
-      "id": "model_18",
+      "id": "model_19",
       "type": "domain_model",
       "label": "AttestationInput",
       "note_path": "Projects/axis-iliad/Models/AttestationInput.md"
     },
     {
-      "id": "model_19",
+      "id": "model_20",
       "type": "domain_model",
       "label": "AttestationOutput",
       "note_path": "Projects/axis-iliad/Models/AttestationOutput.md"
     },
     {
-      "id": "model_20",
+      "id": "model_21",
       "type": "domain_model",
       "label": "ChainLink",
       "note_path": "Projects/axis-iliad/Models/ChainLink.md"
     },
     {
-      "id": "model_21",
+      "id": "model_22",
       "type": "domain_model",
       "label": "AuthContext",
       "note_path": "Projects/axis-iliad/Models/AuthContext.md"
     },
     {
-      "id": "model_22",
+      "id": "model_23",
+      "type": "domain_model",
+      "label": "SettleOptions",
+      "note_path": "Projects/axis-iliad/Models/SettleOptions.md"
+    },
+    {
+      "id": "model_24",
       "type": "domain_model",
       "label": "NotConfiguredResult",
       "note_path": "Projects/axis-iliad/Models/NotConfiguredResult.md"
     },
     {
-      "id": "model_23",
+      "id": "model_25",
       "type": "domain_model",
       "label": "SandboxOptions",
       "note_path": "Projects/axis-iliad/Models/SandboxOptions.md"
     },
     {
-      "id": "model_24",
+      "id": "model_26",
       "type": "domain_model",
       "label": "SandboxResult",
       "note_path": "Projects/axis-iliad/Models/SandboxResult.md"
     },
     {
-      "id": "model_25",
+      "id": "model_27",
       "type": "domain_model",
       "label": "CommerceArtifact",
       "note_path": "Projects/axis-iliad/Models/CommerceArtifact.md"
     },
     {
-      "id": "model_26",
+      "id": "model_28",
       "type": "domain_model",
       "label": "DisputeReadiness",
       "note_path": "Projects/axis-iliad/Models/DisputeReadiness.md"
     },
     {
-      "id": "model_27",
+      "id": "model_29",
+      "type": "domain_model",
+      "label": "NetworkToken",
+      "note_path": "Projects/axis-iliad/Models/NetworkToken.md"
+    },
+    {
+      "id": "model_30",
       "type": "domain_model",
       "label": "PurchaseDeps",
       "note_path": "Projects/axis-iliad/Models/PurchaseDeps.md"
     },
     {
-      "id": "model_28",
+      "id": "model_31",
       "type": "domain_model",
       "label": "ReadinessDimension",
       "note_path": "Projects/axis-iliad/Models/ReadinessDimension.md"
     },
     {
-      "id": "model_29",
+      "id": "model_32",
       "type": "domain_model",
       "label": "DeliverabilityKit",
       "note_path": "Projects/axis-iliad/Models/DeliverabilityKit.md"
     },
     {
-      "id": "model_30",
+      "id": "model_33",
       "type": "domain_model",
       "label": "DnsRecord",
       "note_path": "Projects/axis-iliad/Models/DnsRecord.md"
     },
     {
-      "id": "model_31",
+      "id": "model_34",
       "type": "domain_model",
       "label": "WarmupDay",
       "note_path": "Projects/axis-iliad/Models/WarmupDay.md"
     },
     {
-      "id": "model_32",
+      "id": "model_35",
+      "type": "domain_model",
+      "label": "AssembleRepresentmentArgs",
+      "note_path": "Projects/axis-iliad/Models/AssembleRepresentmentArgs.md"
+    },
+    {
+      "id": "model_36",
+      "type": "domain_model",
+      "label": "AssembleRepresentmentDeps",
+      "note_path": "Projects/axis-iliad/Models/AssembleRepresentmentDeps.md"
+    },
+    {
+      "id": "model_37",
+      "type": "domain_model",
+      "label": "AssembleRepresentmentResult",
+      "note_path": "Projects/axis-iliad/Models/AssembleRepresentmentResult.md"
+    },
+    {
+      "id": "model_38",
       "type": "domain_model",
       "label": "CompletionLike",
       "note_path": "Projects/axis-iliad/Models/CompletionLike.md"
     },
     {
-      "id": "model_33",
+      "id": "model_39",
       "type": "domain_model",
       "label": "DocChunk",
       "note_path": "Projects/axis-iliad/Models/DocChunk.md"
     },
     {
-      "id": "model_34",
+      "id": "model_40",
       "type": "domain_model",
       "label": "ExtractResult",
       "note_path": "Projects/axis-iliad/Models/ExtractResult.md"
     },
     {
-      "id": "model_35",
+      "id": "model_41",
       "type": "domain_model",
       "label": "OcrResult",
       "note_path": "Projects/axis-iliad/Models/OcrResult.md"
     },
     {
-      "id": "model_36",
+      "id": "model_42",
       "type": "domain_model",
       "label": "TesseractWorker",
       "note_path": "Projects/axis-iliad/Models/TesseractWorker.md"
     },
     {
-      "id": "model_37",
+      "id": "model_43",
       "type": "domain_model",
       "label": "DocxExtractResult",
       "note_path": "Projects/axis-iliad/Models/DocxExtractResult.md"
     },
     {
-      "id": "model_38",
+      "id": "model_44",
       "type": "domain_model",
       "label": "NotConfiguredResult",
       "note_path": "Projects/axis-iliad/Models/NotConfiguredResult-2.md"
     },
     {
-      "id": "model_39",
+      "id": "model_45",
       "type": "domain_model",
       "label": "ParseOptions",
       "note_path": "Projects/axis-iliad/Models/ParseOptions.md"
     },
     {
-      "id": "model_40",
+      "id": "model_46",
       "type": "domain_model",
       "label": "ParseResult",
       "note_path": "Projects/axis-iliad/Models/ParseResult.md"
     },
     {
-      "id": "model_41",
+      "id": "model_47",
       "type": "domain_model",
       "label": "PdfExtractResult",
       "note_path": "Projects/axis-iliad/Models/PdfExtractResult.md"
     },
     {
-      "id": "model_42",
+      "id": "model_48",
       "type": "domain_model",
       "label": "EmailConfig",
       "note_path": "Projects/axis-iliad/Models/EmailConfig.md"
     },
     {
-      "id": "model_43",
+      "id": "model_49",
       "type": "domain_model",
       "label": "ResendErrorResponse",
       "note_path": "Projects/axis-iliad/Models/ResendErrorResponse.md"
     },
     {
-      "id": "model_44",
+      "id": "model_50",
       "type": "domain_model",
       "label": "ResendSuccessResponse",
       "note_path": "Projects/axis-iliad/Models/ResendSuccessResponse.md"
     },
     {
-      "id": "model_45",
+      "id": "model_51",
       "type": "domain_model",
       "label": "SendEmailOptions",
       "note_path": "Projects/axis-iliad/Models/SendEmailOptions.md"
     },
     {
-      "id": "model_46",
+      "id": "model_52",
       "type": "domain_model",
       "label": "SendEmailResult",
       "note_path": "Projects/axis-iliad/Models/SendEmailResult.md"
     },
     {
-      "id": "model_47",
+      "id": "model_53",
       "type": "domain_model",
       "label": "CorpusAdapter",
       "note_path": "Projects/axis-iliad/Models/CorpusAdapter.md"
     },
     {
-      "id": "model_48",
+      "id": "model_54",
       "type": "domain_model",
       "label": "EngineerEmbedResult",
       "note_path": "Projects/axis-iliad/Models/EngineerEmbedResult.md"
     },
     {
-      "id": "model_49",
-      "type": "domain_model",
-      "label": "EmbeddingsConfig",
-      "note_path": "Projects/axis-iliad/Models/EmbeddingsConfig.md"
-    },
-    {
-      "id": "model_50",
+      "id": "model_55",
       "type": "domain_model",
       "label": "EmbeddingsResult",
       "note_path": "Projects/axis-iliad/Models/EmbeddingsResult.md"
     },
     {
-      "id": "model_51",
+      "id": "model_56",
       "type": "domain_model",
       "label": "OpenAIEmbeddingResponse",
       "note_path": "Projects/axis-iliad/Models/OpenAIEmbeddingResponse.md"
     },
     {
-      "id": "model_52",
+      "id": "model_57",
       "type": "domain_model",
       "label": "OpenAIErrorResponse",
       "note_path": "Projects/axis-iliad/Models/OpenAIErrorResponse.md"
     },
     {
-      "id": "model_53",
+      "id": "model_58",
       "type": "domain_model",
       "label": "EnvSpec",
       "note_path": "Projects/axis-iliad/Models/EnvSpec.md"
     },
     {
-      "id": "model_54",
+      "id": "model_59",
       "type": "domain_model",
       "label": "ValidationError",
       "note_path": "Projects/axis-iliad/Models/ValidationError.md"
-    },
-    {
-      "id": "model_55",
-      "type": "domain_model",
-      "label": "ValidationResult",
-      "note_path": "Projects/axis-iliad/Models/ValidationResult.md"
-    },
-    {
-      "id": "model_56",
-      "type": "domain_model",
-      "label": "ZipEntry",
-      "note_path": "Projects/axis-iliad/Models/ZipEntry.md"
-    },
-    {
-      "id": "model_57",
-      "type": "domain_model",
-      "label": "GhResponse",
-      "note_path": "Projects/axis-iliad/Models/GhResponse.md"
-    },
-    {
-      "id": "model_58",
-      "type": "domain_model",
-      "label": "OpenDriftPrParams",
-      "note_path": "Projects/axis-iliad/Models/OpenDriftPrParams.md"
-    },
-    {
-      "id": "model_59",
-      "type": "domain_model",
-      "label": "OpenDriftPrResult",
-      "note_path": "Projects/axis-iliad/Models/OpenDriftPrResult.md"
     },
     {
       "id": "prompt_context",
@@ -513,6 +561,46 @@
       "from": "architecture",
       "to": "abs_7",
       "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_0",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_1",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_2",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_3",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_4",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_5",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_6",
+      "relationship": "high_coupling"
+    },
+    {
+      "from": "architecture",
+      "to": "hotspot_7",
+      "relationship": "high_coupling"
     },
     {
       "from": "architecture",
@@ -835,6 +923,7 @@
     {
       "path": "apps/api/src/server.ts",
       "exports": [
+        "export const router = ...",
         "export const app = ..."
       ]
     },
@@ -847,13 +936,6 @@
     {
       "path": "apps/web/src/main.tsx",
       "exports": []
-    },
-    {
-      "path": "packages/context-engine/src/index.ts",
-      "exports": [
-        "export type { ... }",
-        "export { ... }"
-      ]
     }
   ]
 }

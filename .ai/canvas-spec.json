@@ -122,7 +122,7 @@
     "subtitle": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**",
     "type": "monorepo",
     "language": "TypeScript",
-    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
     "frameworks": [
       {
         "name": "React",
@@ -136,46 +136,56 @@
     "language_stats": [
       {
         "name": "TypeScript",
-        "percent": 80,
-        "loc": 89597
+        "percent": 72,
+        "loc": 73592
       },
       {
         "name": "YAML",
-        "percent": 9.5,
-        "loc": 10597
+        "percent": 12.6,
+        "loc": 12895
       },
       {
         "name": "Markdown",
-        "percent": 5.6,
-        "loc": 6295
-      },
-      {
-        "name": "JavaScript",
-        "percent": 2,
-        "loc": 2273
+        "percent": 8.8,
+        "loc": 8954
       },
       {
         "name": "JSON",
-        "percent": 1.7,
-        "loc": 1922
+        "percent": 2.9,
+        "loc": 2991
+      },
+      {
+        "name": "JavaScript",
+        "percent": 1.8,
+        "loc": 1815
       },
       {
         "name": "CSS",
-        "percent": 1,
-        "loc": 1149
+        "percent": 1.7,
+        "loc": 1744
       },
       {
         "name": "HTML",
-        "percent": 0.1,
-        "loc": 158
+        "percent": 0.2,
+        "loc": 172
+      },
+      {
+        "name": "PowerShell",
+        "percent": 0,
+        "loc": 39
+      },
+      {
+        "name": "Shell",
+        "percent": 0,
+        "loc": 38
       },
       {
         "name": "Dockerfile",
         "percent": 0,
-        "loc": 21
+        "loc": 22
       }
     ],
-    "architecture_score": 0.65,
+    "architecture_score": 64,
     "patterns": [
       "monorepo",
       "containerized"
@@ -184,17 +194,16 @@
       {
         "layer": "presentation",
         "directories": [
-          "apps",
-          "frontend"
+          "apps"
         ]
       }
     ],
     "entry_point_count": 0,
     "hotspot_count": 20,
-    "domain_model_count": 242,
-    "route_count": 163,
+    "domain_model_count": 278,
+    "route_count": 174,
     "total_files": 500,
-    "total_loc": 115124
+    "total_loc": 108805
   },
   "source_asset_files": null
 }

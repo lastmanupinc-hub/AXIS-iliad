@@ -17,12 +17,32 @@ type Entry = { path: string; type: string };
 const ROUTES: Route[] = [
   {
     "method": "GET",
+    "path": "/health",
+    "source": "docs/archive/e2e_ui_audit.yaml"
+  },
+  {
+    "method": "GET",
     "path": "/v1/health",
-    "source": "apps/api/src/server.ts"
+    "source": "docs/archive/e2e_ui_audit.yaml"
   },
   {
     "method": "POST",
     "path": "/v1/accounts",
+    "source": "apps/api/src/server.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/account",
+    "source": "apps/api/src/server.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/v1/account",
+    "source": "apps/api/src/server.ts"
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/account",
     "source": "apps/api/src/server.ts"
   },
   {
@@ -53,26 +73,6 @@ const ROUTES: Route[] = [
   {
     "method": "GET",
     "path": "/v1/admin/revenue",
-    "source": "apps/api/src/server.ts"
-  },
-  {
-    "method": "GET",
-    "path": "/llms.txt",
-    "source": "apps/api/src/server.ts"
-  },
-  {
-    "method": "GET",
-    "path": "/.well-known/skills/index.json",
-    "source": "apps/api/src/server.ts"
-  },
-  {
-    "method": "GET",
-    "path": "/v1/docs.md",
-    "source": "apps/api/src/server.ts"
-  },
-  {
-    "method": "GET",
-    "path": "/.well-known/axis.json",
     "source": "apps/api/src/server.ts"
   }
 ];

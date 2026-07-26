@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -98,7 +98,7 @@ I'm working with the following domain models in axis-iliad:
 - AnalyticsCountByBucketRow (interface, 2 fields) — defined in apps/api/src/analytics.ts
 - AnalyticsCountByEventResult (interface, 2 fields) — defined in apps/api/src/analytics.ts
 - AnalyticsCountByEventRow (interface, 2 fields) — defined in apps/api/src/analytics.ts
-  ... and 234 more
+  ... and 270 more
 
 When generating code that uses these types, import from their source files and
 do not redefine them.
@@ -131,17 +131,18 @@ vault/
 ## Detected Config Files for Vault Import
 
 - `.prettierrc.json`
-- `apps/api/package.json`
-- `apps/api/tsconfig.json`
-- `apps/cli/package.json`
-- `apps/cli/tsconfig.json`
-- `apps/web/package.json`
+- `package.json`
+- `tsconfig.base.json`
+- `vitest.config.ts`
+- `mcp/tsconfig.package.template.json`
+- `mcp/tsconfig.root.template.json`
+- … and 21 more
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `obsidian-skill-pack.md` — agent step 28 of 70.
+- **You are here:** `obsidian-skill-pack.md` — agent step 28 of 71.
 - **Next:** `vault-rules.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

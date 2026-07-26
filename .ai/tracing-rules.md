@@ -16,8 +16,12 @@ All API routes should log: request method, path, status code, duration (ms).
 
 | Method | Path | Source | Trace Priority |
 |--------|------|--------|----------------|
-| GET | `/v1/health` | apps/api/src/server.ts | NORMAL |
+| GET | `/health` | docs/archive/e2e_ui_audit.yaml | NORMAL |
+| GET | `/v1/health` | docs/archive/e2e_ui_audit.yaml | NORMAL |
 | POST | `/v1/accounts` | apps/api/src/server.ts | NORMAL |
+| GET | `/v1/account` | apps/api/src/server.ts | NORMAL |
+| PATCH | `/v1/account` | apps/api/src/server.ts | NORMAL |
+| DELETE | `/v1/account` | apps/api/src/server.ts | NORMAL |
 | POST | `/v1/snapshots` | apps/api/src/server.ts | NORMAL |
 | GET | `/v1/admin/stats` | apps/api/src/server.ts | NORMAL |
 | GET | `/v1/admin/accounts` | apps/api/src/server.ts | NORMAL |
@@ -32,6 +36,7 @@ All API routes should log: request method, path, status code, duration (ms).
 | GET | `/v1/install` | apps/api/src/server.ts | NORMAL |
 | GET | `/v1/install/:platform` | apps/api/src/server.ts | NORMAL |
 | POST | `/probe-intent` | apps/api/src/server.ts | NORMAL |
+| GET | `/v1/error-codes` | apps/api/src/server.ts | NORMAL |
 | POST | `/mcp` | apps/api/src/server.ts | NORMAL |
 | POST | `/v1/analyze` | apps/api/src/server.ts | NORMAL |
 | GET | `/v1/snapshots/:snapshot_id` | apps/api/src/server.ts | NORMAL |
@@ -61,12 +66,7 @@ All API routes should log: request method, path, status code, duration (ms).
 | GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/server.ts | NORMAL |
 | POST | `/v1/account/programs` | apps/api/src/server.ts | NORMAL |
 | POST | `/v1/account/github-token` | apps/api/src/server.ts | NORMAL |
-| GET | `/health` | apps/api/src/server.ts | NORMAL |
-| POST | `/v1/search/export` | apps/api/src/server.ts | NORMAL |
-| POST | `/v1/skills/generate` | apps/api/src/server.ts | NORMAL |
-| POST | `/v1/frontend/audit` | apps/api/src/server.ts | NORMAL |
-| POST | `/v1/seo/analyze` | apps/api/src/server.ts | NORMAL |
-| *… 113 more* | | | |
+| *… 124 more* | | | |
 
 ### Domain Model Watch List
 
@@ -85,6 +85,7 @@ State transitions on these entities should be logged:
 - `AnalyticsEvent` (interface, 4 fields) — `apps/api/src/analytics.ts`
 - `AnalyticsQuery` (interface, 8 fields) — `apps/api/src/analytics.ts`
 - `WhereClause` (interface, 2 fields) — `apps/api/src/analytics.ts`
+- `ChallengeWindow` (interface, 2 fields) — `apps/api/src/anon-frontdoor.ts`
 - `DriftDeps` (interface, 5 fields) — `apps/api/src/architecture-drift-webhook.ts`
 - `DriftOutcome` (interface, 3 fields) — `apps/api/src/architecture-drift-webhook.ts`
 - `DriftResult` (interface, 3 fields) — `apps/api/src/architecture-drift.ts`
@@ -94,36 +95,35 @@ State transitions on these entities should be logged:
 - `AttestationOutput` (interface, 3 fields) — `apps/api/src/attestation.ts`
 - `ChainLink` (interface, 3 fields) — `apps/api/src/attestation.ts`
 - `AuthContext` (interface, 3 fields) — `apps/api/src/billing.ts`
-- `NotConfiguredResult` (interface, 4 fields) — `apps/api/src/code-sandbox.ts`
+- `SettleOptions` (interface, 4 fields) — `apps/api/src/cashier.ts`
+- `NotConfiguredResult` (interface, 6 fields) — `apps/api/src/code-sandbox.ts`
 - `SandboxOptions` (interface, 4 fields) — `apps/api/src/code-sandbox.ts`
 - `SandboxResult` (interface, 6 fields) — `apps/api/src/code-sandbox.ts`
 - `CommerceArtifact` (interface, 3 fields) — `apps/api/src/commerce-integration.ts`
 - `DisputeReadiness` (interface, 5 fields) — `apps/api/src/commerce-integration.ts`
-- `PurchaseDeps` (interface, 1 fields) — `apps/api/src/commerce-integration.ts`
-- `ReadinessDimension` (interface, 4 fields) — `apps/api/src/commerce-integration.ts`
-- `DeliverabilityKit` (interface, 7 fields) — `apps/api/src/deliverability.ts`
-- *… 212 more entities*
+- `NetworkToken` (interface, 6 fields) — `apps/api/src/commerce-integration.ts`
+- *… 248 more entities*
 
 ### Hotspot Monitoring
 
 These high-connectivity files should be monitored for regressions:
 
-- `apps/api/src/router.ts` — 96 inbound, 4 outbound — watch for: import changes, export signature changes
-- `apps/api/src/test-helpers.ts` — 41 inbound, 1 outbound — watch for: import changes, export signature changes
-- `apps/api/src/billing.ts` — 28 inbound, 3 outbound — watch for: import changes, export signature changes
-- `apps/api/src/handlers.ts` — 23 inbound, 14 outbound — watch for: import changes, export signature changes
-- `apps/api/src/rate-limiter.ts` — 36 inbound, 2 outbound — watch for: import changes, export signature changes
-- `apps/api/src/logger.ts` — 25 inbound, 0 outbound — watch for: import changes, export signature changes
-- `apps/api/src/server.ts` — 1 inbound, 35 outbound — watch for: import changes, export signature changes
-- `apps/web/src/App.tsx` — 1 inbound, 24 outbound — watch for: import changes, export signature changes
+- `apps/api/src/router.ts` — 113 inbound, 4 outbound — watch for: import changes, export signature changes
+- `apps/api/src/test-helpers.ts` — 54 inbound, 1 outbound — watch for: import changes, export signature changes
+- `apps/api/src/billing.ts` — 44 inbound, 3 outbound — watch for: import changes, export signature changes
+- `apps/api/src/handlers.ts` — 36 inbound, 21 outbound — watch for: import changes, export signature changes
+- `apps/api/src/rate-limiter.ts` — 46 inbound, 2 outbound — watch for: import changes, export signature changes
+- `apps/api/src/mcp-tool-impls.ts` — 18 inbound, 27 outbound — watch for: import changes, export signature changes
+- `apps/api/src/mpp.ts` — 19 inbound, 1 outbound — watch for: import changes, export signature changes
+- `apps/api/src/logger.ts` — 34 inbound, 0 outbound — watch for: import changes, export signature changes
 
 ### Layer Boundary Rules
 
-Separation score: **0.65**/1.0
+Separation score: **0.64**/1.0
 
 Monitor for layer violations:
 
-- **presentation** (apps, frontend): Should not import from data layer directly
+- **presentation** (apps): Should not import from data layer directly
 
 ## Log Format
 
@@ -145,10 +145,9 @@ Monitor for layer violations:
 
 | Entry Point | Exports |
 |-------------|---------|
-| `apps/api/src/server.ts` | export const app = ... |
+| `apps/api/src/server.ts` | export const router = ..., export const app = ... |
 | `apps/web/src/App.tsx` | export function App() { ... } |
 | `apps/web/src/main.tsx` | default |
-| `packages/context-engine/src/index.ts` | export type { ... }, export { ... } |
 
 ## Entry Point Source
 
@@ -180,38 +179,38 @@ import {
   handleArtifactsGenerate,
   handleRemotionGenerate,
   handleCanvasGenerate,
-... (472 more lines)
+... (527 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
-import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
-... (554 more lines)
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+  visibleGroupRoutes,
+  hashForPage,
+  matchHash,
+  type NavContext,
+  type PageId,
+... (691 more lines)
 ```
 
 ## Hotspot Files to Instrument
@@ -229,17 +228,17 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
   enableProgram,
   disableProgram,
   getEntitlements,
-  checkQuota,
-  getUsageSummary,
-  getApiCallSummary,
-... (836 more lines)
+... (1037 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -261,11 +260,11 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
-}
-... (471 more lines)
+... (547 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -299,6 +298,6 @@ export async function startTestServer(router: Router): Promise<TestServer> {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `tracing-rules.md` — agent step 6 of 70.
+- **You are here:** `tracing-rules.md` — agent step 6 of 71.
 - **Next:** `frontend-rules.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

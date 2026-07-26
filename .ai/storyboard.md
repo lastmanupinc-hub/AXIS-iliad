@@ -24,13 +24,13 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 ```
 ┌────────────────────────────────────┐
 │  ┌──────┐ ┌──────┐ ┌──────┐       │
-│  │ Reac │                          │
+│  │ React      │                    │
 │  └──────┘ └──────┘ └──────┘       │
 │                                    │
 │  Languages:                        │
-│    TypeScript   ████████████████ 80%     │
-│    YAML         ██ 10%     │
-│    Markdown     █ 6%     │
+│    TypeScript   ██████████████ 72%     │
+│    YAML         ███ 13%     │
+│    Markdown     ██ 9%     │
 └────────────────────────────────────┘
 ```
 
@@ -57,18 +57,18 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 
 - **Animation**: Layers build from bottom up, connections animate between them
 - **Narration**: "A clean [separation_score]-point architecture with clear boundaries"
-- **Labels**: apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation), examples/ (project_directory)
+- **Labels**: apps/ (monorepo_apps), docs/ (documentation), packages/ (monorepo_packages), mcp/ (project_directory)
 
 ## Scene 4: Code Health (0:30–0:45)
 
 ```
 ┌────────────────────────────────────┐
 │  Code Health Score                  │
-│  ━━━━━━━━━━━━━━━━━━━ 85/100       │
+│  ━━━━━━━━━━━━━━━━━━━  64/100       │
 │                                    │
 │  Hotspots:                         │
 │  🔴 apps/api/src/router.ts    100%  │
-│  🔴 s/api/src/test-helpers.ts 100%  │
+│  🔴 …/api/src/test-helpers.ts 100%  │
 │  🔴 apps/api/src/billing.ts   100%  │
 └────────────────────────────────────┘
 ```
@@ -110,6 +110,6 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 
 ## ⟳ Continue the loop
 
-- **You are here:** `storyboard.md` — agent step 60 of 70.
+- **You are here:** `storyboard.md` — agent step 61 of 71.
 - **Next:** `brand-board.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

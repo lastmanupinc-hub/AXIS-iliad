@@ -9,32 +9,29 @@
       "passed": true,
       "evidence": [
         "frameworks=1",
-        "domain_models=242",
-        "routes=540",
-        "external_deps=32",
+        "domain_models=278",
+        "routes=591",
+        "external_deps=41",
         "files=500",
-        "separation_score=0.65"
+        "separation_score=0.64"
       ]
     },
     "grounding": {
       "score": 100,
       "passed": true,
       "evidence": [
-        "grounded_docs=70/70 (target 3)"
+        "grounded_docs=71/71 (target 3)"
       ]
     },
     "needs_coverage": {
       "score": 100,
       "passed": true,
       "evidence": [
-        "covered 2/2"
+        "no detected needs"
       ]
     }
   },
-  "detected_needs": [
-    "lockfile",
-    "dependency_hygiene"
-  ],
+  "detected_needs": [],
   "uncovered_needs": [],
   "appended": [],
   "design": {

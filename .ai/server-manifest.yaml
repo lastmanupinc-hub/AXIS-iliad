@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
 # Generated: 1970-01-01T00:00:00.000Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -45,10 +45,10 @@ server:
         properties:
           program:
             type: string
-            enum: [search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic]
+            enum: [search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer, deploy]
 
     - name: list_routes
-      description: List all 163 detected routes
+      description: List all 174 detected routes
       input_schema:
         type: object
         properties:
@@ -56,7 +56,7 @@ server:
             type: string
             enum: [GET, POST, PUT, DELETE, PATCH]
 
-    # showing 12 of 242 domain-model query tools
+    # showing 12 of 278 domain-model query tools
     - name: query_alertthresholds
       description: "Query AlertThresholds records (interface, 2 fields)"
       input_schema:
@@ -217,7 +217,7 @@ server:
       mime_type: text/markdown
       description: Human-readable architecture overview
 
-    # showing 15 of 242 domain-model resources
+    # showing 15 of 278 domain-model resources
     - uri: "model://AlertThresholds"
       name: AlertThresholds
       mime_type: application/json
@@ -283,15 +283,15 @@ server:
       mime_type: application/json
       description: interface with 2 fields (apps/api/src/analytics.ts)
 
+    - uri: "model://ChallengeWindow"
+      name: ChallengeWindow
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/anon-frontdoor.ts)
+
     - uri: "model://DriftDeps"
       name: DriftDeps
       mime_type: application/json
       description: interface with 5 fields (apps/api/src/architecture-drift-webhook.ts)
-
-    - uri: "model://DriftOutcome"
-      name: DriftOutcome
-      mime_type: application/json
-      description: interface with 3 fields (apps/api/src/architecture-drift-webhook.ts)
 
   prompts:
     - name: review_code
@@ -320,7 +320,11 @@ server:
         default: "http://localhost:4000"
 
   dependencies:
-    # showing 8 of 32 dependencies
+    # showing 8 of 41 dependencies
+    - name: "@axis/agentic-compliance"
+      version: "workspace:*"
+    - name: "@axis/ap2"
+      version: "workspace:*"
     - name: "@axis/context-engine"
       version: "workspace:*"
     - name: "@axis/generator-core"
@@ -333,26 +337,23 @@ server:
       version: "workspace:*"
     - name: "@axis/snapshots"
       version: "workspace:*"
-    - name: "@jmondi/oauth2-server"
-      version: "^4.2.2"
-    - name: dockerode
-      version: "^4.0.12"
 
   # Detected Server/Tool Files
+  # showing 8 of 32 server/tool files
   source_files:
     - path: "SETUP_PAID_STRIPE_MCP.md"
       exports: []
-    - path: "apps/api/mcp-server.json"
+    - path: "mcp-config.json"
       exports: []
-    - path: "apps/api/src/mcp-runtime.ts"
-      exports: ["export const REGISTRY_DISPLAY_NAME = ...", "export const SERVER_SLUG = ...", "export const REGISTRY_VERSION = ...", "export const RPC_PARSE_ERROR = ...", "export const RPC_INVALID_REQUEST = ..."]
-    - path: "apps/api/src/mcp-server.test.ts"
+    - path: "server.json"
       exports: []
-    - path: "apps/api/src/mcp-server.ts"
-      exports: ["export { ... }", "export { ... }", "export const MCP_PROTOCOL_VERSION = ...", "export async function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | ", "export function getMcpCallCounters(): McpCallCounters { ... }"]
-    - path: "apps/api/src/mcp-tool-impls.ts"
-      exports: ["export function runPlannedCapability(capability: PlannedCapability): string { ... }", "export async function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }", "export async function runTransactionalEmail(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... ", "export async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }", "export async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }"]
-    - path: "apps/api/src/mcp-tools.ts"
-      exports: ["export interface PlannedCapability { ... }", "export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = ...", "export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = ...", "export const MCP_TOOLS = ..."]
-    - path: "apps/api/src/oauth-server.ts"
-      exports: ["export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }"]
+    - path: "docs/MCP_PAID_ACCESS_DESIGN.md"
+      exports: []
+    - path: "mcp/README.md"
+      exports: []
+    - path: "mcp/build-artifacts.md"
+      exports: []
+    - path: "mcp/core-implementation-artifacts.md"
+      exports: ["export { ... }", "export type { ... }", "export class McpServer { ... }", "export interface TransportAdapter { ... }", "export class StdioServerTransport implements TransportAdapter { ... }"]
+    - path: "mcp/fintech-domain-schema.yaml"
+      exports: []

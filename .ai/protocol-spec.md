@@ -353,6 +353,6 @@ Progress messages should be monotonic and end with a terminal success/failure ou
 
 ## ⟳ Continue the loop
 
-- **You are here:** `protocol-spec.md` — agent step 31 of 70.
+- **You are here:** `protocol-spec.md` — agent step 31 of 71.
 - **Next:** `mcp/README.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

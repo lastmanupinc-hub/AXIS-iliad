@@ -2,7 +2,7 @@
   "mcpVersion": "1.0",
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -41,7 +41,7 @@
     },
     {
       "name": "run_build",
-      "description": "Execute npm build",
+      "description": "Execute pnpm build",
       "category": "build",
       "enabled": true
     },
@@ -168,15 +168,15 @@
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/DriftDeps",
-      "name": "DriftDeps",
-      "description": "interface with 5 fields (apps/api/src/architecture-drift-webhook.ts)",
+      "uri": "model://axis-iliad/ChallengeWindow",
+      "name": "ChallengeWindow",
+      "description": "interface with 2 fields (apps/api/src/anon-frontdoor.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/DriftOutcome",
-      "name": "DriftOutcome",
-      "description": "interface with 3 fields (apps/api/src/architecture-drift-webhook.ts)",
+      "uri": "model://axis-iliad/DriftDeps",
+      "name": "DriftDeps",
+      "description": "interface with 5 fields (apps/api/src/architecture-drift-webhook.ts)",
       "mimeType": "application/json"
     }
   ],
@@ -303,31 +303,36 @@
       "resource_uri": "model://axis-iliad/WhereClause"
     },
     {
+      "name": "ChallengeWindow",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/anon-frontdoor.ts",
+      "resource_uri": "model://axis-iliad/ChallengeWindow"
+    },
+    {
       "name": "DriftDeps",
       "kind": "interface",
       "field_count": 5,
       "source_file": "apps/api/src/architecture-drift-webhook.ts",
       "resource_uri": "model://axis-iliad/DriftDeps"
-    },
-    {
-      "name": "DriftOutcome",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/api/src/architecture-drift-webhook.ts",
-      "resource_uri": "model://axis-iliad/DriftOutcome"
     }
   ],
   "sql_schema": null,
   "detected_mcp_files": [
     {
-      "path": "apps/api/mcp-server.json",
+      "path": "server.json",
       "exports": [],
-      "size": 10640
+      "size": 3288
+    },
+    {
+      "path": "scripts/test-webhook-server.js",
+      "exports": [],
+      "size": 1522
     },
     {
       "path": "apps/api/src/mcp-server.test.ts",
       "exports": [],
-      "size": 107938
+      "size": 142780
     },
     {
       "path": "apps/api/src/mcp-server.ts",
@@ -344,11 +349,19 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 24211
+      "size": 41089
+    },
+    {
+      "path": "apps/api/src/oauth-server.test.ts",
+      "exports": [],
+      "size": 11603
     },
     {
       "path": "apps/api/src/oauth-server.ts",
       "exports": [
+        "export interface JwtKeyResolution { ... }",
+        "export function resolveJwtKeys(): JwtKeyResolution { ... }",
+        "export function isEphemeralKeyInProduction(source: JwtKeyResolution[\"source\"], nodeEnv: string | undefined): boolean { .",
         "export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
         "export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
         "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
@@ -356,20 +369,13 @@
         "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }",
         "export async function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ..."
       ],
-      "size": 9008
-    },
-    {
-      "path": "apps/api/src/server.ts",
-      "exports": [
-        "export const app = ..."
-      ],
-      "size": 20249
+      "size": 11583
     }
   ],
   "truncated": {
     "domain_models": {
       "shown": 15,
-      "total": 242
+      "total": 278
     }
   }
 }

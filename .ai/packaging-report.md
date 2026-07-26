@@ -2,7 +2,7 @@
 
 ## Readiness Score
 
-- Score: **96/100**
+- Score: **100/100**
 - Band: **ship-ready**
 
 ## Auto-Added
@@ -48,6 +48,6 @@
 
 ## ⟳ Continue the loop
 
-- **You are here:** `packaging-report.md` — agent step 68 of 70.
+- **You are here:** `packaging-report.md` — agent step 69 of 71.
 - **Next:** `DISTRIBUTABLE.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

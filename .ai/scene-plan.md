@@ -14,7 +14,7 @@ Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -35,7 +35,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (80%), YAML (9.5%), Markdown (5.6%), JavaScript (2%), JSON (1.7%), CSS (1%), HTML (0.1%), Dockerfile (0%)
+- **Languages**: TypeScript (72%), YAML (12.6%), Markdown (8.8%), JSON (2.9%), JavaScript (1.8%), CSS (1.7%), HTML (0.2%), PowerShell (0%), Shell (0%), Dockerfile (0%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 
@@ -43,14 +43,14 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Architecture patterns and separation score
 - **Patterns**: monorepo, containerized
-- **Separation Score**: 65/100
+- **Separation Score**: 64/100
 - **Animation**: List items reveal sequentially
 - **Visual**: Bullet list with score indicator
 
 ### Scene 4: Key Abstractions (0:09–0:12)
 
 - **Content**: Core abstractions and concepts
-- **Items**: apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation), examples/ (project_directory), mcp/ (project_directory), .github/ (project_directory)
+- **Items**: apps/ (monorepo_apps), docs/ (documentation), packages/ (monorepo_packages), mcp/ (project_directory), examples/ (project_directory), scripts/ (build_scripts)
 - **Animation**: Staggered reveal from top
 - **Visual**: Arrow-prefixed list items
 
@@ -58,8 +58,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 > This is axis-iliad, a monorepo built with TypeScript.
 > The tech stack includes React.
-> The architecture scores 65 out of 100 for separation.
-> Key abstractions include apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation).
+> The architecture scores 64 out of 100 for separation.
+> Key abstractions include apps/ (monorepo_apps), docs/ (documentation), packages/ (monorepo_packages).
 
 ## Extension Points
 
@@ -74,6 +74,6 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## ⟳ Continue the loop
 
-- **You are here:** `scene-plan.md` — agent step 44 of 70.
+- **You are here:** `scene-plan.md` — agent step 44 of 71.
 - **Next:** `asset-checklist.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

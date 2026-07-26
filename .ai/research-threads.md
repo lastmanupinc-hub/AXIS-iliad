@@ -4,7 +4,7 @@
 
 ## Architecture Threads
 
-### Thread 1: Architectural Fitness (Score: 0.65 / 1.0)
+### Thread 1: Architectural Fitness (Score: 0.64 / 1.0)
 
 Architecture separation is moderate. Research focus:
 - Which layer boundaries are weakest?
@@ -33,7 +33,7 @@ Open questions about the current technology stack:
 
 - Are the chosen frameworks (React) still the best fit for the project's direction?
 - Are there dependencies that could be removed or replaced with lighter alternatives?
-- External dependency count: 32 — is this sustainable?
+- External dependency count: 41 — is this sustainable?
 
 ### Thread 4: Performance
 
@@ -41,7 +41,7 @@ Investigation areas:
 
 - What is the baseline performance metric for axis-iliad?
 - Are there obvious bottlenecks in the critical path?
-- Which of the 540 routes are most latency-sensitive?
+- Which of the 174 routes are most latency-sensitive?
 - What caching strategies would have the highest impact?
 
 ### Thread 5: Test Coverage
@@ -55,19 +55,15 @@ Open questions:
 
 ## Future Direction Threads
 
-### Known Issues to Investigate
-
-- No lockfile found — dependency versions may be inconsistent
-
 ### Domain Model Complexity
 
-The project defines **242 domain models**. High field-count models may need documentation or decomposition:
+The project defines **278 domain models**. High field-count models may need documentation or decomposition:
 
-- **`ContextMap`** — interface, 69 fields (`packages/context-engine/src/types.ts`)
 - **`ContextMap`** — interface, 61 fields (`apps/web/src/api.ts`)
-- **`ResellCapability`** — interface, 29 fields (`packages/generator-core/src/generators-artifacts.ts`)
+- **`AdminRevenue`** — interface, 29 fields (`apps/web/src/api.ts`)
 - **`RepoProfile`** — interface, 26 fields (`apps/web/src/api.ts`)
-- **`RepoProfile`** — interface, 21 fields (`packages/context-engine/src/types.ts`)
+- **`AnalyzeQuickResponse`** — interface, 24 fields (`apps/web/src/api.ts`)
+- **`RouteContext`** — interface, 24 fields (`apps/web/src/routes.tsx`)
 
 Questions to answer:
 - Are all field names self-documenting? Do any need JSDoc?
@@ -86,16 +82,15 @@ Questions to answer:
 
 Entry points to investigate for complexity and coupling:
 
-- **`apps/api/src/server.ts`** — 497 lines, exports: export const app = ...
-- **`apps/web/src/App.tsx`** — 579 lines, exports: export function App() { ... }
-- **`apps/web/src/main.tsx`** — 11 lines, exports: default
-- **`packages/context-engine/src/index.ts`** — 3 lines, exports: export type { ... }, export { ... }
+- **`apps/api/src/server.ts`** — 552 lines, exports: export const router = ..., export const app = ...
+- **`apps/web/src/App.tsx`** — 716 lines, exports: export function App() { ... }
+- **`apps/web/src/main.tsx`** — 12 lines, exports: (no exports)
 
 
 ---
 
 ## ⟳ Continue the loop
 
-- **You are here:** `research-threads.md` — agent step 27 of 70.
+- **You are here:** `research-threads.md` — agent step 27 of 71.
 - **Next:** `obsidian-skill-pack.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

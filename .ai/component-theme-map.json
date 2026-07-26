@@ -10,13 +10,12 @@
   ],
   "primary_language": "TypeScript",
   "summary": {
-    "total_components": 34,
+    "total_components": 14,
     "by_type": {
-      "custom": 11,
-      "interactive": 1,
-      "decorative": 2,
-      "overlay": 2,
-      "page": 18
+      "custom": 9,
+      "page": 1,
+      "interactive": 2,
+      "decorative": 2
     }
   },
   "components": [
@@ -24,6 +23,36 @@
       "name": "App",
       "path": "apps/web/src/App.tsx",
       "directory": "apps/web/src",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "main",
+      "path": "apps/web/src/main.tsx",
+      "directory": "apps/web/src",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "routes",
+      "path": "apps/web/src/routes.tsx",
+      "directory": "apps/web/src",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ArtifactExplorer",
+      "path": "apps/web/src/components/ArtifactExplorer.tsx",
+      "directory": "apps/web/src/components",
       "component_type": "custom",
       "token_categories": [
         "colors",
@@ -64,8 +93,21 @@
       ]
     },
     {
-      "name": "FilesTab",
-      "path": "apps/web/src/components/FilesTab.tsx",
+      "name": "DangerButton",
+      "path": "apps/web/src/components/DangerButton.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "interactive",
+      "token_categories": [
+        "colors",
+        "typography",
+        "spacing",
+        "border_radius",
+        "shadows"
+      ]
+    },
+    {
+      "name": "DiffViewer",
+      "path": "apps/web/src/components/DiffViewer.tsx",
       "directory": "apps/web/src/components",
       "component_type": "custom",
       "token_categories": [
@@ -74,8 +116,8 @@
       ]
     },
     {
-      "name": "GeneratedTab",
-      "path": "apps/web/src/components/GeneratedTab.tsx",
+      "name": "FilesTab",
+      "path": "apps/web/src/components/FilesTab.tsx",
       "directory": "apps/web/src/components",
       "component_type": "custom",
       "token_categories": [
@@ -104,266 +146,20 @@
       ]
     },
     {
+      "name": "LiveDemoTeaser",
+      "path": "apps/web/src/components/LiveDemoTeaser.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
       "name": "OverviewTab",
       "path": "apps/web/src/components/OverviewTab.tsx",
       "directory": "apps/web/src/components",
       "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "ProgramLauncher",
-      "path": "apps/web/src/components/ProgramLauncher.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "SearchTab",
-      "path": "apps/web/src/components/SearchTab.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "SignUpModal",
-      "path": "apps/web/src/components/SignUpModal.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "overlay",
-      "token_categories": [
-        "colors",
-        "typography",
-        "z_index",
-        "shadows",
-        "border_radius"
-      ]
-    },
-    {
-      "name": "StatusBar",
-      "path": "apps/web/src/components/StatusBar.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "Toast",
-      "path": "apps/web/src/components/Toast.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "ToolPage",
-      "path": "apps/web/src/components/ToolPage.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "UpsellModal",
-      "path": "apps/web/src/components/UpsellModal.tsx",
-      "directory": "apps/web/src/components",
-      "component_type": "overlay",
-      "token_categories": [
-        "colors",
-        "typography",
-        "z_index",
-        "shadows",
-        "border_radius"
-      ]
-    },
-    {
-      "name": "main",
-      "path": "apps/web/src/main.tsx",
-      "directory": "apps/web/src",
-      "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "AccountPage",
-      "path": "apps/web/src/pages/AccountPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "AdminPage",
-      "path": "apps/web/src/pages/AdminPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "DashboardPage",
-      "path": "apps/web/src/pages/DashboardPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "DocsPage",
-      "path": "apps/web/src/pages/DocsPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "ExamplesPage",
-      "path": "apps/web/src/pages/ExamplesPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "ForAgentsPage",
-      "path": "apps/web/src/pages/ForAgentsPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "HelpPage",
-      "path": "apps/web/src/pages/HelpPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "InstallPage",
-      "path": "apps/web/src/pages/InstallPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "MyAnalyticsPage",
-      "path": "apps/web/src/pages/MyAnalyticsPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "PaidCheckoutPage",
-      "path": "apps/web/src/pages/PaidCheckoutPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "PlansPage",
-      "path": "apps/web/src/pages/PlansPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "ProgramsPage",
-      "path": "apps/web/src/pages/ProgramsPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "QAPage",
-      "path": "apps/web/src/pages/QAPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "TermsPage",
-      "path": "apps/web/src/pages/TermsPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "ToolsIndexPage",
-      "path": "apps/web/src/pages/ToolsIndexPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "UploadPage",
-      "path": "apps/web/src/pages/UploadPage.tsx",
-      "directory": "apps/web/src/pages",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "WebResearchPage",
-      "path": "apps/web/src/pages/tools/WebResearchPage.tsx",
-      "directory": "apps/web/src/pages/tools",
-      "component_type": "page",
       "token_categories": [
         "colors",
         "typography"
@@ -383,24 +179,18 @@
   },
   "source_component_files": [
     "apps/web/src/App.tsx",
+    "apps/web/src/main.tsx",
+    "apps/web/src/routes.tsx",
+    "apps/web/src/components/ArtifactExplorer.tsx",
     "apps/web/src/components/AuthButtons.tsx",
     "apps/web/src/components/AxisIcons.tsx",
     "apps/web/src/components/CommandPalette.tsx",
+    "apps/web/src/components/DangerButton.tsx",
+    "apps/web/src/components/DiffViewer.tsx",
     "apps/web/src/components/FilesTab.tsx",
-    "apps/web/src/components/GeneratedTab.tsx",
     "apps/web/src/components/GraphTab.tsx",
     "apps/web/src/components/Icon.tsx",
-    "apps/web/src/components/OverviewTab.tsx",
-    "apps/web/src/components/ProgramLauncher.tsx",
-    "apps/web/src/components/SearchTab.tsx",
-    "apps/web/src/components/SignUpModal.tsx",
-    "apps/web/src/components/StatusBar.tsx",
-    "apps/web/src/components/Toast.tsx",
-    "apps/web/src/components/ToolPage.tsx",
-    "apps/web/src/components/UpsellModal.tsx",
-    "apps/web/src/main.tsx",
-    "apps/web/src/pages/AccountPage.tsx",
-    "apps/web/src/pages/AdminPage.tsx",
-    "apps/web/src/pages/DashboardPage.tsx"
+    "apps/web/src/components/LiveDemoTeaser.tsx",
+    "apps/web/src/components/OverviewTab.tsx"
   ]
 }

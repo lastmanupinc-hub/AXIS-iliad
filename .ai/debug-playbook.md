@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Quick Reference
 
@@ -18,22 +18,24 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | Build Tools | vite, make |
 | CI | github_actions |
 | Deploy Target | docker |
-| Package Manager | npm |
-| Files | 500 files, 115,124 LOC |
-| Separation Score | 0.65/1.0 |
+| Package Manager | pnpm |
+| Files | 500 files, 108,805 LOC |
+| Separation Score | 0.64/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 312 | 89,597 | 80% |
-| YAML | 57 | 10,597 | 9.5% |
-| Markdown | 77 | 6,295 | 5.6% |
-| JavaScript | 9 | 2,273 | 2% |
-| JSON | 34 | 1,922 | 1.7% |
-| CSS | 1 | 1,149 | 1% |
-| HTML | 1 | 158 | 0.1% |
-| Dockerfile | 1 | 21 | 0% |
+| TypeScript | 284 | 73,592 | 72% |
+| YAML | 35 | 12,895 | 12.6% |
+| Markdown | 109 | 8,954 | 8.8% |
+| JSON | 42 | 2,991 | 2.9% |
+| JavaScript | 11 | 1,815 | 1.8% |
+| CSS | 2 | 1,744 | 1.7% |
+| HTML | 1 | 172 | 0.2% |
+| PowerShell | 1 | 39 | 0% |
+| Shell | 1 | 38 | 0% |
+| Dockerfile | 1 | 22 | 0% |
 
 ## Detected Stack (with evidence)
 
@@ -44,22 +46,22 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ## Project Structure
 
 - apps/ (monorepo_apps)
-- packages/ (monorepo_packages)
 - docs/ (documentation)
-- examples/ (project_directory)
+- packages/ (monorepo_packages)
 - mcp/ (project_directory)
+- examples/ (project_directory)
+- scripts/ (build_scripts)
 - .github/ (project_directory)
-- algorithmic/ (project_directory)
-- artifacts/ (project_directory)
+- packaging/ (project_directory)
 
 ## Triage Steps
 
 ### 1. Reproduce
 
 ```bash
-npm install
-npm test           # run existing tests (vitest)
-npm run dev         # start dev server
+pnpm install
+pnpm test           # run existing tests (vitest)
+pnpm run dev         # start dev server
 ```
 
 ### 2. Isolate
@@ -73,16 +75,16 @@ These files have many inbound or outbound imports — changes here cascade:
 
 | File | Inbound | Outbound | Risk |
 |------|---------|----------|------|
-| `apps/api/src/router.ts` | 96 | 4 | 100% |
-| `apps/api/src/test-helpers.ts` | 41 | 1 | 100% |
-| `apps/api/src/billing.ts` | 28 | 3 | 100% |
-| `apps/api/src/handlers.ts` | 23 | 14 | 100% |
-| `apps/api/src/rate-limiter.ts` | 36 | 2 | 100% |
-| `apps/api/src/logger.ts` | 25 | 0 | 100% |
-| `apps/api/src/server.ts` | 1 | 35 | 100% |
-| `apps/web/src/App.tsx` | 1 | 24 | 100% |
-| `packages/generator-core/src/generate.ts` | 30 | 6 | 100% |
-| `apps/api/src/mcp-tool-impls.ts` | 0 | 24 | 100% |
+| `apps/api/src/router.ts` | 113 | 4 | 100% |
+| `apps/api/src/test-helpers.ts` | 54 | 1 | 100% |
+| `apps/api/src/billing.ts` | 44 | 3 | 100% |
+| `apps/api/src/handlers.ts` | 36 | 21 | 100% |
+| `apps/api/src/rate-limiter.ts` | 46 | 2 | 100% |
+| `apps/api/src/mcp-tool-impls.ts` | 18 | 27 | 100% |
+| `apps/api/src/mpp.ts` | 19 | 1 | 100% |
+| `apps/api/src/logger.ts` | 34 | 0 | 100% |
+| `apps/api/src/mcp-server.ts` | 17 | 15 | 100% |
+| `apps/api/src/server.ts` | 2 | 35 | 100% |
 
 ### 3. Framework-Specific Debugging
 
@@ -111,6 +113,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | AnalyticsEvent | interface | TypeScript | 4 | `apps/api/src/analytics.ts` |
 | AnalyticsQuery | interface | TypeScript | 8 | `apps/api/src/analytics.ts` |
 | WhereClause | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| ChallengeWindow | interface | TypeScript | 2 | `apps/api/src/anon-frontdoor.ts` |
 | DriftDeps | interface | TypeScript | 5 | `apps/api/src/architecture-drift-webhook.ts` |
 | DriftOutcome | interface | TypeScript | 3 | `apps/api/src/architecture-drift-webhook.ts` |
 | DriftResult | interface | TypeScript | 3 | `apps/api/src/architecture-drift.ts` |
@@ -120,22 +123,25 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | AttestationOutput | interface | TypeScript | 3 | `apps/api/src/attestation.ts` |
 | ChainLink | interface | TypeScript | 3 | `apps/api/src/attestation.ts` |
 | AuthContext | interface | TypeScript | 3 | `apps/api/src/billing.ts` |
-| NotConfiguredResult | interface | TypeScript | 4 | `apps/api/src/code-sandbox.ts` |
+| SettleOptions | interface | TypeScript | 4 | `apps/api/src/cashier.ts` |
+| NotConfiguredResult | interface | TypeScript | 6 | `apps/api/src/code-sandbox.ts` |
 | SandboxOptions | interface | TypeScript | 4 | `apps/api/src/code-sandbox.ts` |
 | SandboxResult | interface | TypeScript | 6 | `apps/api/src/code-sandbox.ts` |
 | CommerceArtifact | interface | TypeScript | 3 | `apps/api/src/commerce-integration.ts` |
 | DisputeReadiness | interface | TypeScript | 5 | `apps/api/src/commerce-integration.ts` |
-| PurchaseDeps | interface | TypeScript | 1 | `apps/api/src/commerce-integration.ts` |
-| ReadinessDimension | interface | TypeScript | 4 | `apps/api/src/commerce-integration.ts` |
-| DeliverabilityKit | interface | TypeScript | 7 | `apps/api/src/deliverability.ts` |
-| *… 212 more* | | | | |
+| NetworkToken | interface | TypeScript | 6 | `apps/api/src/commerce-integration.ts` |
+| *… 248 more* | | | | |
 
 ## Route Map
 
 | Method | Path | Source |
 |--------|------|--------|
-| GET | `/v1/health` | apps/api/src/server.ts |
+| GET | `/health` | docs/archive/e2e_ui_audit.yaml |
+| GET | `/v1/health` | docs/archive/e2e_ui_audit.yaml |
 | POST | `/v1/accounts` | apps/api/src/server.ts |
+| GET | `/v1/account` | apps/api/src/server.ts |
+| PATCH | `/v1/account` | apps/api/src/server.ts |
+| DELETE | `/v1/account` | apps/api/src/server.ts |
 | POST | `/v1/snapshots` | apps/api/src/server.ts |
 | GET | `/v1/admin/stats` | apps/api/src/server.ts |
 | GET | `/v1/admin/accounts` | apps/api/src/server.ts |
@@ -150,6 +156,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/v1/install` | apps/api/src/server.ts |
 | GET | `/v1/install/:platform` | apps/api/src/server.ts |
 | POST | `/probe-intent` | apps/api/src/server.ts |
+| GET | `/v1/error-codes` | apps/api/src/server.ts |
 | POST | `/mcp` | apps/api/src/server.ts |
 | POST | `/v1/analyze` | apps/api/src/server.ts |
 | GET | `/v1/snapshots/:snapshot_id` | apps/api/src/server.ts |
@@ -179,20 +186,15 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/server.ts |
 | POST | `/v1/account/programs` | apps/api/src/server.ts |
 | POST | `/v1/account/github-token` | apps/api/src/server.ts |
-| GET | `/health` | apps/api/src/server.ts |
-| POST | `/v1/search/export` | apps/api/src/server.ts |
-| POST | `/v1/skills/generate` | apps/api/src/server.ts |
-| POST | `/v1/frontend/audit` | apps/api/src/server.ts |
-| POST | `/v1/seo/analyze` | apps/api/src/server.ts |
-| *… 113 more* | | |
+| *… 124 more* | | |
 
 ## Architecture Layer Boundaries
 
-> ⚡ **Moderate separation (0.65)** — some coupling exists between layers.
+> ⚡ **Moderate separation (0.64)** — some coupling exists between layers.
 
 Bugs often occur at layer boundaries. Verify data flow between:
 
-- **presentation**: apps, frontend
+- **presentation**: apps
 
 **Architecture patterns:** monorepo, containerized
 
@@ -205,11 +207,12 @@ Bugs often occur at layer boundaries. Verify data flow between:
 
 ## Common Traps
 
-- ⚠️ No lockfile found — dependency versions may be inconsistent
 - ✅ TypeScript strict mode
 - ✅ Linter configured
 - ✅ Formatter configured
+- ✅ pnpm workspaces
 - ✅ Makefile build
+- No critical warnings detected — project health looks good
 
 ## Failure Surface (deterministic)
 
@@ -217,68 +220,79 @@ Bugs often occur at layer boundaries. Verify data flow between:
 
 | Class | Count |
 |-------|-------|
-| SILENT | 2 |
+| SILENT | 10 |
 | TYPE_HOLE | 1 |
-| OBSERVABILITY | 19 |
-| REVIEW | 19 |
+| OBSERVABILITY | 12 |
+| REVIEW | 82 |
 | ACCEPTABLE | 6 |
 
 | File | Line | Category | Class | Note |
 |------|------|----------|-------|------|
-| `apps/api/src/mcp-server.ts` | 430 | swallowed-async-error | SILENT | side-effect failure is invisible |
-| `apps/web/src/components/GeneratedTab.tsx` | 58 | empty-catch | SILENT | side-effect failure is invisible |
-| `apps/api/src/mpp.ts` | 157 | type-hole | TYPE_HOLE | suppresses the type net |
-| `apps/api/check-table.js` | 6 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/check-table.js` | 8 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/gen-keys.js` | 3 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/gen-keys.js` | 4 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/mcp-server.ts` | 123 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/mcp-tools.ts` | 1105 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/mpp.ts` | 160 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/mpp.ts` | 167 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/mpp.ts` | 171 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/server.ts` | 125 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/web/src/api.ts` | 424 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/web/src/api.ts` | 454 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/web/src/App.tsx` | 34 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/web/src/pages/UploadPage.tsx` | 286 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/billing.ts` | 379 | swallowed-async-error | SILENT | side-effect failure is invisible |
+| `apps/api/src/cashier.ts` | 384 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/mcp-server.ts` | 256 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/mcp-server.ts` | 691 | swallowed-async-error | SILENT | side-effect failure is invisible |
+| `apps/api/src/mcp-tool-impls.ts` | 4046 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/mcp-tool-impls.ts` | 4081 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/paid-handlers.ts` | 468 | swallowed-async-error | SILENT | side-effect failure is invisible |
+| `apps/api/src/rate-limiter.ts` | 90 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/router.ts` | 422 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/server.ts` | 409 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/mpp.ts` | 227 | type-hole | TYPE_HOLE | as any suppresses the type net |
+| `apps/api/src/mcp-server.ts` | 145 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 174 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 230 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 237 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 241 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/server.ts` | 133 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/App.tsx` | 39 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/api.ts` | 538 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/api.ts` | 587 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
 | `generate-keys.js` | 14 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
 | `generate-keys.js` | 15 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
 | `generate-keys.js` | 16 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `packages/generator-core/src/generators-artifacts.ts` | 118 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `packages/generator-core/src/generators-debug.ts` | 676 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
-| `apps/api/src/document-parsing.ts` | 181 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/billing.ts` | 275 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/billing.ts` | 425 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/billing.ts` | 447 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/billing.ts` | 701 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/billing.ts` | 753 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/billing.ts` | 759 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/cashier.ts` | 254 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/code-sandbox.ts` | 458 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/code-sandbox.ts` | 477 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/credit-pack-handlers.ts` | 129 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/disputes.ts` | 172 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/document-parsing.ts` | 211 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/email.ts` | 146 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/embeddings.ts` | 152 | empty-catch | REVIEW | empty catch — confirm intent |
 | `apps/api/src/export.ts` | 175 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/export.ts` | 177 | empty-catch | REVIEW | empty catch — confirm intent |
 | `apps/api/src/export.ts` | 188 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/export.ts` | 192 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/export.ts` | 209 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/fleet-handlers.ts` | 67 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/fleet-handlers.ts` | 86 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/funnel.ts` | 269 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/funnel.ts` | 286 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/funnel.ts` | 292 | empty-catch | REVIEW | empty catch — confirm intent |
 | `apps/api/src/github-webhook.ts` | 259 | swallowed-async-error | REVIEW | swallowed — confirm intent |
 | `apps/api/src/github-webhook.ts` | 264 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/handlers.ts` | 944 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/handlers.ts` | 1438 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/handlers.ts` | 3337 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/handlers.ts` | 3351 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/handlers.ts` | 3352 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/handlers.ts` | 3419 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/mcp-tool-impls.ts` | 1415 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/paid-handlers.ts` | 409 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/speech-to-text.ts` | 489 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/api/src/text-to-speech.ts` | 482 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/web/src/components/ProgramLauncher.tsx` | 48 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/web/src/pages/AccountPage.tsx` | 81 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| `apps/web/src/pages/AccountPage.tsx` | 82 | swallowed-async-error | REVIEW | swallowed — confirm intent |
-| … | | | | +7 more |
+| `apps/api/src/handlers.ts` | 764 | empty-catch | REVIEW | empty catch — confirm intent |
+| … | | | | +61 more |
 
 ## Production Dependencies
 
-18 production dependencies. Key packages:
+20 production dependencies. Key packages:
 
+- `@axis/agentic-compliance` @ workspace:*
+- `@axis/ap2` @ workspace:*
 - `@axis/context-engine` @ workspace:*
 - `@axis/generator-core` @ workspace:*
 - `@axis/mpp` @ workspace:*
 - `@axis/paid-client` @ workspace:*
 - `@axis/repo-parser` @ workspace:*
 - `@axis/snapshots` @ workspace:*
-- `@jmondi/oauth2-server` @ ^4.2.2
-- `dockerode` @ ^4.0.12
+- `dockerode` @ ^5.0.1
 - `ffmpeg-static` @ ^5.3.0
 - `jsonwebtoken` @ ^9.0.3
 - `mammoth` @ ^1.12.0
@@ -289,6 +303,7 @@ Bugs often occur at layer boundaries. Verify data flow between:
 - `jszip` @ ^3.10.1
 - `react` @ ^19.1.0
 - `react-dom` @ ^19.1.0
+- `yaml` @ ^2.8.3
 
 ## Entry Point Source (for tracing)
 
@@ -320,38 +335,38 @@ import {
   handleArtifactsGenerate,
   handleRemotionGenerate,
   handleCanvasGenerate,
-... (472 more lines)
+... (527 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
-import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
-... (554 more lines)
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+  visibleGroupRoutes,
+  hashForPage,
+  matchHash,
+  type NavContext,
+  type PageId,
+... (691 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -360,6 +375,7 @@ import { APP_VERSION } from "./version.ts";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import "./theme.css"; // generated design-system contract (app copy) — must load before index.css
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -378,6 +394,6 @@ createRoot(document.getElementById("root")!).render(
 
 ## ⟳ Continue the loop
 
-- **You are here:** `debug-playbook.md` — agent step 4 of 70.
+- **You are here:** `debug-playbook.md` — agent step 4 of 71.
 - **Next:** `incident-template.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

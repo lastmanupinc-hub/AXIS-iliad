@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 15 top-level directories. It defines 446 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Commands
 
-- **Install:** `npm install`
-- **Build:** `npm run build`
-- **Test:** `npm test`
-- **Dev:** `npm run dev`
+- **Install:** `pnpm install`
+- **Build:** `pnpm run build`
+- **Test:** `pnpm test`
+- **Dev:** `pnpm run dev`
 
 ## Stack
 
@@ -20,19 +20,20 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ## Structure
 
 - apps/ (monorepo_apps)
+- docs/ (documentation)
 - packages/ (monorepo_packages)
-- examples/ (project_directory)
 - mcp/ (project_directory)
+- examples/ (project_directory)
+- scripts/ (build_scripts)
 - .github/ (project_directory)
-- algorithmic/ (project_directory)
-- artifacts/ (project_directory)
-- brand/ (project_directory)
+- packaging/ (project_directory)
 
 ## Conventions
 
 - TypeScript strict mode
 - Linter configured
 - Formatter configured
+- pnpm workspaces
 - Makefile build
 
 ## Do NOT
@@ -48,6 +49,10 @@ Detected domain model contracts:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
+| `AlertThresholds` | interface | 2 | apps/api/src/alerting.ts |
+| `Counters` | type_alias | 2 | apps/api/src/alerting.ts |
+| `DebounceState` | interface | 2 | apps/api/src/alerting.ts |
+| `WindowResult` | interface | 4 | apps/api/src/alerting.ts |
 | `AnalyticsCountByBucketResult` | interface | 3 | apps/api/src/analytics.ts |
 | `AnalyticsCountByBucketRow` | interface | 2 | apps/api/src/analytics.ts |
 | `AnalyticsCountByEventResult` | interface | 2 | apps/api/src/analytics.ts |
@@ -55,20 +60,62 @@ Detected domain model contracts:
 | `AnalyticsCountResult` | interface | 2 | apps/api/src/analytics.ts |
 | `AnalyticsDistinctUsersResult` | interface | 2 | apps/api/src/analytics.ts |
 | `AnalyticsEvent` | interface | 4 | apps/api/src/analytics.ts |
-| `AnalyticsQuery` | interface | 7 | apps/api/src/analytics.ts |
+| `AnalyticsQuery` | interface | 8 | apps/api/src/analytics.ts |
 | `WhereClause` | interface | 2 | apps/api/src/analytics.ts |
-| `AuthContext` | interface | 3 | apps/api/src/billing.ts |
-| `NotConfiguredResult` | interface | 4 | apps/api/src/code-sandbox.ts |
-| `SandboxOptions` | interface | 4 | apps/api/src/code-sandbox.ts |
-| `SandboxResult` | interface | 6 | apps/api/src/code-sandbox.ts |
-| `DocxExtractResult` | interface | 2 | apps/api/src/document-parsing.ts |
-| `NotConfiguredResult` | interface | 5 | apps/api/src/document-parsing.ts |
-| `ParseOptions` | interface | 3 | apps/api/src/document-parsing.ts |
-| `ParseResult` | interface | 6 | apps/api/src/document-parsing.ts |
-| `PdfExtractResult` | interface | 2 | apps/api/src/document-parsing.ts |
-| `EmailConfig` | interface | 2 | apps/api/src/email.ts |
-| `ResendErrorResponse` | interface | 3 | apps/api/src/email.ts |
-| *… 265 more* | | | |
+| `ChallengeWindow` | interface | 2 | apps/api/src/anon-frontdoor.ts |
+| `DriftDeps` | interface | 5 | apps/api/src/architecture-drift-webhook.ts |
+| `DriftOutcome` | interface | 3 | apps/api/src/architecture-drift-webhook.ts |
+| `DriftResult` | interface | 3 | apps/api/src/architecture-drift.ts |
+| `PushInfo` | interface | 7 | apps/api/src/architecture-drift.ts |
+| `Attestation` | interface | 12 | apps/api/src/attestation.ts |
+| `AttestationInput` | interface | 3 | apps/api/src/attestation.ts |
+| *… 258 more* | | | |
+
+## API Surface
+
+HTTP routes detected in this codebase:
+
+- `GET /health` → docs/archive/e2e_ui_audit.yaml
+- `GET /v1/health` → docs/archive/e2e_ui_audit.yaml
+- `POST /v1/accounts` → apps/api/src/server.ts
+- `GET /v1/account` → apps/api/src/server.ts
+- `PATCH /v1/account` → apps/api/src/server.ts
+- `DELETE /v1/account` → apps/api/src/server.ts
+- `POST /v1/snapshots` → apps/api/src/server.ts
+- `GET /v1/admin/stats` → apps/api/src/server.ts
+- `GET /v1/admin/accounts` → apps/api/src/server.ts
+- `GET /v1/admin/activity` → apps/api/src/server.ts
+- `GET /v1/admin/mcp-usage` → apps/api/src/server.ts
+- `GET /v1/admin/revenue` → apps/api/src/server.ts
+- `GET /llms.txt` → apps/api/src/server.ts
+- `GET /.well-known/skills/index.json` → apps/api/src/server.ts
+- `GET /v1/docs.md` → apps/api/src/server.ts
+- `GET /.well-known/axis.json` → apps/api/src/server.ts
+- `GET /for-agents` → apps/api/src/server.ts
+- `GET /v1/install` → apps/api/src/server.ts
+- `GET /v1/install/:platform` → apps/api/src/server.ts
+- `POST /probe-intent` → apps/api/src/server.ts
+- `GET /v1/error-codes` → apps/api/src/server.ts
+- `POST /mcp` → apps/api/src/server.ts
+- `POST /v1/analyze` → apps/api/src/server.ts
+- `GET /v1/snapshots/:snapshot_id` → apps/api/src/server.ts
+- `DELETE /v1/snapshots/:snapshot_id` → apps/api/src/server.ts
+- `GET /v1/projects/:project_id/context` → apps/api/src/server.ts
+- `GET /v1/projects/:project_id/generated-files` → apps/api/src/server.ts
+- `DELETE /v1/projects/:project_id` → apps/api/src/server.ts
+- `GET /v1/db/stats` → apps/api/src/server.ts
+- `POST /v1/db/maintenance` → apps/api/src/server.ts
+- `POST /v1/search/index` → apps/api/src/server.ts
+- `POST /v1/search/query` → apps/api/src/server.ts
+- `GET /v1/search/:snapshot_id/stats` → apps/api/src/server.ts
+- `POST /v1/debug/analyze` → apps/api/src/server.ts
+- `GET /v1/docs` → apps/api/src/server.ts
+- `GET /v1/programs` → apps/api/src/server.ts
+- `POST /v1/account/seats` → apps/api/src/server.ts
+- `GET /v1/account/seats` → apps/api/src/server.ts
+- `POST /v1/account/seats/:seat_id/accept` → apps/api/src/server.ts
+- `POST /v1/account/seats/:seat_id/revoke` → apps/api/src/server.ts
+- *… 134 more (see the OpenAPI spec or `/v1/docs`)*
 
 ## Key Source Files
 
@@ -77,6 +124,7 @@ Detected domain model contracts:
 ```typescript
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
+import { startAlerting } from "./alerting.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -104,44 +152,43 @@ import {
   handleCloserGenerate,
   handleDeployGenerate,
   handleGitHubAnalyze,
-  handleAnalyze,
-... (430 more lines)
+... (522 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
-import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
-
-// ─── Error Boundary ─────────────────────────────────────────────
-// React requires a class for getDerivedStateFromError; this thin wrapper
-// keeps the rest of the codebase class-free per .cursorrules.
-
-class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-... (457 more lines)
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
+import { Icon } from "./components/Icon.tsx";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
+import { APP_VERSION } from "./version.ts";
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+  visibleGroupRoutes,
+  hashForPage,
+  matchHash,
+  type NavContext,
+  type PageId,
+  type RouteContext,
+  type RouteDef,
+  type RouteParams,
+} from "./routes.tsx";
+import { useHashRoute, isOAuthCallback } from "./useHashRoute.ts";
+... (686 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -150,6 +197,7 @@ class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Er
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import "./theme.css"; // generated design-system contract (app copy) — must load before index.css
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -157,14 +205,6 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
-
-```
-
-### `packages/context-engine/src/index.ts`
-
-```typescript
-export type { ContextMap, RepoProfile } from "./types.js";
-export { buildContextMap, buildRepoProfile } from "./engine.js";
 
 ```
 
@@ -182,53 +222,64 @@ export { buildContextMap, buildRepoProfile } from "./engine.js";
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-    "@axis/snapshots": "workspace:*",
-    "@jmondi/oauth2-server": "^4.2.2",
-    "dockerode": "^4.0.12",
-    "ffmpeg-static": "^5.3.0",
-... (16 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+    "llm-context",
+    "visa-compliance",
+    "x402",
+    "ap2",
+    "agentic-commerce"
+... (48 more lines)
 ```
 
-### `apps/api/tsconfig.json`
+### `tsconfig.base.json`
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }
 
 ```
 
-## Compliance-Engine Performance (measured)
-
-The seven agentic-commerce engines (detectCommerceSignals, computeComplianceGrade, generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry) are pure, synchronous, in-memory functions:
-
-- **External API calls at runtime: 0** — runtime-proven by `packages/generator-core/src/perf-compliance.test.ts` (a throwing `globalThis.fetch` spy is installed and never fires). PCI scope: none — no network or cardholder data is reached.
-- **Latency: measured, not zero** — the current measured p50 lives in `packages/generator-core/perf-results.json` (low single-digit ms in-process; regenerate via `pnpm bench:compliance` or the vitest suite). Do not cite "0ms".
-- **No head-to-head vs Visa IC** — the Visa Intelligent Commerce 200-800ms figure is a published industry range, NOT measured by this harness; docs must attribute it as such or drop the comparator (enforced by the doc-honesty test in perf-compliance.test.ts).
-
 <!-- Generated by axis-iliad skills program. Regenerate after significant code changes. -->
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `CLAUDE.md` — agent step 3 of 71.
+- **Next:** `debug-playbook.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -3,6 +3,7 @@
 ## Project Context
 
 This is a **monorepo** built with **TypeScript**.
+\> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
 
 ### Stack
 
@@ -18,77 +19,82 @@ This is a **monorepo** built with **TypeScript**.
 - TypeScript strict mode
 - Linter configured
 - Formatter configured
+- pnpm workspaces
 - Makefile build
 
 ### Key Directories
 
 - apps/ (monorepo_apps)
+- docs/ (documentation)
 - packages/ (monorepo_packages)
-- examples/ (project_directory)
 - mcp/ (project_directory)
+- examples/ (project_directory)
+- scripts/ (build_scripts)
 - .github/ (project_directory)
-- algorithmic/ (project_directory)
-- artifacts/ (project_directory)
-- brand/ (project_directory)
+- packaging/ (project_directory)
 
 ### Routes
 
-- `GET /` → apps/api/src/server.ts
-- `GET /v1/health` → apps/api/src/server.ts
-- `GET /v1/health/live` → apps/api/src/server.ts
-- `GET /v1/health/ready` → apps/api/src/server.ts
-- `GET /v1/metrics` → apps/api/src/server.ts
-- `GET /performance` → apps/api/src/server.ts
-- `GET /performance/reputation` → apps/api/src/server.ts
-- `GET /v1/db/stats` → apps/api/src/server.ts
-- `POST /v1/db/maintenance` → apps/api/src/server.ts
-- `GET /v1/docs` → apps/api/src/server.ts
+- `GET /health` → docs/archive/e2e_ui_audit.yaml
+- `GET /v1/health` → docs/archive/e2e_ui_audit.yaml
+- `POST /v1/accounts` → apps/api/src/server.ts
+- `GET /v1/account` → apps/api/src/server.ts
+- `PATCH /v1/account` → apps/api/src/server.ts
+- `DELETE /v1/account` → apps/api/src/server.ts
 - `POST /v1/snapshots` → apps/api/src/server.ts
+- `GET /v1/admin/stats` → apps/api/src/server.ts
+- `GET /v1/admin/accounts` → apps/api/src/server.ts
+- `GET /v1/admin/activity` → apps/api/src/server.ts
+- `GET /v1/admin/mcp-usage` → apps/api/src/server.ts
+- `GET /v1/admin/revenue` → apps/api/src/server.ts
+- `GET /llms.txt` → apps/api/src/server.ts
+- `GET /.well-known/skills/index.json` → apps/api/src/server.ts
+- `GET /v1/docs.md` → apps/api/src/server.ts
+- `GET /.well-known/axis.json` → apps/api/src/server.ts
+- `GET /for-agents` → apps/api/src/server.ts
+- `GET /v1/install` → apps/api/src/server.ts
+- `GET /v1/install/:platform` → apps/api/src/server.ts
+- `POST /probe-intent` → apps/api/src/server.ts
+- `GET /v1/error-codes` → apps/api/src/server.ts
+- `POST /mcp` → apps/api/src/server.ts
+- `POST /v1/analyze` → apps/api/src/server.ts
 - `GET /v1/snapshots/:snapshot_id` → apps/api/src/server.ts
 - `DELETE /v1/snapshots/:snapshot_id` → apps/api/src/server.ts
-- `GET /v1/snapshots/:snapshot_id/versions` → apps/api/src/server.ts
-- `GET /v1/snapshots/:snapshot_id/versions/:version_number` → apps/api/src/server.ts
-- `GET /v1/snapshots/:snapshot_id/diff` → apps/api/src/server.ts
 - `GET /v1/projects/:project_id/context` → apps/api/src/server.ts
 - `GET /v1/projects/:project_id/generated-files` → apps/api/src/server.ts
-- `GET /v1/projects/:project_id/generated-files/:file_path*` → apps/api/src/server.ts
 - `DELETE /v1/projects/:project_id` → apps/api/src/server.ts
-- `POST /v1/search/export` → apps/api/src/server.ts
-- `POST /v1/skills/generate` → apps/api/src/server.ts
+- `GET /v1/db/stats` → apps/api/src/server.ts
+- `POST /v1/db/maintenance` → apps/api/src/server.ts
+- `POST /v1/search/index` → apps/api/src/server.ts
+- `POST /v1/search/query` → apps/api/src/server.ts
+- `GET /v1/search/:snapshot_id/stats` → apps/api/src/server.ts
 - `POST /v1/debug/analyze` → apps/api/src/server.ts
-- `POST /v1/frontend/audit` → apps/api/src/server.ts
-- `POST /v1/seo/analyze` → apps/api/src/server.ts
-- `POST /v1/optimization/analyze` → apps/api/src/server.ts
-- `POST /v1/theme/generate` → apps/api/src/server.ts
-- `POST /v1/brand/generate` → apps/api/src/server.ts
-- `POST /v1/superpowers/generate` → apps/api/src/server.ts
-- `POST /v1/marketing/generate` → apps/api/src/server.ts
-- `POST /v1/notebook/generate` → apps/api/src/server.ts
-- `POST /v1/obsidian/analyze` → apps/api/src/server.ts
-- `POST /v1/mcp/provision` → apps/api/src/server.ts
-- `POST /v1/artifacts/generate` → apps/api/src/server.ts
-- `POST /v1/remotion/generate` → apps/api/src/server.ts
-- `POST /v1/canvas/generate` → apps/api/src/server.ts
-- `POST /v1/algorithmic/generate` → apps/api/src/server.ts
-- `POST /v1/agentic-purchasing/generate` → apps/api/src/server.ts
-- `POST /v1/closer/generate` → apps/api/src/server.ts
-- `POST /v1/deploy/generate` → apps/api/src/server.ts
-- `POST /v1/prepare-for-agentic-purchasing` → apps/api/src/server.ts
-- `POST /v1/analyze` → apps/api/src/server.ts
-- `POST /v1/github/analyze` → apps/api/src/server.ts
-- `POST /v1/github/webhook` → apps/api/src/server.ts
-- `POST /v1/research/scrape` → apps/api/src/server.ts
-- `POST /v1/research/crawl` → apps/api/src/server.ts
-- `GET /.well-known/axis.json` → apps/api/src/server.ts
-- `GET /.well-known/capabilities.json` → apps/api/src/server.ts
-- `GET /.well-known/mcp.json` → apps/api/src/server.ts
-- `GET /.well-known/security.txt` → apps/api/src/server.ts
-- *… 101 more (see OpenAPI spec or `/v1/docs`)*
+- `GET /v1/docs` → apps/api/src/server.ts
+- `GET /v1/programs` → apps/api/src/server.ts
+- `POST /v1/account/seats` → apps/api/src/server.ts
+- `GET /v1/account/seats` → apps/api/src/server.ts
+- `POST /v1/account/seats/:seat_id/accept` → apps/api/src/server.ts
+- `POST /v1/account/seats/:seat_id/revoke` → apps/api/src/server.ts
+- `GET /v1/account/upgrade-prompt` → apps/api/src/server.ts
+- `POST /v1/account/upgrade-prompt/dismiss` → apps/api/src/server.ts
+- `GET /v1/account/funnel` → apps/api/src/server.ts
+- `POST /v1/account/webhooks` → apps/api/src/server.ts
+- `GET /v1/account/webhooks` → apps/api/src/server.ts
+- `DELETE /v1/account/webhooks/:webhook_id` → apps/api/src/server.ts
+- `POST /v1/account/webhooks/:webhook_id/toggle` → apps/api/src/server.ts
+- `GET /v1/account/webhooks/:webhook_id/deliveries` → apps/api/src/server.ts
+- `POST /v1/account/programs` → apps/api/src/server.ts
+- `POST /v1/account/github-token` → apps/api/src/server.ts
+- *… 124 more (see OpenAPI spec or `/v1/docs`)*
 
 ### Domain Models
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
+| `AlertThresholds` | interface | 2 | apps/api/src/alerting.ts |
+| `Counters` | type_alias | 2 | apps/api/src/alerting.ts |
+| `DebounceState` | interface | 2 | apps/api/src/alerting.ts |
+| `WindowResult` | interface | 4 | apps/api/src/alerting.ts |
 | `AnalyticsCountByBucketResult` | interface | 3 | apps/api/src/analytics.ts |
 | `AnalyticsCountByBucketRow` | interface | 2 | apps/api/src/analytics.ts |
 | `AnalyticsCountByEventResult` | interface | 2 | apps/api/src/analytics.ts |
@@ -96,20 +102,16 @@ This is a **monorepo** built with **TypeScript**.
 | `AnalyticsCountResult` | interface | 2 | apps/api/src/analytics.ts |
 | `AnalyticsDistinctUsersResult` | interface | 2 | apps/api/src/analytics.ts |
 | `AnalyticsEvent` | interface | 4 | apps/api/src/analytics.ts |
-| `AnalyticsQuery` | interface | 7 | apps/api/src/analytics.ts |
+| `AnalyticsQuery` | interface | 8 | apps/api/src/analytics.ts |
 | `WhereClause` | interface | 2 | apps/api/src/analytics.ts |
-| `AuthContext` | interface | 3 | apps/api/src/billing.ts |
-| `NotConfiguredResult` | interface | 4 | apps/api/src/code-sandbox.ts |
-| `SandboxOptions` | interface | 4 | apps/api/src/code-sandbox.ts |
-| `SandboxResult` | interface | 6 | apps/api/src/code-sandbox.ts |
-| `DocxExtractResult` | interface | 2 | apps/api/src/document-parsing.ts |
-| `NotConfiguredResult` | interface | 5 | apps/api/src/document-parsing.ts |
-| `ParseOptions` | interface | 3 | apps/api/src/document-parsing.ts |
-| `ParseResult` | interface | 6 | apps/api/src/document-parsing.ts |
-| `PdfExtractResult` | interface | 2 | apps/api/src/document-parsing.ts |
-| `EmailConfig` | interface | 2 | apps/api/src/email.ts |
-| `ResendErrorResponse` | interface | 3 | apps/api/src/email.ts |
-| *… 265 more* | | | |
+| `ChallengeWindow` | interface | 2 | apps/api/src/anon-frontdoor.ts |
+| `DriftDeps` | interface | 5 | apps/api/src/architecture-drift-webhook.ts |
+| `DriftOutcome` | interface | 3 | apps/api/src/architecture-drift-webhook.ts |
+| `DriftResult` | interface | 3 | apps/api/src/architecture-drift.ts |
+| `PushInfo` | interface | 7 | apps/api/src/architecture-drift.ts |
+| `Attestation` | interface | 12 | apps/api/src/attestation.ts |
+| `AttestationInput` | interface | 3 | apps/api/src/attestation.ts |
+| *… 258 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 
@@ -120,26 +122,19 @@ When working in this codebase:
 - Use strict TypeScript. Avoid `any` types.
 - Prefer functional components with hooks over class components.
 - Run tests with vitest before committing.
-
-## Known Issues
-
-- No lockfile found — dependency versions may be inconsistent
+- Use `pnpm` for dependency management. Do not mix package managers.
 
 ## Architecture Boundaries
 
 Respect these layer separations:
 
-- **presentation**: apps, frontend
+- **presentation**: apps
 
 ## Key Entry Points
 
-- **`apps/api/src/server.ts`**: `export const app = ...`
+- **`apps/api/src/server.ts`**: `export const router = ...`, `export const app = ...`
 - **`apps/web/src/App.tsx`**: `export function App() { ... }`
 - `apps/web/src/main.tsx`
-- **`packages/context-engine/src/index.ts`**: `export type { ... }`, `export { ... }`
-- **`packages/generator-core/src/index.ts`**: `export type { ... }`, `export { ... }`, `export { ... }`, `export { ... }`
-- **`packages/mpp/src/index.ts`**: `export type ChargeOptions = ...`, `export type MppResult = ...`, `export interface AgentBudget { ... }`, `export interface PricingTier { ... }`
-- *... and 2 more*
 
 ## Configuration Files
 
@@ -155,40 +150,55 @@ Respect these layer separations:
 
 ```
 
-### `apps/api/package.json`
+### `package.json`
 
 ```json
 {
-  "name": "@axis/api",
+  "name": "axis-iliad",
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "npx tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo skipped â€” run vitest from root"
-  },
-  "dependencies": {
-    "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*",
-    "@axis/mpp": "workspace:*",
-... (21 more lines)
+  "description": "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "codebase-analysis",
+    "artifact-generation",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+... (53 more lines)
 ```
 
-### `apps/api/tsconfig.json`
+### `tsconfig.base.json`
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
-    "rootDir": "src"
-  },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
-}
-
+... (5 more lines)
 ```
 
 <!-- Generated by axis-iliad skills program. Regenerate after significant code changes. -->
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `AGENTS.md` — agent step 2 of 71.
+- **Next:** `CLAUDE.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

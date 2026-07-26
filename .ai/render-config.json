@@ -21,7 +21,7 @@
       "from": 90,
       "duration": 90,
       "label": "Tech Stack",
-      "data_points": 9
+      "data_points": 11
     },
     {
       "id": "architecture",
@@ -65,33 +65,33 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 89597,
-          "percent": 80
+          "loc": 73592,
+          "percent": 72
         },
         {
           "name": "YAML",
-          "loc": 10597,
-          "percent": 9.5
+          "loc": 12895,
+          "percent": 12.6
         },
         {
           "name": "Markdown",
-          "loc": 6295,
-          "percent": 5.6
-        },
-        {
-          "name": "JavaScript",
-          "loc": 2273,
-          "percent": 2
+          "loc": 8954,
+          "percent": 8.8
         },
         {
           "name": "JSON",
-          "loc": 1922,
-          "percent": 1.7
+          "loc": 2991,
+          "percent": 2.9
+        },
+        {
+          "name": "JavaScript",
+          "loc": 1815,
+          "percent": 1.8
         },
         {
           "name": "CSS",
-          "loc": 1149,
-          "percent": 1
+          "loc": 1744,
+          "percent": 1.7
         }
       ],
       "build_tools": [
@@ -103,16 +103,36 @@
       ]
     },
     "api_surface": {
-      "total_routes": 163,
+      "total_routes": 174,
       "routes": [
         {
           "method": "GET",
+          "path": "/health",
+          "source": "docs/archive/e2e_ui_audit.yaml"
+        },
+        {
+          "method": "GET",
           "path": "/v1/health",
-          "source": "apps/api/src/server.ts"
+          "source": "docs/archive/e2e_ui_audit.yaml"
         },
         {
           "method": "POST",
           "path": "/v1/accounts",
+          "source": "apps/api/src/server.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/account",
+          "source": "apps/api/src/server.ts"
+        },
+        {
+          "method": "PATCH",
+          "path": "/v1/account",
+          "source": "apps/api/src/server.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/v1/account",
           "source": "apps/api/src/server.ts"
         },
         {
@@ -184,31 +204,11 @@
           "method": "POST",
           "path": "/probe-intent",
           "source": "apps/api/src/server.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/mcp",
-          "source": "apps/api/src/server.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/v1/analyze",
-          "source": "apps/api/src/server.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/snapshots/:snapshot_id",
-          "source": "apps/api/src/server.ts"
-        },
-        {
-          "method": "DELETE",
-          "path": "/v1/snapshots/:snapshot_id",
-          "source": "apps/api/src/server.ts"
         }
       ]
     },
     "data_model": {
-      "total_models": 242,
+      "total_models": 278,
       "models": [
         {
           "name": "AlertThresholds",
@@ -276,81 +276,81 @@
           "fields": 2
         },
         {
+          "name": "ChallengeWindow",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
           "name": "DriftDeps",
           "kind": "interface",
           "fields": 5
-        },
-        {
-          "name": "DriftOutcome",
-          "kind": "interface",
-          "fields": 3
         }
       ]
     },
     "hotspots": [
       {
         "path": "apps/api/src/router.ts",
-        "inbound": 96,
+        "inbound": 113,
         "outbound": 4,
         "risk": 1
       },
       {
         "path": "apps/api/src/test-helpers.ts",
-        "inbound": 41,
+        "inbound": 54,
         "outbound": 1,
         "risk": 1
       },
       {
         "path": "apps/api/src/billing.ts",
-        "inbound": 28,
+        "inbound": 44,
         "outbound": 3,
         "risk": 1
       },
       {
         "path": "apps/api/src/handlers.ts",
-        "inbound": 23,
-        "outbound": 14,
+        "inbound": 36,
+        "outbound": 21,
         "risk": 1
       },
       {
         "path": "apps/api/src/rate-limiter.ts",
-        "inbound": 36,
+        "inbound": 46,
         "outbound": 2,
         "risk": 1
       },
       {
+        "path": "apps/api/src/mcp-tool-impls.ts",
+        "inbound": 18,
+        "outbound": 27,
+        "risk": 1
+      },
+      {
+        "path": "apps/api/src/mpp.ts",
+        "inbound": 19,
+        "outbound": 1,
+        "risk": 1
+      },
+      {
         "path": "apps/api/src/logger.ts",
-        "inbound": 25,
+        "inbound": 34,
         "outbound": 0,
         "risk": 1
       },
       {
+        "path": "apps/api/src/mcp-server.ts",
+        "inbound": 17,
+        "outbound": 15,
+        "risk": 1
+      },
+      {
         "path": "apps/api/src/server.ts",
-        "inbound": 1,
+        "inbound": 2,
         "outbound": 35,
-        "risk": 1
-      },
-      {
-        "path": "apps/web/src/App.tsx",
-        "inbound": 1,
-        "outbound": 24,
-        "risk": 1
-      },
-      {
-        "path": "packages/generator-core/src/generate.ts",
-        "inbound": 30,
-        "outbound": 6,
-        "risk": 1
-      },
-      {
-        "path": "apps/api/src/mcp-tool-impls.ts",
-        "inbound": 0,
-        "outbound": 24,
         "risk": 1
       }
     ],
     "architecture": {
-      "separation_score": 0.65,
+      "separation_score": 0.64,
       "patterns": [
         "monorepo",
         "containerized"
@@ -358,25 +358,25 @@
       "layers": [
         {
           "name": "presentation",
-          "dir_count": 2
+          "dir_count": 1
         }
       ]
     },
     "abstractions": [
       "apps/ (monorepo_apps)",
-      "packages/ (monorepo_packages)",
       "docs/ (documentation)",
-      "examples/ (project_directory)",
+      "packages/ (monorepo_packages)",
       "mcp/ (project_directory)",
+      "examples/ (project_directory)",
+      "scripts/ (build_scripts)",
       ".github/ (project_directory)",
-      "algorithmic/ (project_directory)",
-      "artifacts/ (project_directory)"
+      "packaging/ (project_directory)"
     ]
   },
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 115124
+    "total_loc": 108805
   },
   "source_media_files": null
 }

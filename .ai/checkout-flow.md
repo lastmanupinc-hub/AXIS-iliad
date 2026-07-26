@@ -10,7 +10,7 @@ Agent Request → Validate Intent → Check Balance → API Call → Confirm →
 
 ## Repository Status
 
-Detected providers: adyen, affirm, afterpay, amazon_pay, apple_pay, braintree, google_pay, klarna, paypal, square, stripe.
+Detected providers: adyen, affirm, afterpay, apple_pay, braintree, google_pay, klarna, paypal, square, stripe.
 
 ## Decision Tree
 
@@ -76,6 +76,8 @@ Every autonomous purchase MUST include these AP2 mandate fields:
 
 ## SCA / 3DS2 Handling
 
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
+
 ✅ SCA/3DS2 code detected in this repository.
 
 | Scenario | Action | AP2 Field |
@@ -90,6 +92,8 @@ Every autonomous purchase MUST include these AP2 mandate fields:
 Never trigger interactive SCA during an autonomous purchase session.
 
 ## Dispute and Return Flow
+
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
 
 ✅ Dispute/refund handling detected in this repository.
 
@@ -135,6 +139,8 @@ AXIS does not publish approval-rate figures. To reduce challenge friction:
 
 ## Network Token Payload (VTS/MDES)
 
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
+
 When network tokenization is available, include in payment request:
 
 ```json
@@ -156,7 +162,14 @@ When network tokenization is available, include in payment request:
 
 Network tokenization status: ✅ Detected — DPAN flow available
 
+> Honest scope: AXIS ships an executable token-lifecycle state machine and a live Stripe
+> network-token READ adapter. Direct VTS/MDES provisioning is capability-gated behind a
+> network-issued Token Requestor ID and returns a structured `_not_configured` envelope
+> until Visa/Mastercard onboarding exists — not unconditional live VTS+MDES.
+
 ## Lighter SCA Paths — Agent-Optimized Flow
+
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
 
 Goal: minimize friction for autonomous agent purchases. Prefer exemptions over challenges.
 
@@ -164,12 +177,13 @@ Goal: minimize friction for autonomous agent purchases. Prefer exemptions over c
 
 ```
 Transaction arrives:
-  ├─ Amount < €30? → LOW_VALUE exemption (no SCA)
-  ├─ Merchant in trusted list? → TRUSTED_BENEFICIARY (no SCA)
-  ├─ Fixed recurring + prior SCA? → RECURRING_FIXED (no SCA)
-  ├─ Merchant-initiated (MIT)? → MIT exemption (no SCA)
-  ├─ Corporate card (secure_corporate)? → EXEMPT (no SCA)
-  ├─ TRA score < threshold? → TRA exemption (no SCA, up to €500)
+  ├─ Low-value transaction? → LOW_VALUE (no SCA)
+  ├─ Secure corporate payment? → SECURE_CORPORATE (no SCA)
+  ├─ Merchant-initiated transaction (out of SCA scope, not a formal RTS exemption)? → MERCHANT_INITIATED (no SCA)
+  ├─ Recurring fixed-amount collection? → RECURRING_FIXED (no SCA)
+  ├─ Trusted beneficiary? → TRUSTED_BENEFICIARY (no SCA)
+  ├─ Transaction risk analysis (TRA)? → TRANSACTION_RISK_ANALYSIS (no SCA)
+  ├─ One-leg-out transaction (territorial scope, not a formal RTS exemption)? → ONE_LEG_OUT (no SCA)
   └─ None apply? → Request frictionless 3DS2 first
        ├─ Issuer approves frictionless? → PROCEED (no redirect)
        └─ Issuer requires challenge? → ABORT agent flow, escalate to operator
@@ -177,15 +191,17 @@ Transaction arrives:
 
 ### Exemption Priority for Agents (prefer top → bottom)
 
-| Priority | Exemption | Max Amount | Agent Action | Fallback |
-|----------|-----------|-----------|--------------|----------|
-| 1 | low_value | €30 | Auto-apply | Next rule |
-| 2 | trusted_beneficiary | Unlimited | Check trusted list | Next rule |
-| 3 | recurring_fixed | Per mandate | Verify mandate active | Next rule |
-| 4 | merchant_initiated | Per agreement | Verify MIT flag | Next rule |
-| 5 | secure_corporate | Unlimited | Verify card program | Next rule |
-| 6 | transaction_risk_analysis | €500 | Check TRA eligibility | 3DS2 frictionless |
-| 7 | 3ds2_frictionless | Unlimited | Request frictionless | Escalate to human |
+> Priority order below is AXIS's recommended agent-optimized preference — PSD2/EBA RTS defines these paths but assigns no priority ordering of its own; issuers/acquirers may apply their own order.
+
+| Priority | Exemption | Label | Condition | Max Amount (EUR) |
+|----------|-----------|-------|-----------|-------------------|
+| 1 | `low_value` | Low-value transaction | Transaction amount is at or below €30 (PSD2 RTS Art. 11) | €30 |
+| 2 | `secure_corporate` | Secure corporate payment | Payment made through a dedicated/lodged corporate card program (PSD2 RTS Art. 16) | Unlimited |
+| 3 | `merchant_initiated` | Merchant-initiated transaction (out of SCA scope, not a formal RTS exemption) | Merchant-initiated transaction (MIT) using a stored credential with an original SCA reference | Unlimited |
+| 4 | `recurring_fixed` | Recurring fixed-amount collection | Fixed-amount subsequent collection under a mandate, with a prior SCA on file (PSD2 RTS Art. 13) | Unlimited |
+| 5 | `trusted_beneficiary` | Trusted beneficiary | Merchant is on the cardholder's trusted-beneficiary list, added after a prior SCA (PSD2 RTS Art. 12) | Unlimited |
+| 6 | `transaction_risk_analysis` | Transaction risk analysis (TRA) | Acquirer's reference fraud rate qualifies the transaction for an EBA RTS Art. 15 fraud-rate-band cap | €500 |
+| 7 | `one_leg_out` | One-leg-out transaction (territorial scope, not a formal RTS exemption) | Payer or payee is located outside the EEA, so SCA is not territorially mandated for this leg | Unlimited |
 
 ### Provider-Specific SCA Thresholds
 
@@ -207,6 +223,8 @@ the issuer — treat the tree as a starting point, not a guarantee.
 Your repo: ✅ SCA code detected — wire the decision tree into your existing flow.
 
 ## Compelling Evidence 3.0 (CE 3.0) — Auto-Generated Payloads
+
+> **Rail scope**: this section is card-network specific (Visa/Mastercard rules, issuer/acquirer roles, chargeback process). If you also accept direct on-chain USDC payments (e.g. via x402), none of this applies there — that rail has no chargebacks, no SCA challenge, and no dispute lifecycle to manage. Treat this section as scoped to card transactions only.
 
 CE 3.0 reduces fraud-related chargebacks by proving legitimate cardholder engagement.
 AXIS auto-generates the evidence payload structure — agents fill transaction-specific fields at dispute time.
@@ -272,7 +290,7 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
 
 | Check | Status | Evidence |
 |-------|--------|----------|
-| payment_provider_integration | PASS | adyen, affirm, afterpay, amazon_pay, apple_pay, braintree, google_pay, klarna, paypal, square, stripe |
+| payment_provider_integration | PASS | adyen, affirm, afterpay, apple_pay, braintree, google_pay, klarna, paypal, square, stripe |
 | checkout_flow_implementation | PASS | checkout patterns detected |
 | sca_3ds2_handling | PASS | SCA/3DS2 code found |
 | dispute_resolution_flow | PASS | dispute/refund patterns found |
@@ -286,6 +304,6 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
 
 ## ⟳ Continue the loop
 
-- **You are here:** `checkout-flow.md` — agent step 63 of 70.
+- **You are here:** `checkout-flow.md` — agent step 64 of 71.
 - **Next:** `negotiation-rules.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

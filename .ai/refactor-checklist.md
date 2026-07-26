@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -16,25 +16,25 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Risk Level | Files | Action |
 |-----------|-------|--------|
-| High (>70%) | 13 | Refactor with full test coverage first |
-| Medium (40–70%) | 5 | Refactor when touching for features |
-| Low (≤40%) | 2 | Refactor opportunistically |
+| High (>70%) | 12 | Refactor with full test coverage first |
+| Medium (40–70%) | 8 | Refactor when touching for features |
+| Low (≤40%) | 0 | Refactor opportunistically |
 
 ### High-Risk Files
 
-- **`apps/api/src/router.ts`** — risk 100% (96 inbound, 4 outbound)
+- **`apps/api/src/router.ts`** — risk 100% (113 inbound, 4 outbound)
   - Break into smaller modules if possible
   - Add comprehensive tests before modifying
-- **`apps/api/src/test-helpers.ts`** — risk 100% (41 inbound, 1 outbound)
+- **`apps/api/src/test-helpers.ts`** — risk 100% (54 inbound, 1 outbound)
   - Break into smaller modules if possible
   - Add comprehensive tests before modifying
-- **`apps/api/src/billing.ts`** — risk 100% (28 inbound, 3 outbound)
+- **`apps/api/src/billing.ts`** — risk 100% (44 inbound, 3 outbound)
   - Break into smaller modules if possible
   - Add comprehensive tests before modifying
-- **`apps/api/src/handlers.ts`** — risk 100% (23 inbound, 14 outbound)
+- **`apps/api/src/handlers.ts`** — risk 100% (36 inbound, 21 outbound)
   - Break into smaller modules if possible
   - Add comprehensive tests before modifying
-- **`apps/api/src/rate-limiter.ts`** — risk 100% (36 inbound, 2 outbound)
+- **`apps/api/src/rate-limiter.ts`** — risk 100% (46 inbound, 2 outbound)
   - Break into smaller modules if possible
   - Add comprehensive tests before modifying
 
@@ -76,25 +76,25 @@ Models with a high field count are strong candidates for decomposition or value-
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
-| `ContextMap` | interface | 69 ⚠️ large | `packages/context-engine/src/types.ts` |
 | `ContextMap` | interface | 61 ⚠️ large | `apps/web/src/api.ts` |
-| `ResellCapability` | interface | 29 ⚠️ large | `packages/generator-core/src/generators-artifacts.ts` |
+| `AdminRevenue` | interface | 29 ⚠️ large | `apps/web/src/api.ts` |
 | `RepoProfile` | interface | 26 ⚠️ large | `apps/web/src/api.ts` |
-| `RepoProfile` | interface | 21 ⚠️ large | `packages/context-engine/src/types.ts` |
-| `AdminRevenue` | interface | 20 ⚠️ large | `apps/web/src/api.ts` |
+| `AnalyzeQuickResponse` | interface | 24 ⚠️ large | `apps/web/src/api.ts` |
+| `RouteContext` | interface | 24 ⚠️ large | `apps/web/src/routes.tsx` |
 | `McpUsageResponse` | interface | 18 ⚠️ large | `apps/web/src/api.ts` |
 | `MyAnalyticsSummary` | interface | 18 ⚠️ large | `apps/web/src/api.ts` |
+| `RouteDef` | interface | 15 ⚠️ large | `apps/web/src/routes.tsx` |
 | `SubscriptionInfo` | interface | 14 ⚠️ large | `apps/web/src/api.ts` |
 | `PlannedCapability` | interface | 13 ⚠️ large | `apps/api/src/mcp-tools.ts` |
-| *... and 232 more* | | | |
+| *... and 268 more* | | | |
 
 ### Decomposition Candidates
 
-- **`ContextMap`** (69 fields) — consider extracting related field groups into value objects
 - **`ContextMap`** (61 fields) — consider extracting related field groups into value objects
-- **`ResellCapability`** (29 fields) — consider extracting related field groups into value objects
+- **`AdminRevenue`** (29 fields) — consider extracting related field groups into value objects
 - **`RepoProfile`** (26 fields) — consider extracting related field groups into value objects
-- **`RepoProfile`** (21 fields) — consider extracting related field groups into value objects
+- **`AnalyzeQuickResponse`** (24 fields) — consider extracting related field groups into value objects
+- **`RouteContext`** (24 fields) — consider extracting related field groups into value objects
 
 ## Architecture Alignment
 
@@ -105,7 +105,7 @@ Detected patterns to preserve during refactoring:
 
 Layer boundaries (do not violate during refactoring):
 
-- **presentation**: apps, frontend
+- **presentation**: apps
 
 ## Post-Refactor Checklist
 
@@ -129,15 +129,16 @@ Use these exports to identify module split boundaries:
 - `export function constantTimeEqual(a: string, b: string): boolean { ... }`
 - `export async function handleCreateAccount(`
 - `export async function handleGetAccount(`
+- `export async function handlePatchAccount(`
+- `export async function handleDeleteAccount(`
 - `export async function handleCreateApiKey(`
 - `export async function handleListApiKeys(`
 - `export async function handleRevokeApiKey(`
-- `export async function handleGetUsage(`
-- `export async function handleGetAnalyticsSummary(`
 
 ### `apps/api/src/handlers.ts`
 
 - `export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }`
+- `export async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolea`
 - `export const PROGRAM_OUTPUTS: Record<string, string[]> = ...`
 - `export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }`
 - `export const handleDebugAnalyze        = ...`
@@ -148,14 +149,15 @@ Use these exports to identify module split boundaries:
 - `export const handleBrandGenerate       = ...`
 - `export const handleSuperpowersGenerate = ...`
 - `export const handleMarketingGenerate   = ...`
-- `export const handleNotebookGenerate    = ...`
 
 ### `apps/api/src/router.ts`
 
 - `export class Router { ... }`
 - `export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }`
 - `export function sendError(`
-- `export async function readBody(req: IncomingMessage): Promise<string> { ... }`
+- `export const DEFAULT_MAX_BODY_BYTES = ...`
+- `export function getMaxBodyBytes(): number { ... }`
+- `export async function readBody(req: IncomingMessage, maxSizeOverride?: number): Promise<string> { ... }`
 - `export interface AppHandle { ... }`
 - `export function isShuttingDown(): boolean { ... }`
 - `export function scheduleBootMigrations(`
@@ -181,7 +183,10 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
@@ -190,20 +195,19 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getUsageByDay,
   getApiCallSummary,
-  recordUsage,
-  isProgramEnabled,
   trackEvent,
-  saveGitHubToken,
-  getGitHubTokens,
-... (831 more lines)
+... (1032 more lines)
 ```
 
 ### `apps/api/src/handlers.ts`
 
 ```typescript
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { chargeMpp, parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import { readFileSync } from "node:fs";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, getPricingTier, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
+import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
 import { classifyProbe, captureIntent } from "./intent.js";
 import {
@@ -225,9 +229,7 @@ import {
   trackEvent,
   resolveStage,
   TIER_LIMITS,
-  ALL_PROGRAMS,
-  isProgramEnabled,
-... (3800 more lines)
+... (4929 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -249,6 +251,7 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
@@ -257,8 +260,7 @@ interface Route {
 export class Router {
   private routes: Route[] = [];
 
-  post(path: string, handler: RouteHandler) {
-... (466 more lines)
+... (542 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -297,6 +299,6 @@ export async function startTestServer(router: Router): Promise<TestServer> {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `refactor-checklist.md` — agent step 20 of 70.
+- **You are here:** `refactor-checklist.md` — agent step 20 of 71.
 - **Next:** `campaign-brief.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

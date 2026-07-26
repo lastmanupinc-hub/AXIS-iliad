@@ -1,7 +1,6 @@
 # Messaging System
 # Project: axis-iliad
-# Generated: "1970-01-01T00:00:00.000Z"
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 product:
   name: axis-iliad
@@ -10,52 +9,49 @@ product:
   stack: React
 
 taglines:
-  primary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
-  technical: "React monorepo — 500 files, 115,124 lines"
-  conceptual: "Built around apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation)"
+  primary: axis-iliad — React monorepo
+  technical: "React monorepo — 500 files, 108,805 lines"
+  conceptual: "Built around apps/ (monorepo_apps), docs/ (documentation), packages/ (monorepo_packages)"
 
 value_propositions:
   - id: stack
     headline: React Expertise
     detail: Built with React ^19.1.0 — stack-native patterns throughout.
   - id: api_surface
-    headline: "163 API Endpoints"
-    detail: "Complete API with 92 GET, 66 POST, 5 DELETE — ready for integration."
+    headline: "174 API Endpoints"
+    detail: "Complete API with 102 GET, 65 POST, 1 PATCH, 6 DELETE — ready for integration."
   - id: domain_model
-    headline: "242 Domain Entities"
-    detail: "Rich domain model with AlertThresholds, Counters, DebounceState, WindowResult, AnalyticsCountByBucketResult and 237 more."
-  - id: architecture
-    headline: Clean Architecture (0.65 separation)
-    detail: "monorepo, containerized with 1 layer boundaries."
+    headline: "278 Domain Entities"
+    detail: "Rich domain model with AlertThresholds, Counters, DebounceState, WindowResult, AnalyticsCountByBucketResult and 273 more."
   - id: quality
     headline: "Test-Driven Quality"
-    detail: Tested with vitest across 189 test files.
+    detail: Tested with vitest across 177 test files.
 
 feature_messages:
   api_surface:
-    count: 163
-    message: "163 API endpoints ready for integration"
+    count: 174
+    message: "174 API endpoints ready for integration"
     routes:
+      - GET /health
       - GET /v1/health
       - POST /v1/accounts
+      - GET /v1/account
+      - PATCH /v1/account
+      - DELETE /v1/account
       - POST /v1/snapshots
       - GET /v1/admin/stats
       - GET /v1/admin/accounts
       - GET /v1/admin/activity
-      - GET /v1/admin/mcp-usage
-      - GET /v1/admin/revenue
-      - GET /llms.txt
-      - GET /.well-known/skills/index.json
   language_support:
-    count: 8
-    message: "8 languages detected and analyzed"
+    count: 10
+    message: "10 languages detected and analyzed"
     breakdown:
-      - "TypeScript: 89,597 lines (80%)"
-      - "YAML: 10,597 lines (9.5%)"
-      - "Markdown: 6,295 lines (5.6%)"
-      - "JavaScript: 2,273 lines (2%)"
-      - "JSON: 1,922 lines (1.7%)"
-      - (+3 more languages)
+      - "TypeScript: 73,592 lines (72%)"
+      - "YAML: 12,895 lines (12.6%)"
+      - "Markdown: 8,954 lines (8.8%)"
+      - "JSON: 2,991 lines (2.9%)"
+      - "JavaScript: 1,815 lines (1.8%)"
+      - (+5 more languages)
   framework_detection:
     count: 1
     message: "1 frameworks detected with stack-aware output"
@@ -64,13 +60,18 @@ feature_messages:
         version: "^19.1.0"
         confidence: 0.95
 
+# calls_to_action are starter placeholders — replace with your product's real CTAs.
 calls_to_action:
   primary:
-    label: "Upload Project"
+    label: "Get Started"
     context: "Main landing page, empty states"
   secondary:
-    label: "View Results"
-    context: "After snapshot processing complete"
+    label: "See How It Works"
+    context: "Feature sections, docs"
   api:
-    label: "Send Snapshot via API"
+    label: "Read the API Docs"
     context: "Developer documentation, API reference"
+
+# Source-derived messaging
+package_description:
+  value: "Axis' Iliad - one API call that turns any codebase into 142 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)"

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -18,77 +18,80 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 |-------|----------|------------|-------|--------|
 | `/` | 1.0 | weekly | Yes | Homepage — highest priority |
 | `/pricing` | 0.9 | monthly | Yes | Conversion page — high commercial intent |
-| `/mcp/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
 | `/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
-| `/llms.txt` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/skills/index.json` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/axis.json` | 0.5 | monthly | Yes | Standard page |
-| `/for-agents` | 0.5 | monthly | Yes | Standard page |
 | `/health` | 0.5 | monthly | Yes | Standard page |
-| `/mcp` | 0.5 | monthly | Yes | Standard page |
+| `/for-agents` | 0.5 | monthly | Yes | Standard page |
+| `/portal/api/paid/config` | 0.5 | monthly | Yes | Standard page |
 | `/performance` | 0.5 | monthly | Yes | Standard page |
 | `/performance/reputation` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/capabilities.json` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/mcp.json` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/security.txt` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/glama.json` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/agent.json` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/ai-plugin.json` | 0.5 | monthly | Yes | Standard page |
-| `/agents.json` | 0.5 | monthly | Yes | Standard page |
-| `/mcp/.well-known/mcp.json` | 0.5 | monthly | Yes | Standard page |
-| `/mcp/.well-known/agent.json` | 0.5 | monthly | Yes | Standard page |
-| `/robots.txt` | 0.5 | monthly | Yes | Standard page |
-| `/sitemap.xml` | 0.5 | monthly | Yes | Standard page |
-| `/openapi.json` | 0.5 | monthly | Yes | Standard page |
-| `/mcp/` | 0.5 | monthly | Yes | Standard page |
-| `/favicon.ico` | 0.5 | monthly | Yes | Standard page |
-| `/mcp/sse` | 0.5 | monthly | Yes | Standard page |
-| `/mcp/mcp/*` | 0.5 | monthly | Yes | Standard page |
 | `/accounts` | 0.5 | monthly | Yes | Standard page |
 | `/accounts/` | 0.5 | monthly | Yes | Standard page |
-| `/.well-known/oauth-authorization-server` | 0.3 | yearly | No | Auth page — minimal SEO value |
-| `/.well-known/oauth-protected-resource` | 0.3 | yearly | No | Auth page — minimal SEO value |
 | `/oauth/authorize` | 0.3 | yearly | No | Auth page — minimal SEO value |
 | `/oauth/jwks` | 0.3 | yearly | No | Auth page — minimal SEO value |
-| `/v1/health` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/admin/stats` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/admin/accounts` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/admin/activity` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/admin/mcp-usage` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/admin/revenue` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/docs.md` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/install` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/install/:platform` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/snapshots/:snapshot_id` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/projects/:project_id/context` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/projects/:project_id/generated-files` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/db/stats` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/search/:snapshot_id/stats` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/docs` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/programs` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/account/seats` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/account/upgrade-prompt` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/account/funnel` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/account/webhooks` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/account/webhooks/:webhook_id/deliveries` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/account/github-token` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/billing/history` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/billing/proration` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/projects/:project_id/generated-files/:file_path*` | 0.0 | never | No | API/internal route — noindex |
-| `/v1/projects/:project_id/export` | 0.0 | never | No | API/internal route — noindex |
-| *… 32 more* | | | | |
+| `/v1/health` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/admin/stats` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/admin/accounts` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/admin/activity` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/admin/mcp-usage` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/admin/revenue` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/llms.txt` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/.well-known/skills/index.json` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/docs.md` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/.well-known/axis.json` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/install` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/install/:platform` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/error-codes` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/snapshots/:snapshot_id` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/projects/:project_id/context` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/projects/:project_id/generated-files` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/db/stats` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/search/:snapshot_id/stats` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/docs` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/programs` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/seats` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/upgrade-prompt` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/funnel` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/webhooks` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/webhooks/:webhook_id/deliveries` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/github-token` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/billing/history` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/billing/proration` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/begin.yaml` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/continuation.yaml` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/projects/:project_id/generated-files/:file_path*` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/projects/:project_id/export` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/keys` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/usage` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/analytics/summary` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/credits` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/plans` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/changelog` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/subscription` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/credits/purchases` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/health/live` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/health/ready` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/metrics` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/snapshots/:snapshot_id/versions` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/snapshots/:snapshot_id/versions/:version_number` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/snapshots/:snapshot_id/diff` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| `/v1/account/quota` | 0.0 | never | No | API/asset/internal endpoint — noindex |
+| *… 42 more* | | | | |
 
 ## Summary
 
-- **Total routes:** 92
-- **Indexable:** 30
-- **Noindex:** 62
+- **Sitemap-candidate (GET) routes:** 102
+- **Indexable:** 10
+- **Noindex:** 92
+- **Non-GET / API routes (excluded, see below):** 73
 
 ## API Routes (Excluded)
 
 These routes should NOT appear in sitemap or be indexed:
 
 - `POST /v1/accounts`
+- `PATCH /v1/account`
+- `DELETE /v1/account`
 - `POST /v1/snapshots`
 - `POST /probe-intent`
 - `POST /mcp`
@@ -126,30 +129,31 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/algorithmic/generate`
 - `POST /v1/agentic-purchasing/generate`
 - `POST /v1/github/analyze`
+- `POST /v1/github/architecture-drift`
 - `POST /v1/account/tier`
 - `DELETE /v1/account/github-token/:token_id`
 - `POST /v1/account/keys`
 - `POST /v1/account/keys/:key_id/revoke`
 - `POST /v1/account/credits`
 - `POST /v1/webhooks/stripe`
-- `POST /v1/checkout`
 - `POST /v1/account/subscription/cancel`
 - `POST /purchase`
+- `POST /v1/prepare-for-agentic-purchasing`
+- `POST /v1/research/scrape`
+- `POST /v1/research/crawl`
 - `POST /v1/account/analytics/events`
 - `POST /v1/github/webhook`
 - `POST /v1/projects/:project_id/memory`
+- `POST /oauth/token`
+- `POST /oauth/introspect`
 - `POST /v1/auth/exchange`
 - `POST /v1/auth/session`
 - `POST /v1/auth/logout`
 - `POST /portal/api/subscribe`
 - `GET /portal/api/paid/config`
 - `POST /portal/api/paid/webhook`
-- `POST /v1/prepare-for-agentic-purchasing`
 - `POST /v1/closer/generate`
 - `POST /v1/deploy/generate`
-- `POST /v1/github/architecture-drift`
-- `POST /v1/research/scrape`
-- `POST /v1/research/crawl`
 - `POST /mcp/`
 - `POST /v1/mcp`
 - `POST /v1/mcp/`
@@ -158,77 +162,137 @@ These routes should NOT appear in sitemap or be indexed:
 - `DELETE /mcp/mcp/*`
 - `POST /accounts`
 - `POST /v1/credits/topup`
-- `POST /oauth/token`
-- `POST /oauth/introspect`
 
 ## robots.txt Recommendations
 
 ```
 User-agent: *
 Allow: /
+Disallow: /.well-known/agent-card.json
+Disallow: /.well-known/agent.json
+Disallow: /.well-known/ai-plugin.json
+Disallow: /.well-known/axis.json
+Disallow: /.well-known/capabilities.json
+Disallow: /.well-known/glama.json
+Disallow: /.well-known/mcp.json
 Disallow: /.well-known/oauth-authorization-server
 Disallow: /.well-known/oauth-protected-resource
+Disallow: /.well-known/security.txt
+Disallow: /.well-known/skills/index.json
+Disallow: /.well-known/x402
+Disallow: /.well-known/x402.json
+Disallow: /accounts
+Disallow: /agents.json
+Disallow: /begin.yaml
+Disallow: /continuation.yaml
+Disallow: /favicon.ico
+Disallow: /llms.txt
+Disallow: /mcp
+Disallow: /mcp/.well-known/agent.json
+Disallow: /mcp/.well-known/mcp.json
+Disallow: /mcp/docs
+Disallow: /mcp/mcp
+Disallow: /mcp/sse
 Disallow: /oauth/authorize
+Disallow: /oauth/introspect
 Disallow: /oauth/jwks
-Disallow: /v1/health
-Disallow: /v1/admin/stats
+Disallow: /oauth/token
+Disallow: /openapi.json
+Disallow: /portal/api/paid/config
+Disallow: /portal/api/paid/webhook
+Disallow: /portal/api/subscribe
+Disallow: /probe-intent
+Disallow: /purchase
+Disallow: /robots.txt
+Disallow: /sitemap.xml
+Disallow: /v1/account
+Disallow: /v1/account/analytics/events
+Disallow: /v1/account/analytics/summary
+Disallow: /v1/account/credits
+Disallow: /v1/account/fleet
+Disallow: /v1/account/funnel
+Disallow: /v1/account/github-token
+Disallow: /v1/account/keys
+Disallow: /v1/account/programs
+Disallow: /v1/account/quota
+Disallow: /v1/account/seats
+Disallow: /v1/account/subscription
+Disallow: /v1/account/subscription/cancel
+Disallow: /v1/account/tier
+Disallow: /v1/account/upgrade-prompt
+Disallow: /v1/account/upgrade-prompt/dismiss
+Disallow: /v1/account/usage
+Disallow: /v1/account/usage/timeseries
+Disallow: /v1/account/webhooks
+Disallow: /v1/accounts
 Disallow: /v1/admin/accounts
 Disallow: /v1/admin/activity
 Disallow: /v1/admin/mcp-usage
 Disallow: /v1/admin/revenue
-Disallow: /v1/docs.md
-Disallow: /v1/install
-Disallow: /v1/install/:platform
-Disallow: /v1/snapshots/:snapshot_id
-Disallow: /v1/projects/:project_id/context
-Disallow: /v1/projects/:project_id/generated-files
-Disallow: /v1/db/stats
-Disallow: /v1/search/:snapshot_id/stats
-Disallow: /v1/docs
-Disallow: /v1/programs
-Disallow: /v1/account/seats
-Disallow: /v1/account/upgrade-prompt
-Disallow: /v1/account/funnel
-Disallow: /v1/account/webhooks
-Disallow: /v1/account/webhooks/:webhook_id/deliveries
-Disallow: /v1/account/github-token
-Disallow: /v1/billing/history
-Disallow: /v1/billing/proration
-Disallow: /v1/projects/:project_id/generated-files/:file_path*
-Disallow: /v1/projects/:project_id/export
-Disallow: /v1/account
-Disallow: /v1/account/keys
-Disallow: /v1/account/usage
-Disallow: /v1/account/analytics/summary
-Disallow: /v1/account/credits
-Disallow: /v1/plans
-Disallow: /v1/account/subscription
-Disallow: /v1/health/live
-Disallow: /v1/health/ready
-Disallow: /v1/metrics
-Disallow: /v1/snapshots/:snapshot_id/versions
-Disallow: /v1/snapshots/:snapshot_id/versions/:version_number
-Disallow: /v1/snapshots/:snapshot_id/diff
-Disallow: /v1/account/quota
-Disallow: /v1/account/fleet
-Disallow: /v1/funnel/metrics
-Disallow: /v1/mcp/server.json
-Disallow: /v1/stats
-Disallow: /v1/projects/:project_id/memory
+Disallow: /v1/admin/stats
+Disallow: /v1/agentic-purchasing/generate
+Disallow: /v1/algorithmic/generate
+Disallow: /v1/analyze
+Disallow: /v1/artifacts/generate
+Disallow: /v1/auth/exchange
 Disallow: /v1/auth/github
 Disallow: /v1/auth/github/callback
 Disallow: /v1/auth/google
 Disallow: /v1/auth/google/callback
-Disallow: /portal/api/paid/config
-Disallow: /v1/search/:snapshot_id/symbols
-Disallow: /v1/mcp
-Disallow: /v1/mcp/
-Disallow: /v1/mcp/tools
-Disallow: /v1/accounts
-Disallow: /v1/accounts/
+Disallow: /v1/auth/logout
+Disallow: /v1/auth/session
+Disallow: /v1/billing/history
+Disallow: /v1/billing/proration
+Disallow: /v1/brand/generate
+Disallow: /v1/canvas/generate
+Disallow: /v1/changelog
+Disallow: /v1/closer/generate
 Disallow: /v1/credits/packs
 Disallow: /v1/credits/purchases
-Disallow: /api/
+Disallow: /v1/credits/topup
+Disallow: /v1/db/maintenance
+Disallow: /v1/db/stats
+Disallow: /v1/debug/analyze
+Disallow: /v1/deploy/generate
+Disallow: /v1/docs
+Disallow: /v1/docs.md
+Disallow: /v1/error-codes
+Disallow: /v1/frontend/audit
+Disallow: /v1/funnel/metrics
+Disallow: /v1/github/analyze
+Disallow: /v1/github/architecture-drift
+Disallow: /v1/github/webhook
+Disallow: /v1/health
+Disallow: /v1/health/live
+Disallow: /v1/health/ready
+Disallow: /v1/install
+Disallow: /v1/marketing/generate
+Disallow: /v1/mcp
+Disallow: /v1/mcp/provision
+Disallow: /v1/mcp/server.json
+Disallow: /v1/mcp/tools
+Disallow: /v1/metrics
+Disallow: /v1/notebook/generate
+Disallow: /v1/obsidian/analyze
+Disallow: /v1/optimization/analyze
+Disallow: /v1/plans
+Disallow: /v1/prepare-for-agentic-purchasing
+Disallow: /v1/programs
+Disallow: /v1/projects
+Disallow: /v1/remotion/generate
+Disallow: /v1/research/crawl
+Disallow: /v1/research/scrape
+Disallow: /v1/search
+Disallow: /v1/search/export
+Disallow: /v1/search/index
+Disallow: /v1/search/query
+Disallow: /v1/seo/analyze
+Disallow: /v1/skills/generate
+Disallow: /v1/snapshots
+Disallow: /v1/stats
+Disallow: /v1/superpowers/generate
+Disallow: /v1/theme/generate
+Disallow: /v1/webhooks/stripe
 
 Sitemap: https://yoursite.com/sitemap.xml
 ```
@@ -237,16 +301,16 @@ Sitemap: https://yoursite.com/sitemap.xml
 
 | File | Exports | Lines |
 |------|---------|-------|
-| `apps/api/src/credit-pack-handlers.ts` | export async function handleListCreditPacks(, export async function handleCreateCreditTopup(, export async function handleListMyPurchases( | 154 |
+| `cloudflare-pages.md` | default | 45 |
+| `apps/api/src/credit-pack-handlers.ts` | export async function handleListCreditPacks(, export async function handleCreateCreditTopup(, export async function handleListMyPurchases( | 161 |
 | `apps/api/src/fleet-handlers.ts` | export const FLEET_SCAN_LIMIT = ..., export async function handleGetFleet(req: IncomingMessage, res: ServerResponse): Promise<void> { ... } | 98 |
-| `apps/api/src/handlers.ts` | export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }, export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze = ..., export const handleFrontendAudit = ..., export const handleSeoAnalyze = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate = ..., export const handleBrandGenerate = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate = ..., export const handleNotebookGenerate = ..., export const handleObsidianAnalyze = ..., export const handleMcpProvision = ..., export const handleArtifactsGenerate = ..., export const handleRemotionGenerate = ..., export const handleCanvasGenerate = ..., export const handleAlgorithmicGenerate = ..., export const handleAgenticPurchasingGenerate = ..., export const handleCloserGenerate = ..., export const handleDeployGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats(, export async function handleDbMaintenance( | 3825 |
+| `apps/api/src/handlers.ts` | export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }, export async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolea, export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze = ..., export const handleFrontendAudit = ..., export const handleSeoAnalyze = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate = ..., export const handleBrandGenerate = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate = ..., export const handleNotebookGenerate = ..., export const handleObsidianAnalyze = ..., export const handleMcpProvision = ..., export const handleArtifactsGenerate = ..., export const handleRemotionGenerate = ..., export const handleCanvasGenerate = ..., export const handleAlgorithmicGenerate = ..., export const handleAgenticPurchasingGenerate = ..., export const handleCloserGenerate = ..., export const handleDeployGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats( | 4954 |
 | `apps/api/src/memory-handlers.ts` | export async function handleListMemory(, export async function handleAddMemory( | 162 |
-| `apps/api/src/paid-handlers.ts` | export async function handlePaidSubscribe(, export async function handlePaidConfig(, export async function handlePaidWebhook( | 420 |
-| `apps/api/src/router.ts` | export class Router { ... }, export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }, export function sendError(, export async function readBody(req: IncomingMessage): Promise<string> { ... }, export interface AppHandle { ... }, export function isShuttingDown(): boolean { ... }, export function scheduleBootMigrations(, export function createApp(router: Router, port: number): Server { ... } | 491 |
-| `apps/web/src/components/ToolPage.tsx` | export interface ToolPricing { ... }, export interface ToolPageProps { ... }, export function ToolPage({ ... } | 189 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 599 |
-| `apps/web/src/pages/AdminPage.tsx` | export function AdminPage() { ... } | 334 |
-| `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 197 |
+| `apps/api/src/paid-handlers.ts` | export async function handlePaidSubscribe(, export async function handlePaidConfig(, export async function handlePaidWebhook( | 544 |
+| `apps/api/src/projects-handlers.ts` | export async function handleListProjects(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleListProjectSnapshots( | 110 |
+| `apps/api/src/router.ts` | export class Router { ... }, export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }, export function sendError(, export const DEFAULT_MAX_BODY_BYTES = ..., export function getMaxBodyBytes(): number { ... }, export async function readBody(req: IncomingMessage, maxSizeOverride?: number): Promise<string> { ... }, export interface AppHandle { ... }, export function isShuttingDown(): boolean { ... }, export function scheduleBootMigrations(, export function createApp(router: Router, port: number): Server { ... } | 567 |
+| `docs/web-plan/AUDIT-pages.md` | default | 54 |
+| `apps/web/src/routes.tsx` | export type PageId = ..., export type RouteParams = ..., export interface NavContext { ... }, export interface RouteContext extends NavContext { ... }, export type NavGroup = ..., export const NAV_GROUPS: readonly NavGroup[] = ..., export interface NavEntry { ... }, export interface RouteDef { ... }, export const ROUTES: RouteDef[] = ..., export const AUTH_ONLY_PAGES: ReadonlySet<PageId> = ..., export function routeForPage(page: PageId): RouteDef { ... }, export function matchPattern(pattern: string, hash: string): RouteParams \| null { ... }, export interface RouteMatch { ... }, export function matchHash(rawHash: string): RouteMatch \| null { ... }, export function hashForPage(page: PageId, params: RouteParams = ..., export function routeFromPathname(pathname: string): RouteDef \| null { ... }, export function isRouteVisible(route: RouteDef, ctx: NavContext): boolean { ... }, export function navLabelFor(route: RouteDef, ctx: NavContext): string { ... }, export function tabLabelFor(route: RouteDef, ctx: NavContext): string { ... }, export function routeForShortcut(digit: number, ctx: NavContext): RouteDef \| null { ... }, export function ownsShortcut(route: RouteDef, ctx: NavContext): boolean { ... }, export type NavRouteDef = ..., export function visibleNavRoutes(ctx: NavContext): NavRouteDef[] { ... }, export function visibleRailRoutes(ctx: NavContext): NavRouteDef[] { ... }, export function visibleGroupRoutes(group: NavGroup, ctx: NavContext): NavRouteDef[] { ... } | 875 |
 
 ## Route Handler Example
 
@@ -286,6 +350,6 @@ Sitemap: https://yoursite.com/sitemap.xml
 
 ## ⟳ Continue the loop
 
-- **You are here:** `route-priority-map.md` — agent step 10 of 70.
+- **You are here:** `route-priority-map.md` — agent step 10 of 71.
 - **Next:** `content-audit.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

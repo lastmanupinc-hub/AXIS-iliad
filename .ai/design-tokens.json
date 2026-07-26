@@ -2,6 +2,7 @@
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "project": "axis-iliad",
   "generated_at": "1970-01-01T00:00:00.000Z",
+  "css_coverage_note": "This is the full token CATALOG. theme.css ships a curated subset as CSS custom properties — some catalog tokens (e.g. z_index.popover, the *-600/*-950 color stops, 5xl/6xl font sizes) have no --var yet; add them before referencing.",
   "styling_approach": "plain-css",
   "project_type": "monorepo",
   "primary_language": "TypeScript",
@@ -21,53 +22,53 @@
   "languages": [
     {
       "name": "TypeScript",
-      "file_count": 312,
-      "loc_percent": 80
+      "file_count": 284,
+      "loc_percent": 72
     },
     {
       "name": "YAML",
-      "file_count": 57,
-      "loc_percent": 9.5
+      "file_count": 35,
+      "loc_percent": 12.6
     },
     {
       "name": "Markdown",
-      "file_count": 77,
-      "loc_percent": 5.6
-    },
-    {
-      "name": "JavaScript",
-      "file_count": 9,
-      "loc_percent": 2
+      "file_count": 109,
+      "loc_percent": 8.8
     },
     {
       "name": "JSON",
-      "file_count": 34,
-      "loc_percent": 1.7
+      "file_count": 42,
+      "loc_percent": 2.9
+    },
+    {
+      "name": "JavaScript",
+      "file_count": 11,
+      "loc_percent": 1.8
     },
     {
       "name": "CSS",
-      "file_count": 1,
-      "loc_percent": 1
+      "file_count": 2,
+      "loc_percent": 1.7
     },
     {
       "name": "HTML",
       "file_count": 1,
-      "loc_percent": 0.1
+      "loc_percent": 0.2
     },
     {
-      "name": "Dockerfile",
+      "name": "PowerShell",
       "file_count": 1,
       "loc_percent": 0
     }
   ],
   "architecture": {
-    "separation_score": 0.65,
+    "separation_score": 0.64,
     "patterns": [
       "monorepo",
       "containerized"
     ],
     "total_files": 500,
-    "total_loc": 115124
+    "total_loc": 108805
   },
   "colors": {
     "primary": {
@@ -267,6 +268,7 @@
     }
   },
   "source_theme_files": [
-    "apps/web/src/index.css"
+    "apps/web/src/index.css",
+    "apps/web/src/theme.css"
   ]
 }

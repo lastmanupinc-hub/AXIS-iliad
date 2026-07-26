@@ -15,22 +15,22 @@ export const CONVENTIONS = [
   "TypeScript strict mode",
   "Linter configured",
   "Formatter configured",
+  "pnpm workspaces",
   "Makefile build",
 ] as const;
 
 export const WARNINGS = [
-  "No lockfile found — dependency versions may be inconsistent",
 ] as const;
 
 export const KEY_ABSTRACTIONS = [
   "apps/ (monorepo_apps)",
-  "packages/ (monorepo_packages)",
   "docs/ (documentation)",
-  "examples/ (project_directory)",
+  "packages/ (monorepo_packages)",
   "mcp/ (project_directory)",
+  "examples/ (project_directory)",
+  "scripts/ (build_scripts)",
   ".github/ (project_directory)",
-  "algorithmic/ (project_directory)",
-  "artifacts/ (project_directory)",
+  "packaging/ (project_directory)",
 ] as const;
 
 /**
@@ -56,8 +56,7 @@ export function embedProjectContext(): string {
 }
 
 export const ENTRY_POINTS = [
-  { path: "apps/api/src/server.ts", exports: ["export const app = ..."] },
+  { path: "apps/api/src/server.ts", exports: ["export const router = ...","export const app = ..."] },
   { path: "apps/web/src/App.tsx", exports: ["export function App() { ... }"] },
   { path: "apps/web/src/main.tsx", exports: [] },
-  { path: "packages/context-engine/src/index.ts", exports: ["export type { ... }","export { ... }"] },
 ] as const;

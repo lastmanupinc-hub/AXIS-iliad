@@ -364,218 +364,226 @@ continuation:
       program: "skills"
       command: "read/apply, then continue to step 89"
     - n: 89
-      artifact: "layout-patterns.md"
-      program: "frontend"
+      artifact: "model-cascade.md"
+      program: "skills"
       command: "read/apply, then continue to step 90"
     - n: 90
-      artifact: "ui-audit.md"
+      artifact: "layout-patterns.md"
       program: "frontend"
       command: "read/apply, then continue to step 91"
     - n: 91
-      artifact: "meta-tag-audit.json"
-      program: "seo"
+      artifact: "ui-audit.md"
+      program: "frontend"
       command: "read/apply, then continue to step 92"
     - n: 92
-      artifact: "token-budget-plan.md"
-      program: "optimization"
+      artifact: "meta-tag-audit.json"
+      program: "seo"
       command: "read/apply, then continue to step 93"
     - n: 93
-      artifact: "dark-mode-tokens.json"
-      program: "theme"
+      artifact: "token-budget-plan.md"
+      program: "optimization"
       command: "read/apply, then continue to step 94"
     - n: 94
-      artifact: "channel-rulebook.md"
-      program: "brand"
+      artifact: "dark-mode-tokens.json"
+      program: "theme"
       command: "read/apply, then continue to step 95"
     - n: 95
-      artifact: "ab-test-plan.md"
-      program: "marketing"
+      artifact: "channel-rulebook.md"
+      program: "brand"
       command: "read/apply, then continue to step 96"
     - n: 96
-      artifact: "citation-index.json"
-      program: "notebook"
+      artifact: "ab-test-plan.md"
+      program: "marketing"
       command: "read/apply, then continue to step 97"
     - n: 97
-      artifact: "server-manifest.yaml"
-      program: "mcp"
+      artifact: "citation-index.json"
+      program: "notebook"
       command: "read/apply, then continue to step 98"
     - n: 98
-      artifact: "template-pack.md"
-      program: "obsidian"
+      artifact: "server-manifest.yaml"
+      program: "mcp"
       command: "read/apply, then continue to step 99"
     - n: 99
-      artifact: "automation-pipeline.yaml"
-      program: "superpowers"
+      artifact: "template-pack.md"
+      program: "obsidian"
       command: "read/apply, then continue to step 100"
     - n: 100
-      artifact: "verify.sh"
+      artifact: "automation-pipeline.yaml"
       program: "superpowers"
       command: "read/apply, then continue to step 101"
     - n: 101
-      artifact: "verify-full.sh"
+      artifact: "verify.sh"
       program: "superpowers"
       command: "read/apply, then continue to step 102"
     - n: 102
-      artifact: ".githooks/pre-push"
+      artifact: "verify-full.sh"
       program: "superpowers"
       command: "read/apply, then continue to step 103"
     - n: 103
-      artifact: "component-library.json"
-      program: "artifacts"
+      artifact: ".githooks/pre-push"
+      program: "superpowers"
       command: "read/apply, then continue to step 104"
     - n: 104
-      artifact: "storyboard.md"
-      program: "remotion"
+      artifact: "component-library.json"
+      program: "artifacts"
       command: "read/apply, then continue to step 105"
     - n: 105
-      artifact: "brand-board.md"
-      program: "canvas"
+      artifact: "storyboard.md"
+      program: "remotion"
       command: "read/apply, then continue to step 106"
     - n: 106
-      artifact: "variation-matrix.json"
-      program: "algorithmic"
+      artifact: "brand-board.md"
+      program: "canvas"
       command: "read/apply, then continue to step 107"
     - n: 107
-      artifact: "agent-purchasing-playbook.md"
-      program: "agentic-purchasing"
+      artifact: "variation-matrix.json"
+      program: "algorithmic"
       command: "read/apply, then continue to step 108"
     - n: 108
-      artifact: "product-schema.json"
+      artifact: "agent-purchasing-playbook.md"
       program: "agentic-purchasing"
       command: "read/apply, then continue to step 109"
     - n: 109
-      artifact: "checkout-flow.md"
+      artifact: "product-schema.json"
       program: "agentic-purchasing"
       command: "read/apply, then continue to step 110"
     - n: 110
-      artifact: "negotiation-rules.md"
+      artifact: "checkout-flow.md"
       program: "agentic-purchasing"
       command: "read/apply, then continue to step 111"
     - n: 111
-      artifact: "commerce-registry.json"
+      artifact: "negotiation-rules.md"
       program: "agentic-purchasing"
       command: "read/apply, then continue to step 112"
     - n: 112
-      artifact: "packaging/README.md"
-      program: "closer"
+      artifact: "commerce-registry.json"
+      program: "agentic-purchasing"
       command: "read/apply, then continue to step 113"
     - n: 113
-      artifact: "packaging/LICENSE"
-      program: "closer"
+      artifact: "ap2-interop-samples.json"
+      program: "agentic-purchasing"
       command: "read/apply, then continue to step 114"
     - n: 114
-      artifact: "Dockerfile"
+      artifact: "packaging/README.md"
       program: "closer"
       command: "read/apply, then continue to step 115"
     - n: 115
-      artifact: "docker-compose.yml"
+      artifact: "packaging/LICENSE"
       program: "closer"
       command: "read/apply, then continue to step 116"
     - n: 116
-      artifact: ".github/workflows/ci.yml"
+      artifact: "Dockerfile"
       program: "closer"
       command: "read/apply, then continue to step 117"
     - n: 117
-      artifact: ".github/workflows/release.yml"
+      artifact: "docker-compose.yml"
       program: "closer"
       command: "read/apply, then continue to step 118"
     - n: 118
-      artifact: "packaging/manifests/npm-package.json"
+      artifact: ".github/workflows/ci.yml"
       program: "closer"
       command: "read/apply, then continue to step 119"
     - n: 119
-      artifact: "packaging/manifests/unreal.uplugin"
+      artifact: ".github/workflows/release.yml"
       program: "closer"
       command: "read/apply, then continue to step 120"
     - n: 120
-      artifact: "packaging/manifests/vscode-extension.json"
+      artifact: "packaging/manifests/npm-package.json"
       program: "closer"
       command: "read/apply, then continue to step 121"
     - n: 121
-      artifact: "packaging/manifests/dockerhub-repository.md"
+      artifact: "packaging/manifests/unreal.uplugin"
       program: "closer"
       command: "read/apply, then continue to step 122"
     - n: 122
-      artifact: "packaging/manifests/github-marketplace-listing.md"
+      artifact: "packaging/manifests/vscode-extension.json"
       program: "closer"
       command: "read/apply, then continue to step 123"
     - n: 123
-      artifact: "packaging/trust-fabric/attestation.json"
+      artifact: "packaging/manifests/dockerhub-repository.md"
       program: "closer"
       command: "read/apply, then continue to step 124"
     - n: 124
-      artifact: "packaging/trust-fabric/merkle-proof.json"
+      artifact: "packaging/manifests/github-marketplace-listing.md"
       program: "closer"
       command: "read/apply, then continue to step 125"
     - n: 125
-      artifact: "packaging-report.md"
+      artifact: "packaging/trust-fabric/attestation.json"
       program: "closer"
       command: "read/apply, then continue to step 126"
     - n: 126
-      artifact: "DISTRIBUTABLE.md"
+      artifact: "packaging/trust-fabric/merkle-proof.json"
       program: "closer"
       command: "read/apply, then continue to step 127"
     - n: 127
-      artifact: "Makefile"
+      artifact: "packaging-report.md"
       program: "closer"
       command: "read/apply, then continue to step 128"
     - n: 128
-      artifact: "deploy/Dockerfile"
-      program: "deploy"
+      artifact: "DISTRIBUTABLE.md"
+      program: "closer"
       command: "read/apply, then continue to step 129"
     - n: 129
-      artifact: "deploy/Dockerfile.dockerignore"
-      program: "deploy"
+      artifact: "Makefile"
+      program: "closer"
       command: "read/apply, then continue to step 130"
     - n: 130
-      artifact: "deploy/docker-compose.dev.yml"
+      artifact: "deploy/Dockerfile"
       program: "deploy"
       command: "read/apply, then continue to step 131"
     - n: 131
-      artifact: "deploy/render.yaml"
+      artifact: "deploy/Dockerfile.dockerignore"
       program: "deploy"
       command: "read/apply, then continue to step 132"
     - n: 132
-      artifact: "deploy/deploy.sh"
+      artifact: "deploy/docker-compose.dev.yml"
       program: "deploy"
       command: "read/apply, then continue to step 133"
     - n: 133
-      artifact: "deploy/deploy.ps1"
+      artifact: "deploy/render.yaml"
       program: "deploy"
       command: "read/apply, then continue to step 134"
     - n: 134
-      artifact: "deploy/vscode-launch.json.template"
+      artifact: "deploy/deploy.sh"
       program: "deploy"
       command: "read/apply, then continue to step 135"
     - n: 135
-      artifact: "deploy/wrangler.pages.toml"
+      artifact: "deploy/deploy.ps1"
       program: "deploy"
       command: "read/apply, then continue to step 136"
     - n: 136
-      artifact: "deploy/wrangler.containers.toml"
+      artifact: "deploy/vscode-launch.json.template"
       program: "deploy"
       command: "read/apply, then continue to step 137"
     - n: 137
-      artifact: "deploy/worker.ts"
+      artifact: "deploy/wrangler.pages.toml"
       program: "deploy"
       command: "read/apply, then continue to step 138"
     - n: 138
-      artifact: "deploy/deploy-cloudflare.sh"
+      artifact: "deploy/wrangler.containers.toml"
       program: "deploy"
       command: "read/apply, then continue to step 139"
     - n: 139
-      artifact: "deploy/deploy-cloudflare.ps1"
+      artifact: "deploy/worker.ts"
       program: "deploy"
       command: "read/apply, then continue to step 140"
     - n: 140
-      artifact: "deploy/deploy-qualification-report.md"
+      artifact: "deploy/deploy-cloudflare.sh"
       program: "deploy"
       command: "read/apply, then continue to step 141"
     - n: 141
-      artifact: "package-quality-report.json"
-      program: "quality"
+      artifact: "deploy/deploy-cloudflare.ps1"
+      program: "deploy"
       command: "read/apply, then continue to step 142"
     - n: 142
+      artifact: "deploy/deploy-qualification-report.md"
+      program: "deploy"
+      command: "read/apply, then continue to step 143"
+    - n: 143
+      artifact: "package-quality-report.json"
+      program: "quality"
+      command: "read/apply, then continue to step 144"
+    - n: 144
       artifact: "begin.yaml"
       program: "begin"
       command: "begin   # ← self-prompt: the sequence is complete, re-enter the loop via begin.yaml"
@@ -589,12 +597,6 @@ continuation:
       priority: 100
       status: open
       acceptance_check: "The owner confirms the built feature does what they asked, via a runnable demo."
-    - id: "gap-1"
-      description: >
-        No lockfile found — dependency versions may be inconsistent
-      priority: 80
-      status: open
-      acceptance_check: "Re-run the analysis / the app and confirm this gap no longer reports."
 
   # The agent appends to these every cycle.
   evidence_log: []           # what you did + proof (build/test/demo) it worked

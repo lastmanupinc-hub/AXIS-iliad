@@ -4,11 +4,11 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-echo "→ npm run lint --if-present"
-npm run lint --if-present || { echo "✗ verify failed: npm run lint --if-present"; exit 1; }
-echo "→ npx tsc --noEmit"
-npx tsc --noEmit || { echo "✗ verify failed: npx tsc --noEmit"; exit 1; }
-echo "→ npm run test --if-present"
-npm run test --if-present || { echo "✗ verify failed: npm run test --if-present"; exit 1; }
+echo "→ pnpm run lint --if-present"
+pnpm run lint --if-present || { echo "✗ verify failed: pnpm run lint --if-present"; exit 1; }
+echo "→ pnpm exec tsc --noEmit"
+pnpm exec tsc --noEmit || { echo "✗ verify failed: pnpm exec tsc --noEmit"; exit 1; }
+echo "→ pnpm run test --if-present"
+pnpm run test --if-present || { echo "✗ verify failed: pnpm run test --if-present"; exit 1; }
 
 echo "✅ verify passed"

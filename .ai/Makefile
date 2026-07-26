@@ -6,32 +6,32 @@
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-install: ## Install dependencies (npm / TypeScript)
-	npm ci --ignore-scripts
+install: ## Install dependencies (pnpm / TypeScript)
+	pnpm install --frozen-lockfile
 
 dev: ## Run dev server with hot reload
-	npm run dev --if-present
+	pnpm run dev --if-present
 
 start: ## Start the production server
-	npm start --if-present
+	pnpm start --if-present
 
 lint: ## Run linter
-	npm run lint --if-present
+	pnpm run lint --if-present
 
 format: ## Format code in place
-	npm run format --if-present
+	pnpm run format --if-present
 
 typecheck: ## Run TypeScript type checker
-	npm run typecheck --if-present
+	pnpm run typecheck --if-present
 
 test: ## Run test suite
-	npm test --if-present
+	pnpm test --if-present
 
 build: ## Compile production artifacts
-	npm run build --if-present
+	pnpm run build --if-present
 
 audit: ## Audit dependencies for known CVEs
-	npm audit --omit=dev --audit-level=high || true
+	pnpm audit --prod --audit-level high || true
 
 clean: ## Remove build artifacts and caches
 	rm -rf dist/ build/ coverage/ .turbo/
@@ -50,7 +50,7 @@ ship: clean install lint test build package attest ## Full release sequence (cle
 ship-summary: ## Print release context for logs and dashboards
 	@echo 'Project:       axis-iliad'
 	@echo 'Language:      TypeScript'
-	@echo "Package mgr:   npm"
+	@echo "Package mgr:   pnpm"
 	@echo 'Frameworks:    React'
 	@echo "Docker:        true"
 	@echo "Container:     axis-iliad:latest"

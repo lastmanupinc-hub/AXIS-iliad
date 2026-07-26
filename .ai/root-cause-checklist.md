@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-iliad
 
-> monorepo | TypeScript | 500 files | 115,124 LOC
+> monorepo | TypeScript | 500 files | 108,805 LOC
 
 **Stack:** React ^19.1.0
 
@@ -8,53 +8,57 @@
 
 > Deterministic static scan (no AI). Fix `SILENT` / `TYPE_HOLE` first — the type/test net won't catch them; `OBSERVABILITY` = make it queryable; `REVIEW` = confirm intent; `ACCEPTABLE` = deliberate.
 
-- [ ] `SILENT` `apps/api/src/mcp-server.ts:430` — swallowed-async-error: side-effect failure is invisible
-- [ ] `SILENT` `apps/web/src/components/GeneratedTab.tsx:58` — empty-catch: side-effect failure is invisible
-- [ ] `TYPE_HOLE` `apps/api/src/mpp.ts:157` — type-hole: suppresses the type net
-- [ ] `OBSERVABILITY` `apps/api/check-table.js:6` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/check-table.js:8` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/gen-keys.js:3` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/gen-keys.js:4` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/src/mcp-server.ts:123` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/src/mcp-tools.ts:1105` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:160` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:167` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:171` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/api/src/server.ts:125` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/web/src/api.ts:424` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/web/src/api.ts:454` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/web/src/App.tsx:34` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `apps/web/src/pages/UploadPage.tsx:286` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `SILENT` `apps/api/src/billing.ts:379` — swallowed-async-error: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/cashier.ts:384` — empty-catch: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/mcp-server.ts:256` — empty-catch: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/mcp-server.ts:691` — swallowed-async-error: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/mcp-tool-impls.ts:4046` — empty-catch: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/mcp-tool-impls.ts:4081` — empty-catch: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/paid-handlers.ts:468` — swallowed-async-error: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/rate-limiter.ts:90` — empty-catch: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/router.ts:422` — empty-catch: side-effect failure is invisible
+- [ ] `SILENT` `apps/api/src/server.ts:409` — empty-catch: side-effect failure is invisible
+- [ ] `TYPE_HOLE` `apps/api/src/mpp.ts:227` — type-hole: as any suppresses the type net
+- [ ] `OBSERVABILITY` `apps/api/src/mcp-server.ts:145` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:174` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:230` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:237` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/api/src/mpp.ts:241` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/api/src/server.ts:133` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/web/src/App.tsx:39` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/web/src/api.ts:538` — unstructured-log: console.* — prefer a structured logger for correlation
+- [ ] `OBSERVABILITY` `apps/web/src/api.ts:587` — unstructured-log: console.* — prefer a structured logger for correlation
 - [ ] `OBSERVABILITY` `generate-keys.js:14` — unstructured-log: console.* — prefer a structured logger for correlation
 - [ ] `OBSERVABILITY` `generate-keys.js:15` — unstructured-log: console.* — prefer a structured logger for correlation
 - [ ] `OBSERVABILITY` `generate-keys.js:16` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `packages/generator-core/src/generators-artifacts.ts:118` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `OBSERVABILITY` `packages/generator-core/src/generators-debug.ts:676` — unstructured-log: console.* — prefer a structured logger for correlation
-- [ ] `REVIEW` `apps/api/src/document-parsing.ts:181` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/billing.ts:275` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/billing.ts:425` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/billing.ts:447` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/billing.ts:701` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/billing.ts:753` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/billing.ts:759` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/cashier.ts:254` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/code-sandbox.ts:458` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/code-sandbox.ts:477` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/credit-pack-handlers.ts:129` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/disputes.ts:172` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/document-parsing.ts:211` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/email.ts:146` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/embeddings.ts:152` — empty-catch: empty catch — confirm intent
 - [ ] `REVIEW` `apps/api/src/export.ts:175` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/export.ts:177` — empty-catch: empty catch — confirm intent
 - [ ] `REVIEW` `apps/api/src/export.ts:188` — swallowed-async-error: swallowed — confirm intent
+- [ ] `REVIEW` `apps/api/src/export.ts:192` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/export.ts:209` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/fleet-handlers.ts:67` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/fleet-handlers.ts:86` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/funnel.ts:269` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/funnel.ts:286` — empty-catch: empty catch — confirm intent
+- [ ] `REVIEW` `apps/api/src/funnel.ts:292` — empty-catch: empty catch — confirm intent
 - [ ] `REVIEW` `apps/api/src/github-webhook.ts:259` — swallowed-async-error: swallowed — confirm intent
 - [ ] `REVIEW` `apps/api/src/github-webhook.ts:264` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/handlers.ts:944` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/handlers.ts:1438` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/handlers.ts:3337` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/handlers.ts:3351` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/handlers.ts:3352` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/handlers.ts:3419` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/mcp-tool-impls.ts:1415` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/paid-handlers.ts:409` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/speech-to-text.ts:489` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/api/src/text-to-speech.ts:482` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/web/src/components/ProgramLauncher.tsx:48` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/web/src/pages/AccountPage.tsx:81` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/web/src/pages/AccountPage.tsx:82` — swallowed-async-error: swallowed — confirm intent
-- [ ] `REVIEW` `apps/web/src/pages/DashboardPage.tsx:53` — swallowed-async-error: swallowed — confirm intent
-- [ ] `ACCEPTABLE` `apps/api/src/code-sandbox.ts:408` — swallowed-async-error: best-effort cleanup
-- [ ] `ACCEPTABLE` `apps/api/src/speech-to-text.ts:172` — empty-catch: cleanup swallow
-- [ ] `ACCEPTABLE` `apps/api/src/speech-to-text.ts:342` — empty-catch: cleanup swallow
-- [ ] `ACCEPTABLE` `apps/api/src/text-to-speech.ts:159` — empty-catch: cleanup swallow
-- [ ] `ACCEPTABLE` `apps/api/src/text-to-speech.ts:265` — empty-catch: cleanup swallow
-- [ ] `ACCEPTABLE` `apps/api/src/text-to-speech.ts:300` — empty-catch: cleanup swallow
+- [ ] `REVIEW` `apps/api/src/handlers.ts:764` — empty-catch: empty catch — confirm intent
+- [ ] … +61 more (fix the 50 above first)
 
 ## Triage Workflow
 
@@ -68,13 +72,13 @@
 - [ ] What is the minimum input/state to trigger it?
 - [ ] Does it reproduce in all environments (dev, staging, prod)?
 - [ ] Is it timing-dependent (race condition, timeout)?
-- [ ] `npm test` — do existing tests pass? (vitest)
+- [ ] `pnpm test` — do existing tests pass? (vitest)
 
 ## Step 2: Isolation
 
 Which layer does the error surface in?
 
-- [ ] **presentation** — apps, frontend
+- [ ] **presentation** — apps
 
 - [ ] Which architectural pattern is involved? (Detected: monorepo, containerized)
 - [ ] Can you remove middleware/plugins to narrow the source?
@@ -119,6 +123,7 @@ Check these entities for state corruption or relationship violations:
 - [ ] `AnalyticsEvent` (interface, 4 fields) — `apps/api/src/analytics.ts`
 - [ ] `AnalyticsQuery` (interface, 8 fields) — `apps/api/src/analytics.ts`
 - [ ] `WhereClause` (interface, 2 fields) — `apps/api/src/analytics.ts`
+- [ ] `ChallengeWindow` (interface, 2 fields) — `apps/api/src/anon-frontdoor.ts`
 - [ ] `DriftDeps` (interface, 5 fields) — `apps/api/src/architecture-drift-webhook.ts`
 - [ ] `DriftOutcome` (interface, 3 fields) — `apps/api/src/architecture-drift-webhook.ts`
 - [ ] `DriftResult` (interface, 3 fields) — `apps/api/src/architecture-drift.ts`
@@ -128,15 +133,14 @@ Check these entities for state corruption or relationship violations:
 - [ ] `AttestationOutput` (interface, 3 fields) — `apps/api/src/attestation.ts`
 - [ ] `ChainLink` (interface, 3 fields) — `apps/api/src/attestation.ts`
 - [ ] `AuthContext` (interface, 3 fields) — `apps/api/src/billing.ts`
-- [ ] `NotConfiguredResult` (interface, 4 fields) — `apps/api/src/code-sandbox.ts`
+- [ ] `SettleOptions` (interface, 4 fields) — `apps/api/src/cashier.ts`
+- [ ] `NotConfiguredResult` (interface, 6 fields) — `apps/api/src/code-sandbox.ts`
 - [ ] `SandboxOptions` (interface, 4 fields) — `apps/api/src/code-sandbox.ts`
 - [ ] `SandboxResult` (interface, 6 fields) — `apps/api/src/code-sandbox.ts`
 - [ ] `CommerceArtifact` (interface, 3 fields) — `apps/api/src/commerce-integration.ts`
 - [ ] `DisputeReadiness` (interface, 5 fields) — `apps/api/src/commerce-integration.ts`
-- [ ] `PurchaseDeps` (interface, 1 fields) — `apps/api/src/commerce-integration.ts`
-- [ ] `ReadinessDimension` (interface, 4 fields) — `apps/api/src/commerce-integration.ts`
-- [ ] `DeliverabilityKit` (interface, 7 fields) — `apps/api/src/deliverability.ts`
-- [ ] *… 212 more entities*
+- [ ] `NetworkToken` (interface, 6 fields) — `apps/api/src/commerce-integration.ts`
+- [ ] *… 248 more entities*
 
 ## Step 5: Suspect Files (by coupling)
 
@@ -144,23 +148,23 @@ High-coupling files are more likely to be involved in cross-cutting bugs:
 
 | File | Risk | Inbound | Outbound |
 |------|------|---------|----------|
-| `apps/api/src/router.ts` | 100% | 96 | 4 |
-| `apps/api/src/test-helpers.ts` | 100% | 41 | 1 |
-| `apps/api/src/billing.ts` | 100% | 28 | 3 |
-| `apps/api/src/handlers.ts` | 100% | 23 | 14 |
-| `apps/api/src/rate-limiter.ts` | 100% | 36 | 2 |
-| `apps/api/src/logger.ts` | 100% | 25 | 0 |
-| `apps/api/src/server.ts` | 100% | 1 | 35 |
-| `apps/web/src/App.tsx` | 100% | 1 | 24 |
-| `packages/generator-core/src/generate.ts` | 100% | 30 | 6 |
-| `apps/api/src/mcp-tool-impls.ts` | 100% | 0 | 24 |
+| `apps/api/src/router.ts` | 100% | 113 | 4 |
+| `apps/api/src/test-helpers.ts` | 100% | 54 | 1 |
+| `apps/api/src/billing.ts` | 100% | 44 | 3 |
+| `apps/api/src/handlers.ts` | 100% | 36 | 21 |
+| `apps/api/src/rate-limiter.ts` | 100% | 46 | 2 |
+| `apps/api/src/mcp-tool-impls.ts` | 100% | 18 | 27 |
+| `apps/api/src/mpp.ts` | 100% | 19 | 1 |
+| `apps/api/src/logger.ts` | 100% | 34 | 0 |
+| `apps/api/src/mcp-server.ts` | 100% | 17 | 15 |
+| `apps/api/src/server.ts` | 100% | 2 | 35 |
 
 ## Step 6: Verification
 
 - [ ] Does the fix resolve the original reproduction case?
-- [ ] Do all existing tests still pass? (`npm test`)
+- [ ] Do all existing tests still pass? (`pnpm test`)
 - [ ] Is a new test added for this specific failure mode?
-- [ ] Has the fix been reviewed for side effects on 20 coupled hotspot files?
+- [ ] Has the fix been reviewed for side effects on the 10 coupled hotspot files listed above?
 - [ ] Does CI pass? (github_actions)
 
 ## Step 7: Prevention
@@ -200,38 +204,38 @@ import {
   handleArtifactsGenerate,
   handleRemotionGenerate,
   handleCanvasGenerate,
-... (472 more lines)
+... (527 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
 
 ```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment, Component, Suspense, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
-import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
-... (554 more lines)
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+  visibleGroupRoutes,
+  hashForPage,
+  matchHash,
+  type NavContext,
+  type PageId,
+... (691 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -240,6 +244,7 @@ import { APP_VERSION } from "./version.ts";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import "./theme.css"; // generated design-system contract (app copy) — must load before index.css
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -261,16 +266,18 @@ createRoot(document.getElementById("root")!).render(
 - `export function constantTimeEqual(a: string, b: string): boolean { ... }`
 - `export async function handleCreateAccount(`
 - `export async function handleGetAccount(`
+- `export async function handlePatchAccount(`
+- `export async function handleDeleteAccount(`
 - `export async function handleCreateApiKey(`
-- `export async function handleListApiKeys(`
-- `export async function handleRevokeApiKey(`
 
 ### `apps/api/src/router.ts` exports
 
 - `export class Router { ... }`
 - `export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }`
 - `export function sendError(`
-- `export async function readBody(req: IncomingMessage): Promise<string> { ... }`
+- `export const DEFAULT_MAX_BODY_BYTES = ...`
+- `export function getMaxBodyBytes(): number { ... }`
+- `export async function readBody(req: IncomingMessage, maxSizeOverride?: number): Promise<string> { ... }`
 - `export interface AppHandle { ... }`
 - `export function isShuttingDown(): boolean { ... }`
 - `export function scheduleBootMigrations(`
@@ -296,7 +303,10 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
@@ -305,13 +315,10 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getUsageByDay,
   getApiCallSummary,
-  recordUsage,
-  isProgramEnabled,
   trackEvent,
-  saveGitHubToken,
-  getGitHubTokens,
-... (831 more lines)
+... (1032 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -333,6 +340,7 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
@@ -341,8 +349,7 @@ interface Route {
 export class Router {
   private routes: Route[] = [];
 
-  post(path: string, handler: RouteHandler) {
-... (466 more lines)
+... (542 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -381,6 +388,6 @@ export async function startTestServer(router: Router): Promise<TestServer> {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `root-cause-checklist.md` — agent step 51 of 70.
+- **You are here:** `root-cause-checklist.md` — agent step 51 of 71.
 - **Next:** `workflow-pack.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

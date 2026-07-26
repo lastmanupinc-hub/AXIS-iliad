@@ -46,6 +46,6 @@ packages/
 
 ## ⟳ Continue the loop
 
-- **You are here:** `mcp/testing-documentation-polish-artifacts.md` — agent step 37 of 70.
+- **You are here:** `mcp/testing-documentation-polish-artifacts.md` — agent step 37 of 71.
 - **Next:** `mcp/fintech-mcp-surface-package.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

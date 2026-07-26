@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 9 top-level directories. It defines 278 domain models.
 
 ## Detected Stack
 
@@ -20,13 +20,13 @@ Copy-paste-ready commands for common high-value operations:
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Build
-npm run build
+pnpm run build
 
 # Dev server
-npm run dev
+pnpm run dev
 ```
 
 ### Testing
@@ -50,11 +50,11 @@ npx vitest run --coverage
 1. **Reproduce** — Create a minimal test case that triggers the bug
 2. **Isolate** — Use dependency hotspots to narrow the search area:
 
-   - `apps/api/src/router.ts` (risk: 1.0, 96 inbound, 4 outbound)
-   - `apps/api/src/test-helpers.ts` (risk: 1.0, 41 inbound, 1 outbound)
-   - `apps/api/src/billing.ts` (risk: 1.0, 28 inbound, 3 outbound)
-   - `apps/api/src/handlers.ts` (risk: 1.0, 23 inbound, 14 outbound)
-   - `apps/api/src/rate-limiter.ts` (risk: 1.0, 36 inbound, 2 outbound)
+   - `apps/api/src/router.ts` (risk: 1.0, 113 inbound, 4 outbound)
+   - `apps/api/src/test-helpers.ts` (risk: 1.0, 54 inbound, 1 outbound)
+   - `apps/api/src/billing.ts` (risk: 1.0, 44 inbound, 3 outbound)
+   - `apps/api/src/handlers.ts` (risk: 1.0, 36 inbound, 21 outbound)
+   - `apps/api/src/rate-limiter.ts` (risk: 1.0, 46 inbound, 2 outbound)
 
 3. **Trace** — Follow the import chain from entry point to failure
 4. **Fix** — Make the smallest change that resolves the issue
@@ -71,6 +71,7 @@ npx vitest run --coverage
   - TypeScript strict mode
   - Linter configured
   - Formatter configured
+  - pnpm workspaces
   - Makefile build
 
 ## Planning Template
@@ -111,17 +112,17 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
+  getAccountPaidPlanId,
   createApiKey,
   revokeApiKey,
   listApiKeys,
   enableProgram,
   disableProgram,
   getEntitlements,
-  checkQuota,
-  getUsageSummary,
-  getApiCallSummary,
-... (836 more lines)
+... (1037 more lines)
 ```
 
 ### `apps/api/src/router.ts`
@@ -143,11 +144,11 @@ type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<s
 
 interface Route {
   method: string;
+  rawPath: string;
   pattern: RegExp;
   paramNames: string[];
   handler: RouteHandler;
-}
-... (471 more lines)
+... (547 more lines)
 ```
 
 ### `apps/api/src/test-helpers.ts`
@@ -181,6 +182,6 @@ export async function startTestServer(router: Router): Promise<TestServer> {
 
 ## ⟳ Continue the loop
 
-- **You are here:** `superpower-pack.md` — agent step 18 of 70.
+- **You are here:** `superpower-pack.md` — agent step 18 of 71.
 - **Next:** `test-generation-rules.md`.
 - **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

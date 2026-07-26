@@ -8,9 +8,9 @@
    Type:        monorepo
    Language:    TypeScript
    Stack:       React
-   Total LOC:   112,012
-   Routes:      163 (92 GET · 66 POST · 5 other)
-   Models:      242 domain models
+   Total LOC:   108,805
+   Routes:      174 (102 GET · 65 POST · 7 other)
+   Models:      278 domain models
    ─────────────────────────────────────────────────────── */
 
 :root {
@@ -399,8 +399,10 @@ th { font-weight: 600; }
 /*   .analytics-count-by-bucket-row-card    — AnalyticsCountByBucketRow (interface, 2 fields). Apply .surface-card. */
 /*   .analytics-count-by-event-result-card    — AnalyticsCountByEventResult (interface, 2 fields). Apply .surface-card. */
 /*   .analytics-count-by-event-row-card    — AnalyticsCountByEventRow (interface, 2 fields). Apply .surface-card. */
+/*   … and 270 more models. */
 
 /* ─── Detected Style Files ─────────────────────────────── */
 /*
-   apps/web/src/index.css (1349 lines)
+   apps/web/src/index.css (1635 lines)
+   apps/web/src/theme.css (421 lines)
 */

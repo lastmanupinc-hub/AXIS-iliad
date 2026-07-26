@@ -11,7 +11,6 @@
       "adyen",
       "affirm",
       "afterpay",
-      "amazon_pay",
       "apple_pay",
       "braintree",
       "google_pay",
@@ -34,8 +33,8 @@
       "mandate_data_format": "AP2 standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
       "mandate_lifecycle": "CREATE → AUTHORIZE (SCA) → ACTIVE → COLLECT → AMEND → CANCEL",
       "ucp_settlement_path": "UCP settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
-      "visa_intelligent_commerce": "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding",
-      "tap_interop": "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens",
+      "visa_intelligent_commerce": "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding (protocol reference; AXIS's direct VTS/MDES provisioning is capability-gated behind a network-issued Token Requestor ID — its live path is the Stripe network-token read adapter)",
+      "tap_interop": "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens (executable state machine in AXIS; illegal transitions rejected)",
       "ready_for_autonomous_purchase": true
     },
     "sca_exemption_schema": {
@@ -97,8 +96,6 @@
         "min_prior_transaction_age_days": 120,
         "lookback_days": 365,
         "target_reason_codes": [
-          "10.2",
-          "10.3",
           "10.4"
         ],
         "auto_assembly_ready": true
@@ -107,11 +104,12 @@
     "agent_sca_optimization": {
       "exemption_priority": [
         "low_value",
-        "trusted_beneficiary",
-        "recurring_fixed",
-        "merchant_initiated",
         "secure_corporate",
-        "transaction_risk_analysis"
+        "merchant_initiated",
+        "recurring_fixed",
+        "trusted_beneficiary",
+        "transaction_risk_analysis",
+        "one_leg_out"
       ],
       "frictionless_first": true,
       "challenge_escalation": "abort_agent_flow_escalate_to_operator"
@@ -141,8 +139,8 @@
     {
       "slug": "skills",
       "tier": "free",
-      "outputs": 5,
-      "description": "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack"
+      "outputs": 6,
+      "description": "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack, model cascade"
     },
     {
       "slug": "debug",
@@ -237,7 +235,7 @@
     {
       "slug": "agentic-purchasing",
       "tier": "pro",
-      "outputs": 5,
+      "outputs": 6,
       "description": "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry"
     },
     {
@@ -274,5 +272,5 @@
     }
   },
   "total_programs": 20,
-  "total_outputs": 140
+  "total_outputs": 142
 }

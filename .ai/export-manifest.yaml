@@ -5,7 +5,7 @@
 manifest:
   project: "axis-iliad"
   version: "1.0"
-  total_artifacts: 4
+  total_artifacts: 5
 
   artifacts:
     - id: generative-sketch
@@ -55,6 +55,15 @@ manifest:
       type: metadata
       format: yaml
       description: This manifest file
+
+    - id: variation-matrix
+      file: variation-matrix.json
+      type: data
+      format: json
+      description: Color × complexity × layout variation grid
+      exports:
+        - format: json
+          description: Variation parameter grid
 
   render_pipeline:
     steps:
