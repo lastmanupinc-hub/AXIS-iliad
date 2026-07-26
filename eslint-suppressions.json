@@ -62,9 +62,6 @@
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 10
     },
-    "@typescript-eslint/require-await": {
-      "count": 22
-    },
     "@typescript-eslint/restrict-template-expressions": {
       "count": 2
     }
@@ -340,22 +337,6 @@
   "e2e_full_human_ai_x402.mjs": {
     "no-undef": {
       "count": 1
-    },
-    "no-unused-vars": {
-      "count": 1
-    }
-  },
-  "e2e_round2.mjs": {
-    "no-unused-vars": {
-      "count": 4
-    }
-  },
-  "e2e_wiring_audit.mjs": {
-    "no-unused-vars": {
-      "count": 5
-    },
-    "no-useless-assignment": {
-      "count": 9
     }
   },
   "generate-keys.js": {

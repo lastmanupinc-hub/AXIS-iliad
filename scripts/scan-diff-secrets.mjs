@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // H8.11a — CI secret scan. Greps every line a push ADDS (not the whole repo
 // state) for the credential shapes named in HARDEN_POLISH_LOOP.md's H8.11
 // spec: sk_live_, rk_live_, whsec_, a Resend key (re_ + 20+ alnum), a

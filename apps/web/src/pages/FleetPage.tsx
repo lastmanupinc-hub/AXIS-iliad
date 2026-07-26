@@ -27,7 +27,7 @@ export function FleetPage({ onNavigate }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const report = await getFleetReport();
         if (!cancelled) setState({ status: "loaded", report });

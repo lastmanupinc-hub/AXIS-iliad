@@ -940,7 +940,7 @@ export async function handleGetGeneratedFiles(
   });
 }
 
-export async function handleHealthCheck(
+export function handleHealthCheck(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -951,6 +951,7 @@ export async function handleHealthCheck(
     version: API_VERSION,
     timestamp: new Date().toISOString(),
   });
+  return Promise.resolve();
 }
 
 export async function handleDbStats(
@@ -2623,7 +2624,7 @@ export async function handlePreparePurchasing(
 
 // ─── GET /.well-known/axis.json  -  agent discovery manifest ──────
 
-export async function handleWellKnown(
+export function handleWellKnown(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -2698,6 +2699,7 @@ export async function handleWellKnown(
       examples: "https://github.com/lastmanupinc-hub/axis-iliad-examples  -  before/after examples of AXIS artifact-coverage runs (coverage score measures AXIS artifact presence, 0-100). Coverage is not a code-readiness or production-readiness claim; see the code_readiness block for the content-based verdict.",
     },
   });
+  return Promise.resolve();
 }
 
 // ─── GET /.well-known/x402(.json)  -  x402 discovery aid ─────────────
@@ -2802,7 +2804,7 @@ export function handleX402WellKnown(
 // courtesy to scanners that look for this path, without pretending to
 // implement the full A2A wire spec (no JSON-RPC agent-to-agent transport,
 // no pushNotifications).
-export async function handleAgentCard(
+export function handleAgentCard(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -2862,6 +2864,7 @@ export async function handleAgentCard(
       security_txt: "/.well-known/security.txt",
     },
   });
+  return Promise.resolve();
 }
 
 // ─── GET /v1/error-codes  -  H4.2 generated error-code catalog ──────
@@ -2888,7 +2891,7 @@ export async function handleErrorCodes(
 
 // --- GET /.well-known/capabilities.json -------------------------
 
-export async function handleCapabilities(
+export function handleCapabilities(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -2966,11 +2969,12 @@ export async function handleCapabilities(
     for_agents: "https://axis-api-6c7z.onrender.com/for-agents",
     openapi: "https://axis-api-6c7z.onrender.com/v1/docs",
   });
+  return Promise.resolve();
 }
 
 // --- GET /llms.txt  -  llmstxt.org standard ---------------------------------
 
-export async function handleLlmsTxt(
+export function handleLlmsTxt(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3057,11 +3061,12 @@ ${MCP_ERROR_CATEGORY_CATALOG.map(c => `- ${c.code} (retryable: ${c.retryable}): 
 `;
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(body);
+  return Promise.resolve();
 }
 
 // ─── GET /.well-known/security.txt  -  RFC 9116 ────────────────────
 
-export async function handleSecurityTxt(
+export function handleSecurityTxt(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3076,11 +3081,12 @@ export async function handleSecurityTxt(
   ];
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(lines.join("\n") + "\n");
+  return Promise.resolve();
 }
 
 // ─── GET /.well-known/skills/index.json  -  agent skills registry ──
 
-export async function handleRobotsTxt(
+export function handleRobotsTxt(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3128,9 +3134,10 @@ export async function handleRobotsTxt(
   ];
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(lines.join("\n"));
+  return Promise.resolve();
 }
 
-export async function handleSitemapXml(
+export function handleSitemapXml(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3174,9 +3181,10 @@ export async function handleSitemapXml(
 
   res.writeHead(200, { "Content-Type": "application/xml; charset=utf-8" });
   res.end(xml);
+  return Promise.resolve();
 }
 
-export async function handleSkillsIndex(
+export function handleSkillsIndex(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3250,10 +3258,11 @@ export async function handleSkillsIndex(
       },
     ],
   });
+  return Promise.resolve();
 }
 
 // ─── GET /.well-known/oauth-authorization-server ──────────────────
-export async function handleOAuthAuthorizationServer(
+export function handleOAuthAuthorizationServer(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3270,11 +3279,12 @@ export async function handleOAuthAuthorizationServer(
     service_documentation: "https://iliad.trustfabric.ai/for-agents",
     ui_locales_supported: ["en"],
   });
+  return Promise.resolve();
 }
 
 // ─── GET /v1/docs.md  -  plain-text OpenAPI summary ───────────────
 
-export async function handleDocsMd(
+export function handleDocsMd(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3372,11 +3382,12 @@ List all programs with generator counts and output paths. No auth required.
 `;
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(body);
+  return Promise.resolve();
 }
 
 // ─── GET /v1/changelog  -  repo CHANGELOG.md, verbatim (WO-A4) ─────
 
-export async function handleChangelog(
+export function handleChangelog(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3386,10 +3397,11 @@ export async function handleChangelog(
   } catch (err) {
     log("error", "changelog_read_failed", { error: err instanceof Error ? err.message : String(err) });
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Changelog temporarily unavailable");
-    return;
+    return Promise.resolve();
   }
   res.writeHead(200, { "Content-Type": "text/markdown; charset=utf-8" });
   res.end(body);
+  return Promise.resolve();
 }
 
 // --- GET /begin.yaml, GET /continuation.yaml -- H4.4: AXIS dogfoods the
@@ -3397,7 +3409,7 @@ export async function handleChangelog(
 // files verbatim, so an agent crawling this repo/API discovers the same loop
 // (and can `begin` on axis-iliad itself) without cloning the repo first. -----
 
-export async function handleBeginYaml(
+export function handleBeginYaml(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3407,13 +3419,14 @@ export async function handleBeginYaml(
   } catch (err) {
     log("error", "begin_yaml_read_failed", { error: err instanceof Error ? err.message : String(err) });
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "begin.yaml temporarily unavailable");
-    return;
+    return Promise.resolve();
   }
   res.writeHead(200, { "Content-Type": "application/yaml; charset=utf-8" });
   res.end(body);
+  return Promise.resolve();
 }
 
-export async function handleContinuationYaml(
+export function handleContinuationYaml(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3423,17 +3436,18 @@ export async function handleContinuationYaml(
   } catch (err) {
     log("error", "continuation_yaml_read_failed", { error: err instanceof Error ? err.message : String(err) });
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "continuation.yaml temporarily unavailable");
-    return;
+    return Promise.resolve();
   }
   res.writeHead(200, { "Content-Type": "application/yaml; charset=utf-8" });
   res.end(body);
+  return Promise.resolve();
 }
 
 // --- GET /for-agents — agent-first onboarding manifest ----------
 
 const AXIS_API_BASE = "https://axis-api-6c7z.onrender.com";
 
-export async function handleForAgents(
+export function handleForAgents(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3768,6 +3782,7 @@ export async function handleForAgents(
       agent_instructions: "When you encounter a 402 from AXIS: (1) Parse checkout_url from the response body. (2) If you have autonomous payment authorization, complete payment. (3) Re-send the original request unchanged. (4) If no autonomous payment: present the checkout_url to the human and pause. (5) On resume, retry the request.",
     },
   });
+  return Promise.resolve();
 }
 
 // --- GET /v1/install — platform-specific MCP configs ------------
@@ -3819,7 +3834,7 @@ const INSTALL_CONFIGS: Record<string, { file: string; description: string; confi
   },
 };
 
-export async function handleInstall(
+export function handleInstall(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -3832,7 +3847,7 @@ export async function handleInstall(
     const cfg = INSTALL_CONFIGS[platform];
     if (!cfg) {
       sendError(res, 404, ErrorCode.NOT_FOUND, `Unknown platform '${platform}'. Available: ${Object.keys(INSTALL_CONFIGS).join(", ")}`, { available: Object.keys(INSTALL_CONFIGS) });
-      return;
+      return Promise.resolve();
     }
     sendJSON(res, 200, {
       platform,
@@ -3840,7 +3855,7 @@ export async function handleInstall(
       get_api_key: `POST ${AXIS_API_BASE}/v1/accounts with {email, name, tier: 'free'}`,
       mcp_endpoint: `${AXIS_API_BASE}/mcp`,
     });
-    return;
+    return Promise.resolve();
   }
 
   // No platform specified — return all
@@ -3851,6 +3866,7 @@ export async function handleInstall(
     platforms: INSTALL_CONFIGS,
     instructions: "Replace ${AXIS_API_KEY} with your actual API key. Get one free at POST /v1/accounts.",
   });
+  return Promise.resolve();
 }
 
 // --- POST /probe-intent — lightweight intent capture ------------
@@ -4148,7 +4164,7 @@ export async function handleProbeIntent(
 
 // ─── GET /.well-known/glama.json  -  Glama registry hint ─────────────
 
-export async function handleGlamaJson(
+export function handleGlamaJson(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4160,11 +4176,12 @@ export async function handleGlamaJson(
     docs_url: "https://axis-api-6c7z.onrender.com/v1/docs.md",
     website: "https://axis-api-6c7z.onrender.com",
   });
+  return Promise.resolve();
 }
 
 // ─── GET /.well-known/agent.json  -  AgentSEO / MCP scanner standard ──
 
-export async function handleAgentJson(
+export function handleAgentJson(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4204,11 +4221,12 @@ export async function handleAgentJson(
       for_agents: "GET /for-agents",
     },
   });
+  return Promise.resolve();
 }
 
 // --- GET /.well-known/ai-plugin.json  -  OpenAI/ChatGPT plugin manifest -----
 
-export async function handleAiPlugin(
+export function handleAiPlugin(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4229,11 +4247,12 @@ export async function handleAiPlugin(
     legal_info_url: "https://iliad.trustfabric.ai/terms",
     mcp_endpoint: "/mcp",
   });
+  return Promise.resolve();
 }
 
 // --- GET /.well-known/oauth-protected-resource  -  RFC 9728 metadata --------
 
-export async function handleOAuthProtectedResource(
+export function handleOAuthProtectedResource(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4244,11 +4263,12 @@ export async function handleOAuthProtectedResource(
     bearer_methods_supported: ["header"],
     resource_documentation: "https://iliad.trustfabric.ai/for-agents",
   });
+  return Promise.resolve();
 }
 
 // ─── GET /health  -  scanner-friendly health probe ────────────────
 
-export async function handleHealthRedirect(
+export function handleHealthRedirect(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4259,11 +4279,12 @@ export async function handleHealthRedirect(
     uptime: "OK",
     details: "/v1/health for full health check",
   });
+  return Promise.resolve();
 }
 
 // ─── GET /docs  -  redirect to API docs ──────────────────────────
 
-export async function handleDocsRedirect(
+export function handleDocsRedirect(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4273,11 +4294,12 @@ export async function handleDocsRedirect(
     markdown: "/v1/docs.md",
     description: "Axis' Iliad documentation and API reference",
   });
+  return Promise.resolve();
 }
 
 // ─── GET /pricing  -  pricing landing metadata for crawlers ─────
 
-export async function handlePricingLanding(
+export function handlePricingLanding(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -4289,6 +4311,7 @@ export async function handlePricingLanding(
     docs: "/v1/docs",
     for_agents: "/for-agents",
   });
+  return Promise.resolve();
 }
 
 // ─── GET /openapi.json  -  OpenAPI spec alias ────────────────────

@@ -197,7 +197,7 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
   let rootPackagePrivate = false;
   if (rootPackageJson) {
     try {
-      rootPackagePrivate = JSON.parse(rootPackageJson.content)?.private === true;
+      rootPackagePrivate = (JSON.parse(rootPackageJson.content) as { private?: unknown })?.private === true;
     } catch {
       // Malformed root package.json — treat as not-private (existing behavior).
     }
