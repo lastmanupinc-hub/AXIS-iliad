@@ -55,7 +55,7 @@ Only the deltas below are new.
 
 ---
 
-## STATE (the cursor — executor edits this table every unit)
+## STATE: **CONVERGED 2026-07-26** (the cursor — executor edits this table every unit)
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
@@ -587,6 +587,46 @@ On convergence: append a Phase R summary line to `HARDEN_POLISH_LOOP.md`'s PROGR
 set this file's STATE header to `CONVERGED <date>`, and hand control back to
 `HARDEN_POLISH_LOOP.md` Phase A — which should then run a fresh cycle whose dry-count starts
 at 0, because Phase R changed real code.
+
+### Convergence record — 2026-07-26
+
+1. **Every R0–R4 unit DONE.** R0.1–R0.3, R1.1–R1.6, R2.1–R2.6, R3.1–R3.4, R4.1–R4.3 all show a
+   real commit hash in STATE above. (R4.3 was missing a cursor row at authoring time despite
+   being fully specified in its own unit body; added and completed same session.)
+2. **Build/guards/CI green.** `pnpm -r build` clean. All 4 guard suites green (44/44) multiple
+   times across the session. `packages/generator-core` full suite 2426/2426 (DATABASE_URL set,
+   zero regressions). **CI green on `main` for the final push** (`72849f7`, run `30202783277`) —
+   `secret-scan`, both `build-and-test` matrix legs (Node 20 + 22), `deploy-web`, and
+   `live-probe` all passed; `docker-build`/`deploy-api` correctly skipped (Render's own
+   Blueprint autoSync deploys `apps/api` independently of GitHub Actions). This is the first
+   green CI run since `R0.2` (`c408aee`) — **every push from `R0.3` through the FINDINGS-queue
+   closeout had a failing CI that went unnoticed all session**, because verification leaned on
+   local build/test/guard-suite runs and never checked CI status after pushing. Root-caused and
+   fixed for real in `72849f7`: 24 pre-existing `@typescript-eslint/require-await` violations in
+   `handlers.ts` (23 pre-existing, 1 introduced this session), one unsafe-`any`-access and one
+   floating-promise introduced this session, a stale suppressions file, and — separately — a
+   real test-collection bug (`scan-diff-secrets.test.ts` failing to even collect under vitest's
+   transform, root-caused to a dead shebang line in the `.mjs` it imports). See that commit's
+   full message for the complete diagnosis.
+3. **ACCEPT gates non-vacuous.** Directly red-then-green proven this session for the units with
+   the highest risk of a silently-vacuous gate: R1.1's `count-honesty` guard (caught its own
+   first-draft vacuity via `visible()` eating meta-tag content), the inter-repo ticket system's
+   inbox-wiring test (confirmed failing when the read-order step is removed), and the
+   `scanner.ts` breadth-starvation fix (confirmed failing under both prior algorithm attempts).
+   Earlier R0–R3 units carry their own recorded verification evidence in the PROGRESS ledger
+   above rather than a fresh from-scratch re-audit this session.
+4. **FINDINGS queue closed.** All entries resolved or promoted — see the queue itself; nothing
+   left unresolved and unpromoted.
+
+**Handing control back to `HARDEN_POLISH_LOOP.md` Phase A, dry-count reset to 0.**
+
+Also landed the same session, outside this playbook's own authored scope (user-directed):
+JWT/x402/agent-card discovery hardening against the live production bug report, and the
+inter-repo ticket system generator (`426915c`) productizing this repo's own proven
+`inter_repo_ticket_system` protocol for every repo Iliad analyzes.
+
+**Still open, by design — not a convergence blocker:** `R5.7` (`TermsPage.tsx`'s false
+data-retention claim) and the rest of Phase R5 remain owner-gated. See Phase R5 above.
 
 ---
 
