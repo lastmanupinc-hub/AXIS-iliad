@@ -67,6 +67,10 @@ const SNAPSHOT_RESULT_SCHEMA = {
     artifact_count: { type: "number" },
     programs_executed: { type: "array", items: { type: "string" } },
     artifacts: { type: "array", items: ARTIFACT_ENTRY_SCHEMA },
+    content_discarded_at: {
+      type: ["string", "null"],
+      description: "ISO timestamp if this snapshot's source content was discarded after the owning account's web session logged out (R5.7), null if content is still live.",
+    },
   },
   required: ["snapshot_id", "project_id", "status", "artifact_count", "artifacts"],
 };
@@ -194,7 +198,7 @@ export const MCP_TOOLS = [
   {
     name: "get_snapshot",
     description:
-      "Retrieve status and the full artifact listing for a prior analysis by snapshot_id. Use this to re-enumerate artifact paths without re-running analysis. Snapshots created with an API key are scoped to that same account — pass the same Authorization: Bearer <api_key> used to create it, or retrieval fails with a not-found error. Only anonymous (never-authenticated) snapshots are freely retrievable by any caller.",
+      "Retrieve status and the full artifact listing for a prior analysis by snapshot_id. Use this to re-enumerate artifact paths without re-running analysis. Snapshots created with an API key are scoped to that same account — pass the same Authorization: Bearer <api_key> used to create it, or retrieval fails with a not-found error. Only anonymous (never-authenticated) snapshots are freely retrievable by any caller. The response's content_discarded_at is non-null if the owning account's web session has since logged out — source content is gone (closer/deploy/skills/search_index calls on this snapshot will fail with content_discarded until it's re-uploaded), though this call itself still succeeds and generated artifacts remain listable.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],

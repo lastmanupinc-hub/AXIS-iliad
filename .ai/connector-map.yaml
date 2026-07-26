@@ -146,7 +146,7 @@ resources:
     source: apps/api/src/architecture-drift-webhook.ts
 
 tools:
-  # showing 20 of 156 routes
+  # showing 20 of 159 routes
   - id: get__health
     name: GET /health
     method: GET

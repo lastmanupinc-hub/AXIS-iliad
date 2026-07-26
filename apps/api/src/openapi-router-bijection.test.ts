@@ -63,16 +63,19 @@ const WAIVED_ROUTER_ONLY = new Set<string>([
   key("GET", "/mcp/mcp/*"),
   key("POST", "/mcp/mcp/*"),
   key("DELETE", "/mcp/mcp/*"),
-  // MCP-prefixed duplicates of the already-documented /.well-known/*.json files.
-  // The oauth-* pair is mounted here too because RFC 8414/RFC 9728 path-insertion
-  // means a spec-compliant MCP client resolves these RELATIVE TO the resource URL
-  // (/mcp), not just site-root — production logs showed real 404s on exactly
-  // these two paths before they were added.
+  // MCP-prefixed duplicates of the already-documented /.well-known/*.json files —
+  // kept for real production traffic (logs showed real 404s on exactly these
+  // paths) even though this exact prefix form isn't the RFC 8414/9728 spec form.
   key("GET", "/mcp/.well-known/mcp.json"),
   key("GET", "/mcp/.well-known/mcp"),
   key("GET", "/mcp/.well-known/agent.json"),
   key("GET", "/mcp/.well-known/oauth-authorization-server"),
   key("GET", "/mcp/.well-known/oauth-protected-resource"),
+  // The ACTUAL RFC 8414 §3 / RFC 9728 §3.1 path-insertion form (cycle 28 fix):
+  // well-known suffix immediately after the host, resource's own path appended
+  // after the suffix. Same handlers as the site-root registration above.
+  key("GET", "/.well-known/oauth-authorization-server/mcp"),
+  key("GET", "/.well-known/oauth-protected-resource/mcp"),
   // Static asset, not a JSON API resource.
   key("GET", "/favicon.ico"),
   // Trailing-slash aliases of the documented /v1/accounts and /accounts.

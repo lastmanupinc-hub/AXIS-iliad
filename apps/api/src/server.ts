@@ -256,17 +256,25 @@ router.get("/.well-known/x402.json", handleX402WellKnown);
 // Root-level discovery aliases probed by crawlers that skip the .well-known prefix
 router.get("/agents.json", handleAgentJson);
 
-// MCP discovery under prefixed paths (for compatibility)
+// MCP discovery under prefixed paths (for compatibility) — production logs
+// showed real crawler/client traffic hitting these exact paths, so they stay
+// even though (per the cycle 28 audit finding below) they are NOT the form
+// RFC 8414/9728 actually specify.
 router.get("/mcp/.well-known/mcp.json", handleMcpServerJson);
 router.get("/mcp/.well-known/mcp", handleMcpServerJson);
 router.get("/mcp/.well-known/agent.json", handleAgentJson);
-// OAuth discovery mounted under the resource path itself — RFC 8414/RFC 9728
-// path-insertion means a spec-compliant MCP client resolves these RELATIVE TO
-// the resource URL (here, /mcp), not just site-root. Same handlers as the
-// site-root registration above; production logs showed real 404s on exactly
-// these two paths before this fix.
 router.get("/mcp/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
 router.get("/mcp/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
+// The ACTUAL RFC 8414 §3 / RFC 9728 §3.1 path-insertion form: the well-known
+// suffix goes immediately after the host, and the resource's own path is
+// APPENDED AFTER the suffix — i.e. /.well-known/{suffix}/mcp, not
+// /mcp/.well-known/{suffix} (the mistake the two lines above make, caught by
+// the cycle 28 audit agent, which fetched and read the RFC text directly
+// rather than trusting the original commit's own claim). A genuinely
+// spec-compliant client doing blind RFC 9728 discovery against the /mcp
+// resource needs this exact form; same handlers, still static/side-effect-free.
+router.get("/.well-known/oauth-authorization-server/mcp", handleOAuthAuthorizationServer);
+router.get("/.well-known/oauth-protected-resource/mcp", handleOAuthProtectedResource);
 
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);

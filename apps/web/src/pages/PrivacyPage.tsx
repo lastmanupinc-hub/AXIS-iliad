@@ -98,7 +98,14 @@ export function PrivacyPage() {
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               When you upload files or point Axis at a GitHub repository, the submitted
               file contents are stored as a <strong>snapshot</strong> in our PostgreSQL
-              database (Neon, US), retained until you delete it via{" "}
+              database (Neon, US). While you're logged in to the web dashboard, this lets
+              you request additional analyses of the same snapshot without re-uploading.{" "}
+              <strong>Logging out of the web dashboard discards that source content</strong> —
+              we keep only file paths, sizes, and the analysis artifacts already generated
+              for you, not the underlying code. This logout-triggered discard is specific to
+              the web dashboard's login session; if you use the API, CLI, or MCP server
+              directly, there's no login/logout session to trigger it, so that source content
+              is retained until you delete it via{" "}
               <code>DELETE /v1/snapshots/:snapshot_id</code>,{" "}
               <code>DELETE /v1/projects/:project_id</code>, or the dashboard. We do not
               sell, license, or train machine-learning models on your source code.
@@ -150,7 +157,7 @@ export function PrivacyPage() {
               a non-sensitive session marker, your theme preference, and your most recent
               analysis result in your browser's <code>localStorage</code> — none of which
               is your actual credential. Logging out clears the session cookie and the
-              stored marker.
+              stored marker, and also discards your uploaded source content (see 2.1).
             </p>
           </div>
 

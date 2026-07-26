@@ -411,6 +411,27 @@ describe("OAuth API routes", () => {
     });
   });
 
+  it("cycle 28 audit finding: calling logout with only a Bearer API key (no session cookie) does NOT discard content — this endpoint's discard is scoped to real web sessions only", async () => {
+    const account = await createAccount("Logout Bearer Only User", "logout-bearer-only@example.com");
+    const { rawKey } = await createApiKey(account.account_id);
+    const snap = await createSnapshot(
+      {
+        input_method: "api_submission",
+        manifest: { project_name: "logout-bearer-only-project", project_type: "saas_web_app", frameworks: [], goals: [], requested_outputs: [] },
+        files: [{ path: "index.ts", content: "console.log('should survive')", size: 30 }],
+      },
+      account.account_id,
+    );
+
+    // No /v1/auth/session call — this account never established a cookie.
+    const logout = await req("POST", "/v1/auth/logout", undefined, { Authorization: `Bearer ${rawKey}` });
+    expect(logout.status).toBe(200);
+
+    const after = await getSnapshot(snap.snapshot_id);
+    expect(after!.files[0].content).toBe("console.log('should survive')");
+    expect(after!.content_discarded_at).toBeNull();
+  });
+
   // ─── /v1/auth/session (api_key → HttpOnly cookie, H1 C2) ──────────
 
   it("exchanges a valid api_key for the HttpOnly session cookie (no bearer needed thereafter)", async () => {

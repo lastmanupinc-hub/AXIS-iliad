@@ -162,15 +162,28 @@ describe("Server route wiring", () => {
     expect(unversionedData.error).toBe("Method not allowed");
   });
 
-  // Bug report (2026-07): production logs showed real 404s on these two paths.
-  // RFC 8414/RFC 9728 path-insertion means a spec-compliant MCP client resolves
-  // OAuth discovery RELATIVE TO the resource URL (/mcp), not just site-root.
-  it("OAuth discovery is also served mounted under /mcp (RFC 8414/9728 path-insertion)", async () => {
+  // Bug report (2026-07): production logs showed real 404s on these two paths —
+  // kept for that real traffic even though this ISN'T the RFC 8414/9728 form
+  // (see the next test for the actually-correct one; cycle 28 audit finding).
+  it("OAuth discovery is also served mounted under /mcp (real-traffic compat form)", async () => {
     const authServer = await req("GET", "/mcp/.well-known/oauth-authorization-server");
     expect(authServer.status).toBe(200);
     expect((authServer.data as Record<string, unknown>).issuer).toBeTruthy();
 
     const protectedResource = await req("GET", "/mcp/.well-known/oauth-protected-resource");
+    expect(protectedResource.status).toBe(200);
+    expect((protectedResource.data as Record<string, unknown>).resource).toBeTruthy();
+  });
+
+  // The ACTUAL RFC 8414 §3 / RFC 9728 §3.1 path-insertion form: well-known
+  // suffix immediately after the host, the resource's own path (/mcp) appended
+  // AFTER the suffix — not the reversed form in the test above.
+  it("OAuth discovery is also served at the spec-correct RFC 8414/9728 path-insertion form", async () => {
+    const authServer = await req("GET", "/.well-known/oauth-authorization-server/mcp");
+    expect(authServer.status).toBe(200);
+    expect((authServer.data as Record<string, unknown>).issuer).toBeTruthy();
+
+    const protectedResource = await req("GET", "/.well-known/oauth-protected-resource/mcp");
     expect(protectedResource.status).toBe(200);
     expect((protectedResource.data as Record<string, unknown>).resource).toBeTruthy();
   });

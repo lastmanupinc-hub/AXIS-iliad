@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError, readBody } from "./router.js";
 import { ErrorCode, log } from "./logger.js";
-import { SESSION_COOKIE, resolveAuth } from "./billing.js";
+import { SESSION_COOKIE, readSessionCookie } from "./billing.js";
 import {
   createOAuthState,
   consumeOAuthState,
@@ -293,25 +293,36 @@ export async function handleCreateSession(
  * content (R5.7: "we don't keep your source" is a real guarantee only for the
  * web dashboard, whose login/logout gives us a discard trigger — API/CLI/MCP
  * callers have no session concept and are unaffected; see TermsPage.tsx).
- * Account is resolved from the session BEFORE the cookie is cleared. The
- * discard is best-effort: a failure here must never block logout itself.
+ *
+ * Cycle 28 audit finding: resolving via the general resolveAuth (which also
+ * accepts Bearer/X-Axis-Key) would discard for ANY caller presenting a valid
+ * API key to this route, not just a real web session — silently breaking the
+ * "API/CLI/MCP callers are unaffected" claim for the edge case of an API
+ * caller that happens to hit this web-specific endpoint. Resolving SPECIFICALLY
+ * from the session cookie (ignoring any Bearer/X-Axis-Key header entirely for
+ * this decision) makes that claim structurally true, not just conventionally
+ * true. Account is resolved BEFORE the cookie is cleared. The discard is
+ * best-effort: a failure here must never block logout itself.
  */
 export async function handleOAuthLogout(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = await resolveAuth(req);
-  if (ctx.account) {
-    try {
-      const discarded = await discardAccountSnapshotContent(ctx.account.account_id);
-      if (discarded > 0) {
-        log("info", "logout_content_discarded", { account_id: ctx.account.account_id, snapshots: discarded });
+  const sessionKey = readSessionCookie(req);
+  if (sessionKey) {
+    const resolved = await resolveApiKey(sessionKey);
+    if (resolved) {
+      try {
+        const discarded = await discardAccountSnapshotContent(resolved.account.account_id);
+        if (discarded > 0) {
+          log("info", "logout_content_discarded", { account_id: resolved.account.account_id, snapshots: discarded });
+        }
+      } catch (err) {
+        log("error", "logout_discard_failed", {
+          account_id: resolved.account.account_id,
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
-    } catch (err) {
-      log("error", "logout_discard_failed", {
-        account_id: ctx.account.account_id,
-        message: err instanceof Error ? err.message : String(err),
-      });
     }
   }
   res.setHeader("Cache-Control", "no-store");

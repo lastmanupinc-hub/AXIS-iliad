@@ -111,12 +111,22 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
   // async-resolved-state-misread-as-false family this session has fixed 8
   // times elsewhere, just via a local <select> instead of a route param.
   const checkRequestIdRef = useRef(0);
+  // Cycle 28 audit finding: same async-resolved-state-misread-as-false family as
+  // checkExisting above, just triggered by loggedIn flipping (e.g. a cross-tab
+  // logout) instead of a project-target switch — a stale in-flight response
+  // could otherwise overwrite a just-cleared list with another session's data.
+  const listRequestIdRef = useRef(0);
 
   useEffect(() => {
+    const requestId = ++listRequestIdRef.current;
     if (!loggedIn) { setProjects([]); return; }
     listProjects({ limit: 200 })
-      .then((r) => setProjects(r.projects))
+      .then((r) => {
+        if (requestId !== listRequestIdRef.current) return;
+        setProjects(r.projects);
+      })
       .catch((err) => {
+        if (requestId !== listRequestIdRef.current) return;
         setListError({ message: err instanceof Error ? err.message : "Failed to load projects", details: apiErrorDetails(err) });
         setProjects([]);
       });

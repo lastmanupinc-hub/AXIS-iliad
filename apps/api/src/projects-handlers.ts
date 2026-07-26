@@ -62,7 +62,11 @@ export async function handleListProjects(req: IncomingMessage, res: ServerRespon
             status: p.latest_snapshot.status,
             created_at: p.latest_snapshot.created_at,
             file_count: p.latest_snapshot.file_count,
-            compliance_grade: gradeCompliance(p.latest_snapshot.files),
+            // R5.7 (cycle 28 audit finding): once content is discarded, files[].content
+            // is blanked — grading it would silently report a misleading near-zero
+            // grade instead of explaining why. Mirrors handleGetSnapshot's own guard.
+            content_discarded_at: p.latest_snapshot.content_discarded_at,
+            compliance_grade: p.latest_snapshot.content_discarded_at ? null : gradeCompliance(p.latest_snapshot.files),
           }
         : null,
       snapshot_count: p.snapshot_count,
@@ -102,7 +106,9 @@ export async function handleListProjectSnapshots(
     status: s.status,
     created_at: s.created_at,
     file_count: s.file_count,
-    compliance_grade: gradeCompliance(s.files),
+    // R5.7 (cycle 28 audit finding): see handleListProjects's identical guard above.
+    content_discarded_at: s.content_discarded_at,
+    compliance_grade: s.content_discarded_at ? null : gradeCompliance(s.files),
   }));
 
   sendJSON(res, 200, { project_id, snapshots: items, count: items.length });

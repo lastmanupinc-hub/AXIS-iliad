@@ -158,6 +158,7 @@ function FileDiffCard({ file, defaultExpanded }: { file: FileDiff; defaultExpand
         className="flex-between"
         role="button"
         tabIndex={0}
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
         style={{ padding: "10px 14px", cursor: "pointer" }}

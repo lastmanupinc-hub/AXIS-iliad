@@ -65,9 +65,12 @@ export const SESSION_COOKIE = "axis_session";
 
 /**
  * Read the API key from the HttpOnly session cookie (first-party browser
- * sessions). Returns null when the cookie is absent or empty.
+ * sessions). Returns null when the cookie is absent or empty. Exported so
+ * callers that need to know SPECIFICALLY whether a request carries a web
+ * session (as opposed to any Bearer/X-Axis-Key credential resolveAuth would
+ * also accept) can check directly — see handleOAuthLogout's discard gate.
  */
-function readSessionCookie(req: IncomingMessage): string | null {
+export function readSessionCookie(req: IncomingMessage): string | null {
   const header = req.headers.cookie;
   if (!header) return null;
   for (const part of header.split(";")) {

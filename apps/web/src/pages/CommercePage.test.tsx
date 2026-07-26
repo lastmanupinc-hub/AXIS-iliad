@@ -227,6 +227,38 @@ describe("CommercePage — generate flow (logged in)", () => {
     expect(screen.queryByText("Purchasing Playbook")).toBeNull();
   });
 
+  it("cycle 28: a stale in-flight /v1/projects response must not overwrite a fresher one (loggedIn flipping, e.g. cross-tab logout)", async () => {
+    let resolveStale!: (v: unknown) => void;
+    const pendingStale = new Promise((resolve) => { resolveStale = resolve; });
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/projects")) {
+        // First call (mounted with loggedIn=true) is held open; the SECOND
+        // call (after the loggedIn=false->true cycle below) resolves first.
+        if (fetchFn.mock.calls.filter((c) => String(c[0]).includes("/v1/projects")).length === 1) {
+          await pendingStale;
+          return { ok: true, status: 200, json: async () => ({ projects: [{ project_id: "proj_stale", name: "stale-project", github_url: null, created_at: "", latest_snapshot: null, snapshot_count: 0 }], total: 1 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+        }
+        return { ok: true, status: 200, json: async () => ({ projects: [{ project_id: "proj_fresh", name: "fresh-project", github_url: null, created_at: "", latest_snapshot: null, snapshot_count: 0 }], total: 1 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const { rerender } = render(<CommercePage loggedIn={true} currentProjectId={null} anonResult={null} onNavigate={onNavigate} onRequireLogin={onRequireLogin} />);
+
+    rerender(<CommercePage loggedIn={false} currentProjectId={null} anonResult={null} onNavigate={onNavigate} onRequireLogin={onRequireLogin} />);
+    rerender(<CommercePage loggedIn={true} currentProjectId={null} anonResult={null} onNavigate={onNavigate} onRequireLogin={onRequireLogin} />);
+
+    await waitFor(() => expect(screen.getByText("fresh-project")).toBeTruthy());
+
+    resolveStale(undefined); // the FIRST call's stale response lands after the fresh one
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(screen.getByText("fresh-project")).toBeTruthy();
+    expect(screen.queryByText("stale-project")).toBeNull();
+  });
+
   it("H-Phase-A cycle 10: a failed existence check shows an honest error, not the same empty state a genuinely-kit-less project gets", async () => {
     const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

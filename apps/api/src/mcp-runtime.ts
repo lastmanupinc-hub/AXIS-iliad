@@ -67,7 +67,7 @@ export function toolErr(text: string) {
   return { content: [{ type: "text", text }], isError: true };
 }
 
-export type ErrorCategory = "auth" | "validation" | "quota" | "tier_limit" | "external" | "internal";
+export type ErrorCategory = "auth" | "validation" | "quota" | "tier_limit" | "external" | "content_discarded" | "internal";
 
 export function categorizeError(msg: string): { code: ErrorCategory; retryable: boolean } {
   if (/authentication required|invalid.*api.key|revoked/i.test(msg))
@@ -78,6 +78,11 @@ export function categorizeError(msg: string): { code: ErrorCategory; retryable: 
     return { code: "quota", retryable: true };
   if (/file limit.*exceeds.*tier|exceeds max.*tier/i.test(msg))
     return { code: "tier_limit", retryable: false };
+  // R5.7 / cycle 28 audit finding: must be checked before the generic "not found"
+  // validation branch below, since this message also contains "discarded" text
+  // that isn't a validation problem — the snapshot exists, its content doesn't.
+  if (/discarded after web logout/i.test(msg))
+    return { code: "content_discarded", retryable: false };
   if (/is required|must be|invalid.*path|invalid.*url|must have|not found|exceeds max/i.test(msg))
     return { code: "validation", retryable: false };
   if (/fetch failed|github.*failed/i.test(msg))
@@ -106,6 +111,7 @@ const MCP_ERROR_CATEGORY_SET: Record<ErrorCategory, { retryable: boolean; descri
   quota: { retryable: true, description: "Quota exceeded, or another in-flight request already holds this Idempotency-Key — retry after the window/request clears." },
   validation: { retryable: false, description: "Bad tool arguments (missing/invalid field, path, or URL)." },
   external: { retryable: true, description: "An upstream dependency (e.g. GitHub) failed or was unreachable." },
+  content_discarded: { retryable: false, description: "The snapshot exists, but its source content was discarded after the owning account's web session logged out — re-upload the source (e.g. via analyze_files/analyze_repo) to regenerate; retrying this same call won't help." },
   internal: { retryable: false, description: "Uncategorized error, including genuine server bugs." },
 };
 export const MCP_ERROR_CATEGORY_CATALOG: readonly { code: ErrorCategory; retryable: boolean; description: string }[] =

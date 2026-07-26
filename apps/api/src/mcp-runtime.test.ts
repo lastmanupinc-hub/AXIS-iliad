@@ -7,7 +7,7 @@ import { MCP_ERROR_CATEGORY_CATALOG, categorizeError, readIdempotencyKey, type E
 // ...>, checked by every tsc run since it's a normal source file, not excluded like
 // this .test.ts is) — this hand-typed list is a secondary, independent runtime
 // double-check, not the source of truth.
-const ALL_CATEGORIES: ErrorCategory[] = ["auth", "validation", "quota", "tier_limit", "external", "internal"];
+const ALL_CATEGORIES: ErrorCategory[] = ["auth", "validation", "quota", "tier_limit", "external", "content_discarded", "internal"];
 
 // H8.3 — mutation-lite kill: no other suite exercises the exact 255-char cap on
 // readIdempotencyKey, so a boundary flip (`length > 255` -> `length >= 255`)
@@ -55,6 +55,7 @@ describe("MCP_ERROR_CATEGORY_CATALOG (H4.2)", () => {
       quota: "Quota exceeded for this month",
       validation: "project_name is required",
       external: "GitHub fetch failed",
+      content_discarded: "Source content for this snapshot was discarded after web logout. Re-upload via POST /v1/snapshots to regenerate.",
       internal: "Something unexpected happened",
     };
     for (const entry of MCP_ERROR_CATEGORY_CATALOG) {

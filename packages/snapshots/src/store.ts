@@ -167,6 +167,7 @@ export interface ProjectListEntry {
     status: SnapshotStatus;
     file_count: number;
     files: FileEntry[];
+    content_discarded_at: string | null;
   } | null;
 }
 
@@ -246,6 +247,7 @@ export async function listProjectsWithLatestSnapshot(
             status: latest.status,
             file_count: latest.file_count,
             files: latest.files,
+            content_discarded_at: latest.content_discarded_at,
           }
         : null,
     };
