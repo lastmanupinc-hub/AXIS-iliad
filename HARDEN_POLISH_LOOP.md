@@ -11,10 +11,16 @@ loop; edit it in place as you work.
 **⇢ DISPATCH (added 2026-07-25):** before selecting a unit, open
 `SONNET5_REMEDIATION_PLAYBOOK.md`. **While any unit in its STATE table is `pending` or
 `in-progress`, execute that file's Phase R instead of starting a new Phase A cycle** — it
-holds the confirmed findings of the 2026-07-25 dead-code audit (which counts as Phase A
-cycle 28) and its units touch live production surfaces. When Phase R reports CONVERGED,
-resume Phase A here with dry-count reset to 0. This file remains the loop of record and the
-single entry point for `continue`; Phase R is a delegated batch, not a second loop.
+holds the confirmed findings of the 2026-07-25 dead-code audit and its units touch live
+production surfaces. Phase R tracks its own convergence in its own STATE table and was
+never assigned a numbered slot in the "A (audit)" row below — the two counters are
+independent, so Phase A's cycle numbering runs 27, 28, 29... uninterrupted regardless of
+Phase R's status. (An earlier version of this note claimed Phase R "counts as Phase A
+cycle 28"; that reservation was never reconciled into the STATE table below and cycle 28
+was subsequently assigned to a real audit cycle — corrected 2026-07-26 to stop the two
+numbers colliding on paper.) When Phase R reports CONVERGED, resume Phase A here with
+dry-count reset to 0. This file remains the loop of record and the single entry point for
+`continue`; Phase R is a delegated batch, not a second loop.
 
 **Mission:** close every known gap in the current system, polish the experience for both
 human users and AI agents, and keep re-auditing until two consecutive audit cycles find
