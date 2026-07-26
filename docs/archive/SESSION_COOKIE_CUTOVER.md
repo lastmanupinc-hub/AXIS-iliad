@@ -1,5 +1,9 @@
 # Session Cookie Cutover
 
+> **ARCHIVED 2026-07-26:** all stages below shipped in H1. The `localStorage`
+> fallback has been removed from the frontend — **do not reintroduce it.**
+> Web auth is the `HttpOnly axis_session` cookie only.
+
 Moving the browser session off an XSS-stealable `localStorage` bearer onto an
 `HttpOnly; Secure; SameSite=Lax` cookie. Done in stages so nothing breaks
 mid-flight. Tracks the **HIGH** item in `HARDENING_AUDIT.md` ("Session token in
