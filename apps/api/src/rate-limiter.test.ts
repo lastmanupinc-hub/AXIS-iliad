@@ -269,6 +269,65 @@ describe("LIMITS constants", () => {
   });
 });
 
+// ─── RATE_LIMIT_* env tunables (R2.3) ────────────────────────────
+// ENV_SPEC advertised these since 2026-04; nothing read them until now.
+// One case per var, each restoring the prior value afterward.
+
+describe("RATE_LIMIT_* env tunables", () => {
+  const ENV_KEYS = ["RATE_LIMIT_WINDOW_MS", "RATE_LIMIT_MAX_REQUESTS", "RATE_LIMIT_MAX_AUTHENTICATED"] as const;
+  const prev: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) prev[k] = process.env[k];
+  });
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (prev[k] === undefined) delete process.env[k];
+      else process.env[k] = prev[k];
+    }
+  });
+
+  it("RATE_LIMIT_MAX_REQUESTS changes the anonymous limit actually enforced", async () => {
+    process.env.RATE_LIMIT_MAX_REQUESTS = "3";
+    expect(LIMITS.DEFAULT_MAX).toBe(3);
+
+    const ip = "41.41.41.41";
+    for (let i = 0; i < 3; i++) {
+      expect(checkRateLimit(makeReq({ "x-forwarded-for": ip }), makeRes())).toBe(true);
+    }
+    const blockedRes = makeRes();
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": ip }), blockedRes)).toBe(false);
+    expect(blockedRes.getHeader("RateLimit-Limit")).toBe("3");
+  });
+
+  it("RATE_LIMIT_MAX_AUTHENTICATED changes the authenticated limit actually enforced", async () => {
+    process.env.RATE_LIMIT_MAX_AUTHENTICATED = "2";
+    expect(LIMITS.AUTHENTICATED_MAX).toBe(2);
+
+    const ip = "42.42.42.42";
+    for (let i = 0; i < 2; i++) {
+      expect(checkRateLimit(makeReq({ "x-forwarded-for": ip }), makeRes(), { authenticated: true })).toBe(true);
+    }
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": ip }), makeRes(), { authenticated: true })).toBe(false);
+  });
+
+  it("RATE_LIMIT_WINDOW_MS changes the window reflected in getClientWindow", async () => {
+    process.env.RATE_LIMIT_WINDOW_MS = "5000";
+    expect(LIMITS.WINDOW_MS).toBe(5000);
+
+    const ip = "43.43.43.43";
+    checkRateLimit(makeReq({ "x-forwarded-for": ip }), makeRes());
+    const w = getClientWindow(ip);
+    expect(w.reset_in_seconds).toBeLessThanOrEqual(5);
+  });
+
+  it("falls back to the documented default when set to a non-numeric value", async () => {
+    process.env.RATE_LIMIT_MAX_REQUESTS = "not-a-number";
+    expect(LIMITS.DEFAULT_MAX).toBe(60);
+  });
+});
+
 // ─── Persistence ────────────────────────────────────────────────
 
 describe("rate limiter persistence", () => {

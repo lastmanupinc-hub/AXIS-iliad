@@ -12,10 +12,22 @@ interface WindowEntry {
 
 const windows = new Map<string, WindowEntry>();
 
-// Defaults — tunable per deployment
-const DEFAULT_WINDOW_MS = 60_000;       // 1 minute
-const DEFAULT_MAX_REQUESTS = 60;        // 60 req/min for anonymous
-const AUTHENTICATED_MAX_REQUESTS = 120; // 120 req/min for keyed users
+// Defaults — tunable per deployment via RATE_LIMIT_WINDOW_MS/RATE_LIMIT_MAX_REQUESTS/
+// RATE_LIMIT_MAX_AUTHENTICATED (declared in env.ts's ENV_SPEC since 2026-04; nothing
+// read them until R2.3). Read fresh on each call (not cached at module load) so a
+// value set after import -- as tests do -- takes effect immediately.
+function rateLimitWindowMs(): number {
+  const n = parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? "60000", 10);
+  return Number.isFinite(n) && n > 0 ? n : 60_000;
+}
+function rateLimitMaxRequests(): number {
+  const n = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? "60", 10);
+  return Number.isFinite(n) && n > 0 ? n : 60;
+}
+function rateLimitMaxAuthenticated(): number {
+  const n = parseInt(process.env.RATE_LIMIT_MAX_AUTHENTICATED ?? "120", 10);
+  return Number.isFinite(n) && n > 0 ? n : 120;
+}
 
 // Cleanup stale entries every 5 minutes
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
@@ -132,12 +144,12 @@ export function checkRateLimit(
   startCleanup();
 
   const ip = getClientIp(req);
-  const maxRequests = opts?.authenticated ? AUTHENTICATED_MAX_REQUESTS : DEFAULT_MAX_REQUESTS;
+  const maxRequests = opts?.authenticated ? rateLimitMaxAuthenticated() : rateLimitMaxRequests();
   const now = Date.now();
 
   let entry = windows.get(ip);
   if (!entry || now >= entry.resetAt) {
-    entry = { count: 0, resetAt: now + DEFAULT_WINDOW_MS };
+    entry = { count: 0, resetAt: now + rateLimitWindowMs() };
     windows.set(ip, entry);
   }
 
@@ -179,7 +191,7 @@ export function getClientWindow(
   reset_in_seconds: number;
   window_ms: number;
 } {
-  const maxRequests = opts?.authenticated ? AUTHENTICATED_MAX_REQUESTS : DEFAULT_MAX_REQUESTS;
+  const maxRequests = opts?.authenticated ? rateLimitMaxAuthenticated() : rateLimitMaxRequests();
   const now = Date.now();
   const entry = windows.get(ip);
 
@@ -190,7 +202,7 @@ export function getClientWindow(
       count: 0,
       reset_at: 0,
       reset_in_seconds: 0,
-      window_ms: DEFAULT_WINDOW_MS,
+      window_ms: rateLimitWindowMs(),
     };
   }
 
@@ -203,7 +215,7 @@ export function getClientWindow(
     count: entry.count,
     reset_at: entry.resetAt,
     reset_in_seconds: resetSeconds,
-    window_ms: DEFAULT_WINDOW_MS,
+    window_ms: rateLimitWindowMs(),
   };
 }
 
@@ -212,9 +224,14 @@ export function resetRateLimits(): void {
   windows.clear();
 }
 
-/** Visible for testing */
+/**
+ * Visible for testing. Getters (not frozen values) so a test that sets
+ * RATE_LIMIT_* env vars after this module is imported still observes the
+ * live-configured limit, matching what checkRateLimit()/getClientWindow()
+ * actually enforce.
+ */
 export const LIMITS = {
-  WINDOW_MS: DEFAULT_WINDOW_MS,
-  DEFAULT_MAX: DEFAULT_MAX_REQUESTS,
-  AUTHENTICATED_MAX: AUTHENTICATED_MAX_REQUESTS,
-} as const;
+  get WINDOW_MS() { return rateLimitWindowMs(); },
+  get DEFAULT_MAX() { return rateLimitMaxRequests(); },
+  get AUTHENTICATED_MAX() { return rateLimitMaxAuthenticated(); },
+};

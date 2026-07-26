@@ -471,6 +471,11 @@ export function createApp(router: Router, port: number): Server {
   server.keepAliveTimeout = keepAliveMs;
   server.headersTimeout = keepAliveMs + 5000;
 
+  // ENV_SPEC has advertised this since its 2026-04 introduction; nothing ever
+  // read it and every shutdown() call site used the function's own hardcoded
+  // default instead (R2.3).
+  const shutdownTimeoutMs = parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? "10000", 10);
+
   const startListening = () =>
     server.listen(port, () => {
       log("info", "server_start", { port, service: "axis-api" });
@@ -533,20 +538,20 @@ export function createApp(router: Router, port: number): Server {
     // dangling `.then()`/`.finally()` chain would silently swallow it if that
     // ever changes — worst possible place for a process-exit path to itself
     // throw unnoticed. The trailing .catch ensures we still exit even then.
-    const onSignal = () => { shutdown().then(() => process.exit(0)).catch(() => process.exit(1)); };
+    const onSignal = () => { shutdown(shutdownTimeoutMs).then(() => process.exit(0)).catch(() => process.exit(1)); };
     process.on("SIGTERM", onSignal);
     process.on("SIGINT", onSignal);
 
     // Crash resilience: log + graceful shutdown on unhandled errors
     process.on("uncaughtException", (err) => {
       log("error", "uncaught_exception", { error: err.message, stack: err.stack });
-      shutdown().finally(() => process.exit(1)).catch(() => process.exit(1));
+      shutdown(shutdownTimeoutMs).finally(() => process.exit(1)).catch(() => process.exit(1));
     });
     process.on("unhandledRejection", (reason) => {
       const msg = reason instanceof Error ? reason.message : String(reason);
       const stack = reason instanceof Error ? reason.stack : undefined;
       log("error", "unhandled_rejection", { error: msg, stack });
-      shutdown().finally(() => process.exit(1)).catch(() => process.exit(1));
+      shutdown(shutdownTimeoutMs).finally(() => process.exit(1)).catch(() => process.exit(1));
     });
   }
   /* v8 ignore stop */
