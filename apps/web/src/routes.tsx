@@ -25,6 +25,7 @@ const HelpPage = lazy(() => import("./pages/HelpPage.tsx").then((m) => ({ defaul
 const QAPage = lazy(() => import("./pages/QAPage.tsx").then((m) => ({ default: m.QAPage })));
 const ProgramsPage = lazy(() => import("./pages/ProgramsPage.tsx").then((m) => ({ default: m.ProgramsPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage.tsx").then((m) => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage.tsx").then((m) => ({ default: m.PrivacyPage })));
 const ForAgentsPage = lazy(() => import("./pages/ForAgentsPage.tsx").then((m) => ({ default: m.ForAgentsPage })));
 const ExamplesPage = lazy(() => import("./pages/ExamplesPage.tsx").then((m) => ({ default: m.ExamplesPage })));
 const McpPage = lazy(() => import("./pages/McpPage.tsx").then((m) => ({ default: m.McpPage })));
@@ -115,6 +116,7 @@ export type PageId =
   | "qa"
   | "programs"
   | "terms"
+  | "privacy"
   | "for-agents"
   | "examples"
   | "mcp"
@@ -629,6 +631,14 @@ export const ROUTES: RouteDef[] = [
     section: "REFERENCE",
     // Footer-only — deliberately absent from the sidebar/drawer/rail.
     render: () => <TermsPage />,
+  },
+  {
+    page: "privacy",
+    pattern: "privacy",
+    label: "Privacy",
+    section: "REFERENCE",
+    // Footer-only — deliberately absent from the sidebar/drawer/rail (matches "terms").
+    render: () => <PrivacyPage />,
   },
   {
     page: "paid-checkout",

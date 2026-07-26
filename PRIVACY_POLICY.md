@@ -9,14 +9,14 @@
 
 **Effective date:** [EFFECTIVE DATE]
 **Last updated:** [LAST UPDATED]
-**Contact:** [CONTACT EMAIL]
+**Contact:** <support@jonathanarvay.com>
 
 ---
 
 ## 1. Who We Are
 
 Axis Iliad ("Axis", "we", "us") is a hosted codebase-analysis and artifact-generation
-service. The API is served at `https://axis-api-6c7z.onrender.com` and the web dashboard
+service. The API is served at `https://api.iliad.trustfabric.ai` and the web dashboard
 at `https://iliad.trustfabric.ai`. The service is also reachable as an MCP
 (Model Context Protocol) server at the `/mcp` endpoint.
 
@@ -27,8 +27,8 @@ at `https://iliad.trustfabric.ai`. The service is also reachable as an MCP
 ### 2.1 Source code you submit
 
 When you upload files or point Axis at a GitHub repository, the submitted file contents
-are stored as a **snapshot** in a SQLite database on a persistent disk attached to our
-hosting provider (Render, US — Oregon region). Snapshots exist so that:
+are stored as a **snapshot** in our PostgreSQL database (Neon, US). Snapshots exist so
+that:
 
 - analysis results are reproducible and retrievable (`GET /v1/snapshots/:snapshot_id`),
 - generated artifacts can be re-fetched without re-uploading,
@@ -74,11 +74,12 @@ AES-256-GCM**. You can list and delete stored tokens at any time
 
 ### 2.6 Payment information
 
-Payments are processed by **Stripe**. Card numbers and other payment-instrument details
-are entered directly into Stripe-hosted surfaces and **never touch Axis servers**. We
-receive from Stripe only the minimum needed to operate your subscription: customer and
-subscription identifiers, plan, billing cycle, and payment-event webhooks (e.g.
-`checkout.session.completed`, `invoice.payment_failed`).
+Payments are handled by **PAI'D Payments Intelligence**, which settles transactions via
+**Stripe, Inc.** Card numbers and other payment-instrument details are entered directly
+into Stripe-hosted surfaces and **never touch Axis servers**. We receive only the minimum
+needed to operate your account: customer and payment identifiers, plan, and
+payment-event webhooks. Each purchase is a single one-time charge, not a recurring
+subscription — see the Terms of Service for the current billing model.
 
 ### 2.7 Usage and analytics counters
 
@@ -97,14 +98,17 @@ to our hosting provider's log stream for debugging and security monitoring.
 
 The Axis web dashboard does **not** use third-party advertising cookies.
 
-The dashboard stores the following in your browser's `localStorage`:
+Your signed-in session is held in an **HttpOnly session cookie**, which JavaScript
+running on the page cannot read. The dashboard additionally stores the following in your
+browser's `localStorage`, none of which is your actual credential:
 
-- `axis_api_key` — your API key, so you stay signed in,
+- `axis_api_key` — a non-sensitive marker indicating a session is active (not your raw
+  API key or session token),
 - `axis_theme` — your light/dark theme preference,
 - `axis_last_result` — your most recent analysis result, for fast dashboard reloads.
 
 This data stays in your browser. Clearing your browser storage removes it. Logging out
-removes the stored API key.
+clears the session cookie and the stored marker.
 
 ## 4. Subprocessors
 
@@ -112,10 +116,12 @@ We share data with the following service providers, strictly to operate the serv
 
 | Subprocessor | Purpose | Data involved |
 |---|---|---|
-| **Render** (US) | Application hosting; persistent disk holding the SQLite database | All service data at rest |
+| **Render** (US) | Application hosting | Request/log data; the application itself, not persistent snapshot data |
+| **Neon** (US) | Managed PostgreSQL database | All persisted service data (accounts, snapshots, usage records) |
 | **Cloudflare** | Web frontend hosting / CDN; object storage (R2) where used | Web traffic; objects you store via the storage tool |
 | **GitHub** | OAuth sign-in, repository fetching, webhooks (push / pull-request events for installed apps) | GitHub identity, repository contents you connect |
-| **Stripe** | Payment processing and subscription billing | Payment details (held by Stripe, not by us), billing metadata |
+| **PAI'D Payments Intelligence** | Payment orchestration | Payment and subscription identifiers, billing metadata |
+| **Stripe** | Underlying payment processing (via PAI'D) | Payment-instrument details (held by Stripe, never by us) |
 | **OpenAI** | Embeddings proxy (`iliad_embeddings` tool) | Text you submit to the embeddings tool is forwarded to OpenAI's API |
 | **Resend** | Transactional email delivery | Recipient address and message content of emails you send through the email tool, plus our own account emails |
 | **Firecrawl** | Web research proxy (`iliad_web_research`, `iliad_web_research_crawl` tools) | URLs and crawl parameters you submit to those tools |
@@ -129,7 +135,7 @@ maintained at [SUBPROCESSOR PAGE URL].
   `DELETE /v1/projects/:project_id`, or the dashboard.
 - **Stored GitHub tokens:** self-serve — `DELETE /v1/account/github-token/:token_id`.
 - **Webhooks:** self-serve — `DELETE /v1/account/webhooks/:webhook_id`.
-- **Full account deletion:** email [CONTACT EMAIL] from your account email address. We
+- **Full account deletion:** email <support@jonathanarvay.com> from your account email address. We
   will delete your account record, API key hashes, stored tokens, snapshots, and usage
   records within [30] days, except where retention is required for legal, tax, or
   fraud-prevention purposes (e.g., billing records retained per applicable law).
@@ -150,7 +156,7 @@ Our lawful bases for processing are: performance of a contract (operating the se
 you signed up for), legitimate interests (security, abuse prevention, service
 improvement), and legal obligation (billing/tax records).
 
-To exercise any of these rights, contact [CONTACT EMAIL].
+To exercise any of these rights, contact <support@jonathanarvay.com>.
 
 **International transfers:** the service is hosted in the United States (Render, Oregon
 region). If you use the service from the EEA/UK, your data is transferred to the US.
@@ -169,7 +175,7 @@ If you are a California resident, you have the right to:
 We do **not** sell personal information and do **not** share personal information for
 cross-context behavioral advertising, so no "Do Not Sell or Share" opt-out is required.
 
-To exercise these rights, contact [CONTACT EMAIL].
+To exercise these rights, contact <support@jonathanarvay.com>.
 
 ## 8. Security
 
@@ -198,6 +204,6 @@ will be announced by email to account holders.
 
 ## 11. Contact
 
-Questions, rights requests, complaints: [CONTACT EMAIL]
+Questions, rights requests, complaints: <support@jonathanarvay.com>
 
 [POSTAL ADDRESS — TO BE COMPLETED BY COUNSEL]

@@ -21,6 +21,8 @@ export function PageFooter({ onNavigate }: PageFooterProps) {
         <Sep />
         <button type="button" className="footer-link" onClick={() => onNavigate("terms")}>Terms</button>
         <Sep />
+        <button type="button" className="footer-link" onClick={() => onNavigate("privacy")}>Privacy</button>
+        <Sep />
         <button type="button" className="footer-link" onClick={() => onNavigate("status")}>Status</button>
         <Sep />
         <button type="button" className="footer-link" title="Web app version" onClick={() => onNavigate("changelog")}>

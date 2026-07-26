@@ -227,6 +227,13 @@ export function TermsPage() {
                 support@jonathanarvay.com
               </a>. We will fulfil deletion requests within 30 days.
             </p>
+
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>5.6 Full Privacy Policy</h3>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
+              For the complete list of what we collect, our subprocessors, and your rights
+              under GDPR/CCPA, see the{" "}
+              <a href="#privacy" style={{ color: "var(--accent)" }}>Privacy Policy</a>.
+            </p>
           </div>
 
           {/* 6 */}
