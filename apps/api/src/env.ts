@@ -20,6 +20,7 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "RATE_LIMIT_WINDOW_MS", required: false, type: "number", default: "60000", description: "Rate limit sliding window in ms" },
   { key: "RATE_LIMIT_MAX_REQUESTS", required: false, type: "number", default: "60", description: "Max requests per window (anonymous)" },
   { key: "RATE_LIMIT_MAX_AUTHENTICATED", required: false, type: "number", default: "120", description: "Max requests per window (authenticated)" },
+  { key: "TRUSTED_PROXY_HOPS", required: false, type: "number", default: "1", description: "Number of trusted reverse proxies in front of this service (Render fronts it with one LB). Used to pick the correct rightmost X-Forwarded-For entry as the real client IP for rate limiting." },
   { key: "SHUTDOWN_TIMEOUT_MS", required: false, type: "number", default: "10000", description: "Graceful shutdown drain timeout in ms" },
   { key: "REQUEST_TIMEOUT_MS", required: false, type: "number", default: "120000", description: "Per-request timeout in ms (0 = no limit)" },
   { key: "MAX_BODY_BYTES", required: false, type: "number", default: "52428800", description: "Maximum request body size in bytes (default 50MB)" },
@@ -87,6 +88,64 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "R2_ACCESS_KEY_ID", required: false, type: "string", description: "R2 API token access key. Use the 'Object Read & Write' template scoped to a single bucket so a compromised key cannot escalate." },
   { key: "R2_SECRET_ACCESS_KEY", required: false, type: "string", description: "R2 API token secret key (treat as a password). Pairs with R2_ACCESS_KEY_ID." },
   { key: "R2_BUCKET", required: false, type: "string", description: "Bucket name iliad_object_storage signs URLs against. Keys inside the bucket are prefixed with accounts/<account_id>/ for per-tenant isolation." },
+
+  // R3.2: the ~34 vars below were consumed via process.env in apps/api/src but
+  // never declared here (only 3 of them enumerated in the original ENV_SPEC/
+  // R2.3 pass) -- validateEnv/.env.example both understated the real config
+  // surface. counts-consistency.test.ts's "every process.env key read is
+  // declared" test now fails if a new one is added without a matching entry.
+
+  // Ops alerting (alerting.ts) — the whole evaluator no-ops without ALERT_WEBHOOK_URL.
+  { key: "ALERT_WEBHOOK_URL", required: false, type: "string", description: "Slack/webhook URL the alerting evaluator posts to. Unset ⇒ startAlerting() no-ops entirely (no timer, no evaluation) — alerting is opt-in." },
+  { key: "ALERT_EVAL_INTERVAL_MS", required: false, type: "number", default: "60000", description: "How often the alert evaluator checks thresholds. Floored at 10000ms regardless of a lower override." },
+  { key: "ALERT_REALERT_MS", required: false, type: "number", default: "900000", description: "Minimum gap between repeat alerts for the same condition, to avoid paging on every evaluation while a problem persists." },
+  { key: "ALERT_ERROR_RATE_PCT", required: false, type: "number", default: "5", description: "Error-rate percentage threshold that triggers an alert." },
+  { key: "ALERT_MIN_SAMPLE", required: false, type: "number", default: "20", description: "Minimum request sample size before the error-rate threshold is evaluated, so a handful of early failures can't page on statistically meaningless data." },
+
+  // Self-serve entitlements + anonymous provisioning (billing.ts, anon-frontdoor.ts)
+  { key: "AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS", required: false, type: "boolean", default: "false", description: "Deny-by-default gate on self-serve tier/credit changes (POST /v1/account/tier and similar). Production leaves this false — upgrades must go through PAI'D checkout; flipping it true re-enables the self-serve path, mainly for local/staging testing." },
+  { key: "AXIS_ANON_PROVISION_FRONTDOOR", required: false, type: "boolean", default: "false", description: "Feature flag: turns an anonymous caller's auth error into a provisioning-challenge response instead of a plain 401. Default off." },
+
+  // MCP / commerce runtime (mcp-runtime.ts, mcp-tool-impls.ts)
+  { key: "AXIS_MCP_INBAND_SETTLEMENT", required: false, type: "boolean", default: "true", description: "H1: collect payment in-band on the MCP tool-call surface (an over-quota agent's 402 can be settled via an X-Payment retry on the same call). Degrades to the existing 402-negotiation error if the payment rail isn't configured." },
+  { key: "AXIS_PAYMENT_PROBE_ENABLED", required: false, type: "boolean", default: "true", description: "Enables the payment-capability self-probe path in mcp-tool-impls.ts. Set to \"false\" to disable it." },
+
+  // Code sandbox (code-sandbox.ts) — Docker-backed iliad_code_sandbox tool
+  { key: "AXIS_CODE_SANDBOX_DISABLED", required: false, type: "string", description: "Set to \"1\" to force iliad_code_sandbox off (returns not-configured) even if Docker is reachable — an operator kill switch independent of Docker availability." },
+  { key: "AXIS_CODE_SANDBOX_IMAGE", required: false, type: "string", description: "Docker image used to run submitted code in iliad_code_sandbox. Falls back to the tool's built-in default image when unset." },
+  { key: "AXIS_SANDBOX_MAX_CONCURRENT", required: false, type: "number", default: "4", description: "Aggregate cap on concurrent sandbox runs across all callers — each run reserves host memory/CPU, so this bounds worst-case resource exhaustion." },
+
+  // Local ML/media backends (llm-inference.ts, text-to-speech.ts, speech-to-text.ts)
+  { key: "AXIS_LLM_MODEL_PATH", required: false, type: "string", description: "Path to a local GGUF chat model for iliad_llm_inference. Until set and the file exists, the tool returns a structured `_not_configured: true` envelope." },
+  { key: "AXIS_PIPER_CLI_PATH", required: false, type: "string", description: "Path to the Piper text-to-speech CLI binary used by the local TTS backend. Unset ⇒ the tool reports not-configured rather than failing a spawn." },
+  { key: "AXIS_PIPER_VOICE_DIR", required: false, type: "string", description: "Directory containing Piper voice model files. Paired with AXIS_PIPER_CLI_PATH." },
+  { key: "AXIS_PIPER_DEFAULT_VOICE", required: false, type: "string", description: "Default Piper voice name used when a text-to-speech call doesn't specify one." },
+  { key: "AXIS_WHISPER_CLI_PATH", required: false, type: "string", description: "Path to the Whisper speech-to-text CLI binary used by the local STT backend. Unset ⇒ the tool reports not-configured rather than failing a spawn." },
+  { key: "AXIS_WHISPER_MODEL_PATH", required: false, type: "string", description: "Path to a local Whisper model file. Paired with AXIS_WHISPER_CLI_PATH." },
+
+  // Large-body / MPP payment surcharge (mpp.ts)
+  { key: "AXIS_LARGE_BODY_FREE_CAP_BYTES", required: false, type: "number", description: "Request body size (bytes) up to which an oversized /v1/analyze request stays free before the size-scaled surcharge kicks in." },
+  { key: "AXIS_LARGE_BODY_HARD_CEILING_BYTES", required: false, type: "number", description: "Absolute request body size ceiling (bytes) above which a request is rejected outright regardless of willingness to pay the surcharge." },
+  { key: "MPP_SECRET_KEY", required: false, type: "string", description: "HMAC secret binding MPP payment challenges to this server instance. Generate once and keep stable in production — rotating it invalidates in-flight challenges." },
+  { key: "TEMPO_RECIPIENT_ADDRESS", required: false, type: "string", description: "Hex 0x address that receives Tempo/USDC on-chain payments. Enables the crypto payment rail in MPP negotiation when set; the rail is omitted from accepted_payment_schemes otherwise." },
+  { key: "TEMPO_TESTNET", required: false, type: "boolean", default: "false", description: "Set to \"true\" to point Tempo/USDC settlement at the testnet contract address instead of mainnet." },
+
+  // OAuth2 / MCP authorization server (oauth-server.ts, R0.2)
+  { key: "JWT_PRIVATE_KEY", required: false, type: "string", description: "RSA private key (PEM) for signing MCP OAuth2 access tokens. Takes precedence over private-key.pem on disk. Falls back to an ephemeral generated keypair if unset — every restart then invalidates previously issued tokens, so this should be set in production (see R0.2)." },
+  { key: "JWT_PUBLIC_KEY", required: false, type: "string", description: "RSA public key (PEM) matching JWT_PRIVATE_KEY, used to verify MCP OAuth2 tokens and serve the JWKS endpoint." },
+
+  // Signed attestation (attestation.ts)
+  { key: "AXIS_ATTESTATION_PRIVATE_KEY", required: false, type: "string", description: "Configured signing key for attestation responses. A present-but-malformed value is treated as an operator error (fails loudly) rather than silently falling back. Unset ⇒ a per-process ephemeral key is used, which does not survive a restart." },
+
+  // PAI'D / wallet integration (paid-handlers.ts, credit-pack-handlers.ts, oauth.ts, cashier.ts)
+  { key: "AXIS_WEB_URL", required: false, type: "string", default: "http://localhost:3000", description: "Base URL of the web dashboard, used to build redirect/callback links (OAuth login return, credit-pack purchase links) when a more specific override isn't set." },
+  { key: "PAID_PUBLIC_APP_URL", required: false, type: "string", description: "Preferred public URL for PAI'D-facing redirect links; checked before falling back to AXIS_WEB_URL." },
+  { key: "PAID_WALLET_OWNER_ACCOUNT_IDS", required: false, type: "string", description: "Comma-separated list of account IDs treated as PAI'D wallet owners for cashier/settlement purposes." },
+
+  // Test-harness internals (not for manual configuration; documented so no
+  // process.env read in this codebase is undocumented)
+  { key: "VITEST", required: false, type: "boolean", description: "Set automatically by the vitest test runner (not meant to be set manually). Gates test-only code paths, e.g. skipping boot migrations and signal-handler registration during tests." },
+  { key: "AXIS_ENABLE_TEST_LOGS", required: false, type: "boolean", default: "false", description: "When running under vitest (VITEST=true), runtime log output is suppressed by default; set to \"1\" to re-enable it for debugging a specific test run." },
 ];
 
 export interface ValidationError {

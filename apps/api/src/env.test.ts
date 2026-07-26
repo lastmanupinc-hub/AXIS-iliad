@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import {
   validateEnv,
   requireValidEnv,
@@ -6,6 +9,8 @@ import {
   ENV_SPEC,
   type ValidationResult,
 } from "./env.js";
+
+const SRC_DIR = dirname(fileURLToPath(import.meta.url));
 
 // ─── validateEnv ────────────────────────────────────────────────
 
@@ -254,5 +259,46 @@ describe("validateEnv edge branches", () => {
     } finally {
       ENV_SPEC.length = original.length;
     }
+  });
+});
+
+// ─── ENV_SPEC coverage (R3.2) ───────────────────────────────────
+// 34 vars were consumed via process.env in this directory but never
+// declared in ENV_SPEC -- validateEnv and the generated .env.example both
+// understated the real config surface. Scans every non-test .ts file in
+// this directory for `process.env.KEY` reads and asserts each bare key
+// (not one embedded inside a string literal -- several files emit sample
+// .env/code snippets for CUSTOMERS as JS strings, e.g. commerce-integration.ts's
+// AP2_MANDATE_SECRET/PAID_API_KEY snippets, which are not axis-iliad's own
+// env reads) appears in ENV_SPEC.
+
+/** Bare (non-string-literal) process.env.KEY reads across apps/api/src's
+ *  non-test source. A quote appearing before "process.env." on the same
+ *  line with no matching close-quote between them marks a match as
+ *  "inside a string literal" (this codebase's generators emit sample env/
+ *  code snippets as JS strings) and excludes it. */
+function consumedEnvKeys(): Set<string> {
+  const keys = new Set<string>();
+  for (const file of readdirSync(SRC_DIR)) {
+    if (!file.endsWith(".ts") || file.endsWith(".test.ts")) continue;
+    const lines = readFileSync(join(SRC_DIR, file), "utf-8").split("\n");
+    for (const line of lines) {
+      for (const m of line.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)) {
+        const before = line.slice(0, m.index);
+        const inString = (before.match(/"/g)?.length ?? 0) % 2 === 1;
+        if (!inString) keys.add(m[1]);
+      }
+    }
+  }
+  return keys;
+}
+
+describe("ENV_SPEC coverage", () => {
+  it("declares every process.env key actually read in apps/api/src", () => {
+    const declared = new Set(ENV_SPEC.map((e) => e.key));
+    const consumed = consumedEnvKeys();
+    expect(consumed.size, "env-key scanner found nothing -- likely a broken regex, not a clean codebase").toBeGreaterThan(50);
+    const missing = [...consumed].filter((k) => !declared.has(k)).sort();
+    expect(missing).toEqual([]);
   });
 });
