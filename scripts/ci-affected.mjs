@@ -19,7 +19,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { relative } from "node:path";
+import { posix } from "node:path";
 
 // Any changed file OUTSIDE apps/*|packages/* that does NOT match one of these
 // "documentation only" patterns forces a full regression. Root-level config —
@@ -49,16 +49,31 @@ export function needsFullRegression(changedFiles) {
   });
 }
 
+/** Backslash-separated (Windows) or already-POSIX path -> forward-slash POSIX path. */
+function toPosix(p) {
+  return p.split("\\").join("/");
+}
+
 /**
  * Parse `pnpm --filter "...[ref]" list --depth -1 --json`'s stdout into
  * repo-relative package directories (POSIX separators), sorted, excluding
  * the workspace root pseudo-package itself (path === repoRoot).
+ *
+ * Normalizes to forward slashes BEFORE computing the relative path, and uses
+ * posix.relative explicitly (not the platform-dependent default `relative`
+ * export) — this repo's own CI runs on Linux, but this script is also run
+ * directly on Windows during local development (`node scripts/ci-affected.mjs
+ * <ref>`), where pnpm's JSON reports backslash paths. path.relative on
+ * Windows understands backslashes; on Linux it does not, so calling it BEFORE
+ * normalizing produced garbage there — this must give the identical result
+ * regardless of which OS the script itself happens to run on.
  */
 export function parseAffectedPackagePaths(pnpmJson, repoRoot) {
   const entries = JSON.parse(pnpmJson);
+  const root = toPosix(repoRoot);
   const dirs = [];
   for (const e of entries) {
-    const rel = relative(repoRoot, e.path).split("\\").join("/");
+    const rel = posix.relative(root, toPosix(e.path));
     if (rel === "") continue; // workspace root — not a testable package dir
     dirs.push(rel);
   }
