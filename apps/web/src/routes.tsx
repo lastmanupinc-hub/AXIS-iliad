@@ -264,6 +264,21 @@ export interface RouteDef {
   shortcut?: number;
   /** Pathname aliases kept for marketing/SEO URLs (e.g. "/pricing"). */
   aliases?: string[];
+  /**
+   * Per-page `<title>` / `<meta description>` / canonical. Optional — a route
+   * without it keeps index.html's site-wide defaults, which is the right answer
+   * for auth-gated app screens nobody should land on from search.
+   *
+   * Applied at runtime by useDocumentHead (App.tsx). Hand-rolled on purpose: a
+   * head-manager dependency would need the repo's dependency discussion, and
+   * the whole job is three DOM writes. Google renders JS so this is read;
+   * non-rendering crawlers still get index.html's defaults, which is strictly
+   * better than all 33 routes sharing one title.
+   *
+   * Keep numbers OUT of this copy unless they come from config.ts — the
+   * count-honesty guard scans every .tsx for stale count claims.
+   */
+  seo?: { title: string; description: string };
   /** Nav item that stays highlighted while this page is active (sub-pages). */
   parent?: PageId;
   render: (ctx: RouteContext) => ReactNode;
@@ -272,6 +287,7 @@ export interface RouteDef {
 export const ROUTES: RouteDef[] = [
   {
     page: "home",
+    seo: { title: "Axis' Iliad — AI Codebase Analyzer & MCP Tools", description: "Analyze any repository and generate AGENTS.md, CLAUDE.md, .cursorrules, MCP configs and other structured artifacts for agentic development." },
     pattern: "",
     label: "Home",
     section: "MISSION",
@@ -284,6 +300,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "analyze",
+    seo: { title: "Analyze a Repository — Axis' Iliad", description: "Upload a repo or paste a GitHub URL to generate AI governance files, design tokens, debug playbooks and MCP configs in one pass." },
     pattern: "analyze",
     label: "Analyze",
     section: "MISSION",
@@ -417,6 +434,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "programs",
+    seo: { title: "All Programs — Axis' Iliad", description: "Every AXIS generation program, what each one produces, and which are free. Search, Skills and Debug run at no cost." },
     pattern: "programs",
     label: "Programs",
     section: "MISSION",
@@ -429,6 +447,7 @@ export const ROUTES: RouteDef[] = [
     // config snippets) and "tools" (ToolsIndexPage's hand-maintained catalog)
     // pages; see the doc comment above PageId for the full rationale.
     page: "mcp",
+    seo: { title: "MCP Configuration — Axis' Iliad", description: "Connect Axis' Iliad as an MCP server. Ready-to-paste configs for Claude Desktop, Claude Code, VS Code and Cursor." },
     pattern: "mcp",
     label: "MCP",
     section: "AGENTS",
@@ -443,6 +462,7 @@ export const ROUTES: RouteDef[] = [
     // to anyone with a loaded project (anon guest included); only the
     // generate action itself is paid/gated (same pattern as "runner").
     page: "commerce",
+    seo: { title: "Agentic Commerce — Axis' Iliad", description: "Prepare a codebase for autonomous purchasing: AP2 mandates, SCA exemption analysis, dispute readiness and compliance grading." },
     pattern: "commerce",
     label: "Commerce",
     tabLabel: "commerce.json",
@@ -476,6 +496,7 @@ export const ROUTES: RouteDef[] = [
     // WO-P16: Changelog — public, footer-only (matches "terms"'s pattern:
     // deliberately absent from the sidebar/drawer/rail).
     page: "changelog",
+    seo: { title: "Changelog — Axis' Iliad", description: "Release history for the Axis' Iliad API, MCP tools and web application." },
     pattern: "changelog",
     label: "Changelog",
     section: "REFERENCE",
@@ -484,6 +505,7 @@ export const ROUTES: RouteDef[] = [
   {
     // WO-P17: Status — public, footer-only (same pattern as "changelog").
     page: "status",
+    seo: { title: "Service Status — Axis' Iliad", description: "Live health of the Axis' Iliad API, database and payment rail." },
     pattern: "status",
     label: "Status",
     section: "REFERENCE",
@@ -491,6 +513,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "examples",
+    seo: { title: "Examples — Axis' Iliad", description: "Real generated artifact packages showing what Axis' Iliad produces from a codebase." },
     pattern: "examples",
     label: "Examples",
     section: "AGENTS",
@@ -499,6 +522,19 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "plans",
+    // NO seo block, deliberately — this route is `authOnly`, and the SEO test
+    // forbids advertising a page that bounces logged-out visitors to a
+    // sign-in modal.
+    //
+    // ⚠ That exposes a pre-existing contradiction worth an owner decision, not
+    // a silent fix: the API already advertises this page publicly — `/pricing`
+    // sits in the sitemap at priority 0.8 (handlers.ts) and is explicitly
+    // `Allow:`ed in robots.txt — while the route itself requires login. So a
+    // search result for "Axis Iliad pricing" currently lands on a sign-in
+    // popup. Pricing pages are conventionally public, and this is the top of
+    // the funnel, so the likely right answer is dropping `authOnly` here — but
+    // that is a product call, and it is tracked as a finding rather than
+    // decided here.
     pattern: "plans",
     label: "Plans",
     section: "ACCOUNT",
@@ -608,6 +644,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "docs",
+    seo: { title: "API Documentation — Axis' Iliad", description: "REST and MCP reference for Axis' Iliad: endpoints, authentication, error codes, payment negotiation and response envelopes." },
     pattern: "docs",
     label: "Docs",
     section: "REFERENCE",
@@ -618,6 +655,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "help",
+    seo: { title: "Help & Guides — Axis' Iliad", description: "Guides for analyzing a codebase, connecting MCP clients, using the CLI and understanding generated artifacts." },
     pattern: "help",
     label: "Help",
     section: "REFERENCE",
@@ -627,6 +665,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "qa",
+    seo: { title: "Questions & Answers — Axis' Iliad", description: "Common questions about Axis' Iliad: supported languages, what gets generated, pricing, privacy and MCP integration." },
     pattern: "qa",
     label: "Q&A",
     section: "REFERENCE",
@@ -636,6 +675,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "feedback",
+    seo: { title: "Feedback & Support — Axis' Iliad", description: "Report a bug, request a feature or ask a question. Submissions reach the team by email and are used to harden the platform during beta." },
     pattern: "feedback",
     label: "Feedback",
     section: "REFERENCE",
@@ -646,6 +686,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "for-agents",
+    seo: { title: "For AI Agents — Axis' Iliad", description: "Machine-readable onboarding for autonomous agents: MCP endpoint, tool catalog, pricing, payment flow and discovery manifests." },
     pattern: "for-agents",
     label: "For Agents",
     section: "AGENTS",
@@ -657,6 +698,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "terms",
+    seo: { title: "Terms of Service — Axis' Iliad", description: "Terms governing use of the Axis' Iliad API, MCP server and web application." },
     pattern: "terms",
     label: "Terms",
     section: "REFERENCE",
@@ -665,6 +707,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "privacy",
+    seo: { title: "Privacy Policy — Axis' Iliad", description: "What Axis' Iliad collects, how uploaded source is handled and retained, and how to delete your data." },
     pattern: "privacy",
     label: "Privacy",
     section: "REFERENCE",

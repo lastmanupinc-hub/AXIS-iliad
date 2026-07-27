@@ -306,3 +306,59 @@ describe("project detail routes (WO-P5/WO-P6)", () => {
     expect(routeForPage("project-artifacts").parent).toBe("project");
   });
 });
+
+// ─── Per-page SEO metadata (ROI 3.10) ────────────────────────────
+//
+// Before this, all 33 routes shared index.html's single <title>, description
+// and canonical — so every page looked identical in search results, and the
+// site-root canonical actively told crawlers not to index sub-pages
+// separately. These lock the contract rather than the copy: they assert
+// shape, uniqueness and gating, not specific wording, so marketing can retune
+// a description without a test failing.
+
+describe("route SEO metadata", () => {
+  const withSeo = ROUTES.filter((r) => r.seo);
+
+  it("covers the public pages a search result should be able to land on", () => {
+    const covered = new Set(withSeo.map((r) => r.page));
+    // "plans" is deliberately absent: it is authOnly today, so it must not
+    // advertise itself. See the note on its route entry — /pricing IS in the
+    // sitemap and robots.txt, which is a real contradiction awaiting an owner
+    // decision, not something this test should paper over.
+    for (const page of ["home", "analyze", "programs", "mcp", "docs", "qa", "feedback", "for-agents", "terms", "privacy"]) {
+      expect(covered.has(page as PageId), `public page "${page}" has no SEO metadata`).toBe(true);
+    }
+  });
+
+  it("never gives SEO metadata to an auth-gated page", () => {
+    // An app screen behind login should not present itself as an indexable
+    // destination — it would rank, then bounce every visitor to a sign-in modal.
+    const gated = withSeo.filter((r) => r.authOnly || r.adminOnly).map((r) => r.page);
+    expect(gated, `auth-gated pages must not declare SEO: ${gated.join(", ")}`).toEqual([]);
+  });
+
+  it("gives every page a distinct title and description", () => {
+    const titles = withSeo.map((r) => r.seo!.title);
+    const descriptions = withSeo.map((r) => r.seo!.description);
+    expect(new Set(titles).size, "duplicate <title> across routes").toBe(titles.length);
+    expect(new Set(descriptions).size, "duplicate description across routes").toBe(descriptions.length);
+  });
+
+  it("keeps titles and descriptions inside the lengths search engines actually render", () => {
+    for (const r of withSeo) {
+      // ~60 chars for titles / ~160 for descriptions are the usual truncation
+      // points. Slightly generous ceilings — the point is catching a runaway
+      // paragraph, not policing every character.
+      expect(r.seo!.title.length, `title too long on "${r.page}"`).toBeLessThanOrEqual(70);
+      expect(r.seo!.description.length, `description too long on "${r.page}"`).toBeLessThanOrEqual(200);
+      expect(r.seo!.title.length, `title suspiciously short on "${r.page}"`).toBeGreaterThan(10);
+      expect(r.seo!.description.length, `description suspiciously short on "${r.page}"`).toBeGreaterThan(40);
+    }
+  });
+
+  it("brands every title, so a search result is attributable at a glance", () => {
+    for (const r of withSeo) {
+      expect(r.seo!.title, `"${r.page}" title is unbranded`).toContain("Iliad");
+    }
+  });
+});

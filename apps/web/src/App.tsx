@@ -28,6 +28,7 @@ import {
   type RouteParams,
 } from "./routes.tsx";
 import { useHashRoute, isOAuthCallback } from "./useHashRoute.ts";
+import { useDocumentHead } from "./useDocumentHead.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
 // React requires a class for getDerivedStateFromError; this thin wrapper
@@ -539,6 +540,9 @@ export function App() {
   }, [nav, navCtx]);
 
   const activeDef = routeForPage(route.page);
+  // Per-page title/description/canonical. Routes without a `seo` block keep
+  // index.html's site-wide defaults — correct for auth-gated app screens.
+  useDocumentHead(activeDef, route.hash);
   const isLanding = route.page === "home" || route.page === "analyze";
 
   // H5.1: move focus to the main content region on every route change, so
