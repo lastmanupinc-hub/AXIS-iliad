@@ -94,7 +94,28 @@ project_begin:
       # Tickets THIS repo has filed against a sibling repo (most often
       # PAID). The sibling repo updates status directly here (in THIS
       # file) when they act on it, using the same schema.
-      tickets: []
+      tickets:
+        - id: TICKET-AXIS_TOOLBOX-subscription-contract-20260727
+          to_repo: paid
+          from_repo: axis_toolbox
+          from_agent_session: "sonnet5-phase-t-2026-07-27"
+          submitted: "2026-07-27"
+          status: submitted
+          severity: normal
+          title: "Subscription API exists but its request/response shapes aren't in the public OpenAPI — Iliad can't build recurring billing without guessing"
+          summary: >
+            Asked PAI'D for the request/response shapes behind their
+            subscription surface (POST /v1/plans, POST /v1/subscriptions,
+            the cancel/pause/resume/generate_cycle lifecycle ops and
+            /v1/billing_cycles), plus the lifecycle webhook events and
+            Idempotency-Key behaviour. Their routes are live and documented
+            200, but the OpenAPI declares no Subscription/Plan/BillingCycle
+            schemas and no requestBody for those writes, so the contract
+            cannot be derived. Guessing it would repeat the exact
+            never-tested-against-a-live-counterparty failure mode
+            packages/ap2 already discloses about itself.
+          blocks: "ROI 1.1 (docs/ROI_CANDIDATES.md) — recurring billing, the largest revenue gap. Pro $99/month is a one-time charge today."
+          filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
       archived_tickets: []
 
     triage_policy:
