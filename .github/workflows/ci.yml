@@ -212,12 +212,25 @@ jobs:
           VITE_API_URL: https://api.iliad.trustfabric.ai
         run: pnpm -r build
 
+      # THIS IS THE ONLY WAY THE WEB APP SHIPS. Verified against Cloudflare's
+      # API 2026-07-27: the `axis-web` Pages project has `source: null` — no Git
+      # connection exists, so the Git-connected build path described in
+      # cloudflare-pages.md was never wired. Every live deployment is an
+      # `ad_hoc` / `direct_upload`, i.e. this wrangler step.
+      #
+      # `continue-on-error: true` was removed deliberately. With it, a failed
+      # deploy left CI green while the site silently stopped updating — the
+      # worst combination, and especially bad for the sole deploy path. The
+      # token is demonstrably healthy (6 consecutive successful deploys on
+      # 2026-07-27), so the realistic failure modes now are an expired token or
+      # a Cloudflare outage, both of which are things you want to be told
+      # about. This job runs only on `main` and only after tests pass, so a red
+      # run here means exactly one thing: the site did not update.
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
-        continue-on-error: true
 
   # H8.11a — diff-scoped secret scan. Greps only the lines THIS push/PR adds
   # (never the whole repo state, so existing reviewed fixtures never need

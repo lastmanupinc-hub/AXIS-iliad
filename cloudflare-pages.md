@@ -1,5 +1,22 @@
 # ─── Cloudflare Pages — Deployment Configuration ────────────────
 #
+# ⚠ STATUS 2026-07-27: THIS SETUP WAS NEVER COMPLETED, AND NOTHING DEPENDS ON IT.
+#
+# Verified against Cloudflare's API: the `axis-web` Pages project has
+# `source: null` — no Git connection exists. Every live deployment is an
+# `ad_hoc` / `direct_upload`, i.e. the wrangler step in
+# `.github/workflows/ci.yml`'s deploy-web job. That job is the SOLE deploy
+# path for the web app and it is working (6 consecutive successes on
+# 2026-07-27).
+#
+# So the Git-connect procedure below is an ALTERNATIVE that was planned and
+# not adopted — not a description of how the site currently ships, and not an
+# outstanding task. Following it would switch the build source and is a real
+# behavioural change; do not treat it as "finishing the setup".
+#
+# (Consistent with the known constraint that Pages Git-connect is browser-only
+# OAuth and cannot be scripted with the API token in key.txt.)
+#
 # Cloudflare Pages serves the static SPA from apps/web/dist/.
 # Configure in the Cloudflare dashboard:
 #

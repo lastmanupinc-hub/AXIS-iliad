@@ -17,6 +17,13 @@ services:
     region: oregon
     healthCheckPath: /v1/health
     numInstances: 1
+    # Push to `main` deploys. This was TRUE on the live service all along but
+    # undeclared here, so the repo's most load-bearing operational fact —
+    # "push equals deploy", which the harden-polish loop and the operator both
+    # rely on — existed only as a dashboard default nothing tracked. Verified
+    # against Render's API 2026-07-27 (`autoDeploy: yes`) and pinned to match.
+    # Changing this changes the deploy model; do not flip it casually.
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
