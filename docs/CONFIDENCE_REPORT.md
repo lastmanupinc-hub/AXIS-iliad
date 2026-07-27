@@ -101,10 +101,10 @@ alone.
 
 | # | Item | Blocks | Notes |
 |---|---|---|---|
-| P1 | **`AXIS_TOKEN_KEY` unset on Render** | GitHub token storage → private-repo features | Fail-closed: it *threw* and caused a live GitHub-login outage on 2026-07-26. Login no longer depends on it (fixed `9b3e2ea`), but storage stays disabled. Needs a 32+ char secret |
-| P2 | **`ALERT_WEBHOOK_URL` undeclared** | All threshold alerting | Needs a webhook URL (Slack/Discord/PagerDuty), then pinned in `render.yaml` — not the dashboard |
-| P3 | `ADMIN_API_KEY` not in `render.yaml` | All 5 admin endpoints (403 until set) | Includes the MCP-usage dashboard built specifically to yield conversion data |
-| P4 | `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` | Stable MCP OAuth tokens | Without them every issued token stops verifying on the next restart |
+| P1 | **`AXIS_TOKEN_KEY` unset on Render** — *confirmed absent via Render's API 2026-07-27, not inferred* | GitHub token storage → private-repo features | Fail-closed: it *threw* and caused a live GitHub-login outage on 2026-07-26. Login no longer depends on it (fixed `9b3e2ea`), but storage stays disabled. Needs a 32+ char secret |
+| P2 | **`ALERT_WEBHOOK_URL` undeclared** — *confirmed absent via Render's API 2026-07-27* | All threshold alerting | Needs a webhook URL (Slack/Discord/PagerDuty), then pinned in `render.yaml` — not the dashboard |
+| P3 | ✅ **NOT ACTUALLY BLOCKED** — `ADMIN_API_KEY` is absent from `render.yaml` but **IS set on the service** (verified via Render's API 2026-07-27) | — | Admin endpoints work today. The residual risk is governance, not availability: a dashboard-only value is exactly what nearly killed email when `RESEND_FROM_ADDRESS` was in the same state. Worth declaring in `render.yaml` (as a `sync: false` key) so a Blueprint sync can't orphan it. |
+| P4 | ✅ **RESOLVED 2026-07-27** — `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` | Stable MCP OAuth tokens | Were confirmed **absent** via Render's API (production had been running on a per-boot ephemeral keypair). An RSA-2048 pair was generated and installed via the single-key env-var endpoint (never the bulk PUT, which would have wiped the other 25 vars), then verified end to end: JWKS fingerprint moved off the pre-change baseline `dadcb620…` to `dc08528d…`, and a deliberate service restart returned a **byte-identical** JWKS — which an ephemeral key cannot do. |
 | P5 | `TEMPO_RECIPIENT_ADDRESS` | Token-first x402 payments | Rail verified **OFF** 2026-07-14. Also verify the disclosed testnet asset-constant mismatch first |
 | P6 | `R2_*` (four vars) | `iliad_object_storage` | None declared |
 | P7 | Confirm `AXIS_MCP_INBAND_SETTLEMENT` live value | In-band cash settlement | Repo declares `"true"`; code default is OFF. Confirm via Render's API, **not docs** |
