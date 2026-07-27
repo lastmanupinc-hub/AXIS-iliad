@@ -131,8 +131,24 @@ export async function handleGitHubOAuthCallback(
       ghUser.email,
     );
 
-    // Store the GitHub access token (encrypted) for later API use
-    await saveGitHubToken(account.account_id, tokenResponse.access_token, "oauth");
+    // Store the GitHub access token (encrypted) for later API use — BEST
+    // EFFORT. This is a convenience for later private-repo calls, not part of
+    // signing in, and it must never be able to fail the login itself: it
+    // encrypts with AXIS_TOKEN_KEY, which fails CLOSED (throws) in production
+    // when unset, and render.yaml declares that var `sync: false` so a fresh
+    // environment has it unset until someone sets it by hand. That threw here,
+    // inside the try, AFTER the account and API key already existed — so every
+    // GitHub login died at the very last step and bounced back to the sign-in
+    // screen, while Google's callback (which never stores a token) kept
+    // working. Mirrors recordUsageBestEffort's convention elsewhere.
+    try {
+      await saveGitHubToken(account.account_id, tokenResponse.access_token, "oauth");
+    } catch (err) {
+      log("error", "github_token_store_failed", {
+        account_id: account.account_id,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     // Hand the key to the web app via a one-time code, NOT the URL — so the raw
     // key never appears in the address bar, browser history, Referer, or logs.

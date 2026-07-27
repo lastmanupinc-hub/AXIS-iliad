@@ -214,6 +214,57 @@ describe("OAuth API routes", () => {
     }
   });
 
+  it("still completes login when storing the GitHub token throws (live bug: AXIS_TOKEN_KEY unset in production killed every GitHub login at the last step)", async () => {
+    process.env.GITHUB_CLIENT_ID = "test-id";
+    process.env.GITHUB_CLIENT_SECRET = "test-secret";
+    process.env.AXIS_WEB_URL = "http://localhost:3000";
+    // Reproduce production exactly: github-token-store's getEncryptionKey()
+    // fails CLOSED (throws) when NODE_ENV=production and AXIS_TOKEN_KEY is
+    // unset — and render.yaml declares that var `sync: false`, so it is unset
+    // until set by hand. Google's callback never stores a token, which is why
+    // only GitHub login broke.
+    const priorNodeEnv = process.env.NODE_ENV;
+    const priorTokenKey = process.env.AXIS_TOKEN_KEY;
+    process.env.NODE_ENV = "production";
+    delete process.env.AXIS_TOKEN_KEY;
+    const state = await createOAuthState();
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: "gho_test_token", token_type: "bearer", scope: "read:user" }),
+    } as Response);
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 987654, login: "tokenfail", name: "Token Fail", email: "tokenfail@example.com" }),
+    } as Response);
+
+    try {
+      const res = await req("GET", `/v1/auth/github/callback?code=valid_code&state=${state}`);
+
+      // The whole point: a failed token store must NOT become a failed login.
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("login=github");
+      expect(res.headers.location).not.toContain("error=");
+
+      // And the account is real + usable, not half-created.
+      const acct = await getAccountByGitHubId("987654");
+      expect(acct).toBeDefined();
+      const handoff = new URL(res.headers.location).searchParams.get("code")!;
+      const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
+      expect(exch.status).toBe(200);
+      expect(JSON.parse(exch.data).api_key).toMatch(/^axis_/);
+    } finally {
+      fetchSpy.mockRestore();
+      if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = priorNodeEnv;
+      if (priorTokenKey !== undefined) process.env.AXIS_TOKEN_KEY = priorTokenKey;
+      delete process.env.GITHUB_CLIENT_ID;
+      delete process.env.GITHUB_CLIENT_SECRET;
+      delete process.env.AXIS_WEB_URL;
+    }
+  });
+
   it("redirects with error when GitHub token exchange fails", async () => {
     process.env.GITHUB_CLIENT_ID = "test-id";
     process.env.GITHUB_CLIENT_SECRET = "test-secret";
