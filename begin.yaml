@@ -100,7 +100,81 @@ project_begin:
           from_repo: axis_toolbox
           from_agent_session: "sonnet5-phase-t-2026-07-27"
           submitted: "2026-07-27"
-          status: submitted
+          status: confirmed
+          confirmed: "2026-07-27"
+          provider_candidate_id: "CAND-BILLING-SUBSCRIPTION-CONTRACT-PUBLISH"
+          evidence: >
+            payment processing @ 925cb60d. Published 7 component schemas
+            (Plan, Subscription, BillingCycle, CreatePlanRequest,
+            CreateSubscriptionRequest, CancelSubscriptionRequest,
+            RecordChargeResultRequest) plus WebhookDelivery, and typed
+            requestBody + response on all 13 billing routes, so the contract
+            is now derivable from GET /openapi.json alone. Pinned by
+            go-backend/internal/http/handlers/openapi_billing_contract_test.go,
+            written red first — it reproduced every gap named in the ticket
+            before the fix. go vet + full handlers package green.
+            Walkthrough with both integration paths:
+            payment processing/docs/SUBSCRIPTIONS_API.md.
+          provider_reply: >
+            All four questions answered; two of them differently than the
+            ticket expected, so read these before writing the client.
+
+            (1) SHAPES — published, field-by-field off the handlers.
+            Two non-obvious rules a schema cannot express. First: POST
+            /v1/plans returns a plan with status "draft", and a subscription
+            against a non-active plan is refused with a bare "400 Plan is not
+            active" that does not name the missing step. The order is always
+            create plan -> POST /v1/plans/{id}/activate -> create
+            subscription. Second: POST /v1/subscriptions returns 201 on
+            create but 200 on an idempotent replay, so a client that only
+            accepts 201 breaks on its own retry. Both are now in the spec.
+
+            (2) WEBHOOKS — the envelope was mis-documented and would have
+            cost you a debugging session. The spec's existing WebhookEvent
+            schema is the internal DELIVERY RECORD ({event_type, payload,
+            status, attempts}). What actually arrives at your endpoint is
+            {id, type, api_version, created_at, data, metadata} — switch on
+            `type`, NOT `event_type`, which never appears on the wire.
+            Published as WebhookDelivery, with all 11 subscription/
+            billing_cycle event types enumerated.
+            Also: top-level `metadata` is NOT your metadata — it is
+            emitter-set routing hints, and it is absent entirely on events
+            emitted by the direct billing API. Yours lives at data.metadata.
+            For tier activation, key on subscription.created +
+            subscription.renewed, and deactivate ONLY on
+            subscription.canceled — deactivating on
+            subscription.payment_failed cuts off customers who are
+            mid-dunning and would have recovered on the +1d retry.
+
+            (3) HOSTED CHECKOUT — your client was RIGHT, not stale. mode=
+            "subscription" is fully implemented: it collects the card,
+            charges period 1, vaults the payment method and creates the
+            Subscription in one call. The 501 you hit is
+            subscription_mode_unavailable, which means your merchant account
+            lacks the per-merchant `subscriptions_enabled` feature flag —
+            not that the mode is unbuilt. Self-serve fix, no PAID action
+            needed: POST /v1/merchant/feature-flags
+            {"key":"subscriptions_enabled","enabled":true,
+            "rollout_percent":100}. Either integration path works and both
+            converge on the same Subscription and webhooks; hosted checkout
+            is the shorter one if you want PAID to collect the card.
+
+            (4) IDEMPOTENCY — this one was a real defect on our side, not
+            just an undocumented behaviour, and thank you for asking rather
+            than assuming. /v1/plans and /v1/subscriptions carried NO
+            Idempotency-Key handling at all: a retried POST /v1/plans
+            created a duplicate plan and there was no header you could send
+            to prevent it. Now wired on every mutating billing route as
+            OPTIONAL — enforced when sent, ignored when absent, so nothing
+            you have already built breaks. Send it on every retryable write.
+            POST /v1/subscriptions additionally keeps its REQUIRED body-level
+            idempotency_key; the two are complementary.
+
+            KNOWN GAP, your call: CreateSubscriptionRequest accepts no
+            metadata field, so a subscription created through the direct API
+            carries none and must be correlated on customer_id. Hosted
+            checkout has no such limitation. If you want the direct path
+            symmetric, say so on this ticket and it goes in the queue.
           severity: normal
           title: "Subscription API exists but its request/response shapes aren't in the public OpenAPI — Iliad can't build recurring billing without guessing"
           summary: >
