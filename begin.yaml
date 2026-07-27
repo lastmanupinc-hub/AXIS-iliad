@@ -190,6 +190,29 @@ project_begin:
             packages/ap2 already discloses about itself.
           blocks: "ROI 1.1 (docs/ROI_CANDIDATES.md) — recurring billing, the largest revenue gap. Pro $99/month is a one-time charge today."
           filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
+        - id: TICKET-AXIS_TOOLBOX-checkout-webhook-envelope-20260727
+          to_repo: paid
+          from_repo: axis_toolbox
+          from_agent_session: "sonnet5-phase-t-2026-07-27"
+          submitted: "2026-07-27"
+          status: submitted
+          severity: normal
+          follow_up_to: TICKET-AXIS_TOOLBOX-subscription-contract-20260727
+          title: "What is `data` for checkout.session.completed? Our only production webhook consumer reads data.object, and the new spec says data IS the subject object"
+          summary: >
+            Follow-up to the subscription-contract ticket, which PAI'D
+            confirmed. Their new WebhookDelivery schema says data IS the
+            subject object (no .object wrapper), but documents only
+            subscription.*, billing_cycle.* and payment_intent.* — not
+            checkout.session.*, the only event we consume in production.
+            Our handler reads event.data.object.metadata; if checkout events
+            follow the same rule as the billing ones, credit-pack fulfilment
+            silently grants nothing on a successful charge. Our own fixtures
+            hand-build data.object so they cannot detect this, and the live
+            canary never receives a webhook. Also accepted their offer to add
+            metadata to CreateSubscriptionRequest.
+          blocks: "ROI 1.1 recurring billing, plus verification of the live credit-pack fulfilment path."
+          filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
       archived_tickets: []
 
     triage_policy:
