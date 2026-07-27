@@ -132,9 +132,9 @@ describe("routeFromPathname — marketing/SEO aliases", () => {
 });
 
 describe("derived route metadata", () => {
-  it("AUTH_ONLY_PAGES preserves the pre-refactor gating set exactly (WO-P3's account-dashboard is now the real 'dashboard'; WO-P11 adds 'projects'; WO-P10 adds 'usage'; WO-P12 adds 'settings'; fleet is authOnly per its own route entry)", () => {
+  it("AUTH_ONLY_PAGES preserves the pre-refactor gating set exactly (WO-P3's account-dashboard is now the real 'dashboard'; WO-P11 adds 'projects'; WO-P10 adds 'usage'; WO-P12 adds 'settings'; fleet is authOnly per its own route entry; 'plans' REMOVED 2026-07-27 — pricing is public)", () => {
     expect([...AUTH_ONLY_PAGES].sort()).toEqual(
-      ["account", "dashboard", "admin", "fleet", "myanalytics", "paid-checkout", "plans", "projects", "usage", "settings"].sort(),
+      ["account", "dashboard", "admin", "fleet", "myanalytics", "paid-checkout", "projects", "usage", "settings"].sort(),
     );
   });
 
@@ -321,11 +321,7 @@ describe("route SEO metadata", () => {
 
   it("covers the public pages a search result should be able to land on", () => {
     const covered = new Set(withSeo.map((r) => r.page));
-    // "plans" is deliberately absent: it is authOnly today, so it must not
-    // advertise itself. See the note on its route entry — /pricing IS in the
-    // sitemap and robots.txt, which is a real contradiction awaiting an owner
-    // decision, not something this test should paper over.
-    for (const page of ["home", "analyze", "programs", "mcp", "docs", "qa", "feedback", "for-agents", "terms", "privacy"]) {
+    for (const page of ["home", "analyze", "programs", "mcp", "plans", "docs", "qa", "feedback", "for-agents", "terms", "privacy"]) {
       expect(covered.has(page as PageId), `public page "${page}" has no SEO metadata`).toBe(true);
     }
   });

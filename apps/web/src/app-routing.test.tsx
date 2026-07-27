@@ -162,11 +162,20 @@ describe("App routing (WO-F2)", () => {
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
   });
 
-  it("Ctrl+3 (Plans, auth-only) while signed out opens the sign-in popup and stays put", () => {
+  // Was Ctrl+3 (Plans). Plans went PUBLIC 2026-07-27 — pricing is not gated —
+  // so it is no longer a valid example of this behaviour. Ctrl+4 (Settings) is
+  // still auth-only, which keeps the actual rule under test.
+  it("Ctrl+4 (Settings, auth-only) while signed out opens the sign-in popup and stays put", () => {
     const { container } = render(<App />);
-    fireEvent.keyDown(window, { key: "3", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "4", ctrlKey: true });
     expect(shellPage(container)).toBe("home");
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+
+  it("Ctrl+3 (Plans) while signed out now LANDS on pricing instead of bouncing", () => {
+    const { container } = render(<App />);
+    fireEvent.keyDown(window, { key: "3", ctrlKey: true });
+    expect(shellPage(container)).toBe("plans");
   });
 });
 
@@ -1043,29 +1052,32 @@ describe("Sign-up return-to (WO-P2)", () => {
     stubSignupFetch();
     const { container } = render(<App />);
 
+    // Was "Plans" — public since 2026-07-27, so it no longer exercises the
+    // gate. "Projects" is still auth-only AND sits in the WORKSPACE group, so
+    // it renders in the sidebar while signed out (ACCOUNT-group items do not).
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Plans" }));
-    // nav()'s gate keeps the user put and opens the popup with upgrade-flavored copy.
+    fireEvent.click(sidebar.getByRole("button", { name: "Projects" }));
+    // nav()'s gate keeps the user put and opens the popup.
     expect(shellPage(container)).toBe("home");
-    expect(screen.getByRole("heading", { name: "Sign in to upgrade" })).toBeTruthy();
 
     completeEmailSignup();
 
-    await waitFor(() => expect(shellPage(container)).toBe("plans"));
-    expect(window.location.hash).toBe("#plans");
+    await waitFor(() => expect(shellPage(container)).toBe("projects"));
+    expect(window.location.hash).toBe("#projects");
   });
 
   it("a deep link straight to an auth-only page remembers it and lands there after signup", async () => {
     stubSignupFetch();
-    window.location.hash = "#plans";
+    // Was "#plans" — public since 2026-07-27. "#usage" is still auth-only.
+    window.location.hash = "#usage";
 
     const { container } = render(<App />);
     await waitFor(() => expect(shellPage(container)).toBe("home"));
 
     completeEmailSignup();
 
-    await waitFor(() => expect(shellPage(container)).toBe("plans"));
-    expect(window.location.hash).toBe("#plans");
+    await waitFor(() => expect(shellPage(container)).toBe("usage"));
+    expect(window.location.hash).toBe("#usage");
   });
 
   it("a page-agnostic requireLogin nudge (guest-project banner) returns to the SAME page, not #account", async () => {

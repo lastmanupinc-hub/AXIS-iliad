@@ -522,24 +522,25 @@ export const ROUTES: RouteDef[] = [
   },
   {
     page: "plans",
-    // NO seo block, deliberately — this route is `authOnly`, and the SEO test
-    // forbids advertising a page that bounces logged-out visitors to a
-    // sign-in modal.
+    seo: { title: "Pricing & Plans — Axis' Iliad", description: "Plans, monthly credit allowances and per-call pricing for the Axis' Iliad codebase analysis API and MCP tools." },
+    // PUBLIC as of 2026-07-27 (owner: "it is not blocked information").
     //
-    // ⚠ That exposes a pre-existing contradiction worth an owner decision, not
-    // a silent fix: the API already advertises this page publicly — `/pricing`
-    // sits in the sitemap at priority 0.8 (handlers.ts) and is explicitly
-    // `Allow:`ed in robots.txt — while the route itself requires login. So a
-    // search result for "Axis Iliad pricing" currently lands on a sign-in
-    // popup. Pricing pages are conventionally public, and this is the top of
-    // the funnel, so the likely right answer is dropping `authOnly` here — but
-    // that is a product call, and it is tracked as a finding rather than
-    // decided here.
+    // This was `authOnly: true`, which contradicted three other surfaces: the
+    // API advertises `/pricing` in its sitemap at priority 0.8 and `Allow:`s it
+    // in robots.txt, `GET /v1/plans` serves the same prices unauthenticated,
+    // and the public Q&A + For-Agents pages already print $0/$29/$99/$299. So
+    // the gate withheld nothing — it only bounced humans arriving from search
+    // into a sign-in modal at the top of the funnel.
+    //
+    // PlansPage was already written for this: it takes `loggedIn` and
+    // `onRequireLogin` and prompts only when a plan is SELECTED, which is the
+    // correct pattern (browse freely, authenticate at checkout). The route gate
+    // meant that path could never run. Removing it activates code that already
+    // existed rather than adding new behaviour.
     pattern: "plans",
     label: "Plans",
     section: "ACCOUNT",
     shortcut: 3,
-    authOnly: true,
     aliases: ["/pricing", "/plans"],
     nav: { group: "LIBRARY", icon: "credit-card" },
     render: (ctx) => <PlansPage loggedIn={ctx.loggedIn} onSelectPlan={() => ctx.navigate("account")} onRequireLogin={() => ctx.requireLogin("paid-program")} />,
