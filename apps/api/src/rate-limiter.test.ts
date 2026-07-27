@@ -12,6 +12,8 @@ import {
   checkRateLimit,
   getClientWindow,
   resetRateLimits,
+  getViolationCount,
+  limitForTier,
   LIMITS,
   bindRateLimiterDb,
   flushToDb,
@@ -344,7 +346,10 @@ describe("rate limiter persistence", () => {
 
     await flushToDb();
 
-    const row = await sql.one("SELECT count, reset_at FROM rate_limits WHERE client_key = ?", ["40.40.40.40"]) as { count: number; reset_at: number } | undefined;
+    // client_key is the aggregated network prefix, matching what the limiter
+    // enforces on — persisting exact-IP buckets would restore state that
+    // lookups could never hit again.
+    const row = await sql.one("SELECT count, reset_at FROM rate_limits WHERE client_key = ?", ["40.40.40.0/24"]) as { count: number; reset_at: number } | undefined;
     expect(row).toBeDefined();
     expect(Number(row!.count)).toBe(5);
     expect(Number(row!.reset_at)).toBeGreaterThan(Date.now() - 1000);
@@ -357,7 +362,7 @@ describe("rate limiter persistence", () => {
 
     // Manually insert a persisted rate limit entry into DB
     const futureReset = Date.now() + 60_000;
-    await sql.run("INSERT INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)", ["50.50.50.50", 30, futureReset]);
+    await sql.run("INSERT INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)", ["50.50.50.0/24", 30, futureReset]);
 
     await bindRateLimiterDb();
 
@@ -375,7 +380,7 @@ describe("rate limiter persistence", () => {
 
     // Insert an expired entry
     const pastReset = Date.now() - 1000;
-    await sql.run("INSERT INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)", ["60.60.60.60", 58, pastReset]);
+    await sql.run("INSERT INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)", ["60.60.60.0/24", 58, pastReset]);
 
     await bindRateLimiterDb();
 
@@ -420,7 +425,7 @@ describe("rate limiter persistence", () => {
     await unbindRateLimiterDb();
 
     // Data should have been flushed before unbind
-    const row = await sql.one("SELECT count FROM rate_limits WHERE client_key = ?", ["80.80.80.80"]) as { count: number } | undefined;
+    const row = await sql.one("SELECT count FROM rate_limits WHERE client_key = ?", ["80.80.80.0/24"]) as { count: number } | undefined;
     expect(row).toBeDefined();
     expect(row!.count).toBe(3);
   });
@@ -467,5 +472,183 @@ describe("getClientWindow", () => {
     const w = getClientWindow(ip, { authenticated: true });
     expect(w.limit).toBe(LIMITS.AUTHENTICATED_MAX);
     expect(w.count).toBe(1);
+  });
+});
+
+// ─── Anti-gaming: network-prefix aggregation ────────────────────
+//
+// The limiter used to key on the exact IP string. Anyone holding an IPv6
+// allocation — a /64 is the standard residential assignment, and OS privacy
+// extensions rotate the host bits with no attacker effort at all — got a
+// fresh budget on every single request, so the limiter bound hardest on the
+// single-static-IPv4 callers least likely to be abusing anything. These lock
+// the aggregation that closes it.
+
+describe("checkRateLimit — prefix aggregation (anti-gaming)", () => {
+  it("rotating the host bits of one IPv6 /64 does NOT mint a fresh budget", () => {
+    const limit = LIMITS.DEFAULT_MAX;
+    // Every address below is a distinct string but the same real /64.
+    for (let i = 0; i < limit; i++) {
+      const req = makeReq({ "x-forwarded-for": `2001:db8:abcd:1234::${i.toString(16)}` });
+      expect(checkRateLimit(req, makeRes())).toBe(true);
+    }
+    // One more from a *different* host address in the SAME /64 must be blocked.
+    const res = makeRes();
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "2001:db8:abcd:1234::ffff" }), res)).toBe(false);
+    expect(res.statusCode).toBe(429);
+  });
+
+  it("aggregates an IPv6 /64 correctly even when the prefix itself is zero-compressed", () => {
+    // "2001:db8::a1b2:..." — the "::" sits INSIDE the network portion, the
+    // exact shape a naive split(":") mis-slices into a per-address bucket.
+    const limit = LIMITS.DEFAULT_MAX;
+    for (let i = 0; i < limit; i++) {
+      expect(checkRateLimit(makeReq({ "x-forwarded-for": `2001:db8::a1b2:c3d4:e5f6:${i.toString(16)}` }), makeRes())).toBe(true);
+    }
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "2001:db8::a1b2:c3d4:e5f6:ffff" }), makeRes())).toBe(false);
+  });
+
+  it("rotating the last IPv4 octet within one /24 does NOT mint a fresh budget", () => {
+    const limit = LIMITS.DEFAULT_MAX;
+    for (let i = 0; i < limit; i++) {
+      expect(checkRateLimit(makeReq({ "x-forwarded-for": `203.0.113.${i % 254}` }), makeRes())).toBe(true);
+    }
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "203.0.113.254" }), makeRes())).toBe(false);
+  });
+
+  it("keeps genuinely different networks in separate buckets", () => {
+    const limit = LIMITS.DEFAULT_MAX;
+    for (let i = 0; i < limit; i++) {
+      expect(checkRateLimit(makeReq({ "x-forwarded-for": "198.51.100.7" }), makeRes())).toBe(true);
+    }
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "198.51.100.7" }), makeRes())).toBe(false);
+    // A different /24 is untouched by the neighbour's exhaustion.
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "198.51.99.7" }), makeRes())).toBe(true);
+  });
+
+  it("treats an IPv4-mapped IPv6 address as its underlying IPv4 network", () => {
+    const limit = LIMITS.DEFAULT_MAX;
+    for (let i = 0; i < limit; i++) {
+      expect(checkRateLimit(makeReq({ "x-forwarded-for": "192.0.2.15" }), makeRes())).toBe(true);
+    }
+    // Same network, expressed in the dual-stack ::ffff: form — must share the bucket.
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "::ffff:192.0.2.200" }), makeRes())).toBe(false);
+  });
+
+  it("getClientWindow reports the same aggregated bucket enforcement uses", () => {
+    checkRateLimit(makeReq({ "x-forwarded-for": "203.0.113.10" }), makeRes());
+    checkRateLimit(makeReq({ "x-forwarded-for": "203.0.113.99" }), makeRes());
+    // Both requests landed in one /24 bucket; querying by either address sees 2.
+    expect(getClientWindow("203.0.113.10").count).toBe(2);
+    expect(getClientWindow("203.0.113.99").count).toBe(2);
+  });
+});
+
+// ─── Tier-scaled limits ─────────────────────────────────────────
+
+describe("limitForTier", () => {
+  it("scales upward across tiers so an upgrade buys real headroom", () => {
+    expect(limitForTier(null)).toBe(LIMITS.DEFAULT_MAX);
+    expect(limitForTier("free")).toBe(LIMITS.AUTHENTICATED_MAX);
+    expect(limitForTier("paid")).toBe(LIMITS.PAID_MAX);
+    expect(limitForTier("suite")).toBe(LIMITS.SUITE_MAX);
+    // The ordering is the whole basis of the upgrade claim — assert it, don't assume it.
+    expect(limitForTier(null)).toBeLessThan(limitForTier("free"));
+    expect(limitForTier("free")).toBeLessThan(limitForTier("paid"));
+    expect(limitForTier("paid")).toBeLessThan(limitForTier("suite"));
+  });
+
+  it("preserves the pre-existing anonymous and free ceilings exactly (no caller loses headroom)", () => {
+    expect(limitForTier(null)).toBe(60);
+    expect(limitForTier("free")).toBe(120);
+  });
+
+  it("a paid account gets more requests than a free one before being limited", () => {
+    const freeLimit = limitForTier("free");
+    for (let i = 0; i < freeLimit + 1; i++) {
+      checkRateLimit(makeReq({ "x-forwarded-for": "198.18.0.1" }), makeRes(), { tier: "paid" });
+    }
+    // Past the FREE ceiling, but a paid caller is still under their own.
+    expect(checkRateLimit(makeReq({ "x-forwarded-for": "198.18.0.1" }), makeRes(), { tier: "paid" })).toBe(true);
+  });
+});
+
+// ─── Repeat offenders → upgrade guidance ────────────────────────
+
+/** Drive one prefix past its ceiling `rounds` times; return the last 429's JSON body. */
+function exhaust(ip: string, tier: Parameters<typeof limitForTier>[0], rounds: number): Record<string, unknown> {
+  const limit = limitForTier(tier);
+  let lastBody = "{}";
+  for (let round = 0; round < rounds; round++) {
+    for (let i = 0; i <= limit; i++) {
+      const res = makeRes();
+      const captured: string[] = [];
+      const realEnd = res.end.bind(res);
+      (res as unknown as { end: (c?: unknown) => unknown }).end = (chunk?: unknown) => {
+        if (typeof chunk === "string") captured.push(chunk);
+        return realEnd(chunk as never);
+      };
+      const allowed = checkRateLimit(makeReq({ "x-forwarded-for": ip }), res, { tier });
+      if (!allowed && captured.length > 0) lastBody = captured.join("");
+    }
+  }
+  return JSON.parse(lastBody) as Record<string, unknown>;
+}
+
+describe("checkRateLimit — repeat-offender upgrade guidance", () => {
+  it("a first-time violation gets a plain 429 with no upgrade payload", () => {
+    const body = exhaust("198.18.10.1", null, 1);
+    expect(body.error_code).toBe("RATE_LIMITED");
+    expect(body.retry_after).toBeDefined();
+    expect(body.upgrade).toBeUndefined();
+  });
+
+  it("a repeat offender's 429 carries tier-upgrade guidance", () => {
+    const body = exhaust("198.18.11.1", null, LIMITS.UPGRADE_PROMPT_AFTER);
+    expect(body.error_code).toBe("RATE_LIMITED");
+    const upgrade = body.upgrade as Record<string, unknown>;
+    expect(upgrade).toBeDefined();
+    expect(upgrade.recommended_tier).toBe("free");
+    expect(upgrade.create_account_url).toContain("/v1/accounts");
+    // The pitch must quote a genuinely higher ceiling, not just a URL.
+    expect(upgrade.recommended_limit_per_window as number).toBeGreaterThan(upgrade.current_limit_per_window as number);
+  });
+
+  it("pitches a real paid plan (with its real price) to a repeat-offending free account", () => {
+    const body = exhaust("198.18.12.1", "free", LIMITS.UPGRADE_PROMPT_AFTER);
+    const upgrade = body.upgrade as Record<string, unknown>;
+    expect(upgrade.current_tier).toBe("free");
+    expect(upgrade.recommended_tier).toBe("paid");
+    expect(upgrade.recommended_plan_id).toBe("pro");
+    expect(upgrade.price_monthly_cents).toBe(9900); // MARKETED_TIERS' real Pro price
+    expect(upgrade.upgrade_url).toContain("iliad.trustfabric.ai");
+  });
+
+  it("never pitches an upgrade to a suite account — there is no higher tier to sell", () => {
+    const body = exhaust("198.18.13.1", "suite", LIMITS.UPGRADE_PROMPT_AFTER + 1);
+    expect(body.error_code).toBe("RATE_LIMITED");
+    expect(body.upgrade).toBeUndefined();
+  });
+
+  it("counts violations per network prefix, not per address", () => {
+    const limit = limitForTier(null);
+    for (let i = 0; i <= limit; i++) {
+      checkRateLimit(makeReq({ "x-forwarded-for": `198.18.14.${i % 254}` }), makeRes());
+    }
+    // Rotating addresses across one /24 accumulates against the SAME history.
+    expect(getViolationCount("198.18.14.1")).toBeGreaterThan(0);
+    expect(getViolationCount("198.18.14.250")).toBe(getViolationCount("198.18.14.1"));
+    // An unrelated network has no history at all.
+    expect(getViolationCount("198.19.0.1")).toBe(0);
+  });
+
+  it("resetRateLimits clears violation history as well as windows", () => {
+    const limit = limitForTier(null);
+    for (let i = 0; i <= limit; i++) {
+      checkRateLimit(makeReq({ "x-forwarded-for": "198.18.15.1" }), makeRes());
+    }
+    expect(getViolationCount("198.18.15.1")).toBeGreaterThan(0);
+    resetRateLimits();
+    expect(getViolationCount("198.18.15.1")).toBe(0);
   });
 });

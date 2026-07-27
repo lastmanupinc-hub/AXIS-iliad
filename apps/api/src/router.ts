@@ -400,9 +400,14 @@ export function createApp(router: Router, port: number): Server {
       return;
     }
 
-    // Rate limiting (before route handling — auth-aware)
+    // Rate limiting (before route handling — auth- and tier-aware). Passing the
+    // real tier is what makes the repeat-offender 429's upgrade guidance an
+    // honest claim: paid/suite genuinely get more headroom than free.
     auth = await resolveAuth(req);
-    if (!checkRateLimit(req, res, { authenticated: !auth.anonymous && auth.account !== null })) return;
+    if (!checkRateLimit(req, res, {
+      authenticated: !auth.anonymous && auth.account !== null,
+      tier: auth.account?.tier ?? null,
+    })) return;
 
     // Axis agent headers — quota and tier info injected on every authenticated response
     // so agents can pre-check budget before committing to a paid call.

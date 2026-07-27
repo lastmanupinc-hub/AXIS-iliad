@@ -775,7 +775,10 @@ export async function handleGetQuota(
   const ctx = await resolveAuth(req);
   const authenticated = !ctx.anonymous;
   const ip = getClientIp(req);
-  const window = getClientWindow(ip, { authenticated });
+  // Pass the tier so the reported ceiling matches what checkRateLimit actually
+  // enforces for this caller — limits are tier-scaled, so reporting the free
+  // ceiling to a paid account would understate their real headroom.
+  const window = getClientWindow(ip, { authenticated, tier: ctx.account?.tier ?? null });
 
   const response: Record<string, unknown> = {
     rate_limit: {
