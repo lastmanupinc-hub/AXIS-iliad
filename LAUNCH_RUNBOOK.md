@@ -115,23 +115,41 @@ In the Render dashboard for the `axis-api` service → Environment:
 
    ```sh
    curl https://axis-api-6c7z.onrender.com/v1/health
-   curl -X POST https://axis-api-6c7z.onrender.com/v1/checkout \
-     -H "Authorization: Bearer <test-key>" -H "Content-Type: application/json" \
-     -d '{"plan_id":"starter"}'          # expect 201 + checkout_url
+   curl https://axis-api-6c7z.onrender.com/portal/api/paid/config   # expect {"configured":true}
    ```
 
-   Run the full 6-combination checkout validation from
-   `STRIPE_CHANGES_REQUIRED.md` section 6.
+   > `POST /v1/checkout` used to be the smoke test here. **That endpoint no
+   > longer exists** — the Stripe-direct checkout creator was deliberately
+   > removed ("PAI'D is the ONLY checkout … never resurrect this endpoint",
+   > `apps/api/src/stripe.ts`), so the old command would 404 and read as a
+   > failed deploy. Same for `STRIPE_CHANGES_REQUIRED.md` section 6's
+   > 6-combination checkout validation: it predates the PAI'D cutover.
+   > Corrected 2026-07-27.
 
-   **Verify stable JWT across restart** (confirms step 4 actually took):
-   fetch the JWKS twice with a manual restart in between (Render dashboard →
-   Manual Deploy → "Restart service"), and confirm the key is byte-identical:
+   **Verify stable JWT across restart** (confirms step 4 actually took) —
+   this is the definitive test, and it does NOT depend on reading logs:
 
    ```sh
    curl https://axis-api-6c7z.onrender.com/oauth/jwks > /tmp/jwks-before.json
    # ... restart the service in the Render dashboard, wait for it to report healthy ...
    curl https://axis-api-6c7z.onrender.com/oauth/jwks > /tmp/jwks-after.json
    diff /tmp/jwks-before.json /tmp/jwks-after.json   # expect no diff
+   ```
+
+   **Shortcut — a pre-change baseline already exists.** The live JWKS signing
+   key was fingerprinted 2026-07-27T12:59Z, *before* any key was set:
+   `sha256(modulus)` = `dadcb620f55430fdde799f31edeba405…`, modulus prefix
+   `ijrlrxdDynI02AKGQYTnG97l`. So a single fetch after setting the vars and
+   redeploying answers it outright:
+   - **Fingerprint CHANGED** → the env keys took effect. Fetch once more after
+     a second restart to confirm it now stays put.
+   - **Fingerprint UNCHANGED** → either the vars never reached the process, or
+     (far less likely) they happen to match the previously-generated pair.
+     Treat unchanged as "not applied" and check the var names.
+
+   ```sh
+   curl -s https://axis-api-6c7z.onrender.com/oauth/jwks \
+     | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const n=JSON.parse(s).keys[0].n;console.log(require('crypto').createHash('sha256').update(n).digest('hex').slice(0,32))})"
    ```
 
    Also check the Render logs for `oauth_ephemeral_keys_in_production` —

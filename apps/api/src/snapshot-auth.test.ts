@@ -446,3 +446,60 @@ describe("tenancy — owned snapshots resist cross-tenant reads", () => {
     });
   }
 });
+
+// ─── Oversized-upload 413s carry a way forward ──────────────────
+//
+// `handleAnalyze` returned accommodating_tier / upgrade_url / upgrade_note on
+// its 413s; its `handleCreateSnapshot` twin returned a bare "limit exceeded"
+// with no remedy — the same REST-twin divergence this codebase keeps finding.
+// A caller who hit the cap on POST /v1/snapshots was told they failed and
+// nothing else.
+//
+// Note what these deliberately do NOT assert: that the response points at the
+// sibling endpoint. Both gate anonymous callers on the identical
+// TIER_LIMITS.free caps, so "try /v1/snapshots instead" would be a false
+// promise costing the caller a guaranteed-failing retry.
+
+describe("oversized-upload 413s include upgrade guidance", () => {
+  const oversized = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ path: `file-${i}.ts`, content: "x", size: 1 }));
+
+  const manifest = {
+    project_name: "oversized",
+    project_type: "web",
+    frameworks: ["react"],
+    goals: ["test"],
+    requested_outputs: ["AGENTS.md"],
+  };
+
+  it("POST /v1/snapshots file-count 413 names a tier that would actually fit", async () => {
+    const { key } = await createTestAccount("guidance413", "guidance413@test.com");
+    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(1001) }, key);
+
+    expect(r.status).toBe(413);
+    expect(r.data.error_code).toBe("FILE_COUNT_EXCEEDED");
+    // The remedy half — absent before this fix.
+    expect(r.data.accommodating_tier).toBe("paid");
+    expect(r.data.upgrade_url).toContain("iliad.trustfabric.ai");
+    expect(String(r.data.upgrade_note)).toContain("2000");
+  });
+
+  it("never tells a 413'd caller to retry against the sibling endpoint (identical caps)", async () => {
+    const { key } = await createTestAccount("nosibling413", "nosibling413@test.com");
+    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(1001) }, key);
+
+    expect(r.status).toBe(413);
+    const body = JSON.stringify(r.data);
+    expect(body).not.toContain("/v1/analyze");
+  });
+
+  it("omits guidance entirely when no tier could fit, rather than advertising a useless upgrade", async () => {
+    const { key } = await createTestAccount("nofit413", "nofit413@test.com");
+    // Past suite's 5000-file ceiling — no tier accommodates this.
+    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(5001) }, key);
+
+    expect(r.status).toBe(413);
+    expect(r.data.accommodating_tier).toBeUndefined();
+    expect(r.data.upgrade_url).toBeUndefined();
+  });
+});
