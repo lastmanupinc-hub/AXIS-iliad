@@ -21,8 +21,19 @@ services:
       - key: NODE_ENV
         value: production
       # 32+ char secret used to AES-256-GCM encrypt stored GitHub tokens.
-      # The API fails closed (refuses to encrypt) in production if unset.
+      # The API fails closed (refuses to encrypt) in production if unset — and
+      # for a long while it WAS unset, which is what broke GitHub login on
+      # 2026-07-26 (the throw landed after the account already existed and got
+      # swallowed into a generic error redirect). Set 2026-07-27.
       - key: AXIS_TOKEN_KEY
+        sync: false
+      # Gates all 5 admin endpoints; requireAdmin 403s when unset. Declared
+      # here purely so the Blueprint knows the key EXISTS — the value stays
+      # dashboard-only (sync: false). It was set on the service but absent
+      # from this file, which is the same orphaning shape that left
+      # RESEND_FROM_ADDRESS one Blueprint sync away from silently killing all
+      # email. Declaring it is the cheap half of that lesson.
+      - key: ADMIN_API_KEY
         sync: false
       # Deny-by-default: self-serve tier upgrades / credit minting are
       # disabled in production — upgrades must go through POST /v1/checkout.
