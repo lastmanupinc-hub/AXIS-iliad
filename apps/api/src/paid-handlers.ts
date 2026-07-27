@@ -226,30 +226,49 @@ export async function handlePaidConfig(
 // Header: PAID-Signature: t=<unix>,v1=<hex>
 // Body:   { type: string, data: { object: { customer_email?, … } } }
 //
-// H-Phase-A cycle 9: the subscription.created/updated/canceled/deleted
-// handling below is currently DEAD IN PRODUCTION — createPaidCheckoutSession
-// (paid-client package) hardcodes mode:"payment" (a one-time charge; PAI'D
-// 501s mode:"subscription" until it supports recurring billing), and nothing
-// else in this repo ever creates a PAI'D subscription object, so PAI'D
-// cannot emit these events today. Kept implemented (not deleted) since it's
-// the correct handling WHENEVER PAI'D ships subscription mode — this is a
-// documentation note so a future reader doesn't debug "why don't these fire"
-// or mistake this logic for tested-live behavior.
+// Event names verified against PAI'D's published WebhookDelivery.type enum
+// (TICKET-AXIS_TOOLBOX-subscription-contract-20260727, confirmed 2026-07-27,
+// PAI'D @ 925cb60d). Before that reply this list was assembled from
+// Stripe-shaped guesses, and three entries named events PAI'D does not emit
+// at all: "subscription.deleted", "payment_intent.succeeded" and
+// "charge.refunded". Removed rather than left in place — keeping a name the
+// provider never sends implies a verified path that never existed.
+//
+// H-Phase-A cycle 9 recorded the subscription.* handling as "DEAD IN
+// PRODUCTION" because PAI'D 501'd mode:"subscription". That diagnosis was
+// wrong, and this is the correction: mode:"subscription" is fully built on
+// their side. The 501 is subscription_mode_unavailable — OUR merchant
+// account lacks the per-merchant `subscriptions_enabled` flag. This handling
+// is dormant only until that flag is set, which is self-serve and needs
+// nothing from PAI'D.
 
 const HANDLED_PAID_EVENTS = new Set([
   "checkout.session.completed", // hosted-checkout fulfilment (the live path)
-  "payment_intent.succeeded",
+  "payment_intent.captured", // PAI'D's name — there is no payment_intent.succeeded
   "subscription.created",
   "subscription.updated",
-  "subscription.canceled",
-  "subscription.deleted",
-  // H-Phase-A cycle 8 believed this webhook already handled charge.refunded
-  // — it did not; that fix (commit f047bd5) only touched the DORMANT legacy
-  // stripe.ts webhook, never this LIVE one. Best-guess named entry — see
-  // handlePaidRefund's own comment for why an unnamed catch-all covers this
-  // too, since PAI'D's exact refund event-type string is unconfirmed.
-  "charge.refunded",
+  "subscription.renewed", // the renewal signal; tier must survive it
+  "subscription.canceled", // the ONLY event that deactivates a tier
+  // Allowlisted as a deliberate NO-OP, not an oversight. A failed payment
+  // means the customer is mid-dunning and may still recover on PAI'D's +1d
+  // retry, so deactivating here would cut off someone who then pays. Named
+  // explicitly so a future reader doesn't "fix" the omission by downgrading.
+  "subscription.payment_failed",
 ]);
+
+// Refunds are absent from that list on purpose — they're caught earlier by a
+// substring match, which is what made the old guess survivable: the real name
+// is "payment_intent.refunded", not the "charge.refunded" this file guessed.
+//
+// KNOWN UNHANDLED — customer_portal.plan_changed. A self-serve plan change in
+// PAI'D's customer portal emits ONLY this event (portal cancel/pause/resume
+// emit the normal subscription.* events, so those are covered), and it carries
+// old_plan_id/new_plan_id in the TOP-LEVEL metadata — which this handler never
+// reads, since it destructures data.object. Wiring it is blocked on
+// TICKET-AXIS_TOOLBOX-checkout-webhook-envelope-20260727, which asks where our
+// metadata actually arrives; building it now would bake in the same unverified
+// assumption that ticket exists to settle. Until then, a self-serve
+// upgrade/downgrade leaves the previous tier in place.
 
 type PaidTier = "free" | "paid" | "suite";
 
@@ -319,8 +338,14 @@ function tierForPaidEvent(eventType: string, obj: Record<string, unknown>): Paid
     });
     return "paid";
   }
-  if (eventType === "subscription.canceled" || eventType === "subscription.deleted") return "free";
-  if (eventType === "subscription.created" || eventType === "subscription.updated") {
+  // Cancellation is the only deactivation trigger PAI'D designates; see
+  // HANDLED_PAID_EVENTS on why payment_failed deliberately isn't one.
+  if (eventType === "subscription.canceled") return "free";
+  if (
+    eventType === "subscription.created" ||
+    eventType === "subscription.updated" ||
+    eventType === "subscription.renewed"
+  ) {
     const planId = extractPlanId(obj);
     if (planId) {
       const mapped = buildPlanTierMap().get(planId);
@@ -356,7 +381,11 @@ function marketedPlanIdForPaidEvent(eventType: string, obj: Record<string, unkno
     const planId = meta.plan_id;
     return planId === "starter" || planId === "pro" || planId === "growth" ? planId : null;
   }
-  if (eventType === "subscription.created" || eventType === "subscription.updated") {
+  if (
+    eventType === "subscription.created" ||
+    eventType === "subscription.updated" ||
+    eventType === "subscription.renewed"
+  ) {
     const planId = extractPlanId(obj);
     if (!planId) return null;
     return buildPricePlanIdMap().get(planId) ?? null;
@@ -419,13 +448,16 @@ export async function handlePaidWebhook(
   const eventType = event.type ?? "";
   const obj = event.data?.object ?? {};
 
-  // Checked before the named-event allowlist below, and independent of it:
+  // Checked before the named-event allowlist below, and independent of it.
   // PAI'D's naming doesn't mirror Stripe verbatim (subscription.created has
   // no "customer." prefix here, unlike Stripe's own customer.subscription.
-  // created), so the exact refund event-type string PAI'D sends is
-  // unconfirmed. A case-insensitive substring match catches any refund-
-  // shaped event regardless of its exact name, not just the best-guess
-  // "charge.refunded" entry in HANDLED_PAID_EVENTS.
+  // created), so this file once had to guess the refund event name and
+  // guessed "charge.refunded". The substring match is what made that
+  // survivable: PAI'D's published enum confirms the real name is
+  // "payment_intent.refunded", which the guess would have missed entirely
+  // and this match caught anyway. Kept as a substring match rather than
+  // narrowed to the now-known name — it costs nothing and it is the reason
+  // this path didn't silently break.
   if (eventType.toLowerCase().includes("refund")) {
     handlePaidRefund(eventType, obj);
     sendJSON(res, 200, { received: true, event: eventType, handled: true });
@@ -484,7 +516,8 @@ export async function handlePaidWebhook(
 
   const targetTier = tierForPaidEvent(eventType, obj);
   if (!targetTier || !customerEmail) {
-    // payment_intent.succeeded with no email, or events we don't tier-sync
+    // payment_intent.captured with no email, subscription.payment_failed
+    // (deliberately non-deactivating), or events we don't tier-sync
     sendJSON(res, 200, { received: true, event: eventType, handled: true, tier_change: false });
     return;
   }

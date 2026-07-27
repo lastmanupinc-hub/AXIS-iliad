@@ -267,9 +267,20 @@ export interface CreatePaidCheckoutInput {
  * The caller redirects the buyer to `session.url`; fulfilment happens async via
  * the checkout.session.completed webhook keyed off `metadata`.
  *
- * mode="payment" (one-time): PAI'D gates mode="subscription" (501) until recurring
- * billing is enabled, so apps charge once and the webhook activates the tier.
+ * mode="payment" (one-time): apps charge once and the webhook activates the tier.
  * amount_total_minor matches the single ad-hoc line item so the backend drift guard passes.
+ *
+ * This comment used to say PAI'D "gates mode='subscription' (501) until recurring
+ * billing is enabled", implying the mode was unbuilt on their side. That was wrong
+ * (TICKET-AXIS_TOOLBOX-subscription-contract-20260727, confirmed 2026-07-27):
+ * mode="subscription" is fully implemented — it collects the card, charges period 1,
+ * vaults the payment method and creates the Subscription in one call. The 501 is
+ * `subscription_mode_unavailable`, meaning OUR merchant account lacks the
+ * per-merchant `subscriptions_enabled` flag. Switching this to "subscription" is
+ * therefore a real feature change, not a one-word edit: it needs that flag set, a
+ * plan created and activated (plans are born draft; a subscription against a
+ * non-active plan is refused), and the webhook correlation settled by
+ * TICKET-AXIS_TOOLBOX-checkout-webhook-envelope-20260727.
  */
 export async function createPaidCheckoutSession(
   input: CreatePaidCheckoutInput,

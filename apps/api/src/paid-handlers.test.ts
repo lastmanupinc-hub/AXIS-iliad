@@ -331,6 +331,50 @@ describe("POST /portal/api/paid/webhook", () => {
     expect((await getAccountByEmail("downgrade@test.com"))?.tier).toBe("free");
   });
 
+  // PAI'D designates subscription.renewed as the recurring-billing signal.
+  // It was absent from HANDLED_PAID_EVENTS until the contract ticket was
+  // answered, so every renewal fell through as an unknown event.
+  it("keeps the paid tier on subscription.renewed", async () => {
+    await createAccount("renew@test.com");
+    const upBody = JSON.stringify({
+      type: "subscription.created",
+      data: { object: { customer_email: "renew@test.com", id: "sub_rn" } },
+    });
+    await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
+
+    const body = JSON.stringify({
+      type: "subscription.renewed",
+      data: { object: { customer_email: "renew@test.com", id: "sub_rn" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.handled).toBe(true);
+    expect((await getAccountByEmail("renew@test.com"))?.tier).toBe("paid");
+  });
+
+  // The customer is mid-dunning and may recover on PAI'D's +1d retry, so a
+  // failed payment must NOT cut off access. This asserts the deliberate
+  // no-op — it exists to fail loudly if someone "fixes" the apparent
+  // omission by downgrading here.
+  it("does NOT downgrade on subscription.payment_failed", async () => {
+    await createAccount("dunning@test.com");
+    const upBody = JSON.stringify({
+      type: "subscription.created",
+      data: { object: { customer_email: "dunning@test.com", id: "sub_df" } },
+    });
+    await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
+    expect((await getAccountByEmail("dunning@test.com"))?.tier).toBe("paid");
+
+    const body = JSON.stringify({
+      type: "subscription.payment_failed",
+      data: { object: { customer_email: "dunning@test.com", id: "sub_df" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.tier_change).toBe(false);
+    expect((await getAccountByEmail("dunning@test.com"))?.tier).toBe("paid");
+  });
+
   it("no-op when event known but account already on target tier", async () => {
     await createAccount("noop@test.com");
     const body = JSON.stringify({
@@ -532,19 +576,21 @@ describe("POST /portal/api/paid/webhook", () => {
 
 // H-Phase-A cycle 9: cycle 8 believed charge.refunded was already handled on
 // "either webhook" — it only touched the DORMANT legacy stripe.ts path, never
-// this LIVE one. Two tests: the best-guess named event, and a differently-
-// named refund-shaped event (since PAI'D's exact refund event-type string is
-// unconfirmed) to prove the case-insensitive substring catch-all works too.
+// this LIVE one. The event name was a guess then; PAI'D's published enum
+// (ticket confirmed 2026-07-27) settles it as "payment_intent.refunded" —
+// the guess was wrong, and only the substring catch-all saved this path. Both
+// tests kept: the real name, and an arbitrarily-named refund-shaped event
+// proving the catch-all still covers whatever else PAI'D may add.
 describe("POST /portal/api/paid/webhook — refund observability", () => {
-  it("handles the best-guess 'charge.refunded' event (not a silent no-op)", async () => {
+  it("handles PAI'D's real 'payment_intent.refunded' event (not a silent no-op)", async () => {
     const body = JSON.stringify({
-      type: "charge.refunded",
-      data: { object: { id: "ch_paid_refund", payment_intent: "pi_paid_refund", customer_email: "refund@test.com", amount_refunded: 900, currency: "usd" } },
+      type: "payment_intent.refunded",
+      data: { object: { id: "pi_paid_refund", payment_intent: "pi_paid_refund", customer_email: "refund@test.com", amount_refunded: 900, currency: "usd" } },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
-    expect(r.data.event).toBe("charge.refunded");
+    expect(r.data.event).toBe("payment_intent.refunded");
   });
 
   it("catches a differently-named refund event via the case-insensitive substring match", async () => {
