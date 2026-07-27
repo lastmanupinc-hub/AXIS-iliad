@@ -23,6 +23,7 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage.tsx").then((m) => (
 const DocsPage = lazy(() => import("./pages/DocsPage.tsx").then((m) => ({ default: m.DocsPage })));
 const HelpPage = lazy(() => import("./pages/HelpPage.tsx").then((m) => ({ default: m.HelpPage })));
 const QAPage = lazy(() => import("./pages/QAPage.tsx").then((m) => ({ default: m.QAPage })));
+const FeedbackPage = lazy(() => import("./pages/FeedbackPage.tsx").then((m) => ({ default: m.FeedbackPage })));
 const ProgramsPage = lazy(() => import("./pages/ProgramsPage.tsx").then((m) => ({ default: m.ProgramsPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage.tsx").then((m) => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage.tsx").then((m) => ({ default: m.PrivacyPage })));
@@ -115,6 +116,8 @@ export type PageId =
   | "docs"
   | "help"
   | "qa"
+  // Public feedback / support-ticket intake (beta hardening channel)
+  | "feedback"
   | "programs"
   | "terms"
   | "privacy"
@@ -630,6 +633,16 @@ export const ROUTES: RouteDef[] = [
     shortcut: 7,
     nav: { group: "HELP", icon: "message" },
     render: (ctx) => <QAPage onNavigate={ctx.navigate} />,
+  },
+  {
+    page: "feedback",
+    pattern: "feedback",
+    label: "Feedback",
+    section: "REFERENCE",
+    // "/feedback" is the canonical crawlable URL (also in the API sitemap).
+    aliases: ["/feedback"],
+    nav: { group: "HELP", icon: "message" },
+    render: () => <FeedbackPage />,
   },
   {
     page: "for-agents",

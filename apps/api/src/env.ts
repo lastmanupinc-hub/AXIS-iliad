@@ -58,7 +58,9 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "REPLICATE_API_TOKEN", required: false, type: "string", description: "API token for Replicate image/video generation (https://replicate.com)" },
   { key: "FASTIO_API_KEY", required: false, type: "string", description: "API key for Fastio persistent storage and RAG (https://fast.io)" },
   { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com). Used by the internal welcome/upgrade/usage-alert pipeline in @axis/snapshots and by the agent-facing iliad_transactional_email MCP tool (proxy mode)." },
-  { key: "RESEND_FROM_ADDRESS", required: false, type: "string", description: "Verified Resend sender address used as the From: header for iliad_transactional_email. Must be a domain you've verified in the Resend dashboard. When unset, iliad_transactional_email returns a structured _not_configured envelope." },
+  { key: "RESEND_FROM_ADDRESS", required: false, type: "string", description: "Verified Resend sender address used as the From: header for iliad_transactional_email and customer feedback tickets. Must be a domain you've verified in the Resend dashboard. When unset, iliad_transactional_email returns a structured _not_configured envelope and POST /v1/feedback returns 503 rather than silently dropping the ticket." },
+  { key: "SUPPORT_EMAIL", required: false, type: "string", default: "support@jonathanarvay.com", description: "Inbox that POST /v1/feedback delivers customer tickets to." },
+  { key: "FEEDBACK_MAX_PER_HOUR", required: false, type: "number", default: "5", description: "Feedback submissions allowed per network prefix per hour before POST /v1/feedback returns 429." },
   // OAuth login (web sign-in via GitHub / Google → HttpOnly axis_session cookie).
   // Optional so local dev and API-key-only deploys still boot; when a client_id is
   // set the matching secret must be too, or that provider's /v1/auth/* returns 503.

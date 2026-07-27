@@ -105,6 +105,7 @@ import {
   handleTrackAnalyticsEvent,
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
+import { handleFeedback } from "./feedback.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
 import { getPaymentFunnelStats, getSettledRevenue } from "@axis/snapshots";
 import { buildOpenApiSpec } from "./openapi.js";
@@ -306,6 +307,10 @@ router.get("/continuation.yaml", handleContinuationYaml);
 // Agent onboarding — machine-readable manifest + install configs
 router.get("/for-agents", handleForAgents);
 router.post("/probe-intent", handleProbeIntent);
+// Public feedback / support ticket intake — no auth, so a customer blocked by
+// a sign-in bug can still report it, and an agent can file a structured report
+// about a tool call that misbehaved.
+router.post("/v1/feedback", handleFeedback);
 router.get("/v1/install", handleInstall);
 router.get("/v1/install/:platform", handleInstall);
 

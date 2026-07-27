@@ -1201,6 +1201,35 @@ export async function probeIntent(intent: string, focusAreas?: string[]): Promis
   });
 }
 
+// ─── Feedback / support tickets ─────────────────────────────────
+
+export type FeedbackCategory = "bug" | "feature" | "praise" | "question" | "other";
+
+export interface FeedbackInput {
+  message: string;
+  email?: string;
+  category?: FeedbackCategory;
+  rating?: number;
+  page?: string;
+}
+
+export interface FeedbackResponse {
+  ok: boolean;
+  ticket_id: string;
+  message: string;
+  beta_notice: string;
+}
+
+/** POST /v1/feedback — public, no auth. Delivers a support ticket by email.
+ *  Sent with credentials so a signed-in customer's ticket carries their
+ *  account and tier without them having to type it. */
+export async function submitFeedback(input: FeedbackInput): Promise<FeedbackResponse> {
+  return fetchJSON("/v1/feedback", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 // ─── OpenAPI spec ───────────────────────────────────────────────
 
 export interface OpenApiSpec {

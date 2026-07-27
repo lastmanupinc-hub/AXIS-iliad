@@ -3060,6 +3060,7 @@ When integrating with Axis' Iliad as an LLM agent:
 - Use GET /.well-known/axis.json for machine-readable capability discovery, not the OpenAPI spec.
 - Use POST /probe-intent with {intent: "your need"} for lightweight intent matching (free, no auth).
 - Always check the adoption_hint field on returned artifacts to know where to place each file.
+- If a tool behaves unexpectedly, report it: POST /v1/feedback with {message, category, email?} (free, no auth, 5/hour per network). Categories: bug, feature, question, praise, other. The response returns a ticket_id. Axis' Iliad is in beta and agent-filed reports are used directly to harden the platform — a precise report is more useful than a silent retry loop.
 
 ## MCP Response Envelope
 
@@ -3178,6 +3179,7 @@ export function handleSitemapXml(
     { loc: "/for-agents",                     changefreq: "weekly",  priority: "0.9" },
     { loc: "/mcp",                            changefreq: "weekly",  priority: "0.9" },
     { loc: "/pricing",                        changefreq: "weekly",  priority: "0.8" },
+    { loc: "/feedback",                       changefreq: "monthly", priority: "0.7" },
     { loc: "/llms.txt",                       changefreq: "monthly", priority: "0.8" },
     { loc: "/robots.txt",                     changefreq: "monthly", priority: "0.5" },
     { loc: "/v1/docs",                        changefreq: "weekly",  priority: "0.9" },
@@ -3597,6 +3599,20 @@ export function handleForAgents(
       status_tools: ["get_referral_code", "get_referral_credits"],
     },
     purpose: `Codebase intelligence API. Analyzes any repo, generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.`,
+    // Agents are first-class reporters here, not just consumers: a tool that
+    // misbehaves is most cheaply diagnosed by the agent that hit it, while it
+    // still holds the failing request. Free and unauthenticated so a caller
+    // blocked by an auth or billing bug can still report that exact bug.
+    feedback: {
+      endpoint: `POST ${AXIS_API_BASE}/v1/feedback`,
+      auth: "none",
+      price: "free",
+      body: { message: "string (required, 10-5000 chars)", category: "bug | feature | question | praise | other", email: "string (optional, for a reply)", rating: "integer 1-5 (optional)" },
+      returns: { ticket_id: "string", ok: "boolean" },
+      rate_limit: "5 per hour per network prefix",
+      web_form: "https://iliad.trustfabric.ai/feedback",
+      beta_notice: "Axis' Iliad is in beta. Reports filed here are used directly to harden the platform.",
+    },
     install: {
       mcp_endpoint: `${AXIS_API_BASE}/mcp`,
       transport: "Streamable HTTP (2025-03-26 spec)",

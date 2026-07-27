@@ -1672,6 +1672,31 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/feedback": {
+        post: {
+          summary: "Submit customer feedback or a support ticket — public, no auth. Agents are first-class reporters: file a structured report when a tool call misbehaves.",
+          operationId: "submitFeedback",
+          tags: ["Discovery"],
+          requestBody: jsonBody({
+            type: "object",
+            required: ["message"],
+            properties: {
+              message: { type: "string", minLength: 10, maxLength: 5000, description: "What happened — what you expected and what actually occurred. Exact error text is the most useful thing you can include." },
+              category: { type: "string", enum: ["bug", "feature", "question", "praise", "other"], description: "Defaults to 'other' when omitted — never inferred from the message." },
+              email: { type: "string", description: "Optional reply address. Omit to report anonymously; the ticket is still delivered, it just can't be answered." },
+              rating: { type: "integer", minimum: 1, maximum: 5, description: "Optional 1-5 experience rating." },
+              page: { type: "string", description: "Optional context — the page or surface the report is about." },
+            },
+          }),
+          responses: {
+            200: { description: "Ticket delivered to the support inbox. Returns ticket_id for follow-up." },
+            400: { description: "Validation failed — the response names the offending field." },
+            429: { description: "Too many submissions from this network (5/hour). Response carries the direct support address as an alternative." },
+            502: { description: "Email provider rejected or was unreachable — the ticket was NOT delivered; use the fallback_email in the response." },
+            503: { description: "Email delivery is not configured on this server — the ticket was NOT delivered; use the fallback_email in the response." },
+          },
+        },
+      },
     },
     components: {
       securitySchemes: {

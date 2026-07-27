@@ -121,6 +121,18 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
+      # Verified Resend sender. Both this AND RESEND_API_KEY must be present or
+      # readEmailConfigFromEnv() returns null and every send path degrades —
+      # feedback tickets 503, iliad_transactional_email reports _not_configured.
+      # It was previously set by hand in the dashboard only, which the Blueprint
+      # would not preserve; pinning it here makes email delivery durable.
+      - key: RESEND_FROM_ADDRESS
+        value: axis@trustfabric.ai
+      # Where customer feedback / support tickets are delivered (POST /v1/feedback).
+      # Matches the address already published across the Help, Plans, Q&A, Terms
+      # and Usage pages, so customers never see two different support addresses.
+      - key: SUPPORT_EMAIL
+        value: support@jonathanarvay.com
     disk:
       name: axis-data
       mountPath: /data
