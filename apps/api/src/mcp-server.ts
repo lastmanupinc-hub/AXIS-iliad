@@ -886,7 +886,14 @@ export function getMcpServerMeta(): Record<string, unknown> {
       },
       llms_txt: "https://axis-api-6c7z.onrender.com/llms.txt",
       well_known: "https://axis-api-6c7z.onrender.com/.well-known/axis.json",
-      openapi: "https://axis-api-6c7z.onrender.com/v1/openapi",
+      // /openapi.json, NOT /v1/openapi — the latter was advertised here for
+      // some time and 404s (the router is exact-match, and no such route is
+      // registered). Registry crawlers and agents following _meta.openapi hit
+      // a dead URL. Corrected rather than aliased: adding a route would bump
+      // ENDPOINT_COUNT and cascade through six count-guarded files to publish
+      // a second name for a spec that already has one. Every other URL in this
+      // block was probed live at the same time and resolves.
+      openapi: "https://axis-api-6c7z.onrender.com/openapi.json",
       docs: "https://axis-api-6c7z.onrender.com/v1/docs.md",
     },
   };

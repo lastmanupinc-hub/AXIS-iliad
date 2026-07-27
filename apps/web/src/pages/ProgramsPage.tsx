@@ -7,10 +7,22 @@ interface ProgramDef {
   name: string;
   tier: "free" | "pro";
   tagline: string;
+  /** Search terms this program serves. Marketing copy — free to phrase for SEO. */
   keywords: string[];
+  /**
+   * The files this program ACTUALLY emits. A product claim, not copy: these are
+   * generated from `packages/generator-core`'s program manifest and must never
+   * be hand-edited. They were hand-typed once and drifted badly — 37 of the 97
+   * listed filenames had no generator behind them, and the free `skills` list
+   * was entirely fictional (Phase T finding, 2026-07-27). `programs-outputs`
+   * in count-honesty.test.ts now fails CI if this list and the manifest diverge.
+   */
   outputs: string[];
   cta: string;
 }
+
+/** Output pills shown per card before collapsing to "+N more" (mcp emits 19). */
+const OUTPUT_PREVIEW = 5;
 
 const PROGRAMS: ProgramDef[] = [
   // ── Free tier ─────────────────────────────────────────────────
@@ -21,7 +33,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI codebase analysis & context graph",
     keywords: ["AI codebase analyzer", "repo context map", "AGENTS.md generator", "CLAUDE.md generator", ".cursorrules generator", "architecture summary"],
-    outputs: ["AGENTS.md", "CLAUDE.md", ".cursorrules", ".ai/context-map.json", "architecture-summary.md", ".ai/repo-profile.yaml"],
+    outputs: ["context-map.json", "repo-profile.yaml", "architecture-summary.md", "dependency-hotspots.md", "symbol-index.json", "repo-run-stats.json"],
     cta: "Generate your context graph",
   },
   {
@@ -31,7 +43,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI governance files for every coding assistant",
     keywords: ["GitHub Copilot instructions", "Cursor rules generator", "Claude Code context", "AI coding assistant setup", "developer AI skills file"],
-    outputs: ["copilot-instructions.md", "cursor-rules.md", "windsurf-rules.md", "aider-conventions.md", "ai-onboarding.md"],
+    outputs: ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md", "model-cascade.md"],
     cta: "Generate AI governance files",
   },
   {
@@ -41,7 +53,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI-powered debug playbooks from your dependency graph",
     keywords: ["AI debug playbook generator", "dependency hotspot analyzer", "incident template generator", "tracing rules", "code bug analyzer"],
-    outputs: [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "dependency-hotspots.md"],
+    outputs: ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
     cta: "Generate debug playbooks",
   },
   // ── Pro tier ──────────────────────────────────────────────────
@@ -52,7 +64,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI frontend rules, component guidelines & CSS scaffolding",
     keywords: ["AI frontend rules generator", "React component guidelines", "Vue component generator", "CSS architecture generator", "frontend AI context"],
-    outputs: [".ai/frontend-rules.md", "component-guidelines.md", "state-management-guide.md", "accessibility-checklist.md"],
+    outputs: ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
     cta: "Generate frontend rules",
   },
   {
@@ -62,7 +74,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Technical SEO rules, schema.org markup & sitemap strategy",
     keywords: ["technical SEO generator", "schema.org markup generator", "ContactPage schema", "SEO rules for Next.js", "structured data generator", "sitemap strategy"],
-    outputs: [".ai/seo-rules.md", "schema-recommendations.md", "sitemap-strategy.md", "robots-config.md", "og-template.md"],
+    outputs: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json"],
     cta: "Generate SEO rules",
   },
   {
@@ -72,7 +84,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI token budget planner, prompt optimization & cost analysis",
     keywords: ["AI token budget planner", "prompt optimization tool", "context window optimizer", "reduce AI API costs", "prompt diff report"],
-    outputs: [".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
+    outputs: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
     cta: "Optimize your prompts",
   },
   {
@@ -82,7 +94,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "CSS design system, design tokens & dark mode theme generator",
     keywords: ["CSS design system generator", "design token generator", "dark mode theme", "AI-generated CSS variables", "component CSS stubs", "brand color system"],
-    outputs: ["theme.css", "design-tokens.json", "color-palette.md", "typography-scale.md", "component-styles.md"],
+    outputs: ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
     cta: "Generate your design system",
   },
   {
@@ -92,7 +104,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Brand guidelines, messaging system & channel rulebook",
     keywords: ["developer brand guidelines generator", "messaging system generator", "channel rulebook", "brand voice SaaS", "startup brand identity", "developer marketing copy"],
-    outputs: ["brand-guidelines.md", "messaging-system.md", "channel-rulebook.md", "tone-of-voice.md", "brand-positioning.md"],
+    outputs: ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
     cta: "Generate brand guidelines",
   },
   {
@@ -102,7 +114,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI refactoring checklists, test generation rules & workflow registry",
     keywords: ["AI refactoring checklist", "test generation rules", "automation pipeline generator", "workflow registry AI", "developer superpowers AI"],
-    outputs: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"],
+    outputs: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml", "verify.sh", "verify-full.sh", ".githooks/pre-push"],
     cta: "Unlock your superpowers",
   },
   {
@@ -112,7 +124,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Developer marketing automation — campaigns, funnels, CRO playbooks",
     keywords: ["developer marketing automation", "SaaS conversion funnel generator", "CRO playbook generator", "email sequence for developers", "startup marketing AI"],
-    outputs: ["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md", "channel-strategy.md"],
+    outputs: ["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md", "ab-test-plan.md"],
     cta: "Generate marketing assets",
   },
   {
@@ -132,7 +144,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Obsidian vault generator for developer knowledge bases",
     keywords: ["Obsidian vault for developers", "PKM for coding", "developer knowledge graph", "dev research notebook Obsidian", "vault rules generator", "graph prompt map"],
-    outputs: ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.md", "linking-policy.md", "template-pack.md"],
+    outputs: ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md", "template-pack.md"],
     cta: "Generate your Obsidian vault",
   },
   {
@@ -142,7 +154,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Model Context Protocol config, connector map & tool manifest",
     keywords: ["Model Context Protocol generator", "MCP server setup", "MCP config generator", "AI tool connector map", "LLM resource map", "MCP tool manifest"],
-    outputs: ["mcp-config.json", "connector-map.md", "tool-manifest.md", "context-bridge.md"],
+    outputs: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "mcp/fintech-mcp-surface-package.md", "mcp/fintech-domain-schema.yaml", "server-manifest.yaml"],
     cta: "Generate your MCP config",
   },
   {
@@ -152,7 +164,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Component library, dashboard widgets & embeddable snippets",
     keywords: ["component library generator", "dashboard widget code generator", "embed snippet generator", "artifact spec from schema", "React component from model", "Vue SFC generator"],
-    outputs: ["component.tsx", "dashboard-widget.tsx", "embed-snippet.js", "artifact-spec.md", "component-library.md"],
+    outputs: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json", "prd.md", "design.md", "tasks.md", "context.md", "index.html", "capability-map.yaml"],
     cta: "Generate artifacts",
   },
   {
@@ -172,7 +184,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Visual architecture canvas, planning board & dev workflow maps",
     keywords: ["developer planning canvas", "visual architecture canvas", "AI canvas for engineers", "codebase visual map", "architecture diagram generator"],
-    outputs: ["canvas-pack.md", "architecture-canvas.md", "flow-diagram.md", "planning-board.md", "system-map.md"],
+    outputs: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
     cta: "Generate your canvas",
   },
   {
@@ -182,7 +194,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Generative art, parameter packs & variation matrices from code",
     keywords: ["generative code art", "parameter pack generator", "variation matrix AI", "algorithmic design system", "generative sketch from codebase", "export manifest generator"],
-    outputs: ["generative-sketch.js", "parameter-pack.json", "collection-map.md", "export-manifest.json", "variation-matrix.md"],
+    outputs: ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
     cta: "Generate algorithmic artifacts",
   },
   {
@@ -192,7 +204,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Autonomous checkout hardening with AP2, dispute evidence, and policy controls",
     keywords: ["agentic purchasing readiness", "autonomous checkout", "AP2 compliance", "Visa Intelligent Commerce", "negotiation rules", "commerce registry"],
-    outputs: ["agent-purchasing-playbook.md", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json", "product-schema.json"],
+    outputs: ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json", "ap2-interop-samples.json"],
     cta: "Generate purchasing controls",
   },
   {
@@ -202,7 +214,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Ship-ready packaging artifacts for distribution, launch, and marketplace readiness",
     keywords: ["product packaging", "launch checklist", "distribution manifest", "marketplace readiness", "go to market artifacts"],
-    outputs: ["DISTRIBUTABLE.md", "packaging-report.md", "launch-checklist.md", "launch-content.md", "AXIS_Board_Pitch.md"],
+    outputs: ["packaging/README.md", "packaging/LICENSE", "Dockerfile", "docker-compose.yml", ".github/workflows/ci.yml", ".github/workflows/release.yml", "packaging/manifests/npm-package.json", "packaging/manifests/unreal.uplugin", "packaging/manifests/vscode-extension.json", "packaging/manifests/dockerhub-repository.md", "packaging/manifests/github-marketplace-listing.md", "packaging/trust-fabric/attestation.json", "packaging/trust-fabric/merkle-proof.json", "packaging-report.md", "DISTRIBUTABLE.md", "Makefile"],
     cta: "Generate ship-ready package",
   },
   {
@@ -212,7 +224,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Production deploy scaffolding for Docker, Render, and Cloudflare — one command to ship",
     keywords: ["deployment config generator", "Dockerfile generator", "render.yaml", "Cloudflare Workers deploy", "CI deploy pipeline"],
-    outputs: ["deploy/Dockerfile", "deploy/render.yaml", "deploy/deploy.sh", "deploy/worker.ts", "deploy-qualification-report.md"],
+    outputs: ["deploy/Dockerfile", "deploy/Dockerfile.dockerignore", "deploy/docker-compose.dev.yml", "deploy/render.yaml", "deploy/deploy.sh", "deploy/deploy.ps1", "deploy/vscode-launch.json.template", "deploy/wrangler.pages.toml", "deploy/wrangler.containers.toml", "deploy/worker.ts", "deploy/deploy-cloudflare.sh", "deploy/deploy-cloudflare.ps1", "deploy/deploy-qualification-report.md"],
     cta: "Generate deploy config",
   },
 ];
@@ -326,9 +338,14 @@ function ProgramCard({ program, onAnalyze }: { program: ProgramDef; onAnalyze: (
       </div>
       <p className="program-card-tagline">{program.tagline}</p>
       <div className="program-card-outputs">
-        {program.outputs.map((o) => (
+        {program.outputs.slice(0, OUTPUT_PREVIEW).map((o) => (
           <code key={o} className="program-output-pill">{o}</code>
         ))}
+        {program.outputs.length > OUTPUT_PREVIEW && (
+          <span className="program-output-pill text-muted">
+            +{program.outputs.length - OUTPUT_PREVIEW} more
+          </span>
+        )}
       </div>
       <div className="program-card-keywords">
         {program.keywords.slice(0, 3).map((k) => (

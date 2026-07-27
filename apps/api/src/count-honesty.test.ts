@@ -383,3 +383,76 @@ describe("pinned program totals in leaf packages match TOTAL_PROGRAMS (WO-F5)", 
     for (const m of rows) expect(Number(m[1])).toBe(TOTAL_PROGRAMS);
   });
 });
+
+// ─── Programs-page output lists (Phase T finding, 2026-07-27) ────
+//
+// The guards above pin scalar COUNTS. Nothing pinned the per-program filename
+// LISTS, and ProgramsPage.tsx hand-typed them — so they drifted until 37 of
+// the 97 advertised filenames had no generator behind them at all. The free
+// `skills` program was the worst case: all five advertised names were
+// fictional (`copilot-instructions.md`, `cursor-rules.md`, `windsurf-rules.md`,
+// `aider-conventions.md`, `ai-onboarding.md`) while the generator actually
+// emits AGENTS.md / CLAUDE.md / .cursorrules / workflow-pack.md /
+// policy-pack.md / model-cascade.md — zero overlap, on the tier a new customer
+// sees first.
+//
+// `outputs` is a product claim ("this is what you get"), unlike the sibling
+// `keywords` field which is marketing copy and is deliberately NOT checked
+// here. This suite makes the claim un-driftable.
+
+describe("ProgramsPage output lists match the generator manifest", () => {
+  /** Filenames each program really emits, grouped from the single source of truth. */
+  function realOutputsByProgram(): Record<string, string[]> {
+    const byProgram: Record<string, string[]> = {};
+    for (const [file, program] of Object.entries(GENERATOR_PROGRAMS)) {
+      (byProgram[program] ||= []).push(file);
+    }
+    return byProgram;
+  }
+
+  /** Parse `id: "x", … outputs: [...]` pairs straight out of the page source. */
+  function pageOutputsByProgram(): Record<string, string[]> {
+    const src = readFileSync(join(ROOT, "apps", "web", "src", "pages", "ProgramsPage.tsx"), "utf8");
+    const out: Record<string, string[]> = {};
+    // Non-greedy across the block so each id binds to its OWN outputs array.
+    for (const m of src.matchAll(/id:\s*"([a-z-]+)",[\s\S]*?outputs:\s*\[([^\]]*)\]/g)) {
+      const [, id, body] = m;
+      out[id] = [...body.matchAll(/"([^"]+)"/g)].map((f) => f[1]);
+    }
+    return out;
+  }
+
+  it("advertises every program that exists, and no program that doesn't", () => {
+    const real = realOutputsByProgram();
+    const page = pageOutputsByProgram();
+    expect(Object.keys(page).sort()).toEqual(Object.keys(real).sort());
+  });
+
+  it("advertises no filename that no generator produces", () => {
+    const real = realOutputsByProgram();
+    const page = pageOutputsByProgram();
+    const fictional: string[] = [];
+    for (const [program, files] of Object.entries(page)) {
+      for (const f of files) {
+        if (!real[program]?.includes(f)) fictional.push(`${program}: ${f}`);
+      }
+    }
+    expect(fictional, `Programs page advertises filenames no generator emits:\n${fictional.join("\n")}`).toEqual([]);
+  });
+
+  it("lists each program's outputs exactly, in manifest order", () => {
+    const real = realOutputsByProgram();
+    const page = pageOutputsByProgram();
+    for (const [program, files] of Object.entries(real)) {
+      expect(page[program], `program "${program}"`).toEqual(files);
+    }
+  });
+
+  it("every advertised filename is a real generator key (cross-check against the flat registry)", () => {
+    const allRealFiles = new Set(Object.keys(GENERATOR_PROGRAMS));
+    const page = pageOutputsByProgram();
+    for (const files of Object.values(page)) {
+      for (const f of files) expect(allRealFiles.has(f), `unknown generator output "${f}"`).toBe(true);
+    }
+  });
+});

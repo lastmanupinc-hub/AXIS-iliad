@@ -30,15 +30,26 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done · 🚧 blocked
 | C3 | (later) per-program differential pricing | ⬜ | premature until C2 yields conversion data; today flat 50¢/15¢ |
 
 ### External tasks (owner does these — see SETUP_PAID_STRIPE_MCP.md)
+
+> **Reconciled against live production 2026-07-27 (Phase T, ROI 0.4).** This board had gone
+> stale in the *pessimistic* direction — it showed the whole revenue path as not-started while
+> production was already serving payments, which made it useless for deciding anything. Status
+> below is what a live probe actually proves, and nothing more.
+
 | # | Track | Status | Blocks |
 |---|---|---|---|
-| E-A | Stripe products/prices + webhook | ⬜ | first dollar |
-| E-B | PAI'D merchant live + 2 secrets | ⬜ | first dollar |
-| E-C | Render env + redeploy | ⬜ | first dollar (prod lags `main`) |
-| E-D1 | npm publish `iliad-md` | ⬜ | funnel top |
-| E-D2 | MCP registry publish | ⬜ | agent discovery |
-| E-D3 | Glama + Smithery | ⬜ | discovery |
-| E-D4 | GitHub App + Marketplace Action | ⬜ | 2nd funnel |
+| E-A | Stripe products/prices + webhook | 🔄 **partly verified** | `GET /v1/health/ready` → `payment_rail: "live"`, which proves `STRIPE_SECRET_KEY` is a **live-mode** key (the status is derived from the `sk_live_`/`rk_live_` prefix). It does **not** prove products, prices, or `STRIPE_WEBHOOK_SECRET` are configured — those are dashboard state no external probe can see. |
+| E-B | PAI'D merchant live + 2 secrets | ✅ **verified live** | `GET /portal/api/paid/config` → `{"configured":true}`, and that predicate requires base URL **AND** merchant/account id **AND** `PAID_API_KEY` all present (`packages/paid-client/src/index.ts:67-73`). |
+| E-C | Render env + redeploy | ✅ **verified live** | Both probes above answer from production, so the service is deployed with its env populated. |
+| E-D1 | npm publish `iliad-md` | ⬜ | funnel top. Confirmed still unpublished — **no `npm publish` step exists in any workflow, script, or the Makefile** (Phase T). |
+| E-D2 | MCP registry publish | ⬜ | agent discovery. Do ROI 0.2 first — the advertised OpenAPI URL was 404ing until this sweep. |
+| E-D3 | Glama + Smithery | ⬜ | discovery. Note `Dockerfile.glama` is broken (copies 4 workspace packages; the API needs 8) while the live listing advertises self-hosting from it. |
+| E-D4 | GitHub App + Marketplace Action | ⬜ | 2nd funnel. **HOLD** per repo law rule 11. |
+
+**What this reconciliation does NOT resolve:** the platform still cannot bill **recurring** revenue —
+PAI'D's checkout is one-time-charge only (`mode: "payment"`; it 501s on `mode: "subscription"`), so
+every "monthly" subscriber pays once and keeps the tier. That is the largest revenue gap and it is
+`gated(external)` on PAI'D's roadmap, not on anything in this board. See ROI 1.1.
 
 ---
 

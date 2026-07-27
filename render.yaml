@@ -115,6 +115,17 @@ services:
       # ─── Proxied Tool Integrations (Phase 1+) ─────────────────
       - key: FIRECRAWL_API_KEY
         sync: false
+      # ⚠ DECLARED BUT NEVER READ (Phase T finding, 2026-07-27). Neither key has
+      # any consuming code path in apps/api/src — REPLICATE_API_TOKEN appears
+      # only in env.ts's spec and inside generator TEMPLATE strings (detection
+      # lists describing OTHER people's repos, not calls this service makes),
+      # and FASTIO_API_KEY appears in exactly one place, the env spec. They are
+      # kept here rather than deleted because removing provisioned production
+      # credentials is an owner decision (tracked as P8 in
+      # docs/CONFIDENCE_REPORT.md), not a cleanup call to make unilaterally.
+      # If neither integration is planned, drop both keys AND clear the values
+      # in the Render dashboard — an unread secret is attack surface, not
+      # optionality.
       - key: REPLICATE_API_TOKEN
         sync: false
       - key: FASTIO_API_KEY
