@@ -153,7 +153,12 @@ everywhere: capabilities that don't work say so, in the catalog, to the caller.
 **What it is not:** finished, converged, or fully observable. Specifically —
 
 - It **cannot bill recurring revenue** and does not claim to internally, though marketing copy reads
-  as monthly.
+  as monthly. **Corrected 2026-07-27:** this was recorded as blocked on PAI'D. It is not. PAI'D's
+  live public OpenAPI declares a full subscription resource (`POST /v1/plans`, `POST
+  /v1/subscriptions`, pause/resume/cancel, `billing_cycles`), all `200`; Iliad integrates none of
+  it and its only `/v1/subscriptions` calls go to Stripe. The largest revenue gap in the platform
+  is our own unbuilt integration, gated on two owner decisions (create the plans; decide what
+  happens to customers who already paid once and hold their tier permanently). See ROI 1.1.
 - It has **no alerting**.
 - Its public Programs page **advertises files that do not exist**.
 - A meaningful share of the MCP catalog is **`gated(owner)` on infrastructure the host cannot

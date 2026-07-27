@@ -83,7 +83,7 @@ assumed working. That distinction is load-bearing: on 2026-07-26 a dashboard-onl
 | Rail | Status | Evidence |
 |---|---|---|
 | **PAI'D hosted checkout** | `shipped` | `packages/paid-client/src/index.ts:274-306`; live probe `payment_rail: live` |
-| ↳ **one-time charges only** | constraint | `index.ts:270-288` — PAI'D 501s on `mode: "subscription"`. **No recurring billing exists.** See ROI 1.1 |
+| ↳ **one-time charges only** | constraint — **but self-imposed as of 2026-07-27** | `index.ts:270-288` sends `mode: "payment"` because PAI'D 501s on `mode: "subscription"`. That is still true of *that endpoint*, but it is no longer the whole story: PAI'D's live public OpenAPI declares a separate subscription resource (`POST /v1/plans`, `POST /v1/subscriptions`, `/subscriptions/{id}/{cancel,pause,resume,generate_cycle}`, `/v1/billing_cycles`), all `200`. **Iliad integrates none of it** — its only `/v1/subscriptions` calls go to Stripe (`stripe.ts:277,618`). So "no recurring billing" is now an Iliad gap, not a PAI'D one. See ROI 1.1 |
 | ↳ PAI'D subscription webhooks | dead code | `paid-handlers.ts:229-237` — self-labeled *"currently DEAD IN PRODUCTION"*; nothing creates a PAI'D subscription |
 | Stripe webhook receiver + subscription cancel | `gated(owner)` | `stripe.ts:463-534`; keys `sync: false` |
 | ↳ Stripe checkout **creation** | deliberately removed | `stripe.ts:536-550` — *"PAI'D is the ONLY checkout … never resurrect this endpoint"* |
