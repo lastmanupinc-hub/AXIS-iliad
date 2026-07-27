@@ -35,7 +35,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       full: ${{ steps.affected.outputs.full }}
-      pnpm_filter: ${{ steps.affected.outputs.pnpm_filter }}
       packages: ${{ steps.affected.outputs.packages }}
     steps:
       - uses: actions/checkout@v5
@@ -75,7 +74,6 @@ jobs:
     uses: ./.github/workflows/reusable-test-suite.yml
     with:
       full: ${{ needs.determine-affected.outputs.full == 'true' }}
-      pnpm_filter: ${{ needs.determine-affected.outputs.pnpm_filter }}
       packages: ${{ needs.determine-affected.outputs.packages }}
 
   docker-build:

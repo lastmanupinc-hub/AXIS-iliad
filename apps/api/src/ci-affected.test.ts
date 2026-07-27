@@ -9,7 +9,6 @@ import {
   needsFullRegression,
   parseAffectedPackagePaths,
   resolveAffected,
-  buildPnpmFilter,
 } from "../../../scripts/ci-affected.mjs";
 
 describe("isSafeRootFile / needsFullRegression", () => {
@@ -159,16 +158,7 @@ describe("resolveAffected", () => {
   });
 });
 
-describe("buildPnpmFilter", () => {
-  it("is empty when full", () => {
-    expect(buildPnpmFilter({ full: true, base: "abc123", packages: ["apps/api"] })).toBe("");
-  });
-
-  it("is empty when narrow but nothing is affected", () => {
-    expect(buildPnpmFilter({ full: false, base: "abc123", packages: [] })).toBe("");
-  });
-
-  it("reuses the exact base ref already used to compute the package list", () => {
-    expect(buildPnpmFilter({ full: false, base: "abc123", packages: ["apps/api"] })).toBe('--filter "...[abc123]"');
-  });
-});
+// The buildPnpmFilter suite that lived here is gone with the function: a
+// filtered BUILD left workspace dependencies unbuilt, so dependents failed
+// typecheck on missing dist/*.d.ts. Build and typecheck now always run full;
+// only the vitest run is narrowed, via `packages` (covered above).

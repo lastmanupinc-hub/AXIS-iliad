@@ -12,10 +12,6 @@ on:
         description: "Run the full suite (coverage, Node 20+22 matrix) instead of an affected-only subset"
         type: boolean
         default: true
-      pnpm_filter:
-        description: 'pnpm --filter expression scoping build/typecheck, e.g. --filter "...[abc123]" (empty = every package)'
-        type: string
-        default: ""
       packages:
         description: "Space-separated package directories passed to vitest (empty + full=false means nothing changed — tests are skipped, not widened)"
         type: string
@@ -48,13 +44,10 @@ jobs:
           --health-retries 5
 
     steps:
-      # fetch-depth: 0 (full history) — not just for THIS job's own diffing (it
-      # does none), but because pnpm_filter can be a `--filter "...[ref]"`
-      # expression referencing a commit determine-affected already resolved.
-      # This job gets its own fresh checkout (job state doesn't carry over in
-      # Actions), so a shallow clone here would 404 on that same ref even
-      # though it resolved fine when determine-affected computed it — pnpm
-      # then fails hard (ERR_PNPM_FILTER_CHANGED: bad object), not silently.
+      # Full history: some suites shell out to git against real history (the
+      # secret-scan tooling diffs ranges, and repo-introspection tests read
+      # commits), and a shallow clone makes those fail in ways that look like
+      # product bugs rather than checkout config.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -74,8 +67,16 @@ jobs:
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
-      - name: Build (${{ inputs.full && 'full' || 'affected' }})
-        run: pnpm ${{ inputs.pnpm_filter }} -r build
+      - name: Build (always full)
+        # Full, even on a narrow run. A filtered build compiles only the
+        # changed packages, but `tsc` in a dependent package resolves its
+        # workspace imports through the DEPENDENCY's emitted dist/*.d.ts — so
+        # narrowing the build left @axis/snapshots unbuilt and every consumer
+        # failed typecheck with "Cannot find module '@axis/snapshots'". The
+        # savings were never here anyway: the Postgres-backed vitest suite
+        # dominates this job's wall-clock, and that is what the affected
+        # scoping below actually narrows.
+        run: pnpm -r build
 
       - name: Run tests (${{ inputs.full && 'full + coverage' || 'affected-only' }})
         env:

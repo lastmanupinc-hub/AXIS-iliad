@@ -9,7 +9,7 @@
 //   schedule): reports full=true unconditionally — there's nothing sane to
 //   diff against, so narrowing would be a guess, not a fact.
 //
-// Prints `full=`, `pnpm_filter=`, and `packages=` lines to stdout, and
+// Prints `full=` and `packages=` lines to stdout, and
 // appends the same to $GITHUB_OUTPUT when running in Actions.
 //
 // Fails SAFE: any internal error (bad ref, pnpm hiccup, malformed JSON)
@@ -143,25 +143,16 @@ export function resolveAffected(base, { changedFilesFn, affectedJsonFn, repoRoot
   return { full: false, base, packages, reason: `${packages.length} package(s) changed or depend on a changed package` };
 }
 
-/**
- * Build the `pnpm_filter` output value: empty when full (bare `pnpm -r`
- * already covers everything) or when nothing changed (nothing to filter to —
- * downstream `pnpm -r` steps become a correct, cheap no-op on zero packages);
- * otherwise the EXACT SAME `...[ref]` expression already used to compute the
- * package list, reused verbatim rather than reconstructed from individual
- * paths, so build/typecheck can never see a different affected set than the
- * one vitest was given.
- */
-export function buildPnpmFilter({ full, base, packages }) {
-  if (full || packages.length === 0) return "";
-  return `--filter "...[${base}]"`;
-}
-
 function writeOutputs(result) {
+  // Only `full` and `packages` are consumed. There was also a `pnpm_filter`
+  // output feeding a filtered build/typecheck; that is gone deliberately —
+  // narrowing the BUILD left workspace dependencies unbuilt, so dependents
+  // failed typecheck on missing dist/*.d.ts. Build and typecheck now always
+  // run full (cheap); only the Postgres-backed vitest run, which actually
+  // dominates CI wall-clock, is narrowed via `packages`.
   const lines = [
     `full=${result.full}`,
     `packages=${result.packages.join(" ")}`,
-    `pnpm_filter=${buildPnpmFilter(result)}`,
   ];
   for (const line of lines) console.log(line);
 
