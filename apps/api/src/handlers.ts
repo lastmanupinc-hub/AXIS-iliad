@@ -1023,8 +1023,13 @@ export async function handleGetGeneratedFile(
     return;
   }
 
-  // Return raw content with appropriate content-type
-  res.writeHead(200, { "Content-Type": file.content_type, "Access-Control-Allow-Origin": "*" });
+  // Return raw content with appropriate content-type. No
+  // Access-Control-Allow-Origin override here — writeHead's headers take
+  // precedence over the router's, and a wildcard origin alongside the
+  // router's Access-Control-Allow-Credentials: true is the pair browsers
+  // reject outright on a credentialed cross-origin request (same defect this
+  // endpoint shared with the export ZIP path).
+  res.writeHead(200, { "Content-Type": file.content_type });
   res.end(file.content);
 }
 

@@ -230,11 +230,21 @@ export async function handleExportZip(
     ? `axis-${programFilter}-${latest.snapshot_id.slice(0, 8)}.zip`
     : `axis-export-${latest.snapshot_id.slice(0, 8)}.zip`;
 
+  // NO Access-Control-Allow-Origin here. Node gives headers passed to
+  // writeHead precedence over ones already set via setHeader, so hardcoding
+  // "*" replaced the router's origin-specific value while its
+  // Access-Control-Allow-Credentials: true stayed — and a wildcard origin
+  // combined with credentials is exactly the pair browsers refuse. The web
+  // client fetches this endpoint with credentials:"include" (the HttpOnly
+  // axis_session cookie is the only credential once a legacy key has been
+  // migrated), so in production every cross-origin export was blocked by the
+  // browser AFTER a perfectly successful 200 — invisible in server logs,
+  // surfacing only as the client's "Export failed" toast. Letting the
+  // router's own CORS headers stand is the whole fix.
   res.writeHead(200, {
     "Content-Type": "application/zip",
     "Content-Disposition": `attachment; filename="${filename}"`,
     "Content-Length": zip.length,
-    "Access-Control-Allow-Origin": "*",
   });
   res.end(zip);
 }

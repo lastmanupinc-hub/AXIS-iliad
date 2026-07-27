@@ -654,3 +654,60 @@ describe("Export ZIP handler", () => {
     expect((agents.content.match(/<!-- axis:project-memory:end -->/g) ?? []).length).toBe(1);
   });
 });
+
+// ─── CORS contract for the download (live iPhone/desktop export bug) ────
+//
+// The export succeeded server-side (200, valid zip) and was then discarded by
+// the BROWSER: this handler hardcoded Access-Control-Allow-Origin: "*" in its
+// writeHead, Node gives writeHead's headers precedence over the router's
+// setHeader values, and the router sets Access-Control-Allow-Credentials:
+// true in production. Wildcard origin + credentials is the one combination
+// the CORS spec forbids, and downloadExport() fetches with
+// credentials:"include" (the HttpOnly axis_session cookie is the only
+// credential after legacy-key migration). Net effect: a perfect 200 in the
+// server logs, "Export failed" in the UI, nothing anywhere pointing at CORS.
+
+describe("export CORS contract", () => {
+  const REAL_ORIGIN = "https://iliad.trustfabric.ai";
+
+  async function exportWithOrigin(): Promise<RawRes> {
+    const prev = process.env.CORS_ORIGIN;
+    process.env.CORS_ORIGIN = REAL_ORIGIN; // production-shaped: specific origin, not "*"
+    try {
+      return await rawReq("GET", `/v1/projects/${projectId}/export`, { Origin: REAL_ORIGIN });
+    } finally {
+      if (prev === undefined) delete process.env.CORS_ORIGIN;
+      else process.env.CORS_ORIGIN = prev;
+    }
+  }
+
+  it("never returns a wildcard origin together with credentials (the pair browsers reject)", async () => {
+    const res = await exportWithOrigin();
+    expect(res.status).toBe(200);
+
+    const allowOrigin = res.headers["access-control-allow-origin"];
+    const allowCredentials = res.headers["access-control-allow-credentials"];
+
+    // This is the exact assertion the shipped bug failed.
+    if (allowCredentials === "true") {
+      expect(allowOrigin).not.toBe("*");
+    }
+    expect(allowOrigin).toBe(REAL_ORIGIN);
+  });
+
+  it("still delivers a real zip alongside the corrected CORS headers", async () => {
+    const res = await exportWithOrigin();
+    expect(res.headers["content-type"]).toBe("application/zip");
+    expect(res.headers["content-disposition"]).toMatch(/^attachment; filename="axis-export-.+\.zip"$/);
+    // Body is a genuine archive, not an error page that happened to 200.
+    expect(res.body.readUInt32LE(0)).toBe(0x04034b50);
+    expect(parseZip(res.body).length).toBeGreaterThan(0);
+  });
+
+  it("exposes Content-Disposition so a cross-origin fetch can read the real filename", async () => {
+    const res = await exportWithOrigin();
+    // Without this, res.headers.get("Content-Disposition") is null in the
+    // browser and every export saves as the generic fallback name.
+    expect(res.headers["access-control-expose-headers"]).toContain("Content-Disposition");
+  });
+});

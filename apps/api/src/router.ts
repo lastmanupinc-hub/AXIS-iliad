@@ -385,7 +385,10 @@ export function createApp(router: Router, port: number): Server {
     res.setHeader("Access-Control-Allow-Origin", corsOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PATCH, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Content-Encoding, Authorization, X-Agent-Budget, X-Agent-Mode, X-Axis-Key");
-    res.setHeader("Access-Control-Expose-Headers", "X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After, X-Request-Id");
+    // Content-Disposition is exposed because the export download reads it to
+    // recover the server's real filename; without it, a cross-origin fetch
+    // sees null and every export saves under the generic fallback name.
+    res.setHeader("Access-Control-Expose-Headers", "X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After, X-Request-Id, Content-Disposition");
     res.setHeader("Access-Control-Max-Age", "86400"); // cache preflight for 24h
     if (corsOrigin !== "*") {
       res.setHeader("Vary", "Origin");
