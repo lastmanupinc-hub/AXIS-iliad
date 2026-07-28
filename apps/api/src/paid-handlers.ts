@@ -474,6 +474,31 @@ export async function handlePaidWebhook(
     return;
   }
 
+  // Checkout that started and did not finish. No tier change is correct here —
+  // nobody paid — but silence is not, and that distinction has already cost us:
+  // PAI'D reported 3-D Secure as a card DECLINE for a period, making any card
+  // that needed authentication uncollectable, and two real $29 attempts failed
+  // without producing a single signal on our side. An abandoned checkout looked
+  // exactly like nobody trying. PAI'D has since fixed the 3DS bug (their
+  // 77f333c2 + 3ce3f675), so this is not a workaround for that — it is the
+  // missing instrument that would have surfaced it in days instead of weeks.
+  //
+  // Deliberately observability only: logged, never tier-changing, and read
+  // defensively because the checkout.session.* envelope shape is still open on
+  // TICKET-AXIS_TOOLBOX-checkout-webhook-envelope-20260727. Missing fields
+  // degrade to undefined rather than throwing on a live payment webhook.
+  if (eventType === "checkout.session.expired" || eventType === "checkout.session.abandoned") {
+    log("warn", "paid_checkout_not_completed", {
+      event: eventType,
+      session_id: obj.id ?? obj.session_id,
+      customer_email: obj.customer_email ?? obj.email,
+      amount_total_minor: obj.amount_total_minor ?? obj.amount,
+      currency: obj.currency,
+    });
+    sendJSON(res, 200, { received: true, event: eventType, handled: true, tier_change: false });
+    return;
+  }
+
   if (!HANDLED_PAID_EVENTS.has(eventType)) {
     sendJSON(res, 200, { received: true, event: eventType, handled: false });
     return;

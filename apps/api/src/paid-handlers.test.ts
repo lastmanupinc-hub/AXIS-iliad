@@ -769,3 +769,33 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
     expect((await getAccountByEmail("topup-tier@test.com"))?.tier).toBe("free");
   });
 });
+
+// A checkout that starts and never completes must be visible. PAI'D reported
+// 3DS as a card decline for a period, so two real $29 attempts failed with no
+// signal on our side — an abandoned checkout was indistinguishable from nobody
+// trying. These pin the signal, not a tier change: nobody paid, so no tier moves.
+describe("POST /portal/api/paid/webhook — incomplete checkout observability", () => {
+  for (const type of ["checkout.session.expired", "checkout.session.abandoned"]) {
+    it(`acknowledges ${type} without changing a tier`, async () => {
+      await createAccount("abandoned@test.com");
+      const body = JSON.stringify({
+        type,
+        data: { object: { id: "cs_abandoned", customer_email: "abandoned@test.com", amount_total_minor: 2900, currency: "usd" } },
+      });
+      const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+      expect(r.status).toBe(200);
+      expect(r.data.handled).toBe(true);
+      expect(r.data.tier_change).toBe(false);
+      expect((await getAccountByEmail("abandoned@test.com"))?.tier).toBe("free");
+    });
+  }
+
+  // The envelope for checkout.session.* is still an open question, so this path
+  // must not throw when the fields it logs are absent.
+  it("survives an incomplete-checkout event with no recognizable fields", async () => {
+    const body = JSON.stringify({ type: "checkout.session.expired", data: { object: {} } });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.handled).toBe(true);
+  });
+});
