@@ -81,6 +81,21 @@ const WAIVED_ROUTER_ONLY = new Set<string>([
   // Trailing-slash aliases of the documented /v1/accounts and /accounts.
   key("GET", "/v1/accounts/"),
   key("GET", "/accounts/"),
+  // Alternate spellings of the already-documented agent card, MCP server card
+  // and llms.txt, added from Render logs (2026-07-28) where one crawler took
+  // seven 404s walking discovery paths. Waived rather than documented for the
+  // same reason as the /mcp/.well-known/* block above: publishing every
+  // misspelling a crawler might try would imply they are distinct resources and
+  // invite clients to depend on a spelling we only tolerate. The canonical
+  // paths — /.well-known/agent.json, /.well-known/mcp.json, /llms.txt — stay
+  // the documented ones.
+  key("GET", "/.well-known/agents.json"),
+  key("GET", "/.well-known/agent-directory.json"),
+  key("GET", "/agent-directory.json"),
+  key("GET", "/mcp.json"),
+  key("GET", "/.well-known/mcp"),
+  key("GET", "/.well-known/mcp/server-card.json"),
+  key("GET", "/agents.txt"),
 ]);
 
 describe("OpenAPI ↔ router bijection (H8.5)", () => {

@@ -312,6 +312,16 @@ describe("buildOpenApiSpec", () => {
       "get /oauth/authorize", "post /oauth/token", "get /oauth/jwks", "post /oauth/introspect",
       // Portal bridge (server-rendered / internal PAI'D plumbing)
       "get /portal/api/paid/config", "post /portal/api/paid/webhook", "post /portal/api/subscribe",
+      // Alternate spellings of the documented agent card / MCP server card /
+      // llms.txt, added from Render logs (2026-07-28) where one crawler took
+      // seven 404s in a single discovery pass. Same handlers, same payloads —
+      // documenting each misspelling would imply they are distinct resources
+      // and invite clients to depend on a spelling we merely tolerate. The
+      // canonical /.well-known/agent.json, /.well-known/mcp.json and /llms.txt
+      // remain the documented ones.
+      "get /.well-known/agents.json", "get /.well-known/agent-directory.json", "get /agent-directory.json",
+      "get /mcp.json", "get /.well-known/mcp", "get /.well-known/mcp/server-card.json",
+      "get /agents.txt",
     ]);
 
     const serverRoutes: string[] = [];

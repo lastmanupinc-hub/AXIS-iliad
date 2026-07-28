@@ -257,6 +257,30 @@ router.get("/.well-known/x402.json", handleX402WellKnown);
 // Root-level discovery aliases probed by crawlers that skip the .well-known prefix
 router.get("/agents.json", handleAgentJson);
 
+// Aliases added from Render production logs (2026-07-28). A single agent
+// crawler walked ten discovery paths in one pass and took SEVEN 404s: it found
+// /agents.json, /.well-known/mcp.json and /llms.txt, and missed everything
+// below. Each 404 is a crawler that has our manifest sitting one path spelling
+// away and gives up instead — the cheapest possible discovery failure to fix.
+//
+// These are pure aliases: same handlers, same payloads, no new information.
+// Serving the content directly rather than 30x-redirecting because a crawler
+// that does not follow redirects still gets a usable answer, and there is no
+// canonical-URL cost on a JSON manifest.
+//
+// Singular/plural and directory spellings of the agent card.
+router.get("/.well-known/agents.json", handleAgentJson);
+router.get("/.well-known/agent-directory.json", handleAgentJson);
+router.get("/agent-directory.json", handleAgentJson);
+// MCP server card: we served /.well-known/mcp.json but not the bare-root or
+// server-card spellings the same crawler tried.
+router.get("/mcp.json", handleMcpServerJson);
+router.get("/.well-known/mcp", handleMcpServerJson);
+router.get("/.well-known/mcp/server-card.json", handleMcpServerJson);
+// agents.txt is not a standard — llms.txt is — but crawlers probe it as the
+// agent-flavoured spelling, so serve the same document rather than 404.
+router.get("/agents.txt", handleLlmsTxt);
+
 // MCP discovery under prefixed paths (for compatibility) — production logs
 // showed real crawler/client traffic hitting these exact paths, so they stay
 // even though (per the cycle 28 audit finding below) they are NOT the form

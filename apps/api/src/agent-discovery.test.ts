@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
+import { readFileSync } from "node:fs";
 import { resetTestDb, TIER_LIMITS } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { MCP_TOOL_COUNT } from "./counts.js";
@@ -905,5 +906,50 @@ describe("GET /v1/error-codes", () => {
     const envelope = data.envelope as { rest: string; mcp: string };
     expect(envelope.rest).toContain("error_code");
     expect(envelope.mcp).toContain("_error");
+  });
+});
+
+// Discovery-alias coverage. Render logs (2026-07-28) caught one agent crawler
+// walking ten paths in a single pass and taking SEVEN 404s — it found
+// /agents.json, /.well-known/mcp.json and /llms.txt and missed every other
+// spelling. A 404 there is a crawler that had our manifest one path-spelling
+// away and gave up, so these pin the aliases against silent removal.
+//
+// Asserted against server.ts as SOURCE rather than through the local test
+// router: this file registers its own route subset, so a request-level test
+// here would pass whether or not the real server registers anything. Parsing
+// the file is what actually proves production stopped 404-ing.
+describe("discovery aliases observed 404-ing in production", () => {
+  const serverSrc = readFileSync(new URL("./server.ts", import.meta.url), "utf-8");
+  const registers = (path: string, handler: string) =>
+    serverSrc.includes(`router.get(${JSON.stringify(path)}, ${handler})`);
+
+  const AGENT_CARD = ["/.well-known/agents.json", "/.well-known/agent-directory.json", "/agent-directory.json"];
+  const MCP_CARD = ["/mcp.json", "/.well-known/mcp", "/.well-known/mcp/server-card.json"];
+
+  it("serves every agent-card spelling the crawler tried", () => {
+    for (const p of AGENT_CARD) {
+      expect(registers(p, "handleAgentJson"), `${p} is not routed to handleAgentJson`).toBe(true);
+    }
+  });
+
+  it("serves every MCP server-card spelling the crawler tried", () => {
+    for (const p of MCP_CARD) {
+      expect(registers(p, "handleMcpServerJson"), `${p} is not routed to handleMcpServerJson`).toBe(true);
+    }
+  });
+
+  it("serves /agents.txt as the llms.txt document", () => {
+    // Not a standard — llms.txt is — but it is probed as the agent-flavoured
+    // spelling, so answer with the real document instead of a 404.
+    expect(registers("/agents.txt", "handleLlmsTxt")).toBe(true);
+  });
+
+  it("keeps the canonical paths that were already working", () => {
+    // The aliases are additive. If one of these regressed, the crawler's three
+    // successful probes would start failing too and the aliases would mask it.
+    expect(registers("/agents.json", "handleAgentJson")).toBe(true);
+    expect(registers("/.well-known/mcp.json", "handleMcpServerJson")).toBe(true);
+    expect(registers("/llms.txt", "handleLlmsTxt")).toBe(true);
   });
 });
