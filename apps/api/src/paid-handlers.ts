@@ -444,9 +444,19 @@ export async function handlePaidWebhook(
     return;
   }
 
+  // `data` IS the subject object. There is no Stripe-style `data.object`
+  // wrapper on any PAI'D event and there never has been
+  // (TICKET-AXIS_TOOLBOX-checkout-webhook-envelope-20260727, answered
+  // 2026-07-28, PAI'D @ 44a64e0f). This file read event.data.object.metadata
+  // until then, which resolved to undefined on every event — the credit-pack
+  // fulfilment below would have granted nothing while the charge succeeded.
+  // Money in, product not delivered. Our own fixtures hand-built
+  // data:{object:{...}}, so they asserted the wrong shape back at us and
+  // could never have caught it; only asking the provider did.
   let event: {
     type?: string;
-    data?: { object?: Record<string, unknown> };
+    data?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
   };
   try {
     event = JSON.parse(rawBody);
@@ -456,7 +466,7 @@ export async function handlePaidWebhook(
   }
 
   const eventType = event.type ?? "";
-  const obj = event.data?.object ?? {};
+  const obj = event.data ?? {};
 
   // Checked before the named-event allowlist below, and independent of it.
   // PAI'D's naming doesn't mirror Stripe verbatim (subscription.created has
@@ -504,7 +514,14 @@ export async function handlePaidWebhook(
     return;
   }
 
-  const meta = (obj.metadata ?? {}) as Record<string, unknown>;
+  // data.metadata is the rule on every path and every emitter — PAI'D's own
+  // words, after they found checkout.session.completed was being emitted from
+  // two paths with different payloads for the same event. The envelope-level
+  // fallback is their documented back-compat location on the hosted /pay path;
+  // they also retracted an earlier claim that top-level metadata is only
+  // "routing hints" (on that path it IS the session metadata). Both locations
+  // are documented by the provider — neither is a guess.
+  const meta = (obj.metadata ?? event.metadata ?? {}) as Record<string, unknown>;
 
   // Credit-pack top-up fulfilment — a one-shot purchase, not a tier change.
   // Grant the credits exactly once (markPurchaseSucceeded is idempotent on the

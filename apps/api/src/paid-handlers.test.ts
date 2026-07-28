@@ -280,19 +280,19 @@ describe("GET /portal/api/paid/config", () => {
 
 describe("POST /portal/api/paid/webhook", () => {
   it("rejects requests without signature", async () => {
-    const body = JSON.stringify({ type: "subscription.created", data: { object: {} } });
+    const body = JSON.stringify({ type: "subscription.created", data: {} });
     const r = await req("POST", "/portal/api/paid/webhook", body);
     expect(r.status).toBe(401);
   });
 
   it("rejects bad signature", async () => {
-    const body = JSON.stringify({ type: "subscription.created", data: { object: {} } });
+    const body = JSON.stringify({ type: "subscription.created", data: {} });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": "t=1,v1=badhex" });
     expect(r.status).toBe(401);
   });
 
   it("returns 200 + handled:false on unknown event", async () => {
-    const body = JSON.stringify({ type: "something.weird", data: { object: {} } });
+    const body = JSON.stringify({ type: "something.weird", data: {} });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(false);
@@ -302,7 +302,7 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("upgrade@test.com");
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "upgrade@test.com", id: "sub_up" } },
+      data: { customer_email: "upgrade@test.com", id: "sub_up" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -316,14 +316,14 @@ describe("POST /portal/api/paid/webhook", () => {
     // First upgrade
     const upBody = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "downgrade@test.com", id: "sub_dn" } },
+      data: { customer_email: "downgrade@test.com", id: "sub_dn" },
     });
     await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
     expect((await getAccountByEmail("downgrade@test.com"))?.tier).toBe("paid");
 
     const cancelBody = JSON.stringify({
       type: "subscription.canceled",
-      data: { object: { customer_email: "downgrade@test.com", id: "sub_dn" } },
+      data: { customer_email: "downgrade@test.com", id: "sub_dn" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
     expect(r.status).toBe(200);
@@ -338,13 +338,13 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("renew@test.com");
     const upBody = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "renew@test.com", id: "sub_rn" } },
+      data: { customer_email: "renew@test.com", id: "sub_rn" },
     });
     await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
 
     const body = JSON.stringify({
       type: "subscription.renewed",
-      data: { object: { customer_email: "renew@test.com", id: "sub_rn" } },
+      data: { customer_email: "renew@test.com", id: "sub_rn" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -360,14 +360,14 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("dunning@test.com");
     const upBody = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "dunning@test.com", id: "sub_df" } },
+      data: { customer_email: "dunning@test.com", id: "sub_df" },
     });
     await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
     expect((await getAccountByEmail("dunning@test.com"))?.tier).toBe("paid");
 
     const body = JSON.stringify({
       type: "subscription.payment_failed",
-      data: { object: { customer_email: "dunning@test.com", id: "sub_df" } },
+      data: { customer_email: "dunning@test.com", id: "sub_df" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -379,7 +379,7 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("noop@test.com");
     const body = JSON.stringify({
       type: "subscription.canceled",
-      data: { object: { customer_email: "noop@test.com", id: "sub_noop" } },
+      data: { customer_email: "noop@test.com", id: "sub_noop" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -390,7 +390,7 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("case-echo@test.com");
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "Case-Echo@Test.COM", id: "sub_case_up" } },
+      data: { customer_email: "Case-Echo@Test.COM", id: "sub_case_up" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -404,14 +404,14 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("Case-Cancel@Test.com");
     const upBody = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "case-cancel@test.com", id: "sub_case_dn" } },
+      data: { customer_email: "case-cancel@test.com", id: "sub_case_dn" },
     });
     await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
     expect((await getAccountByEmail("case-cancel@test.com"))?.tier).toBe("paid");
 
     const cancelBody = JSON.stringify({
       type: "subscription.canceled",
-      data: { object: { customer_email: "CASE-CANCEL@TEST.COM", id: "sub_case_dn" } },
+      data: { customer_email: "CASE-CANCEL@TEST.COM", id: "sub_case_dn" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
     expect(r.status).toBe(200);
@@ -424,7 +424,7 @@ describe("POST /portal/api/paid/webhook", () => {
     // stop retrying and strand a paid buyer on free — so we return a retryable 503.
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "ghost@test.com", id: "sub_g" } },
+      data: { customer_email: "ghost@test.com", id: "sub_g" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(503);
@@ -434,7 +434,7 @@ describe("POST /portal/api/paid/webhook", () => {
     await createAccount("idem-sub@test.com");
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "idem-sub@test.com", id: "sub_idem" } },
+      data: { customer_email: "idem-sub@test.com", id: "sub_idem" },
     });
     const first = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(first.status).toBe(200);
@@ -449,7 +449,7 @@ describe("POST /portal/api/paid/webhook", () => {
   it("rejects a stale signature timestamp with 401", async () => {
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "stale@test.com", id: "sub_stale" } },
+      data: { customer_email: "stale@test.com", id: "sub_stale" },
     });
     const stale = Math.floor(Date.now() / 1000) - 3600;
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body, stale) });
@@ -457,7 +457,7 @@ describe("POST /portal/api/paid/webhook", () => {
   });
 
   it("accepts a fresh signature timestamp within tolerance", async () => {
-    const body = JSON.stringify({ type: "something.weird", data: { object: {} } });
+    const body = JSON.stringify({ type: "something.weird", data: {} });
     const fresh = Math.floor(Date.now() / 1000) - 60;
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body, fresh) });
     expect(r.status).toBe(200);
@@ -468,11 +468,9 @@ describe("POST /portal/api/paid/webhook", () => {
     const body = JSON.stringify({
       type: "checkout.session.completed",
       data: {
-        object: {
           id: "cs_done",
           metadata: { user_email: "checkout-complete@test.com", plan_id: "starter", tier: "paid", kind: "subscription" },
         },
-      },
     });
     // PAI'D sends the canonical `Webhook-Signature` header (not the legacy paid-signature)
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
@@ -487,11 +485,9 @@ describe("POST /portal/api/paid/webhook", () => {
     const body = JSON.stringify({
       type: "checkout.session.completed",
       data: {
-        object: {
           id: "cs_g",
           metadata: { user_email: "checkout-growth@test.com", plan_id: "growth", tier: "suite", kind: "subscription" },
         },
-      },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -504,11 +500,9 @@ describe("POST /portal/api/paid/webhook", () => {
     const body = JSON.stringify({
       type: "checkout.session.completed",
       data: {
-        object: {
           id: "cs_pro",
           metadata: { user_email: "checkout-pro@test.com", plan_id: "pro", tier: "paid", kind: "subscription" },
         },
-      },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -521,11 +515,9 @@ describe("POST /portal/api/paid/webhook", () => {
     const starterBody = JSON.stringify({
       type: "checkout.session.completed",
       data: {
-        object: {
           id: "cs_st",
           metadata: { user_email: "checkout-starter-then-pro@test.com", plan_id: "starter", tier: "paid", kind: "subscription" },
         },
-      },
     });
     await req("POST", "/portal/api/paid/webhook", starterBody, { "Webhook-Signature": signPaid(starterBody) });
     expect(await getAccountPaidPlanId(account.account_id as string)).toBe("starter");
@@ -536,11 +528,9 @@ describe("POST /portal/api/paid/webhook", () => {
     const proBody = JSON.stringify({
       type: "checkout.session.completed",
       data: {
-        object: {
           id: "cs_st_to_pro",
           metadata: { user_email: "checkout-starter-then-pro@test.com", plan_id: "pro", tier: "paid", kind: "subscription" },
         },
-      },
     });
     const r = await req("POST", "/portal/api/paid/webhook", proBody, { "Webhook-Signature": signPaid(proBody) });
     expect(r.status).toBe(200);
@@ -554,18 +544,16 @@ describe("POST /portal/api/paid/webhook", () => {
     const proBody = JSON.stringify({
       type: "checkout.session.completed",
       data: {
-        object: {
           id: "cs_pro_cancel",
           metadata: { user_email: "checkout-pro-cancel@test.com", plan_id: "pro", tier: "paid", kind: "subscription" },
         },
-      },
     });
     await req("POST", "/portal/api/paid/webhook", proBody, { "Webhook-Signature": signPaid(proBody) });
     expect(await getAccountPaidPlanId(account.account_id as string)).toBe("pro");
 
     const cancelBody = JSON.stringify({
       type: "subscription.canceled",
-      data: { object: { customer_email: "checkout-pro-cancel@test.com", id: "sub_pro_cancel" } },
+      data: { customer_email: "checkout-pro-cancel@test.com", id: "sub_pro_cancel" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
     expect(r.status).toBe(200);
@@ -585,7 +573,7 @@ describe("POST /portal/api/paid/webhook — refund observability", () => {
   it("handles PAI'D's real 'payment_intent.refunded' event (not a silent no-op)", async () => {
     const body = JSON.stringify({
       type: "payment_intent.refunded",
-      data: { object: { id: "pi_paid_refund", payment_intent: "pi_paid_refund", customer_email: "refund@test.com", amount_refunded: 900, currency: "usd" } },
+      data: { id: "pi_paid_refund", payment_intent: "pi_paid_refund", customer_email: "refund@test.com", amount_refunded: 900, currency: "usd" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -596,7 +584,7 @@ describe("POST /portal/api/paid/webhook — refund observability", () => {
   it("catches a differently-named refund event via the case-insensitive substring match", async () => {
     const body = JSON.stringify({
       type: "refund.created",
-      data: { object: { id: "rf_paid_1", customer_email: "refund2@test.com", amount: 500, currency: "usd" } },
+      data: { id: "rf_paid_1", customer_email: "refund2@test.com", amount: 500, currency: "usd" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -612,7 +600,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     await createAccount("pro-plan@test.com");
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "pro-plan@test.com", id: "sub_pro", plan_id: "plan_m" } },
+      data: { customer_email: "pro-plan@test.com", id: "sub_pro", plan_id: "plan_m" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -625,7 +613,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     await createAccount("growth-plan@test.com");
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "growth-plan@test.com", id: "sub_gr", plan_id: "plan_growth_m" } },
+      data: { customer_email: "growth-plan@test.com", id: "sub_gr", plan_id: "plan_growth_m" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -638,7 +626,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     await createAccount("growth-price@test.com");
     const body = JSON.stringify({
       type: "subscription.updated",
-      data: { object: { customer_email: "growth-price@test.com", id: "sub_gp", price_id: "plan_growth_a" } },
+      data: { customer_email: "growth-price@test.com", id: "sub_gp", price_id: "plan_growth_a" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -651,7 +639,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     await createAccount("unknown-plan@test.com");
     const body = JSON.stringify({
       type: "subscription.created",
-      data: { object: { customer_email: "unknown-plan@test.com", id: "sub_uk", plan_id: "plan_does_not_exist" } },
+      data: { customer_email: "unknown-plan@test.com", id: "sub_uk", plan_id: "plan_does_not_exist" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -674,7 +662,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     await updateAccountPaidPlanId(account.account_id as string, "pro"); // simulate a prior Pro plan on record
     const body = JSON.stringify({
       type: "subscription.updated",
-      data: { object: { customer_email: "sub-updated-starter@test.com", id: "sub_su1", plan_id: "plan_starter_m" } },
+      data: { customer_email: "sub-updated-starter@test.com", id: "sub_su1", plan_id: "plan_starter_m" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -690,14 +678,14 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     // ever upgrade — the scenario this fix actually targets.
     const starterBody = JSON.stringify({
       type: "subscription.updated",
-      data: { object: { customer_email: "sub-updated-pro@test.com", id: "sub_su2a", plan_id: "plan_starter_m2" } },
+      data: { customer_email: "sub-updated-pro@test.com", id: "sub_su2a", plan_id: "plan_starter_m2" },
     });
     await req("POST", "/portal/api/paid/webhook", starterBody, { "paid-signature": signPaid(starterBody) });
     expect(await getAccountPaidPlanId(account.account_id as string)).toBe("starter");
 
     const body = JSON.stringify({
       type: "subscription.updated",
-      data: { object: { customer_email: "sub-updated-pro@test.com", id: "sub_su2b", plan_id: "plan_pro_m" } },
+      data: { customer_email: "sub-updated-pro@test.com", id: "sub_su2b", plan_id: "plan_pro_m" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -713,7 +701,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     await updateAccountPaidPlanId(account.account_id as string, "pro");
     const body = JSON.stringify({
       type: "subscription.updated",
-      data: { object: { customer_email: "sub-updated-unknown@test.com", id: "sub_su3", plan_id: "plan_never_configured" } },
+      data: { customer_email: "sub-updated-unknown@test.com", id: "sub_su3", plan_id: "plan_never_configured" },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -736,7 +724,7 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
 
     const body = JSON.stringify({
       type: "checkout.session.completed",
-      data: { object: { id: "cs_topup_1", payment_intent: "pi_topup_1", metadata: { type: "axis_credit_topup" } } },
+      data: { id: "cs_topup_1", payment_intent: "pi_topup_1", metadata: { type: "axis_credit_topup" } },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
@@ -762,7 +750,7 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
     });
     const body = JSON.stringify({
       type: "checkout.session.completed",
-      data: { object: { id: "cs_topup_2", metadata: { type: "axis_credit_topup" } } },
+      data: { id: "cs_topup_2", metadata: { type: "axis_credit_topup" } },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.data.tier_change).toBeUndefined();
@@ -780,7 +768,7 @@ describe("POST /portal/api/paid/webhook — incomplete checkout observability", 
       await createAccount("abandoned@test.com");
       const body = JSON.stringify({
         type,
-        data: { object: { id: "cs_abandoned", customer_email: "abandoned@test.com", amount_total_minor: 2900, currency: "usd" } },
+        data: { id: "cs_abandoned", customer_email: "abandoned@test.com", amount_total_minor: 2900, currency: "usd" },
       });
       const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
       expect(r.status).toBe(200);
@@ -793,7 +781,7 @@ describe("POST /portal/api/paid/webhook — incomplete checkout observability", 
   // The envelope for checkout.session.* is still an open question, so this path
   // must not throw when the fields it logs are absent.
   it("survives an incomplete-checkout event with no recognizable fields", async () => {
-    const body = JSON.stringify({ type: "checkout.session.expired", data: { object: {} } });
+    const body = JSON.stringify({ type: "checkout.session.expired", data: {} });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
