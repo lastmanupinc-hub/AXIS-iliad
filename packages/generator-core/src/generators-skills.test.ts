@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
+import type { SourceFile } from "./types.js";
 import { generateAgentsMD, generateClaudeMD, generatePolicyPack, generateModelCascade, displayRoutes } from "./generators-skills.js";
 
 // Functional/quality coverage for the skills generators (POLISH, Program 2).
@@ -304,5 +305,75 @@ describe("generateModelCascade — tier map + delegation contract (H7.1)", () =>
   it("is deterministic", () => {
     const ctx = mkCtx();
     expect(generateModelCascade(ctx).content).toBe(generateModelCascade(ctx).content);
+  });
+});
+
+// The Commands block was a single npm-shaped template with the detected package
+// manager interpolated in, so every non-JS ecosystem got instructions that do not
+// exist — `pip run build`, `pip run dev`, `cargo run dev`. Found by running the CLI
+// against a real FastAPI repo; no fixture caught it because every fixture was npm.
+describe("generateClaudeMD — Commands block matches the ecosystem", () => {
+  const src = (path: string): SourceFile => ({ path, content: "", size: 0 });
+  const forPm = (pm: string, files?: SourceFile[]) =>
+    generateClaudeMD(
+      mkCtx({
+        detection: {
+          languages: [],
+          frameworks: [] as ContextMap["detection"]["frameworks"],
+          build_tools: ["make"],
+          test_frameworks: ["pytest"],
+          package_managers: [pm],
+          ci_platform: null,
+          deployment_target: null,
+        },
+      }),
+      files,
+    ).content;
+
+  // Enumerated rather than a blanket "<pm> <verb>" rule, because some of those
+  // combinations are real: `cargo test` and `cargo run` are correct Rust, while
+  // `pip test` and `cargo run dev` are not. The rule has to know the difference.
+  it("never emits a command that does not exist in its ecosystem", () => {
+    const bogus: Record<string, string[]> = {
+      pip: ["pip run build", "pip run dev", "pip test"],
+      cargo: ["cargo run build", "cargo run dev", "cargo install-deps"],
+      "go modules": ["go modules install", "go modules run build", "go modules test"],
+      bundler: ["bundler install", "bundler run build", "bundler test"],
+    };
+    for (const [pm, forbidden] of Object.entries(bogus)) {
+      const out = forPm(pm);
+      for (const cmd of forbidden) expect(out, `${pm}: emitted "${cmd}"`).not.toContain(cmd);
+    }
+  });
+
+  it("uses the install form matching the Python manifest that exists", () => {
+    expect(forPm("pip", [src("requirements.txt")])).toContain("pip install -r requirements.txt");
+    expect(forPm("pip", [src("pyproject.toml")])).toContain("pip install -e .");
+  });
+
+  it("omits Build and Dev for pip rather than inventing them", () => {
+    const out = forPm("pip", [src("requirements.txt")]);
+    expect(out).toContain("**Test:** `pytest`");
+    expect(out).not.toContain("**Build:**");
+    expect(out).not.toContain("**Dev:**");
+  });
+
+  it("emits real cargo and go commands", () => {
+    const rust = forPm("cargo");
+    expect(rust).toContain("cargo build");
+    expect(rust).toContain("cargo test");
+    expect(rust).toContain("cargo run");
+    const go = forPm("go modules");
+    expect(go).toContain("go mod download");
+    expect(go).toContain("go build ./...");
+    expect(go).toContain("go test ./...");
+  });
+
+  it("leaves the npm family exactly as it was", () => {
+    const out = forPm("pnpm");
+    expect(out).toContain("pnpm install");
+    expect(out).toContain("pnpm run build");
+    expect(out).toContain("pnpm test");
+    expect(out).toContain("pnpm run dev");
   });
 });

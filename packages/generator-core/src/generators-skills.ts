@@ -37,6 +37,55 @@ function resolvePackageManager(ctx: ContextMap, files?: SourceFile[]): string {
   return "npm";
 }
 
+/** The conventional shell commands for an ecosystem. */
+export interface ProjectCommands {
+  install: string;
+  build?: string;
+  test?: string;
+  dev?: string;
+}
+
+/**
+ * Map a detected package manager to commands that actually exist.
+ *
+ * This used to be one npm-shaped template with the manager interpolated in —
+ * `${pm} install`, `${pm} run build`, `${pm} test`, `${pm} run dev`. That is only
+ * correct for the npm family. `detectPackageManagers` (repo-parser) also emits
+ * "pip", "cargo", "go modules" and "bundler", so a Python repo was told to run
+ * `pip run build` and `pip run dev`, and a Rust repo `cargo run dev` — commands
+ * that do not exist in those ecosystems. Every non-JS project got a Commands
+ * block an agent would fail on at the first step. Caught by running the CLI
+ * against a real FastAPI repo, not by a fixture.
+ *
+ * An undefined field means the ecosystem has no single conventional command for
+ * that step; the caller omits the line rather than inventing one.
+ */
+export function commandsFor(pm: string, files?: SourceFile[]): ProjectCommands {
+  const base = (p: string) => p.split("/").pop() ?? p;
+  const has = (name: string) => files?.some((f) => base(f.path) === name) ?? false;
+
+  switch (pm) {
+    case "pip":
+      // detectPackageManagers collapses requirements.txt and pyproject.toml into
+      // one "pip", but they install differently — prefer the file that exists.
+      // No conventional build or dev command: Python projects vary too much for
+      // a guess to be better than silence.
+      return {
+        install: has("requirements.txt") ? "pip install -r requirements.txt" : "pip install -e .",
+        test: "pytest",
+      };
+    case "cargo":
+      return { install: "cargo fetch", build: "cargo build", test: "cargo test", dev: "cargo run" };
+    case "go modules":
+      return { install: "go mod download", build: "go build ./...", test: "go test ./...", dev: "go run ." };
+    case "bundler":
+      return { install: "bundle install", test: "bundle exec rspec" };
+    default:
+      // npm / pnpm / yarn / bun share these verbs.
+      return { install: `${pm} install`, build: `${pm} run build`, test: `${pm} test`, dev: `${pm} run dev` };
+  }
+}
+
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const ai = ctx.ai_context;
@@ -253,12 +302,13 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("");
   const pm = resolvePackageManager(ctx, files);
   const pmC = mdCode(pm);
-  lines.push(`- **Install:** \`${pmC} install\``);
-  if (ctx.detection.build_tools.length > 0)
-    lines.push(`- **Build:** \`${pmC} run build\``);
-  if (ctx.detection.test_frameworks.length > 0)
-    lines.push(`- **Test:** \`${pmC} test\``);
-  lines.push(`- **Dev:** \`${pmC} run dev\``);
+  const cmds = commandsFor(pm, files);
+  lines.push(`- **Install:** \`${mdCode(cmds.install)}\``);
+  if (cmds.build && ctx.detection.build_tools.length > 0)
+    lines.push(`- **Build:** \`${mdCode(cmds.build)}\``);
+  if (cmds.test && ctx.detection.test_frameworks.length > 0)
+    lines.push(`- **Test:** \`${mdCode(cmds.test)}\``);
+  if (cmds.dev) lines.push(`- **Dev:** \`${mdCode(cmds.dev)}\``);
   if (hasFw(ctx, "Prisma"))
     /* v8 ignore next — package_managers never contains "npx" (it's a runner, not a PM) */
     lines.push(`- **DB Migrate:** \`${pm === "npx" ? "npx" : `${pmC} exec`} prisma migrate dev\``);
@@ -564,7 +614,8 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("  - name: validate");
   // Validation runs the project's build/test SCRIPTS via the package manager —
   // not the bare tool names (`vite && make` isn't a runnable validation step).
-  lines.push(`    action: ${buildTools.length > 0 ? `Run \`${mdText(pm)} run build\`${testFrameworks.length > 0 ? ` then \`${mdText(pm)} test\`` : ""}` : "Run build and test"}`);
+  const validateCmds = commandsFor(pm, files);
+  lines.push(`    action: ${validateCmds.build && buildTools.length > 0 ? `Run \`${mdText(validateCmds.build)}\`${validateCmds.test && testFrameworks.length > 0 ? ` then \`${mdText(validateCmds.test)}\`` : ""}` : "Run build and test"}`);
   lines.push("  - name: review");
   lines.push("    action: Check against component-guidelines.md and frontend-rules.md");
   lines.push("```");
