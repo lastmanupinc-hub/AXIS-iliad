@@ -583,11 +583,18 @@ describe("GET /for-agents", () => {
   it("pricing_table.tiers includes every free tool the overview counts, not just the originally hand-typed rows", async () => {
     const pricingTable = data.pricing_table as Record<string, unknown>;
     const tiers = pricingTable.tiers as Array<Record<string, unknown>>;
-    for (const name of ["iliad_network_tokenization", "ping_payment", "prepare_agentic_purchasing_preview"]) {
+    // ping_payment was in this list until 2026-07-28, when it was priced at
+    // half a cent — an unauthenticated free endpoint is one anyone can run up
+    // without limit. It must NOT appear as a free row any more; that assertion
+    // is below, so a revert to "free" fails loudly here rather than quietly
+    // advertising a price we no longer charge.
+    for (const name of ["iliad_network_tokenization", "prepare_agentic_purchasing_preview"]) {
       const row = tiers.find((t) => t.tool === name);
       expect(row, `${name} row`).toBeDefined();
       expect(row!.price).toBe("free");
     }
+    const ping = tiers.find((t) => t.tool === "ping_payment");
+    if (ping) expect(ping.price, "ping_payment is priced, not free").not.toBe("free");
     const freeToolNamesInTiers = new Set(tiers.filter((t) => t.price === "free").map((t) => t.tool));
     // get_snapshot/get_artifact/improve_my_agent_with_axis are labeled "free"
     // in this hand-curated table informally (the call costs $0) but aren't

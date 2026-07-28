@@ -18,7 +18,7 @@ import { dirname, join } from "node:path";
 import { resetTestDb } from "@axis/snapshots";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
-import { getPricingTier } from "./mpp.js";
+import { getPricingTier, formatCents } from "./mpp.js";
 import { Router } from "./router.js";
 import {
   handleAgentJson,
@@ -382,11 +382,28 @@ describe("GET /.well-known/x402 and /.well-known/x402.json", () => {
     }
   });
 
-  it("leads with a zero-friction ping_payment action, not the x402-honesty disclaimer", () => {
+  // Was "try_it_free" until 2026-07-28. ping_payment now costs half a cent, so
+  // the key was renamed rather than left describing a price that no longer
+  // exists — an agent reading "try_it_free" and being billed is exactly the kind
+  // of drift the honesty guards in this file exist to catch.
+  it("leads with the cheapest ping_payment action, not the x402-honesty disclaimer", () => {
     const keys = Object.keys(jsonNoExt);
-    expect(keys[0]).toBe("try_it_free");
-    expect(keys.indexOf("note")).toBeGreaterThan(keys.indexOf("try_it_free"));
-    expect((jsonNoExt.try_it_free as Record<string, unknown>).tool).toBe("ping_payment");
+    expect(keys[0]).toBe("cheapest_way_in");
+    expect(keys.indexOf("note")).toBeGreaterThan(keys.indexOf("cheapest_way_in"));
+    const entry = jsonNoExt.cheapest_way_in as Record<string, unknown>;
+    expect(entry.tool).toBe("ping_payment");
+    // The advertised price must be derived, not hand-typed, and must survive the
+    // sub-cent formatting that a plain toFixed(2) would round to "0.01".
+    expect(entry.price_usd).toBe(formatCents(getPricingTier("ping_payment").standard_cents));
+    expect(entry.price_usd).toBe("0.005");
+  });
+
+  it("never advertises ping_payment as free anywhere in the manifest", () => {
+    // It is reachable without an API key, which is easy to confuse with free.
+    const blob = JSON.stringify(jsonNoExt);
+    expect(blob).not.toContain("try_it_free");
+    expect(blob).not.toMatch(/ping_payment[^"]*\$0\.00\b/);
+    expect(blob).not.toMatch(/free[^"]{0,40}ping_payment/i);
   });
 
   it("is honest that artifacts are bundled inside programs, not sold individually", () => {

@@ -141,7 +141,7 @@ import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS, PURCHASING_READINESS_WEIGHTS } from "./handlers.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
-import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, getPricingTier, priceForMode, type AgentMode } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, getPricingTier, priceForMode, formatCents, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, getMcpToolBazaarInfo, type PlannedCapability } from "./mcp-tools.js";
@@ -2204,8 +2204,11 @@ const FREE_TOOL_NAMES = new Set([
   "score_dispute_readiness",
   // Network tokenization (WO-14) — unmetered (auth-required, like the referral tools).
   "iliad_network_tokenization",
-  // x402 onboarding program, Phase 1 — always $0, no auth required.
-  "ping_payment",
+  // ping_payment is NOT here any more. It was free, which made an
+  // unauthenticated endpoint anyone could run up without limit. It now costs
+  // half a cent (2026-07-28) — see PRICING_TIERS.ping_payment. Still reachable
+  // anonymously, still the cheapest thing we sell by two orders of magnitude,
+  // but no longer free.
 ]);
 
 // H-Phase-A cycle 6: handlers.ts's GET /for-agents shareable_manifest/
@@ -2222,7 +2225,7 @@ export const FREE_MCP_TOOL_COUNT = MCP_TOOLS.filter(t => FREE_TOOL_NAMES.has(t.n
 // still discover how to pay — no free tool invents its own payment story.
 const FIRST_PAID_ACTION_CTA = {
   tool: "ping_payment",
-  why: "Exercises the real x402 payment loop at $0. Learn once, then call any metered tool.",
+  why: "Exercises the real x402 payment loop for $0.005. Learn once, then call any metered tool.",
   then: "prepare_agentic_purchasing ($0.50) or analyze_repo",
 };
 
@@ -2447,7 +2450,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       search_and_discover_tools: "Use for keyword routing to the best program.",
       discover_commerce_tools: "Use for install and ecosystem onboarding metadata.",
       discover_agentic_purchasing_needs: "Use for commerce-specific intent to workflow mapping.",
-      ping_payment: "Use to learn the x402 payment loop at $0 before paying real money for a metered tool.",
+      ping_payment: "Use to learn the x402 payment loop for $0.005 before paying real money for a metered tool.",
     },
     install: {
       mcp_endpoint: AXIS_MCP_ENDPOINT,
@@ -2471,7 +2474,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },
-    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: discover_commerce_tools (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop at $0, no risk.`,
+    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: discover_commerce_tools (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop for $0.005, near-zero risk.`,
     first_action: "Call search_and_discover_tools with q=<your keyword> — free, no auth needed.",
   }, null, 2);
 }
@@ -3988,6 +3991,13 @@ export async function decideInbandGate(
         ? { settle: true, tool }
         : { settle: false, reason: "free_op" };
 
+    // Always billable, unconditionally — there are no free args and no runtime
+    // probe. Priced 2026-07-28 at half a cent: it was free, which made an
+    // unauthenticated endpoint anyone could run up without limit. Reaching the
+    // gate at all is the whole product here, so every call settles.
+    case "ping_payment":
+      return { settle: true, tool };
+
     // Metering decision is a POST-run runtime probe (unreachable URL, unsupported
     // mime, docker daemon, piper/whisper availability) — unknowable at the
     // pre-dispatch gate. These stay on plan-credit metering (see WO-02 doc impact).
@@ -4004,7 +4014,7 @@ export async function decideInbandGate(
   }
 }
 
-// ─── x402 onboarding program, Phase 1 — ping_payment: a free, zero-risk payment-flow probe ──
+// ─── x402 onboarding program, Phase 1 — ping_payment: a $0.005 near-zero-risk payment-flow probe ──
 //
 // Always $0, on every call, for every caller (including anonymous). Never
 // touches a real payment rail (mppx/Stripe/Tempo, or the PAI'D wallet) — a
@@ -4091,8 +4101,9 @@ export async function runPingPayment(_args: Record<string, unknown>, req: Incomi
     );
   }
 
+  const probeCents = getPricingTier("ping_payment").standard_cents;
   try {
-    await recordPaymentFunnelEvent({ account_id: accountId, tool: "ping_payment", kind: "settlement", amount_cents: 0 });
+    await recordPaymentFunnelEvent({ account_id: accountId, tool: "ping_payment", kind: "settlement", amount_cents: probeCents });
   } catch {
     /* funnel telemetry is best-effort — must never block the success response */
   }
@@ -4100,7 +4111,8 @@ export async function runPingPayment(_args: Record<string, unknown>, req: Incomi
     {
       ok: true,
       tool: "ping_payment",
-      settled_cents: 0,
+      settled_cents: probeCents,
+      price_usd: formatCents(probeCents),
       message: "Payment flow exercised successfully. You now know how to pay for any metered AXIS tool.",
       next: "Call prepare_agentic_purchasing or analyze_repo — same 402 vocabulary applies at real prices.",
     },

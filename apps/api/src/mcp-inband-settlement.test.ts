@@ -573,6 +573,7 @@ describe("decideInbandGate — total-classification invariant (every MeteredMcpT
   // branches destructure `args`) — the test fails loudly rather than silently
   // skipping the new tool, even without compile-time exhaustiveness on this object.
   const BILLABLE_ARGS: Record<MeteredMcpTool, Record<string, unknown>> = {
+    ping_payment: {},
     analyze_files: {},
     analyze_repo: {},
     prepare_agentic_purchasing: {},
@@ -643,8 +644,8 @@ describe("decideInbandGate — total-classification invariant (every MeteredMcpT
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("exactly 15 of 20 tools settle:true and the other 5 resolve runtime_metered — no tool falls through", async () => {
-    expect(toolNames.length).toBe(20); // proves the invariant covers the full union, not a stale subset
+  it("exactly 16 of 21 tools settle:true and the other 5 resolve runtime_metered — no tool falls through", async () => {
+    expect(toolNames.length).toBe(21); // proves the invariant covers the full union, not a stale subset
 
     let settleTrueCount = 0;
     let runtimeMeteredCount = 0;
@@ -658,7 +659,7 @@ describe("decideInbandGate — total-classification invariant (every MeteredMcpT
         throw new Error(`${tool} classified as "${decision.reason}", expected settle:true or runtime_metered`);
       }
     }
-    expect(settleTrueCount).toBe(15);
+    expect(settleTrueCount).toBe(16);
     expect(runtimeMeteredCount).toBe(5);
   });
 });

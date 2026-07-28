@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFileSync } from "node:fs";
-import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, getPricingTier, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, getPricingTier, formatCents, computeLargeBodySurchargeCents, getLargeBodySurchargeFreeCapBytes, getLargeBodySurchargeHardCeilingBytes } from "./mpp.js";
 import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
 import { classifyProbe, captureIntent } from "./intent.js";
@@ -2785,6 +2785,7 @@ const X402_PROGRAM_SUMMARIES: Readonly<Record<string, string>> = {
 };
 
 const X402_UTILITY_SUMMARIES: Readonly<Record<string, string>> = {
+  ping_payment: "Exercise the real payment challenge/settle loop end-to-end at the cheapest price we sell — learn the vocabulary before spending on a real tool.",
   assemble_representment: "Turn a webhook-ingested dispute into a Stripe representment with CE 3.0 evidence priors.",
   iliad_object_storage: "Signed-URL minter (Cloudflare R2) for account-scoped PUT/GET storage.",
   iliad_vector_database: "Account-scoped vector store: upsert vectors, query cosine top-k nearest neighbors.",
@@ -2814,10 +2815,12 @@ export function handleX402WellKnown(
     return { standard_price_usd: (tier.standard_cents / 100).toFixed(2), lite_price_usd: (tier.lite_cents / 100).toFixed(2) };
   };
   sendJSON(res, 200, {
-    try_it_free: {
+    cheapest_way_in: {
       tool: "ping_payment",
-      how: "MCP tools/call, no API key and no payment credential required",
-      what_it_does: "Exercises the real mppx/PaymentAuth challenge/settle loop end-to-end for $0.00 — see a genuine payment negotiation body before spending real money on a metered tool.",
+      price_usd: formatCents(getPricingTier("ping_payment").standard_cents),
+      how: "MCP tools/call, no API key required",
+      what_it_does: `Exercises the real mppx/PaymentAuth challenge/settle loop end-to-end for $${formatCents(getPricingTier("ping_payment").standard_cents)} — see a genuine payment negotiation body before spending real money on a metered tool.`,
+      why_not_free: "It was free until 2026-07-28. An unauthenticated endpoint that costs us per call is one anyone can run up without limit, so it now carries a nominal price — still the cheapest thing we sell, by two orders of magnitude.",
     },
     pricing_model: "Free while your plan credits last. A real 402 payment-required challenge only fires on authenticated overage for a guaranteed-billable tool — see how_to_pay for the exact preconditions.",
     endpoint: {
@@ -2837,7 +2840,7 @@ export function handleX402WellKnown(
       ...priceEntry(tool),
     })),
     accepted_payment_schemes: paymentRecipient ? ["mppx/tempo", "mppx/stripe"] : ["mppx/stripe"],
-    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one, free, on every call, and is not gated by account state or deployment config. For the programs/utilities listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
+    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one on every call for a nominal $0.005, and is not gated by account state or deployment config. For the programs/utilities listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
     agent_card: "GET /.well-known/agent-card.json — MCP-focused agent discovery card (name, skills, capabilities).",
     wire_protocol_note: "Iliad speaks the mppx/PaymentAuth wire protocol (WWW-Authenticate: Payment / Authorization: Payment / Payment-Receipt headers) — NOT x402.org's v1 (X-PAYMENT body/header) or v2 (PAYMENT-SIGNATURE header) conventions. See contract_doc for the full wire comparison.",
     contract_doc: "https://github.com/lastmanupinc-hub/AXIS-iliad/blob/main/docs/x402/CONTRACT.md",
@@ -2877,7 +2880,7 @@ export function handleAgentCard(
       schemes: ["bearer"],
       header: "Authorization: Bearer <api_key>",
       obtain: "POST /v1/accounts",
-      note: "Free discovery tools (search_and_discover_tools, list_programs, ping_payment, and others) require no authentication at all.",
+      note: "Free discovery tools (search_and_discover_tools, list_programs, and others) require no authentication at all. ping_payment is also reachable anonymously but is no longer free — it costs $0.005.",
     },
     defaultInputModes: ["application/json"],
     defaultOutputModes: ["application/json"],

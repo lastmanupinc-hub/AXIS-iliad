@@ -153,6 +153,7 @@ export { buildMcpPaymentRequiredError };
  *     function (e.g. iliad_web_search bills only `search`, not `index`).
  */
 export type MeteredMcpTool =
+  | "ping_payment"
   | "analyze_files"
   | "analyze_repo"
   | "prepare_agentic_purchasing"
@@ -190,6 +191,10 @@ export type MeteredMcpTool =
 // error in THIS file, which tsc always checks — and METERED_MCP_TOOLS derives
 // from it rather than duplicating the list.
 const METERED_MCP_TOOL_SET: Record<MeteredMcpTool, true> = {
+  // Priced 2026-07-28: was a free probe, which made an unauthenticated
+  // endpoint anyone could run up without limit. Metered like any other
+  // tool now, just at half a cent — see PRICING_TIERS.ping_payment.
+  ping_payment: true,
   analyze_files: true,
   analyze_repo: true,
   prepare_agentic_purchasing: true,

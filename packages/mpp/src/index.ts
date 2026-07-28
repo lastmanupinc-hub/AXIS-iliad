@@ -325,15 +325,23 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     engineer_description: "Engineer mode (Security Engineer): the fix as a git-applyable unified-diff patch (.gitignore auto-fixes) + a SARIF 2.1.0 log of all findings for CI code-scanning gates.",
   },
   // x402 onboarding program, Phase 1: a free, zero-risk payment-flow probe.
-  // Always $0 on both tiers — the point is to exercise the REAL 402 challenge
-  // -> retry-with-credential -> success loop with nothing of value at stake,
-  // so an agent (or a human with curl) can learn the exact vocabulary it will
-  // reuse for every real paid tool at real prices.
+  // Exercises the REAL 402 challenge -> retry-with-credential -> success loop,
+  // so an agent (or a human with curl) learns the exact vocabulary it will reuse
+  // for every real paid tool at real prices.
+  //
+  // Priced at half a cent (2026-07-28), not $0. It was free, and free made an
+  // unauthenticated endpoint that costs us per call something anyone could run
+  // up without limit. A nominal price makes each call carry its own weight while
+  // staying far below any tool worth abusing it to avoid.
+  //
+  // 0.5 is deliberately fractional — this field is `number`, not an integer, and
+  // formatCents() below renders sub-cent prices at three decimals so 0.5 shows
+  // as "$0.005" rather than being rounded to "$0.01" by a toFixed(2).
   ping_payment: {
     tool: "ping_payment",
-    standard_cents: 0,
-    lite_cents: 0,
-    lite_description: "Always free — this is a $0 payment-flow probe, not a metered tool.",
+    standard_cents: 0.5,
+    lite_cents: 0.5,
+    lite_description: "Half a cent on both tiers — a nominal-cost payment-flow probe, priced the same in lite mode.",
   },
   default: {
     tool: "default",
@@ -353,6 +361,20 @@ export const LEGACY_TOOL_ALIASES: Record<string, string> = {
 export function getPricingTier(tool: string): PricingTier {
   const canonicalTool = LEGACY_TOOL_ALIASES[tool] ?? tool;
   return PRICING_TIERS[canonicalTool] ?? PRICING_TIERS.default;
+}
+
+/**
+ * Render a cents amount as a dollar string, without lying about sub-cent prices.
+ *
+ * The codebase formatted every price as `(cents / 100).toFixed(2)`, which is
+ * correct for whole cents and wrong the moment one isn't: ping_payment's 0.5
+ * cents becomes `(0.005).toFixed(2)` === "0.01", advertising a half-cent tool at
+ * twice its price. Two decimals cannot represent a fraction of a cent, so this
+ * widens to three ONLY when the amount actually needs it — every existing whole-
+ * cent price formats byte-identically to before.
+ */
+export function formatCents(cents: number): string {
+  return Number.isInteger(cents) ? (cents / 100).toFixed(2) : (cents / 100).toFixed(3);
 }
 
 /**

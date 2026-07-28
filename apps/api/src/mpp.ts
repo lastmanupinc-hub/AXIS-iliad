@@ -29,6 +29,7 @@ import { shouldEmitRuntimeLogs } from "./logger.js";
 export type { ChargeOptions, MppResult, AgentBudget, PricingTier, Build402Options, AgentMode } from "@axis/mpp";
 export {
   getPricingTier,
+  formatCents,
   negotiatePrice,
   build402NegotiationBody,
   parseAgentBudget,
