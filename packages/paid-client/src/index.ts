@@ -270,17 +270,33 @@ export interface CreatePaidCheckoutInput {
  * mode="payment" (one-time): apps charge once and the webhook activates the tier.
  * amount_total_minor matches the single ad-hoc line item so the backend drift guard passes.
  *
- * This comment used to say PAI'D "gates mode='subscription' (501) until recurring
- * billing is enabled", implying the mode was unbuilt on their side. That was wrong
- * (TICKET-AXIS_TOOLBOX-subscription-contract-20260727, confirmed 2026-07-27):
- * mode="subscription" is fully implemented — it collects the card, charges period 1,
- * vaults the payment method and creates the Subscription in one call. The 501 is
- * `subscription_mode_unavailable`, meaning OUR merchant account lacks the
- * per-merchant `subscriptions_enabled` flag. Switching this to "subscription" is
- * therefore a real feature change, not a one-word edit: it needs that flag set, a
- * plan created and activated (plans are born draft; a subscription against a
- * non-active plan is refused), and the webhook correlation settled by
- * TICKET-AXIS_TOOLBOX-checkout-webhook-envelope-20260727.
+ * Why this still says "payment" — read before changing it.
+ *
+ * Two earlier explanations here were both wrong, so they are worth naming.
+ * (1) "PAI'D gates mode='subscription' (501) until recurring billing is enabled",
+ * implying it was unbuilt. It is fully built. (2) "our merchant account lacks the
+ * per-merchant `subscriptions_enabled` flag" — that came from PAI'D's own ticket
+ * reply and PAI'D corrected it the same day: the flag has been enabled:true /
+ * rollout_percent:100 since 2026-07-08, three weeks before we asked. Nothing is
+ * waiting on a flag.
+ *
+ * What actually blocks the switch, in order:
+ *
+ * 1. OUR TERMS OF SERVICE FORBID IT. TermsPage §4.3 promises "a single, one-time
+ *    charge", "We do not store your payment method", and "a purchase does not
+ *    automatically renew or re-charge you". mode="subscription" vaults the card,
+ *    auto-renews and re-charges — it breaks all three. Flipping this without
+ *    changing the published Terms first would bill customers on terms contrary to
+ *    the contract they accepted. This is a legal/product gate, not an engineering
+ *    one, and it is the reason a one-word edit is not available.
+ * 2. It is not one line even technically. mode="subscription" needs a cadence:
+ *    one of plan_id, a priced line item (price_id), or — for the ad_hoc line item
+ *    we send below — `recurring: {interval: "month"|"year"}`. Omitting all three
+ *    is a 400 on `recurring`, distinct from the 501 that means "flag off".
+ *    Mapping input.cycle monthly->month / annual->year covers it.
+ *
+ * Not a gate: webhook handling. apps/api/src/paid-handlers.ts already tiers on
+ * subscription.created/renewed and deactivates only on subscription.canceled.
  */
 export async function createPaidCheckoutSession(
   input: CreatePaidCheckoutInput,
