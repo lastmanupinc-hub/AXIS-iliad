@@ -2,6 +2,19 @@
 
 const EFFECTIVE_DATE = "April 11, 2026";
 
+// Recurring billing (§4.3). Paid tiers were always meant to be subscriptions;
+// the one-time-charge language was written to describe a client-side limitation
+// (`mode: "payment"`), not a product decision, and it hardened into the Terms.
+//
+// §11 promises at least 14 days' notice before a material change takes effect,
+// and one-time → recurring is unambiguously material, so this is DATED, not
+// immediate. Published 2026-07-28, in force 2026-08-15 (18 days).
+//
+// The billing code must not switch to `mode: "subscription"` before this date —
+// charging recurring while the Terms in force say one-time is the exact
+// contradiction this change exists to remove, just pointed the other way.
+const RECURRING_BILLING_DATE = "August 15, 2026";
+
 interface Section {
   id: string;
   title: string;
@@ -153,21 +166,57 @@ export function TermsPage() {
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.3 Billing</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Payment for a paid tier is a single, one-time charge for the plan and billing cycle you
-              select (the monthly-priced or annual-priced amount shown on the Plans page). We do not
-              store your payment method, and a purchase does not automatically renew or re-charge you.
-              Once payment is confirmed, your account's tier and credit allowance take effect and
-              remain in place indefinitely — no further payment is required to keep them active.
+              <strong>Until {RECURRING_BILLING_DATE}:</strong> payment for a paid tier is a single,
+              one-time charge for the plan and billing cycle you select (the monthly-priced or
+              annual-priced amount shown on the Plans page). We do not store your payment method, and
+              a purchase does not automatically renew or re-charge you. Once payment is confirmed,
+              your account's tier and credit allowance take effect and remain in place indefinitely —
+              no further payment is required to keep them active.
             </p>
+            <div
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: 12,
+                marginTop: 12,
+                background: "var(--surface-2, transparent)",
+              }}
+            >
+              <p style={{ lineHeight: 1.7, marginBottom: 8 }}>
+                <strong>Change effective {RECURRING_BILLING_DATE}: paid tiers become recurring
+                subscriptions.</strong>
+              </p>
+              <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 8 }}>
+                From that date, choosing a paid tier starts a subscription that renews automatically
+                at the price and interval you select — monthly plans renew every month, annual plans
+                every year — until you cancel. Your payment method is securely stored by our payment
+                processor so it can be charged for each renewal. We are giving advance notice of this
+                change under Section 11.
+              </p>
+              <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 8 }}>
+                You can cancel at any time; cancellation stops future renewals and your tier remains
+                active through the end of the period you have already paid for. If a renewal payment
+                fails, we will attempt it again before any change to your access — a failed payment
+                does not immediately downgrade you.
+              </p>
+              <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
+                <strong>Purchases made before {RECURRING_BILLING_DATE} are not converted.</strong> If
+                you bought a paid tier under the one-time terms above, it stays one-time: that tier
+                remains active indefinitely, you will not be enrolled in a subscription, and you will
+                not be charged again. We hold no payment method for those purchases and cannot charge
+                one. Moving to a subscription would require you to start a new checkout yourself.
+              </p>
+            </div>
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.4 Changing or Ending a Plan</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Self-serve plan changes are not yet available. To move to a different tier — including
-              returning to the Free tier — email support@jonathanarvay.com. Do not start a new
-              checkout for a different plan on your own: since each purchase is a separate one-time
-              charge, doing so bills you again rather than replacing your current plan. We do not
-              provide refunds for unused time on a plan you no longer want, except where required by
-              applicable law.
+              returning to the Free tier, or cancelling a subscription — email
+              support@jonathanarvay.com. Do not start a new checkout for a different plan on your
+              own: doing so creates a second, separate purchase rather than replacing your current
+              plan, and from {RECURRING_BILLING_DATE} that means a second subscription billing
+              alongside the first. We do not provide refunds for unused time on a plan you no longer
+              want, except where required by applicable law.
             </p>
 
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>4.5 Growth and Custom Terms</h3>
