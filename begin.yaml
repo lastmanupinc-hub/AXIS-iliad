@@ -403,7 +403,11 @@ project_begin:
     allowed_verticals: []
 
   qualifying_candidates:
-    status: all_completed
+    # 2026-07-28: was `all_completed`. Eight hub-and-spoke candidates
+    # (spoke_00..spoke_07) are now OPEN in remaining_candidates — see
+    # docs/saas-strategy/CONSOLIDATION.md. Leaving this at all_completed would
+    # have told the loop there was nothing to pick up.
+    status: open_candidates_available
     completed_candidates:
       - "OAuth 2.0 Authorization Server implementation (JWT-based with RS256 tokens)"
       - "MCP protocol integration with 12 tools including prepare_for_agentic_purchasing"
@@ -466,6 +470,79 @@ project_begin:
         severity: LOW
         source_file: "apps/api/src/oauth-server-simple.ts"
         completion_status: complete
+
+
+      # ── Hub-and-spoke: 20 programs -> 9 standalone applications ──
+      # Strategy: docs/saas-strategy/CONSOLIDATION.md (per-program guides beside it).
+      # Sequencing is encoded in the SCORES, not in prose — execution_order sorts by
+      # total_roi_score_desc, so spoke_00 outscores everything it blocks on purpose.
+      # Two gates are OUTSIDE this queue and cannot be scored away:
+      #   - recurring billing is unbillable until the Terms change effective 2026-08-15
+      #   - 9 subdomains need DNS/TLS/Pages setup, which needs the owner (browser-only OAuth)
+
+      - id: "spoke_00_entitlement_schema"
+        description: "Per-product entitlement. accounts carries a single `tier`, so 'owns Socket but not Palette' is inexpressible and every paid spoke in docs/saas-strategy/CONSOLIDATION.md is unshippable. Add an account_entitlements table (account_id, product_id, granted_at, source) + grantEntitlement/hasEntitlement in @axis/snapshots, and gate one program-scoped call on it end to end. Touches the money path, so: migration first, back-compat read (existing tier implies the full bundle), then the new check."
+        roi_score: 96
+        roi_reason: "blocker_removal 5, capability_gain 5, integration_quality 5, production_quality 4. Blocks 8 of 9 products. Must outscore everything it gates or the loop starts in the wrong place."
+        severity: HIGH
+        source_file: "packages/snapshots/src/billing-types.ts"
+        completion_status: open
+
+      - id: "spoke_01_product_registry"
+        description: "One module mapping product -> {program set, price, subdomain, tier, absorbs[]} for the 9 products in CONSOLIDATION.md. Nine products hand-maintained across pricing, landing pages, entitlement and docs is exactly the drift this repo keeps rediscovering (hand-duplicated catalog/pricing divergence is a named recurring bug family). Derive PRICING_TIERS spoke entries and the manifest FROM this registry, and add a counts-consistency style guard asserting every product's program set is a subset of the live generator registry."
+        roi_score: 91
+        roi_reason: "canonical_coherence 5, blocker_removal 4, integration_quality 5, automation 4. Single source of truth before nine consumers exist, not after."
+        severity: HIGH
+        source_file: "packages/generator-core/src/index.ts"
+        completion_status: open
+
+      - id: "spoke_02_runway_build_verification"
+        description: "Runway (deploy) emits Dockerfiles and never builds one. A Dockerfile that does not build is worse than none — it costs the buyer a debugging session before they conclude we were wrong. Add a verification step that actually builds the emitted Dockerfile (docker build, or hadolint + a dry parse where no daemon exists) and records the result in the output bundle. Converts the strongest available claim in the portfolio from assertion to proof."
+        roi_score: 89
+        roi_reason: "production_quality 5, validation_strength 5, capability_gain 4, usability 4. Same class as the ap2 finding: we ship an artifact whose correctness we never check."
+        severity: HIGH
+        source_file: "packages/generator-core/src/generators-deploy.ts"
+        completion_status: open
+
+      - id: "spoke_03_grain_merge_into_embed"
+        description: "frontend emits 4 markdown files (rules, guidelines, layout patterns, audit) and zero code. v0 generates working UI; selling Grain beside it is a style guide against a code generator. artifacts/Embed already emits real .tsx. Merge: Embed's product = artifacts + frontend + seo, so the combined product generates components AND the rules they follow. Retire the standalone Grain landing page from the registry."
+        roi_score: 84
+        roi_reason: "canonical_coherence 4, usability 4, optionality_preservation 3, agent_acquisition 3. Prevents shipping a product whose headline comparison we lose on sight."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-skills.ts"
+        completion_status: open
+
+      - id: "spoke_04_atlas_free_tier_launch"
+        description: "Atlas (search + canvas) is the only product with no gate: free, so no entitlement and no recurring billing needed. It is also the architecture read every other product consumes, i.e. the funnel. Ship it first behind atlas.trustfabric.ai, and instrument conversion from an Atlas run to any paid spoke — that measurement is what tells us whether spokes cannibalise the hub or expand it."
+        roi_score: 82
+        roi_reason: "agent_acquisition 5, capability_gain 4, active_vertical_advancement 4, usability 4. First shippable product and the measurement instrument for the whole strategy."
+        severity: MEDIUM
+        source_file: "apps/api/src/handlers.ts"
+        completion_status: open
+
+      - id: "spoke_05_landing_page_generator"
+        description: "Generate each spoke's <name>.trustfabric.ai landing page from the product registry using our OWN seo + marketing programs against that product's real artifact list. We should be the first customer of the programs we sell; a landing page we could not generate with our own tools is an argument against buying them. Nine pages by hand is nine drift surfaces."
+        roi_score: 78
+        roi_reason: "automation 5, canonical_coherence 4, agent_acquisition 4, team_scale 3. Makes the ninth spoke cost a fraction of the first."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-seo.ts"
+        completion_status: open
+
+      - id: "spoke_06_scoped_program_runs"
+        description: "A spoke calls the same generators as the hub with the program set narrowed by the registry — never a forked code path. Add a program-set filter to the analyze pipeline plus a guard test asserting a spoke's output for program P is byte-identical to the hub's output for program P. A spoke whose output drifts from the hub is a bug, and REST/MCP twin divergence is already a named recurring bug family here."
+        roi_score: 74
+        roi_reason: "canonical_coherence 5, validation_strength 4, integration_quality 4. Structurally prevents the fork this architecture invites."
+        severity: MEDIUM
+        source_file: "apps/api/src/mcp-tool-impls.ts"
+        completion_status: open
+
+      - id: "spoke_07_checkout_ap2_live_verification"
+        description: "Checkout (agentic-purchasing) is proven at $0.50/call, but pricing it at $99/mo requires the compliance claims to hold. packages/ap2 self-discloses that its shapes were modelled from public docs and verified only against self-authored golden vectors, never a live counterparty — the exact failure mode the PAI'D envelope bug just demonstrated in production. Verify against a real counterparty (or state the limitation on the landing page) before raising the price."
+        roi_score: 71
+        roi_reason: "production_quality 5, validation_strength 5, blocker_removal 3. Compliance buyers are precisely the segment that reads the disclosure."
+        severity: MEDIUM
+        source_file: "packages/ap2/src/index.ts"
+        completion_status: open
 
   highest_roi_definition:
     meaning: >
