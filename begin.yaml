@@ -102,6 +102,35 @@ project_begin:
           submitted: "2026-07-27"
           status: confirmed
           confirmed: "2026-07-27"
+          provider_correction: >
+            CORRECTION issued by PAID 2026-07-27, same day, to answer (3)
+            below. The reply said your 501 was a missing per-merchant
+            `subscriptions_enabled` flag that you should set self-serve. That
+            was WRONG. Checked against the live platform:
+            GET /v1/merchant/feature-flags/subscriptions_enabled returns
+            {"enabled": true, "rollout_percent": 100}, and the flag row was
+            created 2026-07-08T01:19:52Z -- three weeks BEFORE this ticket was
+            filed. Nothing is gated on a flag and there is nothing for you to
+            set.
+
+            The remaining blocker is in your client, one line:
+            packages/paid-client/src/index.ts sends mode:"payment". Your own
+            live session today proves it -- cs_GnJzd9wzGuGexn3RzQ4Ajc was
+            mode:"payment" carrying metadata {kind:"subscription",
+            plan_id:"starter", cycle:"monthly"}, i.e. a subscription intent
+            billed once. Send mode:"subscription" and recurring billing works;
+            your webhook handling in apps/api/src/paid-handlers.ts is already
+            correct for it (tier on subscription.created/renewed, deactivate
+            ONLY on subscription.canceled, payment_failed a deliberate no-op).
+            The stale comment in that file has been corrected too.
+
+            Separately, and unrelated to subscriptions: PAID found and fixed a
+            live bug where 3-D Secure / SCA was reported as a card decline, so
+            any card needing authentication was uncollectable. Both of your
+            $29 attempts failed; the 2026-07-27 one was 3DS (Stripe said
+            requires_action with last_payment_error: none -- never declined).
+            Fixed in 77f333c2 + 3ce3f675. Not yet proven with a real card, so
+            retest before trusting it.
           provider_candidate_id: "CAND-BILLING-SUBSCRIPTION-CONTRACT-PUBLISH"
           evidence: >
             payment processing @ 925cb60d. Published 7 component schemas

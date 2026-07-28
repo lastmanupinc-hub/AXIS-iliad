@@ -236,11 +236,21 @@ export async function handlePaidConfig(
 //
 // H-Phase-A cycle 9 recorded the subscription.* handling as "DEAD IN
 // PRODUCTION" because PAI'D 501'd mode:"subscription". That diagnosis was
-// wrong, and this is the correction: mode:"subscription" is fully built on
-// their side. The 501 is subscription_mode_unavailable — OUR merchant
-// account lacks the per-merchant `subscriptions_enabled` flag. This handling
-// is dormant only until that flag is set, which is self-serve and needs
-// nothing from PAI'D.
+// wrong: mode:"subscription" is fully built on their side.
+//
+// A first correction here said the 501 was our missing per-merchant
+// `subscriptions_enabled` flag, "dormant only until that flag is set". That
+// came from PAI'D's own ticket reply and it was ALSO wrong — PAI'D verified
+// against their live platform on 2026-07-27 and the flag has been
+// enabled: true, rollout_percent: 100 since 2026-07-08, three weeks before we
+// filed. Nothing is waiting on a flag.
+//
+// The ACTUAL blocker is ours and it is one line:
+// packages/paid-client/src/index.ts still sends mode:"payment" (see the
+// createCheckoutSession call there). Today's live $29 session proves it —
+// mode:"payment" carrying metadata {kind:"subscription", plan_id:"starter"},
+// i.e. a subscription intent charged once. This handling is NOT dormant; it
+// goes live the moment that client sends mode:"subscription".
 
 const HANDLED_PAID_EVENTS = new Set([
   "checkout.session.completed", // hosted-checkout fulfilment (the live path)
