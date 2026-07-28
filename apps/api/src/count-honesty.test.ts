@@ -28,7 +28,18 @@ function indexHtmlText(): string {
   return `${html}\n${metaContents.join("\n")}`;
 }
 
+// Read once per run, not once per test. Nine tests call docs(), and each call
+// re-walked apps/web/src and re-read every .tsx (109 of them at the time of
+// writing) plus the four fixed files — ~1000 redundant reads per run. That made
+// the whole suite scale with the web app's file count against a fixed 5s
+// per-test budget, and the endpoint-count test started failing at 5354ms under
+// CI load while passing on an idle machine: a flake that looks like a content
+// regression. The files cannot change mid-run, so caching is safe and fixes the
+// cause rather than raising the budget and waiting for it to be outgrown again.
+let docsCache: Array<{ name: string; text: string }> | null = null;
+
 function docs(): Array<{ name: string; text: string }> {
+  if (docsCache) return docsCache;
   const out = [
     { name: "README.md", text: readFileSync(join(ROOT, "README.md"), "utf8") },
     // The public SEO/JSON-LD surface (og:title, twitter:title, SoftwareApplication
@@ -46,6 +57,7 @@ function docs(): Array<{ name: string; text: string }> {
       out.push({ name: `apps/web/src/${rel.replace(/\\/g, "/")}`, text: readFileSync(join(webSrc, rel), "utf8") });
     }
   }
+  docsCache = out;
   return out;
 }
 
