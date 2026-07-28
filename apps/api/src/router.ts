@@ -127,6 +127,24 @@ export function sendJSON(res: ServerResponse, status: number, data: unknown) {
   }
 }
 
+/**
+ * The error code of the last sendError() on a response, so the request log line
+ * can name WHICH failure fired.
+ *
+ * Added 2026-07-28 after two production incidents in one day could not be
+ * diagnosed from logs. Four `503 POST /portal/api/paid/webhook` could have been
+ * a missing signing key or an unprovisioned account — two very different
+ * problems, one of which means a customer paid and got nothing. And 48
+ * `413 POST /v1/analyze` could have been any of five distinct branches
+ * (per-file cap, file count, raw body cap, surcharge ceiling, or the anonymous
+ * flat path). In both cases `status` alone was the entire record and the answer
+ * had to come from reading source and guessing.
+ *
+ * A WeakMap rather than a property on `res` so nothing is added to an object
+ * Node also serialises, and entries die with the response.
+ */
+const RESPONSE_ERROR_CODE = new WeakMap<ServerResponse, string>();
+
 export function sendError(
   res: ServerResponse,
   status: number,
@@ -134,6 +152,7 @@ export function sendError(
   message: string,
   extra?: Record<string, unknown>,
 ) {
+  RESPONSE_ERROR_CODE.set(res, String(errorCode));
   // H2.5: `extra` spreads FIRST so it can only ADD fields — the caller's
   // explicit message/errorCode always win. Several call sites spread a
   // reusable negotiation-body builder into `extra` (build402NegotiationBody),
@@ -358,12 +377,16 @@ export function createApp(router: Router, port: number): Server {
           : status >= 400 ? "warn" as const
           : "info" as const;
         if (isProbe && level === "info") return;
+        const errorCode = RESPONSE_ERROR_CODE.get(res);
         log(level, "request", {
           request_id: requestId,
           method: req.method,
           path: req.url,
           status: res.statusCode,
           duration_ms: duration,
+          // Only on failures — a 200 has no error code, and emitting an empty
+          // field on every successful request would be pure log volume.
+          ...(errorCode ? { error_code: errorCode } : {}),
         });
       })().catch((err: unknown) => {
         log("error", "finish_handler_crashed", { error: err instanceof Error ? err.message : String(err) });

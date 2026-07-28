@@ -100,6 +100,14 @@ beforeAll(async () => {
     throw new Error("Intentional test error");
   });
 
+  // Probes for the request-log error_code assertions at the bottom of this file.
+  router.get("/log-probe-413", async (_req, res) => {
+    sendError(res, 413, "FILE_TOO_LARGE", "too big");
+  });
+  router.get("/log-probe-ok", async (_req, res) => {
+    sendJSON(res, 200, { ok: true });
+  });
+
   // Handler that returns custom status
   router.post("/status/:code", async (_req, res, params) => {
     const code = parseInt(params.code, 10);
@@ -443,5 +451,63 @@ describe("Router — HEAD method support", () => {
     const res = await req("HEAD", "/echo");
     const methods = res.headers["access-control-allow-methods"] as string;
     expect(methods).toContain("HEAD");
+  });
+});
+
+// Two production incidents on 2026-07-28 were undiagnosable from logs because
+// the request line carried only `status`: four 503s on the paid webhook (missing
+// signing key vs unprovisioned account — one of which means a customer paid and
+// got nothing) and 48 413s on /v1/analyze, which could have been any of five
+// distinct branches. Both answers had to come from reading source and guessing.
+// These pin the fix: a failing request must name WHICH failure fired.
+describe("request log names which failure fired", () => {
+  /**
+   * Collect the JSON log lines written while fn() runs.
+   *
+   * Two things this has to handle, both of which silently produced an empty
+   * capture on the first attempt: logging is suppressed under vitest unless
+   * AXIS_ENABLE_TEST_LOGS=1 (logger.ts shouldEmitRuntimeLogs), and the request
+   * line is emitted from the res.finish handler, which runs AFTER the client
+   * promise resolves — so the capture has to outlive the response.
+   */
+  async function withCapturedLogs(fn: () => Promise<void>): Promise<Array<Record<string, unknown>>> {
+    const lines: Array<Record<string, unknown>> = [];
+    const prevFlag = process.env.AXIS_ENABLE_TEST_LOGS;
+    process.env.AXIS_ENABLE_TEST_LOGS = "1";
+    const realWrite = process.stdout.write.bind(process.stdout);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.stdout as any).write = (chunk: any, ...rest: any[]) => {
+      const s = typeof chunk === "string" ? chunk : String(chunk);
+      for (const l of s.split("\n")) {
+        if (!l.startsWith("{")) continue;
+        try { lines.push(JSON.parse(l)); } catch { /* not a log line */ }
+      }
+      return realWrite(chunk, ...rest);
+    };
+    try {
+      await fn();
+      // Let the finish handler's microtask + timer turn run before restoring.
+      await new Promise((r) => setTimeout(r, 50));
+    } finally {
+      process.stdout.write = realWrite;
+      if (prevFlag === undefined) delete process.env.AXIS_ENABLE_TEST_LOGS;
+      else process.env.AXIS_ENABLE_TEST_LOGS = prevFlag;
+    }
+    return lines;
+  }
+
+  it("emits error_code on a failure response, identifying the branch", async () => {
+    const logs = await withCapturedLogs(async () => { await req("GET", "/log-probe-413"); });
+    const line = logs.find((l) => l.msg === "request" && l.path === "/log-probe-413");
+    expect(line, "no request log line captured").toBeDefined();
+    expect(line!.status).toBe(413);
+    expect(line!.error_code, "413 logged without the code that says WHICH 413").toBe("FILE_TOO_LARGE");
+  });
+
+  it("omits error_code on success rather than logging an empty field", async () => {
+    const logs = await withCapturedLogs(async () => { await req("GET", "/log-probe-ok"); });
+    const line = logs.find((l) => l.msg === "request" && l.path === "/log-probe-ok");
+    expect(line?.status).toBe(200);
+    expect(Object.keys(line ?? {})).not.toContain("error_code");
   });
 });
