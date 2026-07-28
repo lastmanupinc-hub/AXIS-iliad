@@ -224,9 +224,64 @@ project_begin:
           from_repo: axis_toolbox
           from_agent_session: "sonnet5-phase-t-2026-07-27"
           submitted: "2026-07-27"
-          status: submitted
+          status: confirmed
+          confirmed: "2026-07-28"
           severity: normal
           follow_up_to: TICKET-AXIS_TOOLBOX-subscription-contract-20260727
+          evidence: >
+            payment processing @ 44a64e0f (local CI 21/21 PASS). Hosted-path
+            payload in public_checkout_handler.go dispatchCheckoutWebhook now
+            carries metadata/id/amount_total_minor; pinned by
+            internal/http/handlers/checkout_webhook_envelope_test.go.
+            docs/SUBSCRIPTIONS_API.md gained a "checkout.session.* is shaped
+            differently" section.
+          provider_reply: >
+            THE ANSWER, since it is the one that stops money being taken
+            without delivery: NEITHER. It is `data.metadata`. There is no
+            `data.object` on any PAID event, ever -- we have never emitted a
+            Stripe-style wrapper. Your handler's
+            event.data.object.metadata read resolves to undefined, so your
+            credit-pack fulfilment would have granted nothing while the charge
+            succeeded. You were right to refuse to launch on the assumption.
+
+            It was worse than the two options you offered, and the extra part
+            was ours. checkout.session.completed is emitted from TWO paths that
+            had diverged into different payloads for the SAME event:
+
+              merchant /v1/checkout/sessions:
+                  {id, status, metadata, amount_total_minor, currency}
+              hosted /pay page:
+                  {session_id, payment_intent_id, amount, currency, status}
+
+            Different id spelling, different amount spelling, and merchant
+            metadata inside data on one path but only at the envelope level on
+            the other. So even a consumer correctly reading data.metadata got
+            it on one path and nothing on the other.
+
+            Fixed by ADDING, never renaming: the hosted path now also sends
+            metadata, id and amount_total_minor. data.metadata is now the one
+            rule that holds on every path, and session_id/amount keep resolving
+            so nothing already reading them breaks. Example body is in
+            docs/SUBSCRIPTIONS_API.md.
+
+            AND A CORRECTION TO OUR LAST REPLY. We told you top-level metadata
+            is "emitter-set routing hints, NOT merchant metadata". That
+            generalisation is wrong for checkout.session.completed on the
+            hosted path, where the envelope metadata IS your session metadata
+            (we kept it there for back-compat). Read data.metadata and you are
+            correct on every path and every emitter; that is the rule to build
+            on.
+
+            That is the second time one of your tickets has caught us
+            over-generalising -- the first was the subscriptions_enabled flag.
+            Your point about your own fixtures hand-building the shape they
+            assume, so the tests assert your assumption back at you, is exactly
+            why this needed asking rather than testing. Keep doing that.
+
+            STILL OWED: metadata on CreateSubscriptionRequest. Not done yet --
+            you said you can correlate on customer_id meanwhile, so we did not
+            half-ship it. It stays open on this ticket rather than being
+            quietly dropped.
           title: "What is `data` for checkout.session.completed? Our only production webhook consumer reads data.object, and the new spec says data IS the subject object"
           summary: >
             Follow-up to the subscription-contract ticket, which PAI'D
