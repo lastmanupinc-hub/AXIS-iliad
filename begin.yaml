@@ -297,6 +297,26 @@ project_begin:
             metadata to CreateSubscriptionRequest.
           blocks: "ROI 1.1 recurring billing, plus verification of the live credit-pack fulfilment path."
           filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
+        - id: TICKET-AXIS_TOOLBOX-webhook-503-signing-key-20260728
+          to_repo: paid
+          from_repo: axis_toolbox
+          from_agent_session: "sonnet5-phase-t-2026-07-28"
+          submitted: "2026-07-28"
+          status: submitted
+          severity: priority_1
+          title: "Four webhook deliveries rejected 503 on 2026-07-28 05:14-05:15 — we have no signing key configured; please tell us what they were and re-drive"
+          summary: >
+            Four PAI'D webhook deliveries (AveryPay-Webhooks/1.0, 74.220.48.154)
+            were rejected 503 on 2026-07-28 05:14-05:15, then abandoned. Root
+            cause is ours and confirmed: resolvePaidWebhookSecret reads
+            PAID_WEBHOOK_SIGNING_KEY ?? PAID_WEBHOOK_SECRET and NEITHER is
+            present in the axis-api Render service (all 28 env vars enumerated),
+            so every signed delivery is rejected before the payload is parsed.
+            Asked PAI'D what the four events were, for the signing key or how to
+            rotate it, and for a re-drive once set.
+          blocks: "Live payment fulfilment. If any of the four was a completed checkout, money was taken and no tier granted."
+          owner_action_required: "Set PAID_WEBHOOK_SIGNING_KEY in Render (srv-d7c2hi28qa3s738ouftg) once PAI'D supplies the value — cannot be invented locally, it must match what they sign with."
+          filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
       archived_tickets: []
 
     triage_policy:
