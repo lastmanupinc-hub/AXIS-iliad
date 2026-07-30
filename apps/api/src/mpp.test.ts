@@ -465,3 +465,29 @@ describe("build402NegotiationBody — priceOverrideCents (H-x402-cycle-25 DEVELO
     expect(body.price).toBe((tier.standard_cents / 100).toFixed(2));
   });
 });
+
+// 2026-07-28: PRICING_TIERS.ping_payment shipped at standard_cents/lite_cents:
+// 0.5 and broke production the same day. Every real call charges through
+// settleOverageCash into recordPaymentFunnelEvent's amount_cents column
+// (packages/snapshots/src/pg-schema.ts: `amount_cents INTEGER NOT NULL`), and
+// Postgres rejects a fractional cent outright — "invalid input syntax for type
+// integer: 0.5". Nothing upstream of that insert validated the price could
+// ever reach the database; the full test suite (run in CI, not the narrow
+// single-file runs used to verify the change) was the first thing to catch it.
+//
+// This is the check that should catch it next time, before merge. No entry in
+// PRICING_TIERS may price a tool at a fractional cent — every consumer of this
+// registry assumes whole-cent integers all the way to the database.
+describe("PRICING_TIERS — no tool prices at a fractional cent", () => {
+  it("every standard_cents and lite_cents value is a whole number", () => {
+    const fractional: string[] = [];
+    for (const [name, tier] of Object.entries(PRICING_TIERS)) {
+      if (!Number.isInteger(tier.standard_cents)) fractional.push(`${name}.standard_cents = ${tier.standard_cents}`);
+      if (!Number.isInteger(tier.lite_cents)) fractional.push(`${name}.lite_cents = ${tier.lite_cents}`);
+      if (tier.engineer_cents !== undefined && !Number.isInteger(tier.engineer_cents)) {
+        fractional.push(`${name}.engineer_cents = ${tier.engineer_cents}`);
+      }
+    }
+    expect(fractional, `fractional-cent prices found: ${fractional.join(", ")}`).toEqual([]);
+  });
+});

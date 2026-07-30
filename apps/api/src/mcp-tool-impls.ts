@@ -2225,7 +2225,7 @@ export const FREE_MCP_TOOL_COUNT = MCP_TOOLS.filter(t => FREE_TOOL_NAMES.has(t.n
 // still discover how to pay — no free tool invents its own payment story.
 const FIRST_PAID_ACTION_CTA = {
   tool: "ping_payment",
-  why: "Exercises the real x402 payment loop for $0.005. Learn once, then call any metered tool.",
+  why: "Exercises the real x402 payment loop for $0.01. Learn once, then call any metered tool.",
   then: "prepare_agentic_purchasing ($0.50) or analyze_repo",
 };
 

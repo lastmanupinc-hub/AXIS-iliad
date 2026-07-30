@@ -329,19 +329,26 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   // so an agent (or a human with curl) learns the exact vocabulary it will reuse
   // for every real paid tool at real prices.
   //
-  // Priced at half a cent (2026-07-28), not $0. It was free, and free made an
+  // Priced at one cent (2026-07-28), not $0. It was free, and free made an
   // unauthenticated endpoint that costs us per call something anyone could run
-  // up without limit. A nominal price makes each call carry its own weight while
-  // staying far below any tool worth abusing it to avoid.
+  // up without limit. A nominal price makes each call carry its own weight
+  // while staying far below any tool worth abusing it to avoid.
   //
-  // 0.5 is deliberately fractional — this field is `number`, not an integer, and
-  // formatCents() below renders sub-cent prices at three decimals so 0.5 shows
-  // as "$0.005" rather than being rounded to "$0.01" by a toFixed(2).
+  // This was shipped at 0.5 (half a cent) first and reverted the same day: the
+  // charge path (settleOverageCash -> ... -> the funnel-event insert in
+  // runPingPayment, apps/api/src/mcp-tool-impls.ts) writes this value into
+  // Postgres columns declared `amount_cents INTEGER NOT NULL`
+  // (packages/snapshots/src/pg-schema.ts). Postgres rejects a fractional cent
+  // outright: `invalid input syntax for type integer: "0.5"`. Every real call
+  // to ping_payment was failing that insert in production before this system
+  // as a whole was ever designed to carry sub-cent money. See
+  // PRICING_TIERS_ARE_WHOLE_CENTS below — that invariant is what should catch
+  // this before merge next time, not a full-regression CI run after.
   ping_payment: {
     tool: "ping_payment",
-    standard_cents: 0.5,
-    lite_cents: 0.5,
-    lite_description: "Half a cent on both tiers — a nominal-cost payment-flow probe, priced the same in lite mode.",
+    standard_cents: 1,
+    lite_cents: 1,
+    lite_description: "One cent on both tiers — a nominal-cost payment-flow probe, priced the same in lite mode.",
   },
   default: {
     tool: "default",

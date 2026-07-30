@@ -2175,7 +2175,7 @@ describe("POST /mcp — tools/call ping_payment", () => {
     expect(validKeyBody).toEqual(noKeyBody);
   });
 
-  it("retry with a payment credential in Authorization (API key moved to X-Axis-Key) — succeeds at $0.005", async () => {
+  it("retry with a payment credential in Authorization (API key moved to X-Axis-Key) — succeeds at $0.01", async () => {
     const r = await postWithHeaders(
       "/mcp",
       { jsonrpc: "2.0", id: 202, method: "tools/call", params: { name: "ping_payment", arguments: {} } },
@@ -2188,9 +2188,12 @@ describe("POST /mcp — tools/call ping_payment", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.ok).toBe(true);
     expect(parsed.tool).toBe("ping_payment");
-    // Half a cent since 2026-07-28 — was 0 when this was a free probe.
-    expect(parsed.settled_cents).toBe(0.5);
-    expect(parsed.price_usd).toBe("0.005");
+    // One cent since 2026-07-28 — was 0 when this was a free probe. Briefly
+    // 0.5 the same day; reverted same-day after it broke the funnel-event
+    // insert's INTEGER amount_cents column in production (see PRICING_TIERS'
+    // own comment in packages/mpp/src/index.ts).
+    expect(parsed.settled_cents).toBe(1);
+    expect(parsed.price_usd).toBe("0.01");
     expect(typeof parsed.next).toBe("string");
   });
 

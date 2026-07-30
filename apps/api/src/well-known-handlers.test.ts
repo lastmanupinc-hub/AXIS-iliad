@@ -392,10 +392,14 @@ describe("GET /.well-known/x402 and /.well-known/x402.json", () => {
     expect(keys.indexOf("note")).toBeGreaterThan(keys.indexOf("cheapest_way_in"));
     const entry = jsonNoExt.cheapest_way_in as Record<string, unknown>;
     expect(entry.tool).toBe("ping_payment");
-    // The advertised price must be derived, not hand-typed, and must survive the
-    // sub-cent formatting that a plain toFixed(2) would round to "0.01".
+    // The advertised price must be derived, not hand-typed. Was briefly priced
+    // at a fractional 0.5 cents (2026-07-28) and reverted same-day: that value
+    // reached Postgres columns declared INTEGER (via the funnel-event insert
+    // in runPingPayment) and broke every real call in production — see
+    // PRICING_TIERS.ping_payment's own comment in packages/mpp/src/index.ts,
+    // and the mpp.test.ts invariant that now guards against a repeat.
     expect(entry.price_usd).toBe(formatCents(getPricingTier("ping_payment").standard_cents));
-    expect(entry.price_usd).toBe("0.005");
+    expect(entry.price_usd).toBe("0.01");
   });
 
   it("never advertises ping_payment as free anywhere in the manifest", () => {

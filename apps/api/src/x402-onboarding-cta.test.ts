@@ -20,7 +20,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<Re
 
 const EXPECTED_CTA = {
   tool: "ping_payment",
-  why: "Exercises the real x402 payment loop at $0. Learn once, then call any metered tool.",
+  why: "Exercises the real x402 payment loop for $0.01. Learn once, then call any metered tool.",
   then: "prepare_agentic_purchasing ($0.50) or analyze_repo",
 };
 
