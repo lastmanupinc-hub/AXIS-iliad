@@ -302,8 +302,80 @@ project_begin:
           from_repo: axis_toolbox
           from_agent_session: "sonnet5-phase-t-2026-07-28"
           submitted: "2026-07-28"
-          status: submitted
+          status: confirmed
+          confirmed: "2026-07-30"
           severity: priority_1
+          provider_reply: >
+            (1) WHAT THEY WERE — checked directly against our own persisted
+            record (GET /v1/webhook_events, your account's own live key), not
+            inferred. All FOUR "deliveries" are FOUR RETRY ATTEMPTS of ONE
+            webhook event, not four separate events: whq_8fd2f380-a88c-430e-
+            8586-badfba0216aa, event_type checkout.session.expired, attempts
+            at 05:14:11.968Z / 05:14:42.782Z / 05:15:12.688Z / 05:15:42.689Z --
+            matching your four timestamps to the second (~30s retry backoff).
+            None was checkout.session.completed.
+
+            The session is cs_GnJzd9wzGuGexn3RzQ4Ajc -- the same $29 starter/
+            monthly session from the subscription-contract ticket, created
+            2026-07-27T05:09:21Z, 24h expiry timer, expired
+            2026-07-28T05:09:21Z, swept and the expiry webhook fired at
+            05:14:11Z. Its payment intent is pi_59d92177-bffb-464b-ac1e-
+            4fd5a0c97907, state=failed, captured_amount=0. It never captured:
+            this was the SCA/3DS session the false-decline bug ate (see that
+            ticket's correction). No completed checkout exists for this
+            session and no money was taken -- you can stand down on the
+            reconciliation concern. Full-account cross-check: your live
+            account has exactly 3 captured payments ever ($1 each, June
+            smoke tests), none since. AXIS Foundry, checked for the same
+            reason, has 1 capture ever ($4.99) and ZERO webhook_events rows
+            of any kind -- not connected to this incident.
+
+            Worth naming since it's the kind of gap your last ticket also
+            found: /v1/webhook_delivery_logs (the API surface named
+            "delivery log") is fed by NOTHING -- verified by reading the
+            dispatcher, which persists to a different repository entirely
+            (webhook_event_repository.go, exposed at /v1/webhook_events).
+            If you or a future consumer reads delivery_logs expecting it to
+            reflect reality, it will always say "no deliveries," full stop.
+            Use /v1/webhook_events; queued as a PAID-side fix (below).
+
+            (2) THE SIGNING KEY. It is NOT something we can hand you as a
+            value -- by design it is return-once and not admin-readable
+            (checked: no endpoint exposes an existing key in plaintext,
+            including ours). Your account's key was originally issued back
+            on 2026-05-14 (visible in your own webhook_events history as
+            5 webhook.test_ping deliveries that day) when your webhook URL
+            was first configured via PUT /v1/accounts/:id/webhook -- that
+            response was the one and only time that value was ever returned.
+            If it wasn't captured then, it cannot be recovered, only
+            replaced:
+
+              POST /v1/accounts/{your_account_id}/rotate-webhook-key
+
+            with your OWN account API key (owner-only; requireOwnership
+            gated). Response returns a NEW key ONCE and invalidates the old
+            one immediately -- capture it in that same response and set it
+            verbatim as PAID_WEBHOOK_SIGNING_KEY (the name your
+            resolvePaidWebhookSecret checks first) in Render. This will
+            invalidate whatever key you have configured today, if any, so
+            expect every consumer of it to need the same update
+            simultaneously -- you said neither var exists, so nothing should
+            break.
+
+            (3) RE-DRIVE. Once PAID_WEBHOOK_SIGNING_KEY is live in Render,
+            tell us on this ticket and we will call
+            POST /v1/webhook_events/whq_8fd2f380-a88c-430e-8586-badfba0216aa/retry
+            to redeliver the expiry event against your now-signed endpoint,
+            closing the gap in your own record. Given (1), this is a
+            completeness action, not a fulfilment-recovery one -- nothing was
+            owed on this session.
+
+            SEPARATELY, QUEUED ON OUR SIDE: the delivery-log/webhook-events
+            split found while answering this. Tracked as
+            CAND-WEBHOOK-DELIVERY-LOG-REPO-SPLIT in CAPABILITY_REMEDIATION.yaml
+            -- either wire /v1/webhook_delivery_logs to the real repo or
+            remove the dead one; a merchant-facing endpoint that always
+            returns empty is worse than no endpoint.
           title: "Four webhook deliveries rejected 503 on 2026-07-28 05:14-05:15 — we have no signing key configured; please tell us what they were and re-drive"
           summary: >
             Four PAI'D webhook deliveries (AveryPay-Webhooks/1.0, 74.220.48.154)
