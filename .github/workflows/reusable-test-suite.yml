@@ -52,7 +52,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
+      - uses: pnpm/action-setup@v6 # version comes from package.json "packageManager"
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v5

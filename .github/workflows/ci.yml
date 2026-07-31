@@ -41,7 +41,7 @@ jobs:
         with:
           fetch-depth: 0 # full history required: both git diff and pnpm's "...[ref]" filter need it
 
-      - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
+      - uses: pnpm/action-setup@v6 # version comes from package.json "packageManager"
 
       # No `cache` input here, and caching must stay OFF: this job never runs
       # `pnpm install` (it only needs pnpm's CLI for the "...[ref]"
@@ -212,7 +212,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
+      - uses: pnpm/action-setup@v6 # version comes from package.json "packageManager"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
