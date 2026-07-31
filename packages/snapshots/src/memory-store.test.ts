@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
-import { runPgMigrations } from "./pg-schema.js";
+import { runPgMigrations, PG_LATEST_VERSION, PG_MIGRATIONS } from "./pg-schema.js";
 import { createAccount } from "./billing-store.js";
 import { createSnapshot } from "./store.js";
 import {
@@ -33,8 +33,13 @@ describe("project_memory migration", () => {
   });
 
   it("running the migration a second time is idempotent (applied: 0)", async () => {
+    // Derived from the same source runPgMigrations() reads, not hand-pinned —
+    // a hardcoded expected version here went stale (40, still asserted after
+    // hub-and-spoke's migration 41 shipped) and failed for a reason unrelated
+    // to this test's actual point, which is idempotency, not a specific number.
     const result = await runPgMigrations();
-    expect(result).toEqual({ current_version: 40, applied: 0 });
+    const latest = Math.max(PG_LATEST_VERSION, ...PG_MIGRATIONS.map((m) => m.version));
+    expect(result).toEqual({ current_version: latest, applied: 0 });
   });
 });
 

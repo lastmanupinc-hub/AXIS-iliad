@@ -753,6 +753,32 @@ CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_created ON payment_funnel_e
     name: "snapshots_content_discarded_at",
     sql: `ALTER TABLE snapshots ADD COLUMN IF NOT EXISTS content_discarded_at TEXT;`,
   },
+  {
+    // Hub-and-spoke (docs/saas-strategy/CONSOLIDATION.md): 20 generator
+    // programs sold as 9 standalone products, each independently purchasable
+    // without owning the full hub bundle. `accounts.tier` stays exactly what
+    // it is today — quota/rate-limit tier, read at 43 call sites across this
+    // codebase — and is NOT touched by this table. Entitlement is a SEPARATE,
+    // additive concept: which spoke PRODUCTS (packages/generator-core/src/
+    // product-registry.ts) an account owns.
+    //
+    // No backfill migration for existing accounts. Deliberate, not an
+    // oversight: Iliad has no paying customers on this surface yet, so there
+    // is nothing to grandfather. Every row here comes from a real purchase
+    // from this point forward. If that ever stops being true, backfilling
+    // existing accounts is a new, explicit migration — not a silent default
+    // baked into this one.
+    version: 41,
+    name: "account_entitlements",
+    sql: `CREATE TABLE IF NOT EXISTS account_entitlements (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  product_id TEXT NOT NULL,
+  granted_at TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('purchase','manual')),
+  PRIMARY KEY (account_id, product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_account_entitlements_account ON account_entitlements(account_id);`,
+  },
 ];
 
 /**

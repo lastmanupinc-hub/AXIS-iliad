@@ -52,7 +52,12 @@ const WORKSPACE_PKGS = [
 ];
 
 // The pg-free façade for "@axis/snapshots": only these modules are vendored.
-const SNAPSHOTS_LITE_MODULES = ["github.js", "symbols.js"];
+// billing-types.js has zero imports of its own (pure types/constants — no
+// `sql`, no `./pg`, nothing DB-touching) — confirmed before adding it here,
+// since this façade exists specifically to keep the offline CLI free of a
+// Postgres dependency. Needed for product-registry.ts's ALL_PROGRAMS import
+// (hub-and-spoke, docs/saas-strategy/CONSOLIDATION.md).
+const SNAPSHOTS_LITE_MODULES = ["github.js", "symbols.js", "billing-types.js"];
 const LITE_SPECIFIER = "@axis/snapshots";
 
 const BUILTINS = new Set(builtinModules);

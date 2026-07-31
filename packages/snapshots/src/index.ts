@@ -34,7 +34,7 @@ export { parseGitHubUrl, fetchGitHubRepo } from "./github.js";
 // Billing
 export type { Account, ApiKey, BillingTier, ProgramEntitlement, UsageRecord, UsageSummary, TierLimits, ProgramName, PersistenceOp, PersistenceCreditRecord, PersistencePackId } from "./billing-types.js";
 export type { QuotaCheck, SystemStats, AccountSummary, RecentActivity, ApiEndpointUsage, ApiStatusUsage, AccountApiAnalyticsSummary, UsageDayBucket } from "./billing-store.js";
-export { TIER_LIMITS, ALL_PROGRAMS, PERSISTENCE_CREDIT_COSTS, PERSISTENCE_CREDIT_PACKS, PERSISTENCE_MIN_TIER, SUITE_MONTHLY_PERSISTENCE_CREDITS } from "./billing-types.js";
+export { TIER_LIMITS, ALL_PROGRAMS, PERSISTENCE_CREDIT_COSTS, PERSISTENCE_CREDIT_PACKS, PERSISTENCE_MIN_TIER, SUITE_MONTHLY_PERSISTENCE_CREDITS, exceedsFileSizeLimit, exceedsFileCountLimit } from "./billing-types.js";
 export {
   createAccount,
   getAccount,
@@ -163,6 +163,10 @@ export {
   getLastTierChange,
   calculateProration,
 } from "./tier-audit.js";
+
+// Hub-and-spoke product entitlements (docs/saas-strategy/CONSOLIDATION.md)
+export type { Entitlement, EntitlementSource } from "./entitlements.js";
+export { grantEntitlement, hasEntitlement, listEntitlements } from "./entitlements.js";
 
 // Persistence metering (add-on, metered on top of paid/suite)
 export type { MeterResult, PersistenceSpendDayBucket } from "./persistence-metering.js";

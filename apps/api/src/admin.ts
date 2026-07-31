@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { sendJSON, sendError } from "./router.js";
+import { sendJSON, sendError, readBody } from "./router.js";
 import { requireAuth, constantTimeEqual } from "./billing.js";
 import type { AuthContext } from "./billing.js";
+import { ErrorCode } from "./logger.js";
 import {
   getSystemStats,
   listAllAccounts,
@@ -11,7 +12,10 @@ import {
   getMcpUsageNewVsReturning,
   getGrowthSnapshot,
   getFunnelMetrics,
+  grantEntitlement,
+  listEntitlements,
 } from "@axis/snapshots";
+import { PRODUCT_IDS, getProduct } from "@axis/generator-core";
 
 /**
  * Require admin access. Validates auth first, then checks the raw API key
@@ -143,5 +147,78 @@ export async function handleAdminRevenue(
       total_calls: mcp.total_calls,
       unique_accounts: mcp.unique_accounts,
     },
+  });
+}
+
+// ─── Hub-and-spoke product entitlements ────────────────────────
+// docs/saas-strategy/CONSOLIDATION.md. Deliberately a NEW, additive-only
+// surface: neither handler touches accounts.tier or any of the 43 existing
+// tier-gated call sites. Every current paid/suite account's program access
+// is completely unchanged by this file. This is the end-to-end proof that
+// @axis/snapshots' entitlement plumbing (grantEntitlement/listEntitlements)
+// works over a real HTTP request — not a retrofit of an existing gate.
+//
+// No self-serve purchase path exists yet (no spoke product has a subdomain
+// or live billing — see CONSOLIDATION.md's build order). Granting is
+// admin-only until one does.
+
+/** GET /v1/account/entitlements — list the caller's own granted products */
+export async function handleListEntitlements(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = await requireAuth(req, res);
+  /* v8 ignore next */
+  if (!ctx) return;
+
+  const entitlements = await listEntitlements(ctx.account!.account_id);
+  sendJSON(res, 200, {
+    entitlements: entitlements.map((e) => ({
+      product_id: e.product_id,
+      product_name: getProduct(e.product_id)?.name ?? e.product_id,
+      granted_at: e.granted_at,
+      source: e.source,
+    })),
+  });
+}
+
+/** POST /v1/admin/entitlements/grant — grant one account access to one spoke product */
+export async function handleAdminGrantEntitlement(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(await readBody(req));
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const accountId = body.account_id;
+  const productId = body.product_id;
+  if (typeof accountId !== "string" || !accountId) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "account_id is required");
+    return;
+  }
+  if (typeof productId !== "string" || !PRODUCT_IDS.includes(productId)) {
+    sendError(
+      res,
+      400,
+      ErrorCode.INVALID_FORMAT,
+      `product_id must be one of: ${PRODUCT_IDS.join(", ")}`,
+    );
+    return;
+  }
+
+  await grantEntitlement(accountId, productId, "manual");
+  sendJSON(res, 200, {
+    granted: true,
+    account_id: accountId,
+    product_id: productId,
+    product_name: getProduct(productId)?.name ?? productId,
   });
 }

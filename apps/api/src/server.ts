@@ -110,7 +110,7 @@ import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSea
 import { getPaymentFunnelStats, getSettledRevenue } from "@axis/snapshots";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue, handleListEntitlements, handleAdminGrantEntitlement } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
@@ -507,6 +507,7 @@ router.patch("/v1/account", handlePatchAccount);
 router.delete("/v1/account", handleDeleteAccount);
 router.post("/v1/account/keys", handleCreateApiKey);
 router.get("/v1/account/keys", handleListApiKeys);
+router.get("/v1/account/entitlements", handleListEntitlements);
 router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
 router.get("/v1/account/usage", handleGetUsage);
 router.get("/v1/account/usage/timeseries", handleGetUsageTimeseries);
@@ -554,6 +555,7 @@ router.get("/v1/admin/accounts", handleAdminAccounts);
 router.get("/v1/admin/activity", handleAdminActivity);
 router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
 router.get("/v1/admin/revenue", handleAdminRevenue);
+router.post("/v1/admin/entitlements/grant", handleAdminGrantEntitlement);
 
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);

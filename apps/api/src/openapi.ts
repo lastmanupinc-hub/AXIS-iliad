@@ -959,6 +959,15 @@ export function buildOpenApiSpec(): OpenApiSpec {
         post: { summary: "Create a new API key", operationId: "createApiKey", tags: ["Billing"], responses: { 201: { description: "Key created" } } },
         get: { summary: "List API keys", operationId: "listApiKeys", tags: ["Billing"], responses: { 200: { description: "Key list" } } },
       },
+      "/v1/account/entitlements": {
+        get: {
+          summary: "List the caller's own hub-and-spoke product entitlements",
+          operationId: "listEntitlements",
+          tags: ["Billing"],
+          security: [{ apiKey: [] }],
+          responses: { 200: { description: "Entitlement list" }, 401: { description: "Authentication required" } },
+        },
+      },
       "/v1/account/keys/{key_id}/revoke": {
         post: {
           summary: "Revoke an API key",
@@ -1361,6 +1370,19 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/admin/revenue": {
         get: { summary: "Admin: revenue metrics", operationId: "getAdminRevenue", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "Revenue metrics" }, 403: { description: "Admin access required" } } },
+      },
+      "/v1/admin/entitlements/grant": {
+        post: {
+          summary: "Admin: grant one account access to one hub-and-spoke product",
+          operationId: "adminGrantEntitlement",
+          tags: ["Admin"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Entitlement granted" },
+            400: { description: "Missing or invalid account_id/product_id" },
+            403: { description: "Admin access required" },
+          },
+        },
       },
       "/v1/auth/session": {
         post: { summary: "Establish an HttpOnly session cookie from an API key", operationId: "authSession", tags: ["Auth"], responses: { 200: { description: "Session established" }, 401: { description: "Invalid credentials" } } },

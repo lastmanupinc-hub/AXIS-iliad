@@ -4,7 +4,7 @@ import { resetTestDb, recordMcpUsage, updateAccountPaidPlanId } from "@axis/snap
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue, handleListEntitlements, handleAdminGrantEntitlement } from "./admin.js";
 import { handleCreateSnapshot, handleHealthCheck } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -48,6 +48,7 @@ async function req(
 
 let apiKey: string;
 let nonAdminKey: string;
+let nonAdminAccountId: string;
 
 beforeAll(async () => {
   await resetTestDb();
@@ -61,6 +62,8 @@ beforeAll(async () => {
   router.get("/v1/admin/activity", handleAdminActivity);
   router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
   router.get("/v1/admin/revenue", handleAdminRevenue);
+  router.get("/v1/account/entitlements", handleListEntitlements);
+  router.post("/v1/admin/entitlements/grant", handleAdminGrantEntitlement);
   const ts = await startTestServer(router);
   server = ts.server;
   testPort = ts.port;
@@ -73,6 +76,7 @@ beforeAll(async () => {
   // Create a non-admin account
   const acct2 = await req("POST", "/v1/accounts", { name: "Regular User", email: "regular@test.com" });
   nonAdminKey = (acct2.data as any).api_key.raw_key;
+  nonAdminAccountId = (acct2.data as any).account.account_id;
 });
 
 afterAll(async () => {
@@ -347,5 +351,96 @@ describe("admin param clamping", () => {
     const r = await req("GET", "/v1/admin/activity?limit=abc", undefined, apiKey);
     expect(r.status).toBe(200);
     // NaN || 50 → clamp → valid limit
+  });
+});
+
+// Hub-and-spoke product entitlements (docs/saas-strategy/CONSOLIDATION.md).
+// A deliberately NEW, additive-only surface — neither handler touches
+// accounts.tier or any of the 43 existing tier-gated call sites, so these
+// tests never assert anything about an account's tier or program access.
+describe("GET /v1/account/entitlements", () => {
+  it("requires authentication", async () => {
+    const r = await req("GET", "/v1/account/entitlements");
+    expect(r.status).toBe(401);
+  });
+
+  it("is empty for an account with no grants", async () => {
+    const r = await req("GET", "/v1/account/entitlements", undefined, nonAdminKey);
+    expect(r.status).toBe(200);
+    expect(r.data.entitlements).toEqual([]);
+  });
+
+  it("reflects a grant made via the admin endpoint, with a resolved product name", async () => {
+    const grant = await req(
+      "POST",
+      "/v1/admin/entitlements/grant",
+      { account_id: nonAdminAccountId, product_id: "socket" },
+      apiKey,
+    );
+    expect(grant.status).toBe(200);
+
+    const r = await req("GET", "/v1/account/entitlements", undefined, nonAdminKey);
+    expect(r.status).toBe(200);
+    const entitlements = r.data.entitlements as Array<Record<string, unknown>>;
+    expect(entitlements.length).toBe(1);
+    expect(entitlements[0].product_id).toBe("socket");
+    expect(entitlements[0].product_name).toBe("Socket");
+    expect(entitlements[0].source).toBe("manual");
+  });
+});
+
+describe("POST /v1/admin/entitlements/grant", () => {
+  it("requires authentication", async () => {
+    const r = await req("POST", "/v1/admin/entitlements/grant", { account_id: "x", product_id: "socket" });
+    expect(r.status).toBe(401);
+  });
+
+  it("rejects a non-admin caller with 403", async () => {
+    const r = await req(
+      "POST",
+      "/v1/admin/entitlements/grant",
+      { account_id: nonAdminAccountId, product_id: "socket" },
+      nonAdminKey,
+    );
+    expect(r.status).toBe(403);
+  });
+
+  it("rejects a missing account_id", async () => {
+    const r = await req("POST", "/v1/admin/entitlements/grant", { product_id: "socket" }, apiKey);
+    expect(r.status).toBe(400);
+    expect(r.data.error_code).toBe("MISSING_FIELD");
+  });
+
+  it("rejects a product_id that isn't in PRODUCT_REGISTRY", async () => {
+    const r = await req(
+      "POST",
+      "/v1/admin/entitlements/grant",
+      { account_id: nonAdminAccountId, product_id: "not-a-real-product" },
+      apiKey,
+    );
+    expect(r.status).toBe(400);
+    expect(r.data.error_code).toBe("INVALID_FORMAT");
+  });
+
+  it("is idempotent — granting the same product twice returns 200 both times, no duplicate", async () => {
+    const first = await req(
+      "POST",
+      "/v1/admin/entitlements/grant",
+      { account_id: nonAdminAccountId, product_id: "runway" },
+      apiKey,
+    );
+    const second = await req(
+      "POST",
+      "/v1/admin/entitlements/grant",
+      { account_id: nonAdminAccountId, product_id: "runway" },
+      apiKey,
+    );
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    const listed = await req("GET", "/v1/account/entitlements", undefined, nonAdminKey);
+    const runwayGrants = (listed.data.entitlements as Array<Record<string, unknown>>).filter(
+      (e) => e.product_id === "runway",
+    );
+    expect(runwayGrants.length).toBe(1);
   });
 });

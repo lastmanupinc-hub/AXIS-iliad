@@ -351,7 +351,7 @@ These programs are permanently free. They solve universal developer problems and
 │                  └──────────────┘    └───────────────┘  │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤
-│  REST API (163 endpoints) · Web UI · CLI · OAuth        │
+│  REST API (165 endpoints) · Web UI · CLI · OAuth        │
 │  Neon PG · Webhooks · Email · Rate Limits · Metering    │
 └─────────────────────────────────────────────────────────┘
 ```

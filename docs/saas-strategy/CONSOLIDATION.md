@@ -53,6 +53,13 @@ listed as *absorbs*, and they are the whole reason the count is 9 and not 20.
   as a feature, not a product.
 - **Seed** (`algorithmic`) — highest code density, least obvious buyer. This is an
   art-tools product in a developer portfolio. Spin out or shelve.
+- **Vault** (`obsidian`) — graded in its own guide as "free add-on, not revenue," but
+  never actually assigned a home in the table above. That was a real gap:
+  `packages/generator-core/src/product-registry.test.ts` asserts every one of the 20
+  programs is either sold or explicitly parked, and it failed on this one until it
+  was added here. Single-user, tool-specific, the least willing-to-pay segment in
+  the portfolio — stays free and unmerged rather than dragging down whatever it was
+  bundled into.
 
 Parking four programs is a decision, not an oversight. Each has a named reason and a
 condition under which it un-parks.
