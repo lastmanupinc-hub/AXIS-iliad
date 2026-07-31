@@ -43,9 +43,23 @@ jobs:
 
       - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
 
+      # cache: pnpm explicit, matching every other setup-node@v5 use in this repo
+      # (build-and-test below, context-freshness.yml, reusable-test-suite.yml).
+      # This job never runs `pnpm install` — it only needs pnpm's CLI for the
+      # "...[ref]" dependency-graph filter against the checked-out tree, not a
+      # populated store — but leaving `cache` unset started failing outright
+      # (2026-07-31): a floating @v5 tag now detects pnpm/action-setup ran first
+      # and attempts a cache SAVE anyway, against a store path that was never
+      # created, hard-failing the job's Post step and skipping every downstream
+      # job (build-and-test, docker-build, both deploys) on every push. This
+      # doesn't make the job populate a real cache (still no install here) —
+      # it makes setup-node's own save attempt resolve to a normal empty-cache
+      # no-op instead of a path-validation error, same as it already does
+      # correctly in the three working jobs above.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Resolve base ref
         id: base
@@ -279,8 +293,15 @@ jobs:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager" — setup-node's
         # own cache-detection step below shells out to it even though this job never calls pnpm itself
+      # cache: pnpm explicit — this is the same pnpm/action-setup + setup-node
+      # combo that started hard-failing determine-affected's job above
+      # (2026-07-31, see its comment): a floating @v5 tag now attempts a cache
+      # SAVE once it detects pnpm ran, even with no `cache` input and no
+      # `pnpm install` in the job to populate a store. Declaring it explicitly
+      # here too, before this job ever actually hits it.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: pnpm
       - name: Run live-probe battery
         run: node scripts/live-probe.mjs
