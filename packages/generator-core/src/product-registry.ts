@@ -134,7 +134,7 @@ export const PARKED_PROGRAMS = ["optimization", "superpowers", "remotion", "algo
 
 function productForProgram(program: string): string | undefined {
   for (const [id, p] of Object.entries(PRODUCT_REGISTRY)) {
-    if ((p.programs as readonly string[]).includes(program)) return id;
+    if (p.programs.includes(program)) return id;
   }
   return undefined;
 }

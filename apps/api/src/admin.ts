@@ -192,7 +192,7 @@ export async function handleAdminGrantEntitlement(
 
   let body: Record<string, unknown>;
   try {
-    body = JSON.parse(await readBody(req));
+    body = JSON.parse(await readBody(req)) as Record<string, unknown>;
   } catch {
     sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
     return;
