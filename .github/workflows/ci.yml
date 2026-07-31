@@ -43,23 +43,26 @@ jobs:
 
       - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
 
-      # cache: pnpm explicit, matching every other setup-node@v5 use in this repo
-      # (build-and-test below, context-freshness.yml, reusable-test-suite.yml).
-      # This job never runs `pnpm install` — it only needs pnpm's CLI for the
-      # "...[ref]" dependency-graph filter against the checked-out tree, not a
-      # populated store — but leaving `cache` unset started failing outright
-      # (2026-07-31): a floating @v5 tag now detects pnpm/action-setup ran first
-      # and attempts a cache SAVE anyway, against a store path that was never
-      # created, hard-failing the job's Post step and skipping every downstream
-      # job (build-and-test, docker-build, both deploys) on every push. This
-      # doesn't make the job populate a real cache (still no install here) —
-      # it makes setup-node's own save attempt resolve to a normal empty-cache
-      # no-op instead of a path-validation error, same as it already does
-      # correctly in the three working jobs above.
+      # No `cache` input here, and caching must stay OFF: this job never runs
+      # `pnpm install` (it only needs pnpm's CLI for the "...[ref]"
+      # dependency-graph filter against the checked-out tree), so there is
+      # never a populated store for the Post step to save. Root cause
+      # (2026-07-31): actions/setup-node@v5's own `package-manager-cache`
+      # input defaults to true and auto-enables caching whenever
+      # package.json has a "packageManager" field — regardless of whether
+      # `cache:` is set — so explicitly declaring `cache: pnpm` here (tried
+      # first) changed nothing; the auto-detected cache was already on. The
+      # Post step then shells out to resolve the pnpm store path, finds
+      # nothing was ever installed into it, and hard-fails with a Path
+      # Validation Error, skipping every downstream job (build-and-test,
+      # docker-build, both deploys) on every push. build-and-test/deploy-web
+      # don't hit this because they run `pnpm install` right after this step,
+      # giving the Post step a real store to save. `package-manager-cache:
+      # false` below turns off the auto-detection for good.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: pnpm
+          package-manager-cache: false
 
       - name: Resolve base ref
         id: base
@@ -291,17 +294,15 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager" — setup-node's
-        # own cache-detection step below shells out to it even though this job never calls pnpm itself
-      # cache: pnpm explicit — this is the same pnpm/action-setup + setup-node
-      # combo that started hard-failing determine-affected's job above
-      # (2026-07-31, see its comment): a floating @v5 tag now attempts a cache
-      # SAVE once it detects pnpm ran, even with no `cache` input and no
-      # `pnpm install` in the job to populate a store. Declaring it explicitly
-      # here too, before this job ever actually hits it.
+      # No pnpm/action-setup here — live-probe.mjs is pure native fetch and
+      # never shells out to pnpm (unlike determine-affected's job above,
+      # which genuinely needs the pnpm CLI). package-manager-cache: false
+      # keeps actions/setup-node@v5 from auto-enabling pnpm caching off the
+      # "packageManager" field in package.json — see determine-affected's
+      # comment (2026-07-31) for the root cause this avoids.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: pnpm
+          package-manager-cache: false
       - name: Run live-probe battery
         run: node scripts/live-probe.mjs
