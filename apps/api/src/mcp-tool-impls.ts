@@ -86,6 +86,7 @@ import {
   trackEvent,
   resolveStage,
   TIER_LIMITS,
+  exceedsFileCountLimit,
   getGitHubTokenDecrypted,
   lookupReferralCode,
   recordReferralConversion,
@@ -1728,7 +1729,7 @@ export async function runHygiene(args: Record<string, unknown>, req: IncomingMes
   // DoS from an oversized file set on a single-threaded synchronous scan.
   const limits = TIER_LIMITS[auth.account.tier];
   const rawCount = Array.isArray(args.files) ? args.files.length : 0;
-  if (rawCount > limits.max_files_per_snapshot) {
+  if (exceedsFileCountLimit(rawCount, limits.max_files_per_snapshot)) {
     throw new Error(`File limit: ${rawCount} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`);
   }
   const wantEngineer = resolveAgentMode(req) === "engineer";
@@ -1948,7 +1949,7 @@ export async function runAnalyzeFiles(
     throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   }
   const limits = TIER_LIMITS[account.tier];
-  if (files.length > limits.max_files_per_snapshot) {
+  if (exceedsFileCountLimit(files.length, limits.max_files_per_snapshot)) {
     throw new Error(
       `File limit: ${files.length} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`,
     );
@@ -2519,7 +2520,7 @@ export async function runImproveMyAgent(
   const quota = await checkQuota(auth.account.account_id);
   if (!quota.allowed) throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   const limits = TIER_LIMITS[auth.account.tier];
-  if (files.length > limits.max_files_per_snapshot) {
+  if (exceedsFileCountLimit(files.length, limits.max_files_per_snapshot)) {
     throw new Error(`File limit: ${files.length} exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`);
   }
   /* v8 ignore stop */
@@ -3345,7 +3346,7 @@ export async function runPreparePurchasing(
     throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   }
   const limits = TIER_LIMITS[auth.account.tier];
-  if (files.length > limits.max_files_per_snapshot) {
+  if (exceedsFileCountLimit(files.length, limits.max_files_per_snapshot)) {
     throw new Error(
       `File limit: ${files.length} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`,
     );

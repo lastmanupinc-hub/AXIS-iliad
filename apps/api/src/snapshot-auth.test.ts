@@ -184,9 +184,9 @@ describe("auth — quota exceeded", () => {
 // ─── File count limits ──────────────────────────────────────────
 
 describe("auth — file count limits", () => {
-  it("returns 413 FILE_COUNT_EXCEEDED when free tier exceeds 1000 files", async () => {
+  it("returns 413 FILE_COUNT_EXCEEDED when free tier exceeds 2000 files", async () => {
     const { key } = await createTestAccount("filecount", "filecount@test.com");
-    const files = Array.from({ length: 1001 }, (_, i) => ({
+    const files = Array.from({ length: 2001 }, (_, i) => ({
       path: `file-${i}.ts`,
       content: "x",
       size: 1,
@@ -203,20 +203,20 @@ describe("auth — file count limits", () => {
     }, key);
     expect(r.status).toBe(413);
     expect(r.data.error_code).toBe("FILE_COUNT_EXCEEDED");
-    expect((r.data.error as string)).toContain("1001");
-    expect((r.data.error as string)).toContain("1000");
+    expect((r.data.error as string)).toContain("2001");
+    expect((r.data.error as string)).toContain("2000");
   });
 
-  it("allows exactly 1000 files for free tier", async () => {
-    const { key } = await createTestAccount("exact1000", "exact1000@test.com");
-    const files = Array.from({ length: 1000 }, (_, i) => ({
+  it("allows exactly 2000 files for free tier", async () => {
+    const { key } = await createTestAccount("exact2000", "exact2000@test.com");
+    const files = Array.from({ length: 2000 }, (_, i) => ({
       path: `file-${i}.ts`,
       content: "x",
       size: 1,
     }));
     const r = await req("POST", "/v1/snapshots", {
       manifest: {
-        project_name: "one-thousand",
+        project_name: "two-thousand",
         project_type: "web",
         frameworks: ["react"],
         goals: ["test"],
@@ -231,7 +231,7 @@ describe("auth — file count limits", () => {
 // ─── File size limits ───────────────────────────────────────────
 
 describe("auth — file size limits", () => {
-  it("returns 413 FILE_TOO_LARGE when file exceeds free tier 5MB", async () => {
+  it("returns 413 FILE_TOO_LARGE when file exceeds free tier 50MB", async () => {
     const { key } = await createTestAccount("bigfile", "bigfile@test.com");
     const r = await req("POST", "/v1/snapshots", {
       manifest: {
@@ -244,7 +244,7 @@ describe("auth — file size limits", () => {
       files: [{
         path: "huge.dat",
         content: "x",
-        size: 5 * 1024 * 1024 + 1, // 5MB + 1 byte
+        size: 50 * 1024 * 1024 + 1, // 50MB + 1 byte
       }],
     }, key);
     expect(r.status).toBe(413);
@@ -252,11 +252,11 @@ describe("auth — file size limits", () => {
     expect((r.data.error as string)).toContain("huge.dat");
   });
 
-  it("allows exactly 5MB file for free tier", async () => {
-    const { key } = await createTestAccount("exact5mb", "exact5mb@test.com");
+  it("allows exactly 50MB file for free tier", async () => {
+    const { key } = await createTestAccount("exact50mb", "exact50mb@test.com");
     const r = await req("POST", "/v1/snapshots", {
       manifest: {
-        project_name: "exact-5mb",
+        project_name: "exact-50mb",
         project_type: "web",
         frameworks: ["react"],
         goals: ["test"],
@@ -265,22 +265,27 @@ describe("auth — file size limits", () => {
       files: [{
         path: "exact.dat",
         content: "x",
-        size: 5 * 1024 * 1024, // exactly 5MB
+        size: 50 * 1024 * 1024, // exactly 50MB
       }],
     }, key);
     expect(r.status).toBe(201);
   });
 });
 
-// ─── Tier upgrade unlocks higher limits ─────────────────────────
+// ─── Tier upgrade unlocks unlimited caps ────────────────────────
+// Paid/suite have NO file-count or file-size cap (docs/saas-strategy —
+// the tier differentiator moved to max_snapshots_per_month, not upload
+// size). These prove UNLIMITED specifically: every file count/size below
+// used a value that would ALSO fail free's own (now-raised) 2000-file /
+// 50MB cap, so passing only works if paid truly has no ceiling — not just
+// "a higher one than free".
 
-describe("tier upgrade unlocks limits", () => {
-  it("paid tier allows more files than free", async () => {
+describe("tier upgrade unlocks unlimited caps", () => {
+  it("paid tier accepts a file count well over free's 2000-file cap", async () => {
     const { key } = await createTestAccount("paid-files", "paidfiles@test.com");
-    // Upgrade to paid
     await req("POST", "/v1/account/tier", { tier: "paid" }, key);
 
-    const files = Array.from({ length: 201 }, (_, i) => ({
+    const files = Array.from({ length: 2500 }, (_, i) => ({
       path: `f-${i}.ts`,
       content: "x",
       size: 1,
@@ -295,11 +300,10 @@ describe("tier upgrade unlocks limits", () => {
       },
       files,
     }, key);
-    // 201 files is under paid limit of 2000
     expect(r.status).toBe(201);
   });
 
-  it("paid tier allows larger files than free", async () => {
+  it("paid tier accepts a file well over free's 50MB cap", async () => {
     const { key } = await createTestAccount("paid-big", "paidbig@test.com");
     await req("POST", "/v1/account/tier", { tier: "paid" }, key);
 
@@ -314,7 +318,7 @@ describe("tier upgrade unlocks limits", () => {
       files: [{
         path: "large.dat",
         content: "x",
-        size: 10 * 1024 * 1024, // 10MB — over free limit, under paid 50MB
+        size: 200 * 1024 * 1024, // 200MB — well over free's 50MB cap
       }],
     }, key);
     expect(r.status).toBe(201);
@@ -474,32 +478,35 @@ describe("oversized-upload 413s include upgrade guidance", () => {
 
   it("POST /v1/snapshots file-count 413 names a tier that would actually fit", async () => {
     const { key } = await createTestAccount("guidance413", "guidance413@test.com");
-    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(1001) }, key);
+    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(2001) }, key);
 
     expect(r.status).toBe(413);
     expect(r.data.error_code).toBe("FILE_COUNT_EXCEEDED");
-    // The remedy half — absent before this fix.
+    // The remedy half — absent before this fix. Paid has no cap at all now, so
+    // the note says so in words rather than interpolating -1.
     expect(r.data.accommodating_tier).toBe("paid");
     expect(r.data.upgrade_url).toContain("iliad.trustfabric.ai");
-    expect(String(r.data.upgrade_note)).toContain("2000");
+    expect(String(r.data.upgrade_note)).toContain("no file-count or file-size limit");
   });
 
   it("never tells a 413'd caller to retry against the sibling endpoint (identical caps)", async () => {
     const { key } = await createTestAccount("nosibling413", "nosibling413@test.com");
-    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(1001) }, key);
+    const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(2001) }, key);
 
     expect(r.status).toBe(413);
     const body = JSON.stringify(r.data);
     expect(body).not.toContain("/v1/analyze");
   });
 
-  it("omits guidance entirely when no tier could fit, rather than advertising a useless upgrade", async () => {
-    const { key } = await createTestAccount("nofit413", "nofit413@test.com");
-    // Past suite's 5000-file ceiling — no tier accommodates this.
+  // "No tier could fit" no longer has a reachable scenario: paid and suite both
+  // have no file-count/file-size cap (docs/saas-strategy — the differentiator
+  // moved to max_snapshots_per_month), so no file count can ever fail to find
+  // an accommodating tier from a free-tier caller. Removed rather than left
+  // pinning a case that can no longer occur.
+  it("suite tier itself never hits a file-count 413 — no cap exists to exceed", async () => {
+    const { key } = await createTestAccount("nocap413", "nocap413@test.com");
+    await req("POST", "/v1/account/tier", { tier: "suite" }, key);
     const r = await req("POST", "/v1/snapshots", { manifest, files: oversized(5001) }, key);
-
-    expect(r.status).toBe(413);
-    expect(r.data.accommodating_tier).toBeUndefined();
-    expect(r.data.upgrade_url).toBeUndefined();
+    expect(r.status).toBe(201);
   });
 });

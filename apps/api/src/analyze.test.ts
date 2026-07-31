@@ -308,11 +308,11 @@ describe("POST /v1/analyze — validation", () => {
   });
 
   it("rejects an oversized anonymous request (file count) BEFORE generation runs", async () => {
-    // Free-tier limit is 1000 files/snapshot (TIER_LIMITS.free.max_files_per_snapshot).
+    // Free-tier limit is 2000 files/snapshot (TIER_LIMITS.free.max_files_per_snapshot).
     // Request only free programs so this reaches the size gate instead of the 401
     // paid-program check above — proving the gate fires for the exact anonymous +
     // free-program path the live demo (WO-P1) actually uses.
-    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+    const manyFiles = Array.from({ length: 2001 }, (_, i) => ({
       path: `src/file${i}.ts`,
       content: "export const x = 1;",
     }));
@@ -323,9 +323,9 @@ describe("POST /v1/analyze — validation", () => {
   });
 
   it("rejects an oversized anonymous request (single file size) BEFORE generation runs", async () => {
-    // Free-tier limit is 5MB/file (TIER_LIMITS.free.max_file_size_bytes).
+    // Free-tier limit is 50MB/file (TIER_LIMITS.free.max_file_size_bytes).
     const r = await req("POST", "/v1/analyze", {
-      files: [{ path: "big.bin", content: "x", size: 6 * 1024 * 1024 }],
+      files: [{ path: "big.bin", content: "x", size: 51 * 1024 * 1024 }],
       programs: ["skills"],
     });
     expect(r.status).toBe(413);
@@ -362,7 +362,7 @@ describe("POST /v1/analyze — validation", () => {
     // consumption) BEFORE the file caps — money could move for work that could
     // never run, and the caller saw a payment demand for a request that was
     // doomed to 413. Deterministic validation must win: 413, never 402.
-    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+    const manyFiles = Array.from({ length: 2001 }, (_, i) => ({
       path: `src/file${i}.ts`,
       content: "export const x = 1;",
     }));
@@ -380,10 +380,11 @@ describe("POST /v1/analyze — validation", () => {
   // with no path forward.
 
   it("free-tier account, repo exceeds free's file-count cap but fits paid's — 413 body names the accommodating tier", async () => {
-    // Free cap is 1000 files, paid cap is 2000 — this exact case is the one
-    // the test above already proves stays 413; this proves the body is now
-    // enriched too.
-    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+    // Free cap is 2000 files; paid has no cap at all — this exact case is the
+    // one the test above already proves stays 413; this proves the body is
+    // now enriched too, and that an unlimited tier's note says "unlimited"
+    // rather than interpolating -1 (see formatTierCapForMessage).
+    const manyFiles = Array.from({ length: 2001 }, (_, i) => ({
       path: `src/file${i}.ts`,
       content: "export const x = 1;",
     }));
@@ -394,13 +395,15 @@ describe("POST /v1/analyze — validation", () => {
     expect(data.accommodating_tier).toBe("paid");
     expect(typeof data.upgrade_url).toBe("string");
     expect(data.upgrade_note).toContain("paid");
+    expect(String(data.upgrade_note)).toContain("no file-count or file-size limit");
+    expect(String(data.upgrade_note)).not.toContain("-1");
     // The disclaimer that this is a subscription change, not a payable per-call
     // charge, must be present — this is what keeps the 402-vs-413 choice honest.
     expect(String(data.upgrade_note)).toContain("not a per-call payment");
   });
 
   it("anonymous caller, repo exceeds free's file-count cap but fits paid's — 413 body names the accommodating tier", async () => {
-    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+    const manyFiles = Array.from({ length: 2001 }, (_, i) => ({
       path: `src/file${i}.ts`,
       content: "export const x = 1;",
     }));
@@ -412,23 +415,27 @@ describe("POST /v1/analyze — validation", () => {
     expect(typeof data.upgrade_url).toBe("string");
   });
 
-  it("repo exceeds even suite's file-count cap — no accommodating tier exists, body carries no upgrade fields", async () => {
-    const wayTooManyFiles = Array.from({ length: 5001 }, (_, i) => ({
+  // "Exceeds even suite's cap" no longer has a reachable scenario to test: paid
+  // and suite both have NO file-count/file-size cap (docs/saas-strategy — the
+  // tier differentiator moved to max_snapshots_per_month), so no file count can
+  // ever fail to find an accommodating tier from a free-tier caller. Removed
+  // rather than left pinning a case that can no longer occur; the underlying
+  // `findAccommodatingTier` returning null when nothing accommodates is still
+  // real code (kept for a future tier structure that reintroduces a cap), it
+  // just isn't reachable through today's actual TIER_LIMITS values.
+  it("suite tier itself never hits a file-count/file-size 413 — no cap exists to exceed", async () => {
+    const manyFiles = Array.from({ length: 5001 }, (_, i) => ({
       path: `src/file${i}.ts`,
       content: "export const x = 1;",
     }));
-    const r = await req("POST", "/v1/analyze", { files: wayTooManyFiles, programs: ["skills"] });
-    expect(r.status).toBe(413);
-    const data = r.data as Record<string, unknown>;
-    expect(data.error_code).toBe("FILE_COUNT_EXCEEDED");
-    expect(data.accommodating_tier).toBeUndefined();
-    expect(data.upgrade_url).toBeUndefined();
+    const r = await req("POST", "/v1/analyze", { files: manyFiles, programs: ["skills"] }, suiteApiKey);
+    expect(r.status).toBe(201);
   });
 
   it("single oversized file within free's file-count cap but over free's per-file-size cap — accommodating tier named", async () => {
-    // 6MB file: over free's 5MB/file cap, under paid's 50MB/file cap.
+    // 51MB file: over free's 50MB/file cap; paid has no per-file-size cap at all.
     const r = await req("POST", "/v1/analyze", {
-      files: [{ path: "big.bin", content: "x", size: 6 * 1024 * 1024 }],
+      files: [{ path: "big.bin", content: "x", size: 51 * 1024 * 1024 }],
       programs: ["skills"],
     });
     expect(r.status).toBe(413);

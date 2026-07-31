@@ -195,16 +195,21 @@ describe("H-Phase-A cycle 17 — analyze_files no longer hard-blocks a fresh pai
 });
 
 describe("Quota-exceeded guardrails — file limit", () => {
-  it("rejects files exceeding tier max_files_per_snapshot", async () => {
-    // Paid account with all programs enabled; file limit = paid.max_files_per_snapshot
+  // Paid/suite have NO max_files_per_snapshot cap (docs/saas-strategy — the
+  // tier differentiator moved to max_snapshots_per_month). This used to build
+  // `TIER_LIMITS.paid.max_files_per_snapshot + 1` files to prove rejection;
+  // that value is now -1, so "+1" built an EMPTY file array and the test's
+  // scenario stopped being reachable. Replaced with the actual current
+  // behavior: a file count that would have exceeded the OLD 2000-file paid
+  // cap must still succeed, since paid no longer has one.
+  it("accepts a file count well over the free tier's cap on a paid account — no cap to exceed", async () => {
     const acct2 = await createAccount("FileLimitTest", "filelimit@example.com", "paid");
     const key2 = await createApiKey(acct2.account_id, "filelimit-key");
     for (const p of ALL_PROGRAMS) {
       await enableProgram(acct2.account_id, p);
     }
 
-    const maxFiles = TIER_LIMITS.paid.max_files_per_snapshot;
-    const tooManyFiles = Array.from({ length: maxFiles + 1 }, (_, i) => ({
+    const manyFiles = Array.from({ length: TIER_LIMITS.free.max_files_per_snapshot + 500 }, (_, i) => ({
       path: `file-${i}.txt`,
       content: `content ${i}`,
     }));
@@ -216,14 +221,13 @@ describe("Quota-exceeded guardrails — file limit", () => {
         project_type: "library",
         frameworks: ["node"],
         goals: ["test"],
-        files: tooManyFiles,
+        files: manyFiles,
       }),
       key2.rawKey,
     );
     expect(r.status).toBe(200);
     const result = getToolResult(r.data);
-    expect(result.isError).toBe(true);
-    expect(result.text).toContain("File limit");
+    expect(result.isError).toBe(false);
   });
 });
 

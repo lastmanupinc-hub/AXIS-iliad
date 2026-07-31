@@ -476,9 +476,11 @@ describe("handleGitHubAnalyze", () => {
   // limit independently, not just coincidentally via fetchGitHubRepo's
   // current config.
   it("rejects an oversized anonymous fetch result even though fetchGitHubRepo's own caps would normally prevent one this large", async () => {
+    // 2001 exceeds free tier's current 2000-file cap (raised from 1000 —
+    // hub-and-spoke pricing correction, 2026-07-31).
     mockFetchGitHubRepo.mockResolvedValueOnce({
-      files: Array.from({ length: 1001 }, (_, i) => ({ path: `f${i}.ts`, content: "x", size: 1 })),
-      owner: "o", repo: "big", ref: "HEAD", skipped_count: 0, total_bytes: 1001,
+      files: Array.from({ length: 2001 }, (_, i) => ({ path: `f${i}.ts`, content: "x", size: 1 })),
+      owner: "o", repo: "big", ref: "HEAD", skipped_count: 0, total_bytes: 2001,
     });
     const r = await req("POST", "/v1/github/analyze", { github_url: "https://github.com/o/big" });
     expect(r.status).toBe(413);
@@ -486,9 +488,10 @@ describe("handleGitHubAnalyze", () => {
   });
 
   it("rejects an oversized-per-file anonymous fetch result", async () => {
+    // 51MB exceeds free tier's current 50MB/file cap (raised from 5MB).
     mockFetchGitHubRepo.mockResolvedValueOnce({
-      files: [{ path: "huge.bin", content: "x", size: 10 * 1024 * 1024 }],
-      owner: "o", repo: "huge", ref: "HEAD", skipped_count: 0, total_bytes: 10 * 1024 * 1024,
+      files: [{ path: "huge.bin", content: "x", size: 51 * 1024 * 1024 }],
+      owner: "o", repo: "huge", ref: "HEAD", skipped_count: 0, total_bytes: 51 * 1024 * 1024,
     });
     const r = await req("POST", "/v1/github/analyze", { github_url: "https://github.com/o/huge" });
     expect(r.status).toBe(413);

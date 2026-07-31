@@ -167,7 +167,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "technical",
     question: "What's the maximum upload size?",
-    answer: "Upload limits vary by tier: Free allows up to 5MB per file and 1,000 files per snapshot, Pro allows 50MB per file and 2,000 files, and Enterprise allows 100MB per file and 5,000 files. For very large repos, use the GitHub URL method which handles cloning more efficiently and respects .gitignore automatically.",
+    answer: "Free allows up to 50MB per file and 2,000 files per snapshot. Pro and Enterprise have no file-size or file-count limit — the difference between them is how many repositories you can scan per month, not upload size. For very large repos, use the GitHub URL method which handles cloning more efficiently and respects .gitignore automatically.",
   },
   {
     category: "technical",

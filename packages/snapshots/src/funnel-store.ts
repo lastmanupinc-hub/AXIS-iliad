@@ -304,7 +304,7 @@ export async function generateUpgradePrompt(account_id: string): Promise<Upgrade
         features_unlocked: [
           "Unlimited snapshots",
           "Unlimited projects",
-          "5,000 files per snapshot",
+          "No file-count or file-size limit",
           "Cross-program workflows",
         ],
         urgency: "medium",

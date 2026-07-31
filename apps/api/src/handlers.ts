@@ -24,6 +24,8 @@ import {
   resolveStage,
   TIER_LIMITS,
   ALL_PROGRAMS,
+  exceedsFileSizeLimit,
+  exceedsFileCountLimit,
   isProgramEnabled,
   indexSnapshotContent,
   searchSnapshotContent,
@@ -46,7 +48,7 @@ import {
   getUsageCreditSummary,
   recordCompensationOwed,
 } from "@axis/snapshots";
-import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord } from "@axis/snapshots";
+import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord, TierLimits } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, gradeCompliance } from "@axis/generator-core";
@@ -302,7 +304,10 @@ function findAccommodatingTier(files: { size: number }[], currentTier: BillingTi
   for (let i = currentIndex + 1; i < TIER_ORDER.length; i++) {
     const candidateTier = TIER_ORDER[i];
     const candidate = TIER_LIMITS[candidateTier];
-    if (files.length <= candidate.max_files_per_snapshot && files.every((f) => f.size <= candidate.max_file_size_bytes)) {
+    if (
+      !exceedsFileCountLimit(files.length, candidate.max_files_per_snapshot) &&
+      files.every((f) => !exceedsFileSizeLimit(f.size, candidate.max_file_size_bytes))
+    ) {
       return candidateTier;
     }
   }
@@ -326,6 +331,21 @@ function findAccommodatingTier(files: { size: number }[], currentTier: BillingTi
  * exceeds even suite) — callers spread it, so undefined adds nothing rather
  * than advertising an upgrade that wouldn't help.
  */
+/**
+ * Render a tier's file-count/file-size caps for a user-facing message.
+ * -1 means unlimited (exceedsFileCountLimit/exceedsFileSizeLimit) — without
+ * this, an upgrade_note interpolating the raw numbers would print literal
+ * "-1 files, -1 bytes/file" for paid/suite once they became uncapped.
+ */
+function formatTierCapForMessage(limits: TierLimits): string {
+  if (limits.max_files_per_snapshot === -1 && limits.max_file_size_bytes === -1) {
+    return "no file-count or file-size limit";
+  }
+  const files = limits.max_files_per_snapshot === -1 ? "unlimited files" : `${limits.max_files_per_snapshot} files`;
+  const size = limits.max_file_size_bytes === -1 ? "unlimited file size" : `${limits.max_file_size_bytes} bytes/file`;
+  return `${files}, ${size}`;
+}
+
 function oversizedUploadGuidance(
   files: { size: number }[],
   currentTier: BillingTier,
@@ -336,7 +356,7 @@ function oversizedUploadGuidance(
   return {
     accommodating_tier: accommodatingTier,
     upgrade_url: "https://iliad.trustfabric.ai/billing",
-    upgrade_note: `This repo would fit under a ${accommodatingTier} account (${limits.max_files_per_snapshot} files, ${limits.max_file_size_bytes} bytes/file) — create an account and upgrade at the URL above to process it.`,
+    upgrade_note: `This repo would fit under a ${accommodatingTier} account (${formatTierCapForMessage(limits)}) — create an account and upgrade at the URL above to process it.`,
   };
 }
 
@@ -594,12 +614,12 @@ export async function handleCreateSnapshot(
     // settle cash) and THEN 413'd oversized requests, keeping money for work
     // that never ran. A doomed request must cost $0.
     const preLimits = TIER_LIMITS[auth.account.tier];
-    if (files.length > preLimits.max_files_per_snapshot) {
+    if (exceedsFileCountLimit(files.length, preLimits.max_files_per_snapshot)) {
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${preLimits.max_files_per_snapshot} for ${auth.account.tier} tier)`, oversizedUploadGuidance(files, auth.account.tier));
       return;
     }
     for (const file of files) {
-      if (file.size > preLimits.max_file_size_bytes) {
+      if (exceedsFileSizeLimit(file.size, preLimits.max_file_size_bytes)) {
         sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${preLimits.max_file_size_bytes} for ${auth.account.tier} tier)`, oversizedUploadGuidance(files, auth.account.tier));
         return;
       }
@@ -707,12 +727,12 @@ export async function handleCreateSnapshot(
     // Anonymous uploads must still obey free-tier file count/size limits — the authenticated
     // branch enforced them but the anon branch did not, allowing unbounded uploads (DoS).
     const anonLimits = TIER_LIMITS.free;
-    if (files.length > anonLimits.max_files_per_snapshot) {
+    if (exceedsFileCountLimit(files.length, anonLimits.max_files_per_snapshot)) {
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`, oversizedUploadGuidance(files, "free"));
       return;
     }
     for (const file of files) {
-      if (file.size > anonLimits.max_file_size_bytes) {
+      if (exceedsFileSizeLimit(file.size, anonLimits.max_file_size_bytes)) {
         sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`, oversizedUploadGuidance(files, "free"));
         return;
       }
@@ -1279,12 +1299,12 @@ export async function handleGitHubAnalyze(
     // the sibling pattern closes that gap regardless of how fetchGitHubRepo
     // is configured in the future.
     const anonLimits = TIER_LIMITS.free;
-    if (fetchResult.files.length > anonLimits.max_files_per_snapshot) {
+    if (exceedsFileCountLimit(fetchResult.files.length, anonLimits.max_files_per_snapshot)) {
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${fetchResult.files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`, oversizedUploadGuidance(fetchResult.files, "free"));
       return;
     }
     for (const file of fetchResult.files) {
-      if (file.size > anonLimits.max_file_size_bytes) {
+      if (exceedsFileSizeLimit(file.size, anonLimits.max_file_size_bytes)) {
         sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`, oversizedUploadGuidance(fetchResult.files, "free"));
         return;
       }
@@ -1879,22 +1899,22 @@ export async function handleAnalyze(
     // chargeWithDiscounts and then 413'd oversized requests, keeping money for
     // work that never ran. A doomed request must cost $0.
     const limits = TIER_LIMITS[auth.account.tier];
-    if (files.length > limits.max_files_per_snapshot) {
+    if (exceedsFileCountLimit(files.length, limits.max_files_per_snapshot)) {
       const accommodatingTier = findAccommodatingTier(files, auth.account.tier);
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`, accommodatingTier ? {
         accommodating_tier: accommodatingTier,
         upgrade_url: "https://iliad.trustfabric.ai/billing",
-        upgrade_note: `This repo would fit under ${accommodatingTier} tier's limit (${TIER_LIMITS[accommodatingTier].max_files_per_snapshot} files, ${TIER_LIMITS[accommodatingTier].max_file_size_bytes} bytes/file) — upgrade your subscription at the URL above to process it. This is a subscription tier change, not a per-call payment; a per-call charge would not lift this limit on retry.`,
+        upgrade_note: `This repo would fit under ${accommodatingTier} tier's limit (${formatTierCapForMessage(TIER_LIMITS[accommodatingTier])}) — upgrade your subscription at the URL above to process it. This is a subscription tier change, not a per-call payment; a per-call charge would not lift this limit on retry.`,
       } : undefined);
       return;
     }
     for (const file of files) {
-      if (file.size > limits.max_file_size_bytes) {
+      if (exceedsFileSizeLimit(file.size, limits.max_file_size_bytes)) {
         const accommodatingTier = findAccommodatingTier(files, auth.account.tier);
         sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`, accommodatingTier ? {
           accommodating_tier: accommodatingTier,
           upgrade_url: "https://iliad.trustfabric.ai/billing",
-          upgrade_note: `This repo would fit under ${accommodatingTier} tier's limit (${TIER_LIMITS[accommodatingTier].max_files_per_snapshot} files, ${TIER_LIMITS[accommodatingTier].max_file_size_bytes} bytes/file) — upgrade your subscription at the URL above to process it. This is a subscription tier change, not a per-call payment; a per-call charge would not lift this limit on retry.`,
+          upgrade_note: `This repo would fit under ${accommodatingTier} tier's limit (${formatTierCapForMessage(TIER_LIMITS[accommodatingTier])}) — upgrade your subscription at the URL above to process it. This is a subscription tier change, not a per-call payment; a per-call charge would not lift this limit on retry.`,
         } : undefined);
         return;
       }
@@ -1977,12 +1997,12 @@ export async function handleAnalyze(
     // caller can point /v1/analyze at an arbitrarily large repo (any file count/size) and
     // still reach full generation on free programs, an unbounded-cost DoS/abuse vector.
     const anonLimits = TIER_LIMITS.free;
-    if (files.length > anonLimits.max_files_per_snapshot) {
+    if (exceedsFileCountLimit(files.length, anonLimits.max_files_per_snapshot)) {
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`, oversizedUploadGuidance(files, "free"));
       return;
     }
     for (const file of files) {
-      if (file.size > anonLimits.max_file_size_bytes) {
+      if (exceedsFileSizeLimit(file.size, anonLimits.max_file_size_bytes)) {
         sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`, oversizedUploadGuidance(files, "free"));
         return;
       }
@@ -2391,7 +2411,7 @@ export async function handlePreparePurchasing(
     }
     /* v8 ignore stop */
     const limits = TIER_LIMITS[auth.account.tier];
-    if (files.length > limits.max_files_per_snapshot) {
+    if (exceedsFileCountLimit(files.length, limits.max_files_per_snapshot)) {
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`, oversizedUploadGuidance(files, auth.account.tier));
       return;
     }

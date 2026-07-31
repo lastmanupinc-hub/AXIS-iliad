@@ -56,25 +56,43 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
   free: {
     max_snapshots_per_month: 10,
     max_projects: 1,
-    max_file_size_bytes: 5 * 1024 * 1024,      // 5 MB
-    max_files_per_snapshot: 1000,
+    max_file_size_bytes: 50 * 1024 * 1024,      // 50 MB
+    max_files_per_snapshot: 2000,
     programs: ["search", "skills", "debug"],     // 3 free programs
   },
   paid: {
     max_snapshots_per_month: 200,
     max_projects: 20,
-    max_file_size_bytes: 50 * 1024 * 1024,      // 50 MB
-    max_files_per_snapshot: 2000,
+    max_file_size_bytes: -1,                      // unlimited — see exceedsFileSizeLimit
+    max_files_per_snapshot: -1,                   // unlimited — see exceedsFileCountLimit
     programs: [],                                 // governed by entitlements
   },
   suite: {
     max_snapshots_per_month: -1,
     max_projects: -1,
-    max_file_size_bytes: 100 * 1024 * 1024,     // 100 MB
-    max_files_per_snapshot: 5000,
+    max_file_size_bytes: -1,                      // unlimited, same as paid — the
+    max_files_per_snapshot: -1,                   // paid/suite differentiator is
+                                                    // rescan volume (max_snapshots_per_month), not upload size
     programs: [],                                 // all programs
   },
 };
+
+/**
+ * Whether a file's size exceeds a tier's cap. -1 means unlimited (same
+ * convention as every other TierLimits field) — a naive `size > limit`
+ * comparison would reject EVERY file once a limit is -1, since any real size
+ * is > -1. Every enforcement site must go through this rather than compare
+ * against max_file_size_bytes directly; that scattered-comparison pattern is
+ * exactly how a size check silently drifted across a dozen call sites before.
+ */
+export function exceedsFileSizeLimit(sizeBytes: number, limit: number): boolean {
+  return limit !== -1 && sizeBytes > limit;
+}
+
+/** Whether a file count exceeds a tier's cap. -1 means unlimited — see exceedsFileSizeLimit. */
+export function exceedsFileCountLimit(count: number, limit: number): boolean {
+  return limit !== -1 && count > limit;
+}
 
 export const ALL_PROGRAMS = [
   "search", "debug", "skills", "frontend", "seo",
