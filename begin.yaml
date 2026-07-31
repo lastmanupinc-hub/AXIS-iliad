@@ -658,7 +658,7 @@ project_begin:
         roi_reason: "validation_strength 5, production_quality 5. The Verify mechanic — the defensible claim nobody else makes."
         severity: HIGH
         source_file: "packages/generator-core/src/index.ts"
-        completion_status: open
+        completion_status: complete
 
       - id: "app_10_deploy_proven"
         description: "deploy → proven deploys: BUILD the emitted Dockerfile, boot it, hit the healthcheck in the worker; hadolint (external binary) where no daemon; attach build log to bundle. Accepts when no Dockerfile leaves the system unbuilt. Absorbs spoke_02. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #3."

@@ -114,6 +114,16 @@ describe("generateFiles — all 20 programs produce valid output", () => {
     expect(result.files.length).toBe(requestedOutputs.length);
   });
 
+  it("verify-harness substrate: every one of the 20 programs' real output passes its structural self-check", () => {
+    const result = generateFiles(input);
+    const programs = Object.keys(PROGRAM_OUTPUTS);
+    expect(result.verification).toBeDefined();
+    const verifiedPrograms = result.verification!.map((r) => r.program).sort();
+    expect(verifiedPrograms).toEqual([...programs].sort());
+    const failing = result.verification!.filter((r) => !r.pass);
+    expect(failing).toEqual([]);
+  });
+
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
     describe(`program: ${program}`, () => {
       for (const output of outputs) {

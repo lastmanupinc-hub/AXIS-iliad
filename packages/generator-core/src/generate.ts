@@ -1,6 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 import { GENERATOR_PROGRAMS } from "./program-manifest.js";
+import { verifyGeneratedFiles } from "./verify-harness.js";
 import { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateSymbolIndex, generateRepoRunStats } from "./generators-search.js";
 import { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack, generateModelCascade } from "./generators-skills.js";
 import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
@@ -283,6 +284,7 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
     generated_at: context_map.generated_at,
     files: deduped,
     skipped,
+    verification: verifyGeneratedFiles(deduped),
   };
 }
 

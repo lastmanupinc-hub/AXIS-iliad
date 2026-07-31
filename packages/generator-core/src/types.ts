@@ -1,4 +1,5 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
+import type { ProgramVerifyResult } from "./verify-harness.js";
 
 export interface GeneratedFile {
   path: string;
@@ -27,4 +28,8 @@ export interface GeneratorResult {
   generated_at: string;
   files: GeneratedFile[];
   skipped: Array<{ path: string; reason: string }>;
+  /** Verify-harness substrate evidence, grouped by program — optional so
+   *  existing GeneratorResult fixtures/mocks stay valid; generateFiles()
+   *  itself always populates it. */
+  verification?: ProgramVerifyResult[];
 }
