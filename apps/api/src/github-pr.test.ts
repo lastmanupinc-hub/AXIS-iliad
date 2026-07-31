@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { openDriftPullRequest, driftBranchName, type OpenDriftPrParams } from "./github-pr.js";
+import { openDriftPullRequest, driftBranchName, openApplyPullRequest, applyBranchName, type OpenDriftPrParams, type OpenApplyPrParams } from "./github-pr.js";
 
 // Fake fetch that returns staged responses in call order and records each call.
 function seqFetch(responses: Array<{ status: number; json?: unknown }>): {
@@ -145,5 +145,96 @@ describe("openDriftPullRequest", () => {
     ]);
     const r = await openDriftPullRequest(fetch, params());
     expect(r).toEqual({ opened: false, reason: "base ref lookup failed (200)" });
+  });
+});
+
+describe("applyBranchName", () => {
+  it("is deterministic, content-sensitive, and namespaced by the caller-chosen kind", () => {
+    expect(applyBranchName("theme-sync", "a")).toBe(applyBranchName("theme-sync", "a"));
+    expect(applyBranchName("theme-sync", "a")).not.toBe(applyBranchName("theme-sync", "b"));
+    expect(applyBranchName("theme-sync", "a")).not.toBe(applyBranchName("skills-gen", "a"));
+    expect(applyBranchName("theme-sync", "a")).toMatch(/^axis\/theme-sync-[0-9a-f]{12}$/);
+  });
+});
+
+describe("openApplyPullRequest (generic multi-file Apply-channel substrate)", () => {
+  const applyParams = (over?: Partial<OpenApplyPrParams>): OpenApplyPrParams => ({
+    owner: "o",
+    repo: "r",
+    token: "t",
+    baseBranch: "main",
+    branchName: "axis/theme-sync-abc123",
+    files: [
+      { path: "design-tokens.json", content: "{}" },
+      { path: "theme.css", content: ":root{}" },
+    ],
+    title: "AXIS: theme token sync",
+    body: "generated theme tokens",
+    ...over,
+  });
+
+  it("commits every file to the branch (own existing-sha check per file) before opening one PR", async () => {
+    const { fetch, calls } = seqFetch([
+      { status: 200, json: { object: { sha: "basesha" } } }, // get base ref
+      { status: 201, json: {} }, // create branch
+      { status: 404, json: { message: "Not Found" } }, // file 1: no existing sha
+      { status: 201, json: {} }, // file 1: put (create)
+      { status: 200, json: { sha: "oldcsssha" } }, // file 2: existing sha present
+      { status: 200, json: {} }, // file 2: put (update)
+      { status: 201, json: { html_url: "https://github.com/o/r/pull/9", number: 9 } }, // open PR
+    ]);
+    const r = await openApplyPullRequest(fetch, applyParams());
+    expect(r).toEqual({ opened: true, pr_url: "https://github.com/o/r/pull/9", pr_number: 9 });
+    expect(calls[2].url).toContain("design-tokens.json");
+    expect(calls[3].body).toMatchObject({ content: Buffer.from("{}", "utf8").toString("base64") });
+    expect(calls[3].body).not.toHaveProperty("sha"); // file 1: create, not update
+    expect(calls[4].url).toContain("theme.css");
+    expect(calls[5].body).toMatchObject({ sha: "oldcsssha" }); // file 2: update, includes its sha
+    expect(calls[6].body).toMatchObject({ head: "axis/theme-sync-abc123", base: "main" });
+    expect(calls).toHaveLength(7);
+  });
+
+  it("short-circuits before opening a PR when a later file's commit fails, leaving the first file's commit as the only side effect", async () => {
+    const { fetch, calls } = seqFetch([
+      { status: 200, json: { object: { sha: "basesha" } } },
+      { status: 201, json: {} }, // create branch
+      { status: 404, json: { message: "Not Found" } }, // file 1: no existing sha
+      { status: 201, json: {} }, // file 1: put succeeds
+      { status: 404, json: { message: "Not Found" } }, // file 2: no existing sha
+      { status: 500, json: { message: "Internal Server Error" } }, // file 2: put fails
+    ]);
+    const r = await openApplyPullRequest(fetch, applyParams());
+    expect(r).toEqual({ opened: false, reason: "file commit failed for theme.css (500)" });
+    expect(calls).toHaveLength(6); // never reaches the "open PR" call
+  });
+
+  it("openDriftPullRequest is a 1-file case of the same substrate: identical call shape for a single file", async () => {
+    const { fetch: driftFetch, calls: driftCalls } = seqFetch([
+      { status: 200, json: { object: { sha: "basesha" } } },
+      { status: 201, json: {} },
+      { status: 404, json: { message: "Not Found" } },
+      { status: 201, json: {} },
+      { status: 201, json: { html_url: "https://github.com/o/r/pull/7", number: 7 } },
+    ]);
+    const { fetch: genericFetch, calls: genericCalls } = seqFetch([
+      { status: 200, json: { object: { sha: "basesha" } } },
+      { status: 201, json: {} },
+      { status: 404, json: { message: "Not Found" } },
+      { status: 201, json: {} },
+      { status: 201, json: { html_url: "https://github.com/o/r/pull/7", number: 7 } },
+    ]);
+    const driftResult = await openDriftPullRequest(driftFetch, params());
+    const genericResult = await openApplyPullRequest(genericFetch, {
+      owner: "o",
+      repo: "r",
+      token: "t",
+      baseBranch: "main",
+      branchName: "axis/arch-drift-abc123",
+      files: [{ path: ".axis/living-architecture.md", content: "new doc" }],
+      title: "AXIS: architecture drift",
+      body: "drift detected",
+    });
+    expect(driftResult).toEqual(genericResult);
+    expect(driftCalls.map((c) => ({ method: c.method, url: c.url }))).toEqual(genericCalls.map((c) => ({ method: c.method, url: c.url })));
   });
 });

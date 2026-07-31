@@ -650,7 +650,7 @@ project_begin:
         roi_reason: "capability_gain 5, integration_quality 5. The Apply mechanic for all 20 apps."
         severity: HIGH
         source_file: "apps/api/src/github-token-store.ts"
-        completion_status: open
+        completion_status: complete
 
       - id: "app_03_substrate_verify_harness"
         description: "Verify-harness substrate: per-program verify() contract — run the program's own check, attach evidence (logs, pass/fail) to the output bundle. No external dep. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."
