@@ -558,7 +558,7 @@ project_begin:
         roi_reason: "blocker_removal 5, capability_gain 5, integration_quality 5, production_quality 4. Blocks 8 of 9 products. Must outscore everything it gates or the loop starts in the wrong place."
         severity: HIGH
         source_file: "packages/snapshots/src/billing-types.ts"
-        completion_status: open
+        completion_status: complete
 
       - id: "spoke_01_product_registry"
         description: "One module mapping product -> {program set, price, subdomain, tier, absorbs[]} for the 9 products in CONSOLIDATION.md. Nine products hand-maintained across pricing, landing pages, entitlement and docs is exactly the drift this repo keeps rediscovering (hand-duplicated catalog/pricing divergence is a named recurring bug family). Derive PRICING_TIERS spoke entries and the manifest FROM this registry, and add a counts-consistency style guard asserting every product's program set is a subset of the live generator registry."
