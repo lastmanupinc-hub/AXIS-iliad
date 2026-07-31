@@ -197,7 +197,12 @@ export function generateDeployDockerfile(
     lines.push("WORKDIR /app");
     if (c.corepack) lines.push("RUN corepack enable");
     lines.push(`COPY ${c.lockGlob} ./`);
-    lines.push(`RUN ${c.installAll}`);
+    // A zero-dependency package.json (a common case for a minimal server) makes
+    // every package manager skip creating node_modules/ entirely — the runtime
+    // stage's COPY --from=builder .../node_modules below then fails with "not
+    // found" and the image never builds. mkdir -p guarantees the directory
+    // exists (empty or not) so that COPY always has something real to copy.
+    lines.push(`RUN ${c.installAll} && mkdir -p node_modules`);
     lines.push("COPY . .");
     lines.push("# Skip build step gracefully if the project has no build script.");
     lines.push(`RUN ${c.build}`);

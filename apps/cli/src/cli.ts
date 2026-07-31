@@ -1,11 +1,13 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { scanDirectory, type ScanResult } from "./scanner.js";
 import { run, type RunResult } from "./runner.js";
 import { writeGeneratedFiles } from "./writer.js";
 import { writeZip } from "./zip.js";
 import { fetchAccountStatus, DEFAULT_API_URL } from "./status.js";
+import { verifyDeploy, realDeps, extractHealthCheckPath } from "./deploy-verify.js";
 import { fetchGitHubRepo } from "@axis/snapshots";
 import { listAvailableGenerators } from "@axis/generator-core";
 import { loadConfig, saveConfig, getConfigFile, type AxisConfig } from "./credential-store.js";
@@ -19,6 +21,7 @@ export const CLI_COMMANDS = [
   "list-programs",
   "status",
   "auth",
+  "verify-deploy",
   "help",
   "version",
 ] as const;
@@ -108,6 +111,9 @@ Usage:
   axis-iliad auth login <api_key>            (legacy form of the same)
   axis-iliad auth status                     Show current auth config
   axis-iliad auth logout                     Remove the saved API key
+  axis-iliad verify-deploy [path] [options]  Build (and boot, if Docker is available) the
+                                              generated deploy/Dockerfile against your own
+                                              local Docker daemon — never sent to the API
 
 Commands:
   analyze        Scan a local repository and generate config files (default)
@@ -117,6 +123,8 @@ Commands:
   programs       Alias of list-programs
   status         Check API reachability, auth, plan, and usage
   auth           Manage API key authentication
+  verify-deploy  Build + boot + healthcheck the generated Dockerfile locally
+                 (falls back to hadolint if Docker isn't installed)
   help           Show this help message
   version        Show version
 
@@ -283,6 +291,14 @@ export function main(): void {
     return;
   }
 
+  if (args.command === "verify-deploy") {
+    runVerifyDeploy(args).catch((err: Error) => {
+      console.error(`Error: ${err.message}`);
+      process.exitCode = 1;
+    });
+    return;
+  }
+
   if (args.command !== "analyze" && args.command !== "github" && args.command !== "export") {
     console.error(`Unknown command: ${args.command}`);
     console.error('Run "axis help" for usage.');
@@ -402,6 +418,51 @@ function runLocalPipeline(args: CliArgs): { scan: ScanResult; result: RunResult 
   }
 
   return { scan, result };
+}
+
+/**
+ * verify-deploy — runs the deploy program, then actually builds (and, when
+ * Docker is available, boots + healthchecks) the Dockerfile it emits.
+ * Deliberately local-only: this never sends the target repo's content
+ * anywhere for server-side execution (see deploy-verify.ts's header for why).
+ */
+async function runVerifyDeploy(args: CliArgs): Promise<void> {
+  const targetDir = resolve(args.target);
+  const pipeline = runLocalPipeline({ ...args, programs: ["deploy"] });
+  if (!pipeline) return; // runLocalPipeline already reported the error and set exitCode
+
+  const files = pipeline.result.generator_result.files;
+  const dockerfile = files.find((f) => f.path === "deploy/Dockerfile");
+  if (!dockerfile) {
+    console.error("The deploy program did not produce a Dockerfile for this project — nothing to verify.");
+    process.exitCode = 1;
+    return;
+  }
+  const renderYaml = files.find((f) => f.path === "deploy/render.yaml");
+  const healthCheckPath = extractHealthCheckPath(renderYaml?.content);
+
+  const tmpDir = mkdtempSync(join(tmpdir(), "axis-verify-deploy-"));
+  const dockerfilePath = join(tmpDir, "Dockerfile");
+  writeFileSync(dockerfilePath, dockerfile.content, "utf-8");
+
+  if (!args.quiet) {
+    console.log(`Verifying ${targetDir}'s generated deploy/Dockerfile ...`);
+  }
+
+  try {
+    const result = await verifyDeploy({ dockerfilePath, buildContext: targetDir, healthCheckPath }, realDeps());
+    console.log("");
+    console.log(`Method: ${result.method}`);
+    console.log(`Result: ${result.pass ? "PASS" : "FAIL"}`);
+    console.log(`Detail: ${result.detail}`);
+    if (args.verbose && result.log) {
+      console.log("");
+      console.log(result.log);
+    }
+    if (!result.pass) process.exitCode = 1;
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
 }
 
 /**
