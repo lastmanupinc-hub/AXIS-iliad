@@ -779,6 +779,31 @@ CREATE INDEX IF NOT EXISTS idx_payment_funnel_events_created ON payment_funnel_e
 );
 CREATE INDEX IF NOT EXISTS idx_account_entitlements_account ON account_entitlements(account_id);`,
   },
+  {
+    // app_01 (docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table):
+    // the "installation -> account mapping" apps/api/src/github-webhook.ts's own
+    // comment names as missing — "webhook-created snapshots are anonymous until
+    // an installation->account mapping table lands". This IS that table, doing
+    // one more job at the same time: which PRODUCT an account wants re-run
+    // (the Watch mechanic every one of the 20 apps depends on), not just which
+    // account owns the repo.
+    //
+    // Keyed on repo_full_name (owner/repo), not installation_id — a repo can be
+    // watched by an account before or independent of any GitHub App install
+    // (e.g. a manually-configured webhook secret), and repo_full_name is the
+    // field every existing webhook payload already carries.
+    version: 42,
+    name: "repo_subscriptions",
+    sql: `CREATE TABLE IF NOT EXISTS repo_subscriptions (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  product_id TEXT NOT NULL,
+  repo_full_name TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, product_id, repo_full_name)
+);
+CREATE INDEX IF NOT EXISTS idx_repo_subscriptions_repo ON repo_subscriptions(repo_full_name);
+CREATE INDEX IF NOT EXISTS idx_repo_subscriptions_account ON repo_subscriptions(account_id);`,
+  },
 ];
 
 /**

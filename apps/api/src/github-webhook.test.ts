@@ -5,6 +5,7 @@ import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleGitHubWebhook, verifyGitHubSignature, resetGitHubWebhookState } from "./github-webhook.js";
 import { fetchGitHubRepo } from "./github.js";
+import { enqueueWatchJob } from "@axis/snapshots";
 
 // ─── Watchtower delta mocks (SPEC-04) ───────────────────────────
 //
@@ -19,6 +20,12 @@ const watchtowerState = vi.hoisted(() => ({
   repoProfiles: new Map<string, unknown>(),
   generatorResults: new Map<string, unknown>(),
   nextId: 0,
+  // Watch mechanic (app_01, docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md):
+  // repo -> subscribers a test can seed, and every watch job the code under
+  // test actually enqueued, so a test can assert on real call data instead of
+  // just "it didn't throw".
+  subscriptionsByRepo: new Map<string, Array<{ account_id: string; product_id: string }>>(),
+  enqueuedWatchJobs: [] as Array<{ account_id: string; product_id: string; repo_full_name: string; event_type: string; ref: string }>,
 }));
 
 vi.mock("./github.js", () => ({
@@ -70,6 +77,18 @@ vi.mock("@axis/snapshots", () => ({
   getGeneratorResult: vi.fn(async (snapshot_id: string) => watchtowerState.generatorResults.get(snapshot_id)),
   saveGeneratorResult: vi.fn(async (snapshot_id: string, data: unknown) => {
     watchtowerState.generatorResults.set(snapshot_id, data);
+  }),
+  listSubscriptionsForRepo: vi.fn(async (repo_full_name: string) =>
+    (watchtowerState.subscriptionsByRepo.get(repo_full_name) ?? []).map((s) => ({
+      account_id: s.account_id,
+      product_id: s.product_id,
+      repo_full_name,
+      created_at: new Date(0).toISOString(),
+    })),
+  ),
+  enqueueWatchJob: vi.fn(async (payload: { account_id: string; product_id: string; repo_full_name: string; event_type: string; ref: string }) => {
+    watchtowerState.enqueuedWatchJobs.push(payload);
+    return `job-${watchtowerState.enqueuedWatchJobs.length}`;
   }),
 }));
 
@@ -384,6 +403,8 @@ describe("Watchtower delta on webhook re-analysis (SPEC-04 + SPEC-11 analysis-on
     watchtowerState.contextMaps.clear();
     watchtowerState.repoProfiles.clear();
     watchtowerState.generatorResults.clear();
+    watchtowerState.subscriptionsByRepo.clear();
+    watchtowerState.enqueuedWatchJobs.length = 0;
     watchtowerState.nextId = 0;
   });
 
@@ -550,6 +571,102 @@ describe("Watchtower delta on webhook re-analysis (SPEC-04 + SPEC-11 analysis-on
   });
 });
 
+// ─── app_01: the Watch mechanic fires off a real push (docs/saas-strategy/
+// APPLICATION_BUILD_STRATEGY.md substrate table) ──────────────────────────
+//
+// listSubscriptionsForRepo/enqueueWatchJob are mocked at the top of this file
+// (the same vi.mock("@axis/snapshots") block dispatchWebhookSnapshot's other
+// snapshot calls already use) — this proves the WIRING (push -> lookup ->
+// enqueue, with the right fields), not pg-boss delivery itself, which
+// watch-queue.test.ts already proves against a real queue.
+
+describe("Watch mechanic — push events enqueue a watch job per subscription", () => {
+  beforeEach(() => {
+    watchtowerState.snapshotsByProject.clear();
+    watchtowerState.contextMaps.clear();
+    watchtowerState.repoProfiles.clear();
+    watchtowerState.generatorResults.clear();
+    watchtowerState.subscriptionsByRepo.clear();
+    watchtowerState.enqueuedWatchJobs.length = 0;
+    watchtowerState.nextId = 0;
+  });
+
+  it("a repo with no subscribers enqueues nothing", async () => {
+    const repo = "watch-org/no-subscribers";
+    const body = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "watch-delivery-none",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(watchtowerState.enqueuedWatchJobs).toEqual([]);
+  });
+
+  it("a push to a subscribed repo enqueues one watch job per subscription, with the right fields", async () => {
+    const repo = "watch-org/has-subscribers";
+    watchtowerState.subscriptionsByRepo.set(repo, [
+      { account_id: "acct_a", product_id: "skills" },
+      { account_id: "acct_a", product_id: "deploy" },
+    ]);
+
+    const body = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "watch-delivery-fires",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    expect(watchtowerState.enqueuedWatchJobs.length).toBe(2);
+    const productIds = watchtowerState.enqueuedWatchJobs.map((j) => j.product_id).sort();
+    expect(productIds).toEqual(["deploy", "skills"]);
+    for (const job of watchtowerState.enqueuedWatchJobs) {
+      expect(job.account_id).toBe("acct_a");
+      expect(job.repo_full_name).toBe(repo);
+      expect(job.event_type).toBe("push");
+      expect(job.ref).toBe("refs/heads/main");
+    }
+  });
+
+  it("two accounts watching the same repo each get their own watch job", async () => {
+    const repo = "watch-org/two-accounts";
+    watchtowerState.subscriptionsByRepo.set(repo, [
+      { account_id: "acct_a", product_id: "skills" },
+      { account_id: "acct_b", product_id: "skills" },
+    ]);
+
+    const body = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "watch-delivery-two-accounts",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const accountIds = watchtowerState.enqueuedWatchJobs.map((j) => j.account_id).sort();
+    expect(accountIds).toEqual(["acct_a", "acct_b"]);
+  });
+
+  it("a watch-enqueue failure does not break the existing anonymous snapshot/delta flow", async () => {
+    const repo = "watch-org/enqueue-fails-open";
+    watchtowerState.subscriptionsByRepo.set(repo, [{ account_id: "acct_a", product_id: "skills" }]);
+    vi.mocked(enqueueWatchJob).mockRejectedValueOnce(new Error("simulated queue failure"));
+
+    const body = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "watch-delivery-fail-open",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    // The generic snapshot flow (pre-existing, unrelated to Watch) must still
+    // have run, proving the try/catch around the new code is truly fail-open.
+    expect(watchtowerState.contextMaps.get("wt-snap-0")).toBeDefined();
+  });
+});
+
 // ─── H8.11b: replay protection — duplicate X-GitHub-Delivery is deduped ──
 //
 // GitHub's signature scheme carries no timestamp (structural — there is
@@ -564,6 +681,8 @@ describe("Replay protection — duplicate X-GitHub-Delivery (H8.11b)", () => {
     watchtowerState.contextMaps.clear();
     watchtowerState.repoProfiles.clear();
     watchtowerState.generatorResults.clear();
+    watchtowerState.subscriptionsByRepo.clear();
+    watchtowerState.enqueuedWatchJobs.length = 0;
     watchtowerState.nextId = 0;
     vi.mocked(fetchGitHubRepo).mockClear();
   });

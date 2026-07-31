@@ -164,9 +164,16 @@ export {
   calculateProration,
 } from "./tier-audit.js";
 
-// Hub-and-spoke product entitlements (docs/saas-strategy/CONSOLIDATION.md)
+// Hub-and-spoke product entitlements (docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md)
 export type { Entitlement, EntitlementSource } from "./entitlements.js";
 export { grantEntitlement, hasEntitlement, listEntitlements } from "./entitlements.js";
+
+// Repo subscriptions + the durable watch queue (docs/saas-strategy/
+// APPLICATION_BUILD_STRATEGY.md substrate table)
+export type { RepoSubscription } from "./repo-subscriptions.js";
+export { subscribeRepo, unsubscribeRepo, listSubscriptionsForRepo, listSubscriptionsForAccount } from "./repo-subscriptions.js";
+export type { WatchJobPayload, WatchJobHandler } from "./watch-queue.js";
+export { enqueueWatchJob, registerWatchWorker, stopWatchQueue } from "./watch-queue.js";
 
 // Persistence metering (add-on, metered on top of paid/suite)
 export type { MeterResult, PersistenceSpendDayBucket } from "./persistence-metering.js";

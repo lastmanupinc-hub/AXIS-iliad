@@ -18,6 +18,7 @@ import { buildDeltaReport, type GeneratorResult, type GeneratedFile } from "@axi
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import { parseRepo } from "@axis/repo-parser";
 import type { ContextMap } from "@axis/context-engine";
+import { listSubscriptionsForRepo, enqueueWatchJob } from "@axis/snapshots";
 
 // ─── Signature verification ────────────────────────────────────
 
@@ -254,6 +255,40 @@ async function dispatchWebhookSnapshot(
       repo: target.repoFullName,
     });
     return;
+  }
+
+  // The Watch mechanic (docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md
+  // substrate table): every account subscribed to this repo gets a durable
+  // watch job per subscribed product, independent of the generic
+  // re-analysis/delta-report flow below. This is also the installation ->
+  // account mapping this function's own long-standing comment named as
+  // missing (see the `undefined` account_id passed to createSnapshot further
+  // down) — repo_subscriptions is that mapping for accounts that opted in,
+  // though anonymous webhook snapshots still have no account and are
+  // unaffected. Fail-open: a lookup/enqueue failure must never block the
+  // webhook's ack or the snapshot flow that already existed.
+  try {
+    const subs = await listSubscriptionsForRepo(target.repoFullName);
+    for (const sub of subs) {
+      await enqueueWatchJob({
+        account_id: sub.account_id,
+        product_id: sub.product_id,
+        repo_full_name: target.repoFullName,
+        event_type: event,
+        ref: target.ref,
+      });
+    }
+    if (subs.length > 0) {
+      log("info", "github-webhook.watch_jobs_enqueued", {
+        repo: target.repoFullName,
+        count: subs.length,
+      });
+    }
+  } catch (err) {
+    log("error", "github-webhook.watch_enqueue_failed", {
+      repo: target.repoFullName,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 
   const githubMod = await import("./github.js").catch(() => null);
