@@ -374,7 +374,7 @@ describe("GET /v1/account/entitlements", () => {
     const grant = await req(
       "POST",
       "/v1/admin/entitlements/grant",
-      { account_id: nonAdminAccountId, product_id: "socket" },
+      { account_id: nonAdminAccountId, product_id: "mcp" },
       apiKey,
     );
     expect(grant.status).toBe(200);
@@ -383,15 +383,15 @@ describe("GET /v1/account/entitlements", () => {
     expect(r.status).toBe(200);
     const entitlements = r.data.entitlements as Array<Record<string, unknown>>;
     expect(entitlements.length).toBe(1);
-    expect(entitlements[0].product_id).toBe("socket");
-    expect(entitlements[0].product_name).toBe("Socket");
+    expect(entitlements[0].product_id).toBe("mcp");
+    expect(entitlements[0].product_name).toBe("MCP");
     expect(entitlements[0].source).toBe("manual");
   });
 });
 
 describe("POST /v1/admin/entitlements/grant", () => {
   it("requires authentication", async () => {
-    const r = await req("POST", "/v1/admin/entitlements/grant", { account_id: "x", product_id: "socket" });
+    const r = await req("POST", "/v1/admin/entitlements/grant", { account_id: "x", product_id: "mcp" });
     expect(r.status).toBe(401);
   });
 
@@ -399,14 +399,14 @@ describe("POST /v1/admin/entitlements/grant", () => {
     const r = await req(
       "POST",
       "/v1/admin/entitlements/grant",
-      { account_id: nonAdminAccountId, product_id: "socket" },
+      { account_id: nonAdminAccountId, product_id: "mcp" },
       nonAdminKey,
     );
     expect(r.status).toBe(403);
   });
 
   it("rejects a missing account_id", async () => {
-    const r = await req("POST", "/v1/admin/entitlements/grant", { product_id: "socket" }, apiKey);
+    const r = await req("POST", "/v1/admin/entitlements/grant", { product_id: "mcp" }, apiKey);
     expect(r.status).toBe(400);
     expect(r.data.error_code).toBe("MISSING_FIELD");
   });
@@ -426,21 +426,21 @@ describe("POST /v1/admin/entitlements/grant", () => {
     const first = await req(
       "POST",
       "/v1/admin/entitlements/grant",
-      { account_id: nonAdminAccountId, product_id: "runway" },
+      { account_id: nonAdminAccountId, product_id: "deploy" },
       apiKey,
     );
     const second = await req(
       "POST",
       "/v1/admin/entitlements/grant",
-      { account_id: nonAdminAccountId, product_id: "runway" },
+      { account_id: nonAdminAccountId, product_id: "deploy" },
       apiKey,
     );
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     const listed = await req("GET", "/v1/account/entitlements", undefined, nonAdminKey);
-    const runwayGrants = (listed.data.entitlements as Array<Record<string, unknown>>).filter(
-      (e) => e.product_id === "runway",
+    const deployGrants = (listed.data.entitlements as Array<Record<string, unknown>>).filter(
+      (e) => e.product_id === "deploy",
     );
-    expect(runwayGrants.length).toBe(1);
+    expect(deployGrants.length).toBe(1);
   });
 });

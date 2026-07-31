@@ -634,7 +634,7 @@ project_begin:
         roi_reason: "blocker_removal 5, canonical_coherence 5. The registry currently encodes the rejected merger map; every later candidate reads it."
         severity: HIGH
         source_file: "packages/generator-core/src/product-registry.ts"
-        completion_status: open
+        completion_status: complete
 
       - id: "app_01_substrate_watch_queue"
         description: "Watch/queue substrate: pg-boss (MIT, rides existing Neon — no new infra service) + repo_subscriptions table. Every program's W stage drives off this. Dependency pre-approved by standing owner answer (memory: dependency-policy-program-apps). docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."

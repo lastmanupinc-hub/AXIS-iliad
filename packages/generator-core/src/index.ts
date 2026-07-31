@@ -1,7 +1,7 @@
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
 export { GENERATOR_PROGRAMS, PROGRAM_ORDER, PROGRAM_OUTPUT_COUNTS } from "./program-manifest.js";
-export { PRODUCT_REGISTRY, PRODUCT_IDS, PARKED_PROGRAMS, productIdForProgram, getProduct } from "./product-registry.js";
+export { PRODUCT_REGISTRY, PRODUCT_IDS, productIdForProgram, getProduct } from "./product-registry.js";
 export type { Product } from "./product-registry.js";
 // Package Quality Judge (deterministic floors). Lives here so BOTH the API and the
 // fully-offline CLI can grade + append the quality report from the shared core.
