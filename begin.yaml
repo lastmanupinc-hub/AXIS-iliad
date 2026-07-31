@@ -566,7 +566,7 @@ project_begin:
         roi_reason: "canonical_coherence 5, blocker_removal 4, integration_quality 5, automation 4. Single source of truth before nine consumers exist, not after."
         severity: HIGH
         source_file: "packages/generator-core/src/index.ts"
-        completion_status: open
+        completion_status: superseded  # registry was BUILT 2026-07-31 (product-registry.ts, uncommitted) but in the rejected 9-product merger shape — app_00_registry_rework_20_products replaces it
 
       - id: "spoke_02_runway_build_verification"
         description: "Runway (deploy) emits Dockerfiles and never builds one. A Dockerfile that does not build is worse than none — it costs the buyer a debugging session before they conclude we were wrong. Add a verification step that actually builds the emitted Dockerfile (docker build, or hadolint + a dry parse where no daemon exists) and records the result in the output bundle. Converts the strongest available claim in the portfolio from assertion to proof."
@@ -574,7 +574,7 @@ project_begin:
         roi_reason: "production_quality 5, validation_strength 5, capability_gain 4, usability 4. Same class as the ap2 finding: we ship an artifact whose correctness we never check."
         severity: HIGH
         source_file: "packages/generator-core/src/generators-deploy.ts"
-        completion_status: open
+        completion_status: superseded  # folded into app_10_deploy_proven (same verify goal, fuller apply/watch scope)
 
       - id: "spoke_03_grain_merge_into_embed"
         description: "frontend emits 4 markdown files (rules, guidelines, layout patterns, audit) and zero code. v0 generates working UI; selling Grain beside it is a style guide against a code generator. artifacts/Embed already emits real .tsx. Merge: Embed's product = artifacts + frontend + seo, so the combined product generates components AND the rules they follow. Retire the standalone Grain landing page from the registry."
@@ -582,7 +582,7 @@ project_begin:
         roi_reason: "canonical_coherence 4, usability 4, optionality_preservation 3, agent_acquisition 3. Prevents shipping a product whose headline comparison we lose on sight."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-skills.ts"
-        completion_status: open
+        completion_status: superseded  # CANCELLED 2026-07-31 — owner rejected all program mergers; frontend grows standalone (app_31, APPLICATION_BUILD_STRATEGY.md #6)
 
       - id: "spoke_04_atlas_free_tier_launch"
         description: "Atlas (search + canvas) is the only product with no gate: free, so no entitlement and no recurring billing needed. It is also the architecture read every other product consumes, i.e. the funnel. Ship it first behind atlas.trustfabric.ai, and instrument conversion from an Atlas run to any paid spoke — that measurement is what tells us whether spokes cannibalise the hub or expand it."
@@ -614,6 +614,210 @@ project_begin:
         roi_reason: "production_quality 5, validation_strength 5, blocker_removal 3. Compliance buyers are precisely the segment that reads the disclosure."
         severity: MEDIUM
         source_file: "packages/ap2/src/index.ts"
+        completion_status: superseded  # folded into app_40_agentic_purchasing_monitor (live-counterparty verify is its V stage)
+
+
+      # ── 20 program APPLICATIONS (supersedes the 9-product merger plan) ──
+      # Strategy: docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md. Owner directive
+      # 2026-07-31: NO mergers — each program grows into its own application that
+      # APPLIES its output (PR/deploy/render), VERIFIES it, and WATCHES the repo.
+      # ALL dependency questions are pre-resolved by the standing owner answer
+      # (memory: dependency-policy-program-apps + the strategy doc's table):
+      # best-in-class per program, open source when best, paid licenses flagged
+      # as owner purchases. Do NOT stall any of these candidates on a dependency
+      # question — the answer already exists.
+      # Waves are encoded in scores; substrate (app_00-03) must land first.
+
+      - id: "app_00_registry_rework_20_products"
+        description: "Rework PRODUCT_REGISTRY from 9 merged products to 20 standalone products — one per program, NO absorbs semantics (owner directive 2026-07-31: no mergers; each program grows into its own application). Update product-registry.test.ts's coverage invariant to sold==20/parked==0 or explicit per-program status. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md Wave 0."
+        roi_score: 95
+        roi_reason: "blocker_removal 5, canonical_coherence 5. The registry currently encodes the rejected merger map; every later candidate reads it."
+        severity: HIGH
+        source_file: "packages/generator-core/src/product-registry.ts"
+        completion_status: open
+
+      - id: "app_01_substrate_watch_queue"
+        description: "Watch/queue substrate: pg-boss (MIT, rides existing Neon — no new infra service) + repo_subscriptions table. Every program's W stage drives off this. Dependency pre-approved by standing owner answer (memory: dependency-policy-program-apps). docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."
+        roi_score: 94
+        roi_reason: "capability_gain 5, blocker_removal 5. The Watch mechanic for all 20 apps."
+        severity: HIGH
+        source_file: "packages/snapshots/src/index.ts"
+        completion_status: open
+
+      - id: "app_02_substrate_apply_channel"
+        description: "Apply-channel substrate: @octokit/rest PR-writer (branch, commit, open PR on the user's repo) using the existing github-token-store + /v1/github/webhook infra. Every program's A stage that lands as a PR drives off this. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."
+        roi_score: 93
+        roi_reason: "capability_gain 5, integration_quality 5. The Apply mechanic for all 20 apps."
+        severity: HIGH
+        source_file: "apps/api/src/github-token-store.ts"
+        completion_status: open
+
+      - id: "app_03_substrate_verify_harness"
+        description: "Verify-harness substrate: per-program verify() contract — run the program's own check, attach evidence (logs, pass/fail) to the output bundle. No external dep. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."
+        roi_score: 92
+        roi_reason: "validation_strength 5, production_quality 5. The Verify mechanic — the defensible claim nobody else makes."
+        severity: HIGH
+        source_file: "packages/generator-core/src/index.ts"
+        completion_status: open
+
+      - id: "app_10_deploy_proven"
+        description: "deploy → proven deploys: BUILD the emitted Dockerfile, boot it, hit the healthcheck in the worker; hadolint (external binary) where no daemon; attach build log to bundle. Accepts when no Dockerfile leaves the system unbuilt. Absorbs spoke_02. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #3."
+        roi_score: 90
+        roi_reason: "Wave 1 verify-proof. production_quality 5, validation_strength 5."
+        severity: HIGH
+        source_file: "packages/generator-core/src/generators-deploy.ts"
+        completion_status: open
+
+      - id: "app_11_skills_never_rots"
+        description: "skills → agent onboarding that never rots: on watched-repo merge, re-derive AGENTS.md/CLAUDE.md/.cursorrules and open the refresh PR automatically (substrate A+W). Accepts when a merge produces a correct refresh PR with zero human steps. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #1."
+        roi_score: 89
+        roi_reason: "Wave 1 watch-proof. agent_acquisition 5 — this is already the revenue wedge."
+        severity: HIGH
+        source_file: "packages/generator-core/src/generators-skills.ts"
+        completion_status: open
+
+      - id: "app_12_theme_token_sync"
+        description: "theme → token sync: style-dictionary (Apache-2.0) + culori (MIT); detect code<->token drift on push, open the fix PR; contrast checks. Accepts when a hand-edited hex in code produces a correcting PR. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #5."
+        roi_score: 88
+        roi_reason: "Wave 1 apply-proof. usability 4, production_quality 4."
+        severity: HIGH
+        source_file: "packages/generator-core/src/generators-theme.ts"
+        completion_status: open
+
+      - id: "app_20_mcp_hosted"
+        description: "mcp → hosted MCP endpoints: repo in, live per-account multi-tenant MCP endpoint out (existing native MCP code on Render, no new dep); schemas derived from code, re-synced on merge; verify by round-tripping tools/call. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #2."
+        roi_score: 86
+        roi_reason: "capability_gain 5, agent_acquisition 5."
+        severity: MEDIUM
+        source_file: "apps/api/src/mcp-server.ts"
+        completion_status: open
+
+      - id: "app_21_closer_release_operator"
+        description: "closer → release operator: actually cut releases (tag, conventional-changelog [MIT], GitHub Release via octokit, npm publish where configured); dry-run + checksum verify first. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #4."
+        roi_score: 85
+        roi_reason: "capability_gain 4, automation 5."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-closer.ts"
+        completion_status: open
+
+      - id: "app_22_search_always_current"
+        description: "search → always-current free index behind the hub MCP (stays free — the vending machine): incremental re-index on push via substrate; freshness <= one merge behind. Existing pgvector/repo-parser, no new dep. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #10."
+        roi_score: 84
+        roi_reason: "agent_acquisition 5 — the funnel every paid app feeds from."
+        severity: MEDIUM
+        source_file: "packages/context-engine/src/engine.ts"
+        completion_status: open
+
+      - id: "app_23_artifacts_embed_platform"
+        description: "artifacts → embed platform: bundle the generated widget with esbuild (MIT), host at versioned R2 URL (existing iliad_object_storage), rebuild on relevant merges; verify bundle loads headless without console errors. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #11."
+        roi_score: 83
+        roi_reason: "capability_gain 4, usability 4."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-artifacts.ts"
+        completion_status: open
+
+      - id: "app_24_canvas_rendered_diagrams"
+        description: "canvas → rendered, current diagrams: D2 external binary (MPL-2.0, single Go binary — chosen over Mermaid, which needs headless Chromium); real SVG/PNG committed into README by PR; redraw when architecture signals change. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #18."
+        roi_score: 82
+        roi_reason: "usability 4 — the last mile is the whole product."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-canvas.ts"
+        completion_status: open
+
+      - id: "app_25_superpowers_executable"
+        description: "superpowers → executable automations: registry entries become dispatchable GitHub Actions jobs (octokit workflow_dispatch); each automation runs green in a worktree before registration. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #12."
+        roi_score: 81
+        roi_reason: "automation 5, validation_strength 4."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-superpowers.ts"
+        completion_status: open
+
+      - id: "app_30_seo_applies"
+        description: "seo → applies what it recommends: write meta tags + JSON-LD (schema-dts, Apache-2.0) as a PR; submit sitemap; pull Search Console deltas via googleapis (Apache-2.0). Needs a user GSC connect flow — build it, don't fake data. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #7."
+        roi_score: 79
+        roi_reason: "capability_gain 4; integration-gated."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-seo.ts"
+        completion_status: open
+
+      - id: "app_31_frontend_v0_answer"
+        description: "frontend → the v0 answer, standalone (NOT merged into artifacts — owner directive): generate components satisfying the repo's own extracted conventions via AXIS LLM inference; enforce the same rules as a custom ESLint plugin on every PR; the generator must pass its own lint. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #6."
+        roi_score: 78
+        roi_reason: "capability_gain 5 — closes the prose-vs-code gap on its own terms."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-frontend.ts"
+        completion_status: open
+
+      - id: "app_32_debug_wired_to_incidents"
+        description: "debug → wired to real incidents: ingest user's Sentry stream (plain REST, deliberately no SDK), draft postmortems from real events grounded in current-repo symbols; needs Sentry-token connect flow. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #8."
+        roi_score: 77
+        roi_reason: "production_quality 4; integration-gated."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-debug.ts"
+        completion_status: open
+
+      - id: "app_33_optimization_live_meter"
+        description: "optimization → live meter: pull real provider usage (plain REST to OpenAI/Anthropic usage endpoints), attribute spend to prompts/routes from call sites, alert on regression; verify by invoice reconciliation. Needs provider-key connect flow. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #9."
+        roi_score: 76
+        roi_reason: "capability_gain 4 — an estimate is a guess, a meter is a subscription."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-optimization.ts"
+        completion_status: open
+
+      - id: "app_34_notebook_living_kb"
+        description: "notebook → living knowledge base: answer questions with citations into CURRENT code (existing iliad_embeddings + vector DB); every citation must resolve to a real file:line; re-embed changed files on merge. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #16."
+        roi_score: 75
+        roi_reason: "usability 4; existing infra only."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-notebook.ts"
+        completion_status: open
+
+      - id: "app_35_obsidian_vault_sync"
+        description: "obsidian → vault sync: write and incrementally maintain the actual vault (filesystem/git), verify no broken wikilinks, update on merge. No new dep. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #17."
+        roi_score: 74
+        roi_reason: "usability 3; small, self-contained."
+        severity: LOW
+        source_file: "packages/generator-core/src/generators-obsidian.ts"
+        completion_status: open
+
+      - id: "app_40_agentic_purchasing_monitor"
+        description: "agentic-purchasing → compliance monitor: re-grade on every push, alert on readiness regression; VERIFY golden vectors against live PAI'D + Stripe test-mode — closes packages/ap2's self-disclosed never-tested-live gap (precondition for $99/mo). Absorbs spoke_07. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #13."
+        roi_score: 72
+        roi_reason: "validation_strength 5; compliance buyers read the disclosure."
+        severity: MEDIUM
+        source_file: "packages/ap2/src/index.ts"
+        completion_status: open
+
+      - id: "app_41_brand_voice_linter"
+        description: "brand → voice linter: synthesize vale rules (MIT, external binary) from the program's own voice guide; enforce on user-facing strings in PRs; the guide's own examples must pass their own rules. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #14."
+        roi_score: 71
+        roi_reason: "canonical_coherence 4 — a guide nobody enforces is a PDF."
+        severity: LOW
+        source_file: "packages/generator-core/src/generators-brand.ts"
+        completion_status: open
+
+      - id: "app_42_marketing_connected"
+        description: "marketing → connected to a channel: push generated sequences into Resend (existing rail), schedule via pg-boss substrate, test-send round-trip before any real audience, feed send/conversion stats back into the funnel map. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #15."
+        roi_score: 70
+        roi_reason: "capability_gain 3; existing rail."
+        severity: LOW
+        source_file: "packages/generator-core/src/generators-marketing.ts"
+        completion_status: open
+
+      - id: "app_43_remotion_rendered_video"
+        description: "remotion → rendered video: deliver the mp4 changelog/demo per release via @remotion/renderer in the worker; user needs zero Remotion knowledge. GATED: Remotion company license is an OWNER PURCHASE (the one paid dependency — flagged per standing policy, not silently assumed). docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #19."
+        roi_score: 69
+        roi_reason: "usability 4; license-gated — do not ship renders before the license exists."
+        severity: LOW
+        source_file: "packages/generator-core/src/generators-remotion.ts"
+        completion_status: open
+
+      - id: "app_44_algorithmic_rendered"
+        description: "algorithmic → rendered collections: ship rendered images (sharp Apache-2.0 + @napi-rs/canvas MIT), full variation matrix exercised without error. Lowest priority — earns its keep as rendered output or not at all. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #20."
+        roi_score: 68
+        roi_reason: "optionality 3; weakest market fit, cheapest to finish honestly."
+        severity: LOW
+        source_file: "packages/generator-core/src/generators-algorithmic.ts"
         completion_status: open
 
   highest_roi_definition:
