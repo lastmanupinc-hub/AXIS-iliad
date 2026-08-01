@@ -37,7 +37,7 @@ export interface RunResult {
   stderr: string;
 }
 
-export type RunCmd = (cmd: string, args: string[]) => RunResult;
+export type RunCmd = (cmd: string, args: string[], cwd?: string) => RunResult;
 
 export interface ConventionalCommit {
   hash: string;
@@ -197,7 +197,14 @@ export interface ChecksumResult {
 /** Runs the real build (package-manager-aware) and hashes every file it produced under dist/ — a real pre-flight integrity check before tagging, not a placeholder. Returns null if there's no dist/ output to check (e.g. a non-buildable project). */
 export function runBuildAndChecksum(run: RunCmd, cwd: string): { ok: true; result: ChecksumResult | null } | { ok: false; log: string } {
   const { pm, build } = detectInstallCommand(cwd);
-  const built = run(pm, build);
+  // cwd MUST be passed explicitly: unlike the git calls elsewhere in this
+  // file (which pass `-C cwd` as an actual git argument), a bare npm/pnpm/
+  // yarn/bun invocation has no equivalent flag and would otherwise inherit
+  // the CALLING process's cwd — which, run from inside axis-iliad's own
+  // repo, silently built THIS ENTIRE MONOREPO instead of the target
+  // project. Caught by release-operator.integration.test.ts running a real
+  // build against a real fixture repo, not assumed correct from a mock.
+  const built = run(pm, build, cwd);
   if (built.status !== 0) {
     return { ok: false, log: `${built.stdout}${built.stderr}` };
   }
@@ -260,7 +267,7 @@ export function executeRelease(run: RunCmd, cwd: string, preview: ReleasePreview
 const DEFAULT_RUN_CMD_TIMEOUT_MS = 60_000;
 
 export function realRunCmd(timeoutMs: number = DEFAULT_RUN_CMD_TIMEOUT_MS): RunCmd {
-  return (cmd, args) => {
+  return (cmd, args, cwd) => {
     // npm/pnpm/yarn/bun are .cmd shims on Windows — spawnSync can't resolve
     // them without a shell (real ENOENT, caught by release-operator.integration.test.ts
     // against an actual Windows spawnSync call, not assumed). git.exe needs no
@@ -269,20 +276,19 @@ export function realRunCmd(timeoutMs: number = DEFAULT_RUN_CMD_TIMEOUT_MS): RunC
     // fixed literal or a version string this tool itself computed (never
     // arbitrary user input), so shell interpretation carries no injection risk.
     //
-    // The npm/yarn/pnpm env vars below disable each tool's own background
-    // network chatter (update notifiers, funding/audit nags) — real,
-    // reproduced behavior: an unqualified `npm run build --if-present` call
-    // hung for 200+ seconds in this exact spawnSync+shell:true configuration
-    // before the timeout below was added, consistent with a stalled
-    // network check rather than a true infinite hang. `timeout` is the
-    // backstop regardless of the exact cause: spawnSync blocks the whole
-    // thread synchronously, so a test/caller-side timeout can never preempt
-    // a hung child process — only the child process's own timeout can.
+    // `timeout` is a real backstop, kept even after finding the actual cause
+    // of an early 200+-second "hang" during development (it wasn't a hang:
+    // runBuildAndChecksum's build invocation was missing `cwd`, so it built
+    // this ENTIRE monorepo instead of the tiny fixture repo under test — a
+    // real multi-minute `pnpm -r build`, not a stall). spawnSync blocks the
+    // whole thread synchronously, so nothing calling this can ever preempt a
+    // genuinely stuck child process except the child's own timeout.
     const r = spawnSync(cmd, args, {
       encoding: "utf-8",
       shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
       timeout: timeoutMs,
+      cwd,
       env: {
         ...process.env,
         NO_UPDATE_NOTIFIER: "1",

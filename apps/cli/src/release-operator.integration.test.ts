@@ -91,6 +91,10 @@ describe("release-operator integration (real git repo, no remote)", () => {
     const preview = computeReleasePreview("1.0.0", lastTag, commits, "2026-08-01");
 
     const result = executeRelease(run, repoDir, preview);
+    if (result.status !== "tagged") {
+      // Surface the real failure reason in CI output instead of a bare status mismatch.
+      console.error("executeRelease did not tag. Full result:", JSON.stringify(result, null, 2));
+    }
     expect(result.status).toBe("tagged");
     expect(result.tag).toBe("v1.1.0");
 
