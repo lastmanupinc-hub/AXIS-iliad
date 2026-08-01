@@ -894,6 +894,36 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
+      // ── Hosted MCP (app_20_mcp_hosted) ──
+      "/v1/mcp/hosted/{repo}": {
+        post: {
+          summary: "Per-account hosted MCP endpoint for a watched repo — read-only (filesystem tools + resources), re-synced on every push",
+          operationId: "mcpHostedPost",
+          tags: ["MCP"],
+          parameters: [
+            { name: "repo", in: "path", required: true, schema: { type: "string" }, description: "owner/repo of a repo this account has an active mcp subscription for" },
+          ],
+          requestBody: jsonBody({
+            type: "object",
+            required: ["jsonrpc", "method"],
+            properties: {
+              jsonrpc: { type: "string", enum: ["2.0"] },
+              method: { type: "string" },
+              id: { type: ["string", "number", "null"] },
+              params: { type: "object" },
+            },
+          }),
+          responses: {
+            200: { description: "JSON-RPC 2.0 response (result or error)" },
+            202: { description: "Notification accepted — no body" },
+            400: { description: "Parse error or invalid JSON-RPC 2.0 request" },
+            401: { description: "No Authorization header / invalid API key" },
+            404: { description: "This account has no mcp subscription for the given repo" },
+            503: { description: "Subscribed but not yet synced — wait for the first push" },
+          },
+        },
+      },
+
       // ── Programs listing ──
       "/v1/programs": {
         get: {

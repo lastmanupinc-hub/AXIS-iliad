@@ -44,7 +44,10 @@ describe("buildOpenApiSpec", () => {
         p.includes("/marketing/") ||
         p.includes("/notebook/") ||
         p.includes("/obsidian/") ||
-        p.includes("/mcp/") ||
+        // /mcp/ also matches app_20's hosted-endpoint path (/v1/mcp/hosted/{repo}),
+        // a live serving endpoint, not a "trigger generation" endpoint like the
+        // others this filter counts — excluded explicitly, not counted here.
+        (p.includes("/mcp/") && !p.includes("/mcp/hosted")) ||
         p.includes("/artifacts/") ||
         p.includes("/remotion/") ||
         p.includes("/canvas/") ||
