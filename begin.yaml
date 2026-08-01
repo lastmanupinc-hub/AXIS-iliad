@@ -698,7 +698,7 @@ project_begin:
         roi_reason: "capability_gain 4, automation 5."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-closer.ts"
-        completion_status: open
+        completion_status: complete  # SCOPED 2026-08-01: `axis release` decides the next version+changelog from conventional commits (hand-rolled, no conventional-changelog dep — same CLI zero-dep constraint as app_03/12/20) and, only with --execute, builds+checksums+tags LOCALLY — never pushes, never touches GitHub/npm APIs directly. generateCloserReleaseWorkflow already emits the COMPLETE publish pipeline (npm/Docker/GitHub Release via softprops/action-gh-release) that fires when the user pushes the tag this creates; this doesn't duplicate that, it answers what that workflow leaves manual. Real finding along the way: spawnSync needs shell:true for npm/pnpm/yarn/bun on Windows (.cmd shims) — fixed with a hard timeout + disabled update-notifier env vars as defense-in-depth regardless of root cause, since spawnSync blocks synchronously and no caller-side timeout can preempt a hung child.
 
       - id: "app_22_search_always_current"
         description: "search → always-current free index behind the hub MCP (stays free — the vending machine): incremental re-index on push via substrate; freshness <= one merge behind. Existing pgvector/repo-parser, no new dep. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #10."

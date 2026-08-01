@@ -8,6 +8,7 @@ import { writeGeneratedFiles } from "./writer.js";
 import { writeZip } from "./zip.js";
 import { fetchAccountStatus, DEFAULT_API_URL } from "./status.js";
 import { verifyDeploy, realDeps, extractHealthCheckPath } from "./deploy-verify.js";
+import { getLastTag, getCommitsSince, computeReleasePreview, executeRelease, realRunCmd } from "./release-operator.js";
 import { fetchGitHubRepo } from "@axis/snapshots";
 import { listAvailableGenerators } from "@axis/generator-core";
 import { loadConfig, saveConfig, getConfigFile, type AxisConfig } from "./credential-store.js";
@@ -22,6 +23,7 @@ export const CLI_COMMANDS = [
   "status",
   "auth",
   "verify-deploy",
+  "release",
   "help",
   "version",
 ] as const;
@@ -38,6 +40,8 @@ interface CliArgs {
   apiKey?: string;
   quiet: boolean;
   verbose: boolean;
+  /** release only: actually tag (still never pushes) instead of a dry-run preview. */
+  execute: boolean;
 }
 
 function envIsTrue(v: string | undefined): boolean {
@@ -54,6 +58,7 @@ function parseArgs(argv: string[]): CliArgs {
     format: "",
     quiet: false,
     verbose: envIsTrue(process.env.AXIS_VERBOSE),
+    execute: false,
   };
 
   let i = 0;
@@ -85,6 +90,8 @@ function parseArgs(argv: string[]): CliArgs {
       result.apiKey = args[++i];
     } else if (args[i] === "--quiet") {
       result.quiet = true;
+    } else if (args[i] === "--execute") {
+      result.execute = true;
     } else if (args[i] === "--verbose") {
       result.verbose = true;
     } else if (args[i] === "--help" || args[i] === "-h") {
@@ -114,6 +121,8 @@ Usage:
   axis-iliad verify-deploy [path] [options]  Build (and boot, if Docker is available) the
                                               generated deploy/Dockerfile against your own
                                               local Docker daemon — never sent to the API
+  axis-iliad release [path] [--execute]      Preview (default) or cut (--execute) the next
+                                              release from conventional commits — never pushes
 
 Commands:
   analyze        Scan a local repository and generate config files (default)
@@ -125,6 +134,8 @@ Commands:
   auth           Manage API key authentication
   verify-deploy  Build + boot + healthcheck the generated Dockerfile locally
                  (falls back to hadolint if Docker isn't installed)
+  release        Compute the next version + changelog from conventional commits;
+                 --execute builds/checksums/tags locally — never pushes
   help           Show this help message
   version        Show version
 
@@ -135,6 +146,7 @@ Options:
       --program <name>   Single program filter (repeatable, legacy)
   -f, --format <fmt>     Export format: dir (default) or zip
       --key <api_key>    API key for auth; --api-key also works everywhere
+      --execute          release only: actually build/checksum/tag (default: dry-run preview)
       --quiet            Suppress progress output
       --verbose          Verbose logging (per-file paths, timing)
   -h, --help             Show help
@@ -296,6 +308,16 @@ export function main(): void {
       console.error(`Error: ${err.message}`);
       process.exitCode = 1;
     });
+    return;
+  }
+
+  if (args.command === "release") {
+    try {
+      runRelease(args);
+    } catch (err) {
+      console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -463,6 +485,68 @@ async function runVerifyDeploy(args: CliArgs): Promise<void> {
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+/**
+ * release — decides the next version + changelog from conventional commits
+ * since the last tag, and (only with --execute) creates the local git tag
+ * the generated .github/workflows/release.yml already triggers off of.
+ * Never pushes — see release-operator.ts's header for why that's a
+ * deliberate, separate manual step.
+ */
+function runRelease(args: CliArgs): void {
+  const targetDir = resolve(args.target);
+  const pkgPath = join(targetDir, "package.json");
+  let pkg: { version?: string };
+  try {
+    pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { version?: string };
+  } catch {
+    console.error(`No readable package.json at ${pkgPath} — axis release only supports npm-versioned projects today.`);
+    process.exitCode = 1;
+    return;
+  }
+  const currentVersion = pkg.version ?? "0.0.0";
+
+  const run = realRunCmd();
+  const lastTag = getLastTag(run, targetDir);
+  const rawCommits = getCommitsSince(run, targetDir, lastTag);
+  const preview = computeReleasePreview(currentVersion, lastTag, rawCommits, new Date().toISOString().slice(0, 10));
+
+  console.log("");
+  console.log(`Current version: ${currentVersion}${lastTag ? ` (last tag: ${lastTag})` : " (no tags yet)"}`);
+  console.log(`Commits analyzed: ${rawCommits.length} (${preview.skippedCommits} non-conventional, skipped)`);
+  console.log(`Bump: ${preview.bump}`);
+
+  if (preview.bump === "none") {
+    console.log("");
+    console.log("No release-worthy changes (feat/fix/perf/breaking) since the last tag.");
+    return;
+  }
+
+  console.log(`Next version: ${preview.nextVersion}`);
+  console.log("");
+  console.log(preview.changelog);
+
+  if (!args.execute) {
+    console.log("Dry run — nothing was changed. Pass --execute to build, checksum, and tag this release locally.");
+    return;
+  }
+
+  console.log("Building and computing checksums before tagging ...");
+  const result = executeRelease(run, targetDir, preview);
+  if (result.status === "build_failed") {
+    console.error("Build failed — release aborted, nothing was tagged.");
+    if (args.verbose && result.buildLog) console.error(result.buildLog);
+    process.exitCode = 1;
+    return;
+  }
+  if (result.status === "nothing_to_release") {
+    console.log("Nothing to release.");
+    return;
+  }
+  console.log(`Tagged ${result.tag} locally (package.json + CHANGELOG.md committed). Nothing was pushed.`);
+  console.log("Review the changes, then run: git push --follow-tags");
+  console.log("Pushing the tag is what triggers your generated .github/workflows/release.yml (build, publish, GitHub Release) — axis release never does that for you.");
 }
 
 /**
