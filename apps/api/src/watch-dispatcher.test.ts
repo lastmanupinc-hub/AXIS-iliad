@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const processSkillsRefresh = vi.fn();
 const processThemeTokenSync = vi.fn();
+const processMcpHostedSync = vi.fn();
 
 vi.mock("./skills-refresh-watcher.js", () => ({
   processSkillsRefresh: (...args: unknown[]) => processSkillsRefresh(...args),
@@ -10,6 +11,10 @@ vi.mock("./skills-refresh-watcher.js", () => ({
 vi.mock("./theme-token-sync-watcher.js", () => ({
   processThemeTokenSync: (...args: unknown[]) => processThemeTokenSync(...args),
   defaultThemeTokenSyncDeps: () => "theme-deps",
+}));
+vi.mock("./mcp-hosted.js", () => ({
+  processMcpHostedSync: (...args: unknown[]) => processMcpHostedSync(...args),
+  defaultMcpHostedSyncDeps: () => "mcp-deps",
 }));
 vi.mock("@axis/snapshots", () => ({
   registerWatchWorker: vi.fn(async (handler: unknown) => {
@@ -52,12 +57,23 @@ describe("watch-dispatcher", () => {
     await dispatch({ ...payload, product_id: "theme" });
     expect(processSkillsRefresh).toHaveBeenCalled();
     expect(processThemeTokenSync).toHaveBeenCalledWith({ ...payload, product_id: "theme" }, "theme-deps");
+    expect(processMcpHostedSync).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the mcp-hosted processor when both skills and theme decline the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "synced" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "mcp" });
+    expect(processMcpHostedSync).toHaveBeenCalledWith({ ...payload, product_id: "mcp" }, "mcp-deps");
   });
 
   it("does not throw when no processor claims the product_id (an unhandled product is a log line, not a crash)", async () => {
     processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
     processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
     const dispatch = await loadDispatchWatchJob();
-    await expect(dispatch({ ...payload, product_id: "mcp" })).resolves.toBeUndefined();
+    await expect(dispatch({ ...payload, product_id: "some-future-product" })).resolves.toBeUndefined();
   });
 });

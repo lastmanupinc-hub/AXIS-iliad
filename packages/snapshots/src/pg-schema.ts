@@ -804,6 +804,17 @@ CREATE INDEX IF NOT EXISTS idx_account_entitlements_account ON account_entitleme
 CREATE INDEX IF NOT EXISTS idx_repo_subscriptions_repo ON repo_subscriptions(repo_full_name);
 CREATE INDEX IF NOT EXISTS idx_repo_subscriptions_account ON repo_subscriptions(account_id);`,
   },
+  {
+    // app_20_mcp_hosted: the hosted MCP endpoint serves whatever the LATEST
+    // synced snapshot for an account+repo+product contains — this pointer is
+    // what the watch-dispatcher's re-sync step updates on every push, and
+    // what the hosted HTTP handler reads to resolve a request to real data.
+    // Nullable: a subscription exists from the moment it's created, but has
+    // no synced snapshot until the first successful watch job.
+    version: 43,
+    name: "repo_subscriptions_latest_snapshot",
+    sql: `ALTER TABLE repo_subscriptions ADD COLUMN IF NOT EXISTS latest_snapshot_id TEXT;`,
+  },
 ];
 
 /**

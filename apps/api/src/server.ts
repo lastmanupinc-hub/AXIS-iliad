@@ -109,6 +109,7 @@ import {
 import { handleExportZip } from "./export.js";
 import { handleFeedback } from "./feedback.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
+import { handleMcpHostedPost } from "./mcp-hosted.js";
 import { getPaymentFunnelStats, getSettledRevenue } from "@axis/snapshots";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
@@ -405,6 +406,11 @@ router.get("/mcp/", handleMcpGet);
 router.get("/v1/mcp", handleMcpGet);
 router.get("/v1/mcp/", handleMcpGet);
 router.get("/mcp/docs", handleMcpDocs);
+
+// app_20_mcp_hosted: per-account, per-repo hosted MCP endpoint. Account comes
+// ONLY from Authorization (resolveAuth inside the handler) — the repo path
+// alone never identifies who can read it.
+router.post("/v1/mcp/hosted/:repo*", handleMcpHostedPost);
 
 // Keep browsers quiet: favicon requests hit API hosts too.
 router.get("/favicon.ico", async (_req, res) => {

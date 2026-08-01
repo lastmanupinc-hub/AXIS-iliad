@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createAccount } from "./billing-store.js";
 import { resetTestDb } from "./pg-test.js";
-import { subscribeRepo, unsubscribeRepo, listSubscriptionsForRepo, listSubscriptionsForAccount } from "./repo-subscriptions.js";
+import { subscribeRepo, unsubscribeRepo, listSubscriptionsForRepo, listSubscriptionsForAccount, getRepoSubscription, setLatestSnapshot } from "./repo-subscriptions.js";
 
 // The Watch mechanic every one of the 20 apps depends on
 // (docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md). This is also the
@@ -81,5 +81,44 @@ describe("repo subscriptions", () => {
     await subscribeRepo(account.account_id, "skills", "acme/widgets");
     const [row] = await listSubscriptionsForRepo("acme/widgets");
     expect(new Date(row.created_at).toString()).not.toBe("Invalid Date");
+  });
+
+  it("getRepoSubscription returns undefined when no such subscription exists", async () => {
+    expect(await getRepoSubscription("no-such-account", "mcp", "acme/widgets")).toBeUndefined();
+  });
+
+  it("a fresh subscription has no latest_snapshot_id until a watch job syncs one (app_20_mcp_hosted)", async () => {
+    const account = await createAccount("fresh-mcp", "fresh-mcp@test.com", "paid");
+    await subscribeRepo(account.account_id, "mcp", "acme/widgets");
+    const sub = await getRepoSubscription(account.account_id, "mcp", "acme/widgets");
+    expect(sub?.latest_snapshot_id).toBeNull();
+  });
+
+  it("setLatestSnapshot records the synced snapshot id, readable back via getRepoSubscription", async () => {
+    const account = await createAccount("synced-mcp", "synced-mcp@test.com", "paid");
+    await subscribeRepo(account.account_id, "mcp", "acme/widgets");
+    await setLatestSnapshot(account.account_id, "mcp", "acme/widgets", "snap-123");
+    const sub = await getRepoSubscription(account.account_id, "mcp", "acme/widgets");
+    expect(sub?.latest_snapshot_id).toBe("snap-123");
+  });
+
+  it("setLatestSnapshot only touches the matching (account, product, repo) row, not a sibling subscription", async () => {
+    const account = await createAccount("scoped-mcp", "scoped-mcp@test.com", "paid");
+    await subscribeRepo(account.account_id, "mcp", "acme/widgets");
+    await subscribeRepo(account.account_id, "skills", "acme/widgets");
+    await setLatestSnapshot(account.account_id, "mcp", "acme/widgets", "snap-mcp");
+    const mcpSub = await getRepoSubscription(account.account_id, "mcp", "acme/widgets");
+    const skillsSub = await getRepoSubscription(account.account_id, "skills", "acme/widgets");
+    expect(mcpSub?.latest_snapshot_id).toBe("snap-mcp");
+    expect(skillsSub?.latest_snapshot_id).toBeNull();
+  });
+
+  it("setLatestSnapshot on a re-sync overwrites the previous snapshot id", async () => {
+    const account = await createAccount("resync-mcp", "resync-mcp@test.com", "paid");
+    await subscribeRepo(account.account_id, "mcp", "acme/widgets");
+    await setLatestSnapshot(account.account_id, "mcp", "acme/widgets", "snap-old");
+    await setLatestSnapshot(account.account_id, "mcp", "acme/widgets", "snap-new");
+    const sub = await getRepoSubscription(account.account_id, "mcp", "acme/widgets");
+    expect(sub?.latest_snapshot_id).toBe("snap-new");
   });
 });

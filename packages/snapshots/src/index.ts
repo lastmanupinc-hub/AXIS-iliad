@@ -171,7 +171,7 @@ export { grantEntitlement, hasEntitlement, listEntitlements } from "./entitlemen
 // Repo subscriptions + the durable watch queue (docs/saas-strategy/
 // APPLICATION_BUILD_STRATEGY.md substrate table)
 export type { RepoSubscription } from "./repo-subscriptions.js";
-export { subscribeRepo, unsubscribeRepo, listSubscriptionsForRepo, listSubscriptionsForAccount } from "./repo-subscriptions.js";
+export { subscribeRepo, unsubscribeRepo, listSubscriptionsForRepo, listSubscriptionsForAccount, getRepoSubscription, setLatestSnapshot } from "./repo-subscriptions.js";
 export type { WatchJobPayload, WatchJobHandler } from "./watch-queue.js";
 export { enqueueWatchJob, registerWatchWorker, stopWatchQueue } from "./watch-queue.js";
 
