@@ -8,6 +8,7 @@ import { findFiles, detectStyleFiles, renderExcerpts, extractExports } from "./f
 import { mdText, mdInline, mdCode, cssComment } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 import { detectStyling, componentFileEntries } from "./theme-detect.js";
+import { wcagContrastRatio, wcagLevel, formatRatio } from "./color-contrast.js";
 
 // ─── .ai/design-tokens.json ────────────────────────────────────
 
@@ -1071,6 +1072,62 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
   // design-tokens.json's has_tailwind and the guidelines' styling section.
   const { hasTailwind } = detectStyling(ctx);
 
+  // Named ahead of `tokens` (rather than nested inline) so the real contrast
+  // computation below reads the SAME values `tokens.colors` publishes —
+  // computed from the actual hex/rgba values, not hardcoded.
+  const background = {
+    base: "#070b11",
+    surface: "#0d141d",
+    elevated: "#141e29",
+    overlay: "rgba(0, 0, 0, 0.7)",
+  };
+  const foreground = {
+    primary: "#d6e2ee",
+    secondary: "#8b9bb0",
+    muted: "#6e8093",
+    inverse: "#070b11",
+  };
+  const brand = {
+    primary: "#22d3ee",
+    "primary-hover": "#67e8f9",
+    secondary: "#ffb020",
+    "secondary-hover": "#ffc53d",
+    accent: "#22d3ee",
+  };
+  const semantic = {
+    success: "#2ee6a6",
+    "success-bg": "rgba(46, 230, 166, 0.1)",
+    warning: "#ffc53d",
+    "warning-bg": "rgba(255, 197, 61, 0.1)",
+    error: "#ff5d6c",
+    "error-bg": "rgba(255, 93, 108, 0.1)",
+    info: "#22d3ee",
+    "info-bg": "rgba(34, 211, 238, 0.1)",
+  };
+  const border = {
+    default: "#1b2733",
+    focus: "#22d3ee",
+    subtle: "#141e29",
+  };
+
+  // Real WCAG 2.x ratios computed from the values above — was previously a
+  // hardcoded, hand-typed block ("15.3:1"...) with a comment admitting it was
+  // only "approximate" and would go stale after any restyle. A translucent
+  // semantic-bg color (e.g. error-bg) is composited over `background.base`,
+  // the surface it actually renders on, before computing its ratio.
+  const contrastPairs: Array<[key: string, fg: string, bg: string]> = [
+    ["primary-on-base", foreground.primary, background.base],
+    ["secondary-on-base", foreground.secondary, background.base],
+    ["muted-on-base", foreground.muted, background.base],
+    ["brand-on-surface", brand.primary, background.surface],
+    ["error-on-error-bg", semantic.error, semantic["error-bg"]],
+  ];
+  const contrastRatios: Record<string, { ratio: string; passes: ReturnType<typeof wcagLevel> }> = {};
+  for (const [key, fg, bg] of contrastPairs) {
+    const ratio = wcagContrastRatio(fg, bg, background.base);
+    contrastRatios[key] = { ratio: formatRatio(ratio), passes: wcagLevel(ratio) };
+  }
+
   // Generate a full dark mode token set derived from the project context
   const tokens = {
     project: id.name,
@@ -1082,40 +1139,11 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
       project_type: id.type,
     },
     colors: {
-      background: {
-        base: "#070b11",
-        surface: "#0d141d",
-        elevated: "#141e29",
-        overlay: "rgba(0, 0, 0, 0.7)",
-      },
-      foreground: {
-        primary: "#d6e2ee",
-        secondary: "#8b9bb0",
-        muted: "#6e8093",
-        inverse: "#070b11",
-      },
-      brand: {
-        primary: "#22d3ee",
-        "primary-hover": "#67e8f9",
-        secondary: "#ffb020",
-        "secondary-hover": "#ffc53d",
-        accent: "#22d3ee",
-      },
-      semantic: {
-        success: "#2ee6a6",
-        "success-bg": "rgba(46, 230, 166, 0.1)",
-        warning: "#ffc53d",
-        "warning-bg": "rgba(255, 197, 61, 0.1)",
-        error: "#ff5d6c",
-        "error-bg": "rgba(255, 93, 108, 0.1)",
-        info: "#22d3ee",
-        "info-bg": "rgba(34, 211, 238, 0.1)",
-      },
-      border: {
-        default: "#1b2733",
-        focus: "#22d3ee",
-        subtle: "#141e29",
-      },
+      background,
+      foreground,
+      brand,
+      semantic,
+      border,
     },
     surfaces: {
       page: { bg: "#070b11", text: "#d6e2ee", border: "#1b2733" },
@@ -1156,12 +1184,8 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
       },
     },
     contrast_ratios: {
-      note: "Approximate — computed for the preset palette; re-verify after you restyle the tokens.",
-      "primary-on-base": { ratio: "15.3:1", passes: "AAA" },
-      "secondary-on-base": { ratio: "7.2:1", passes: "AA" },
-      "muted-on-base": { ratio: "4.6:1", passes: "AA" },
-      "brand-on-surface": { ratio: "8.1:1", passes: "AAA" },
-      "error-on-error-bg": { ratio: "5.4:1", passes: "AA" },
+      note: "Computed from the actual token values above (WCAG 2.x relative-luminance formula) — re-run generation after restyling to refresh these.",
+      ...contrastRatios,
     },
     source_theme_files: null as string[] | null,
   };

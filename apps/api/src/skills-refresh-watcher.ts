@@ -15,12 +15,11 @@
 // fetch-repo → diff → open-PR skeleton), generalized to N files via
 // openApplyPullRequest instead of the single-file drift adapter.
 
-import { fetchGitHubRepo, createSnapshot, registerWatchWorker } from "@axis/snapshots";
+import { fetchGitHubRepo, createSnapshot } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, WatchJobPayload } from "@axis/snapshots";
 import { buildContextMap } from "@axis/context-engine";
 import { generateAgentsMD, generateClaudeMD, generateCursorRules } from "@axis/generator-core";
 import { openApplyPullRequest, applyBranchName, type ApplyFile, type OpenApplyPrParams, type OpenApplyPrResult } from "./github-pr.js";
-import { log } from "./logger.js";
 
 const SKILLS_PRODUCT_ID = "skills";
 
@@ -130,16 +129,4 @@ export function defaultSkillsRefreshDeps(): SkillsRefreshDeps {
     fetchRepo: (url, token) => fetchGitHubRepo(url, token),
     openPr: (params) => openApplyPullRequest(fetch, params),
   };
-}
-
-/** Registers this handler with the watch queue — call once at server startup. */
-export async function startSkillsRefreshWatcher(): Promise<string> {
-  return registerWatchWorker(async (payload) => {
-    const outcome = await processSkillsRefresh(payload, defaultSkillsRefreshDeps());
-    log("info", "skills-refresh.processed", {
-      repo: payload.repo_full_name,
-      product_id: payload.product_id,
-      status: outcome.status,
-    });
-  });
 }

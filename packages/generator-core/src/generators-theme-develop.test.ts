@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
 import { detectStyling, componentFileEntries } from "./theme-detect.js";
 import { generateDesignTokens, generateThemeGuidelines, generateComponentThemeMap, generateDarkModeTokens } from "./generators-theme.js";
+import { wcagContrastRatio, wcagLevel, formatRatio } from "./color-contrast.js";
 
 type Dep = ContextMap["dependency_graph"]["external_dependencies"][number];
 type Fw = ContextMap["detection"]["frameworks"][number];
@@ -102,5 +103,42 @@ describe("cross-file agreement (the disagreements the HARDEN-1 review flagged)",
     expect(generateThemeGuidelines(ctx).content).toContain("**Detected: Tailwind CSS**");
     const dark = JSON.parse(generateDarkModeTokens(ctx).content) as { implementation: { css_strategy: string } };
     expect(dark.implementation.css_strategy).toBe("tailwind-dark-class");
+  });
+});
+
+describe("generateDarkModeTokens — contrast_ratios are REAL computed values, not hardcoded strings", () => {
+  // app_12_theme_token_sync: contrast_ratios used to be hand-typed literals
+  // ("15.3:1") with a comment admitting they were only "approximate" for the
+  // preset palette and would go stale after any restyle. This locks in that
+  // the values in the actual generator output match an independent
+  // computation from color-contrast.ts against the SAME token hex values
+  // documented in generateDarkModeTokens' own source (colors.background,
+  // .foreground, .brand, .semantic).
+  interface DarkTokens {
+    contrast_ratios: Record<string, { ratio: string; passes: string } | string>;
+  }
+
+  it("every ratio in the output matches an independent wcagContrastRatio computation from the documented token hex values", () => {
+    const dark = JSON.parse(generateDarkModeTokens(ctxWith()).content) as DarkTokens;
+
+    const expected: Record<string, [fg: string, bg: string]> = {
+      "primary-on-base": ["#d6e2ee", "#070b11"],
+      "secondary-on-base": ["#8b9bb0", "#070b11"],
+      "muted-on-base": ["#6e8093", "#070b11"],
+      "brand-on-surface": ["#22d3ee", "#0d141d"],
+      "error-on-error-bg": ["#ff5d6c", "rgba(255, 93, 108, 0.1)"],
+    };
+
+    for (const [key, [fg, bg]] of Object.entries(expected)) {
+      const ratio = wcagContrastRatio(fg, bg, "#070b11");
+      const entry = dark.contrast_ratios[key];
+      expect(entry, `missing contrast_ratios entry for ${key}`).not.toBe(undefined);
+      expect(entry).toEqual({ ratio: formatRatio(ratio), passes: wcagLevel(ratio) });
+    }
+  });
+
+  it("no longer carries the old 'approximate ... re-verify after you restyle' disclaimer, since the values are now real", () => {
+    const dark = JSON.parse(generateDarkModeTokens(ctxWith()).content) as DarkTokens;
+    expect(dark.contrast_ratios.note).not.toContain("Approximate");
   });
 });

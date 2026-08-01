@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
 import { startAlerting } from "./alerting.js";
-import { startSkillsRefreshWatcher } from "./skills-refresh-watcher.js";
+import { startWatchDispatcher } from "./watch-dispatcher.js";
 import { log } from "./logger.js";
 import {
   handleCreateSnapshot,
@@ -600,11 +600,11 @@ export const app = createApp(router, port);
 /* v8 ignore next */
 startAlerting();
 
-// app_11_skills_never_rots: consumes the watch queue for "skills" subscriptions
-// (app_01 substrate) and opens agent-onboarding refresh PRs (app_02 substrate).
-// Caught, not awaited — a pg-boss startup hiccup must never block the HTTP
-// server from listening, the same standard as startAlerting() above.
+// Watch queue (app_01 substrate): ONE dispatcher registration fanning out to
+// every program's processor (app_11 skills-refresh, app_12 theme-token-sync,
+// ...). Caught, not awaited — a pg-boss startup hiccup must never block the
+// HTTP server from listening, the same standard as startAlerting() above.
 /* v8 ignore next 3 */
-startSkillsRefreshWatcher().catch((err) => {
-  log("error", "skills-refresh-watcher.start_failed", { error: err instanceof Error ? err.message : String(err) });
+startWatchDispatcher().catch((err) => {
+  log("error", "watch-dispatcher.start_failed", { error: err instanceof Error ? err.message : String(err) });
 });

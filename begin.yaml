@@ -682,7 +682,7 @@ project_begin:
         roi_reason: "Wave 1 apply-proof. usability 4, production_quality 4."
         severity: HIGH
         source_file: "packages/generator-core/src/generators-theme.ts"
-        completion_status: open
+        completion_status: complete  # DEVIATION 2026-07-31: shipped WITHOUT style-dictionary/culori — a hand-rolled WCAG contrast module (color-contrast.ts) + palette derived from the REAL generateThemeCss output cover the same need with zero new runtime deps, required by apps/cli/build.mjs's self-contained-bundle constraint (discovered the hard way on app_03/verify-harness.ts) for anything generator-core exports, and generators-theme.ts already hand-rolls its own token->CSS transform, so style-dictionary would have duplicated existing, working, tested code rather than adding capability
 
       - id: "app_20_mcp_hosted"
         description: "mcp → hosted MCP endpoints: repo in, live per-account multi-tenant MCP endpoint out (existing native MCP code on Render, no new dep); schemas derived from code, re-synced on merge; verify by round-tripping tools/call. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #2."
