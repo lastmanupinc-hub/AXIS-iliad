@@ -5,7 +5,7 @@
 # Health check:  http://localhost:4000/v1/health
 #
 # ── Stage 1: deps ────────────────────────────────────────────────
-FROM node:20-slim AS deps
+FROM node:26-slim AS deps
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -25,7 +25,7 @@ WORKDIR /app
 RUN pnpm -r build
 
 # ── Stage 3: runner ──────────────────────────────────────────────
-FROM node:20-slim AS runner
+FROM node:26-slim AS runner
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate

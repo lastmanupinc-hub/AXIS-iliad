@@ -4,12 +4,12 @@
 # consumer (apps/api/src/canvas-diagram-watcher.ts) shells out to at runtime.
 # Installed in its own stage so curl/make/ca-certificates never bloat the
 # slim runtime image — only the resulting /usr/local/bin/d2 binary is copied.
-FROM node:22-bookworm-slim AS d2
+FROM node:26-bookworm-slim AS d2
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates make \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://d2lang.com/install.sh | sh -s -- --prefix /usr/local
 
-FROM node:22-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
@@ -18,12 +18,12 @@ COPY apps ./apps
 COPY packages ./packages
 RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm install --frozen-lockfile
 
-FROM node:22-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app /app
 RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm run build
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:26-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN groupadd -r axis && useradd -r -g axis axis
