@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const processSkillsRefresh = vi.fn();
 const processThemeTokenSync = vi.fn();
 const processMcpHostedSync = vi.fn();
+const processSearchIndexSync = vi.fn();
 
 vi.mock("./skills-refresh-watcher.js", () => ({
   processSkillsRefresh: (...args: unknown[]) => processSkillsRefresh(...args),
@@ -15,6 +16,10 @@ vi.mock("./theme-token-sync-watcher.js", () => ({
 vi.mock("./mcp-hosted.js", () => ({
   processMcpHostedSync: (...args: unknown[]) => processMcpHostedSync(...args),
   defaultMcpHostedSyncDeps: () => "mcp-deps",
+}));
+vi.mock("./search-index-watcher.js", () => ({
+  processSearchIndexSync: (...args: unknown[]) => processSearchIndexSync(...args),
+  defaultSearchIndexSyncDeps: () => "search-deps",
 }));
 vi.mock("@axis/snapshots", () => ({
   registerWatchWorker: vi.fn(async (handler: unknown) => {
@@ -67,12 +72,24 @@ describe("watch-dispatcher", () => {
     const dispatch = await loadDispatchWatchJob();
     await dispatch({ ...payload, product_id: "mcp" });
     expect(processMcpHostedSync).toHaveBeenCalledWith({ ...payload, product_id: "mcp" }, "mcp-deps");
+    expect(processSearchIndexSync).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the search-index processor when skills/theme/mcp all decline the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "indexed" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "search" });
+    expect(processSearchIndexSync).toHaveBeenCalledWith({ ...payload, product_id: "search" }, "search-deps");
   });
 
   it("does not throw when no processor claims the product_id (an unhandled product is a log line, not a crash)", async () => {
     processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
     processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
     processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
     const dispatch = await loadDispatchWatchJob();
     await expect(dispatch({ ...payload, product_id: "some-future-product" })).resolves.toBeUndefined();
   });

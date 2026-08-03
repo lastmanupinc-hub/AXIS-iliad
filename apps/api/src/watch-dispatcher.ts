@@ -14,6 +14,7 @@ import type { WatchJobPayload } from "@axis/snapshots";
 import { processSkillsRefresh, defaultSkillsRefreshDeps } from "./skills-refresh-watcher.js";
 import { processThemeTokenSync, defaultThemeTokenSyncDeps } from "./theme-token-sync-watcher.js";
 import { processMcpHostedSync, defaultMcpHostedSyncDeps } from "./mcp-hosted.js";
+import { processSearchIndexSync, defaultSearchIndexSyncDeps } from "./search-index-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -32,6 +33,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const mcp = await processMcpHostedSync(payload, defaultMcpHostedSyncDeps());
   if (mcp.status !== "not_mcp_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "mcp", status: mcp.status });
+    return;
+  }
+
+  const search = await processSearchIndexSync(payload, defaultSearchIndexSyncDeps());
+  if (search.status !== "not_search_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "search", status: search.status });
     return;
   }
 
