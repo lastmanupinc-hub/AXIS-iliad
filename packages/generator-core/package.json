@@ -2,7 +2,7 @@
   "name": "@axis/generator-core",
   "version": "0.5.3",
   "type": "module",
-  "description": "142 generators across 20 programs - produces AGENTS.md, CLAUDE.md, .cursorrules, design tokens, Visa compliance artifacts, and more structured AI-agent files from any codebase",
+  "description": "143 generators across 20 programs - produces AGENTS.md, CLAUDE.md, .cursorrules, design tokens, Visa compliance artifacts, and more structured AI-agent files from any codebase",
   "keywords": ["codegen", "ai", "agents", "mcp", "llm", "agents-md", "cursorrules", "design-tokens", "compliance", "visa", "ap2", "artifact-generation"],
   "license": "MIT",
   "repository": {
