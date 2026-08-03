@@ -18,7 +18,7 @@ import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, 
 import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
 import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml, generateCapabilityMap } from "./generators-artifacts.js";
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
-import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
+import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard, generateArchitectureDiagram } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
 import { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, generateAp2InteropSamples } from "./generators-agentic-purchasing.js";
 import {
@@ -136,6 +136,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "social-pack.md": (ctx, _p, files) => generateSocialPack(ctx, files),
   "poster-layouts.md": (ctx, _p, files) => generatePosterLayouts(ctx, files),
   "asset-guidelines.md": (ctx, _p, files) => generateCanvasAssetGuidelines(ctx, files),
+  "architecture-diagram.d2": (ctx, profile, files) => generateArchitectureDiagram(ctx, profile, files),
   "generative-sketch.ts": (ctx, _p, files) => generateGenerativeSketch(ctx, files),
   "parameter-pack.json": (ctx, _p, files) => generateParameterPack(ctx, files),
   "collection-map.md": (ctx, _p, files) => generateCollectionMap(ctx, files),

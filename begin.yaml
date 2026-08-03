@@ -590,7 +590,7 @@ project_begin:
         roi_reason: "agent_acquisition 5, capability_gain 4, active_vertical_advancement 4, usability 4. First shippable product and the measurement instrument for the whole strategy."
         severity: MEDIUM
         source_file: "apps/api/src/handlers.ts"
-        completion_status: open
+        completion_status: superseded  # CANCELLED 2026-08-01 — "Atlas (search + canvas)" is a two-program merger, exactly what the owner already rejected for spoke_00-03 (2026-07-31: no mergers, each program grows into its own application). search and canvas each grow standalone (app_22, app_24).
 
       - id: "spoke_05_landing_page_generator"
         description: "Generate each spoke's <name>.trustfabric.ai landing page from the product registry using our OWN seo + marketing programs against that product's real artifact list. We should be the first customer of the programs we sell; a landing page we could not generate with our own tools is an argument against buying them. Nine pages by hand is nine drift surfaces."
@@ -714,7 +714,7 @@ project_begin:
         roi_reason: "capability_gain 4, usability 4."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-artifacts.ts"
-        completion_status: open
+        completion_status: open  # BLOCKED 2026-08-01: generateDashboardWidget's output is conditionally React (JSX, no bundled React/ReactDOM, no DOM mount point) whenever the target repo uses React — there's no framework-agnostic widget to esbuild-bundle today. Needs a real design decision on the artifacts generator's output shape (bundle+ship a React runtime vs. make the generator always emit vanilla-JS widgets) before "bundle + host + verify" is well-scoped, unlike the recent Watch-consumer candidates. Deferred, not attempted partially. OWNER NOTE 2026-08-01: when resumed, bundle/host the QUALITY widgets specifically (cross-reference the Package Quality Judge / quality-floors work, [[quality-judge]] memory) — not just any generated widget regardless of correctness.
 
       - id: "app_24_canvas_rendered_diagrams"
         description: "canvas → rendered, current diagrams: D2 external binary (MPL-2.0, single Go binary — chosen over Mermaid, which needs headless Chromium); real SVG/PNG committed into README by PR; redraw when architecture signals change. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #18."
@@ -722,7 +722,7 @@ project_begin:
         roi_reason: "usability 4 — the last mile is the whole product."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-canvas.ts"
-        completion_status: open
+        completion_status: complete  # SCOPED 2026-08-03: generateArchitectureDiagram (packages/generator-core/src/generators-canvas.ts) emits a real D2 diagram from actual cross-directory import edges (never fabricated) — registered in generate.ts/program-manifest.ts/index.ts, canvas generatorCount 5→6, artifact_count 142→143 (full count-honesty cascade fixed across config.ts/LAUNCH_CLAIMS.yaml/README/launch-content/board-pitch/marketing-pack/server.json/examples). apps/api/src/canvas-diagram-watcher.ts is the Watch->Apply consumer (5th branch in watch-dispatcher.ts's fallthrough chain): refetches the repo, excludes the diagram's own prior .d2/.svg output from its own regeneration input (same lesson as app_11), diffs against the committed .d2, shells out to a real D2 binary (https://d2lang.com, MPL-2.0) to render SVG, opens a PR with both files. D2 is installed into the real deploy image via a dedicated Dockerfile stage (official install.sh --prefix /usr/local, COPY --from= only the resulting binary into the slim runtime stage — verified end-to-end with real `docker build` + `docker run` as the non-root axis user, not assumed) and into CI (.github/workflows/reusable-test-suite.yml, so canvas-diagram-watcher.test.ts's real-binary tests run instead of skipping). 337 tests passing, tsc clean, lint clean, full workspace build unchanged CLI module count (77 modules — confirms these apps/api-only files never touch the CLI's zero-dependency bundle graph).
 
       - id: "app_25_superpowers_executable"
         description: "superpowers → executable automations: registry entries become dispatchable GitHub Actions jobs (octokit workflow_dispatch); each automation runs green in a worktree before registration. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #12."

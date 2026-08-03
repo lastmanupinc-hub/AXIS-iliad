@@ -30,7 +30,7 @@
     },
     "io.github.lastmanupinc-hub/axis-iliad": {
       "programs": 20,
-      "generators": 142,
+      "generators": 143,
       "tools": 37,
       "free_tools": [
         "list_programs",

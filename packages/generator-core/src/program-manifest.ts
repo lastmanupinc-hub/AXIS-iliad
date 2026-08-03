@@ -112,6 +112,7 @@ export const GENERATOR_PROGRAMS: Record<string, string> = {
   "social-pack.md": "canvas",
   "poster-layouts.md": "canvas",
   "asset-guidelines.md": "canvas",
+  "architecture-diagram.d2": "canvas",
   "brand-board.md": "canvas",
   "generative-sketch.ts": "algorithmic",
   "parameter-pack.json": "algorithmic",

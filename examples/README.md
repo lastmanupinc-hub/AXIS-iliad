@@ -1,6 +1,6 @@
 # Axis' Iliad — Example Repos
 
-> 5 real codebases analyzed by Axis' Iliad. Each example shows the **3 free-tier artifacts** (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates **142 artifacts across 20 programs** — upgrade to Pro to unlock all of them.
+> 5 real codebases analyzed by Axis' Iliad. Each example shows the **3 free-tier artifacts** (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates **143 artifacts across 20 programs** — upgrade to Pro to unlock all of them.
 
 ## The Examples
 
@@ -20,9 +20,9 @@ Each example includes the **free-tier Search program** output:
 - **CLAUDE.md** — 10-point condensed cheat sheet for fast onboarding
 - **.cursorrules** — Domain-specific coding conventions and constraints
 
-> **Want the full 142 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, release/packaging automation, deploy configs, and 100+ more files. [Try it →](https://iliad.trustfabric.ai)
+> **Want the full 143 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, release/packaging automation, deploy configs, and 100+ more files. [Try it →](https://iliad.trustfabric.ai)
 
-## Full AXIS Output (142 artifacts across 20 programs)
+## Full AXIS Output (143 artifacts across 20 programs)
 
 ### Free Programs (3) — included in these examples
 - **Search** — architecture-summary.md, context-map.json, dependency-hotspots.md, repo-profile.yaml, repo-run-stats.json, symbol-index.json

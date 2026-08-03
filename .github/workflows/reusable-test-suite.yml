@@ -78,6 +78,12 @@ jobs:
         # scoping below actually narrows.
         run: pnpm -r build
 
+      - name: Install D2 (architecture diagram renderer)
+        # canvas-diagram-watcher.test.ts's real-binary tests skip themselves
+        # (it.skipIf(!d2Available)) when d2 isn't on PATH — install it here so
+        # CI actually exercises the real renderer instead of silently skipping.
+        run: curl -fsSL https://d2lang.com/install.sh | sudo sh -s -- --prefix /usr/local
+
       - name: Run tests (${{ inputs.full && 'full + coverage' || 'affected-only' }})
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/axis_test

@@ -184,7 +184,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Visual architecture canvas, planning board & dev workflow maps",
     keywords: ["developer planning canvas", "visual architecture canvas", "AI canvas for engineers", "codebase visual map", "architecture diagram generator"],
-    outputs: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
+    outputs: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "architecture-diagram.d2", "brand-board.md"],
     cta: "Generate your canvas",
   },
   {

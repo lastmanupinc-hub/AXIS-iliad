@@ -15,6 +15,7 @@ import { processSkillsRefresh, defaultSkillsRefreshDeps } from "./skills-refresh
 import { processThemeTokenSync, defaultThemeTokenSyncDeps } from "./theme-token-sync-watcher.js";
 import { processMcpHostedSync, defaultMcpHostedSyncDeps } from "./mcp-hosted.js";
 import { processSearchIndexSync, defaultSearchIndexSyncDeps } from "./search-index-watcher.js";
+import { processCanvasDiagramSync, defaultCanvasDiagramSyncDeps } from "./canvas-diagram-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -39,6 +40,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const search = await processSearchIndexSync(payload, defaultSearchIndexSyncDeps());
   if (search.status !== "not_search_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "search", status: search.status });
+    return;
+  }
+
+  const canvas = await processCanvasDiagramSync(payload, defaultCanvasDiagramSyncDeps());
+  if (canvas.status !== "not_canvas_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "canvas", status: canvas.status });
     return;
   }
 

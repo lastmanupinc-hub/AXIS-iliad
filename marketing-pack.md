@@ -6,7 +6,7 @@
 **Category**: AI Development Intelligence Platform
 **Tagline**: The operating system for AI-native development
 **Owner**: Last Man Up Inc.
-**Model**: Freemium SaaS — Free tier (3 programs, 16 generators) → Paid tiers (20 programs, 142 generators; Starter $29 / Pro $99 / Growth $299 per month)
+**Model**: Freemium SaaS — Free tier (3 programs, 16 generators) → Paid tiers (20 programs, 143 generators; Starter $29 / Pro $99 / Growth $299 per month)
 
 ---
 
@@ -18,7 +18,7 @@
 |----------|---------|------------|---------------|
 | AI Code Assistants | GitHub Copilot, Cursor, Cody, Tabnine | $2B+ (2024) | **Upstream enabler** — AXIS feeds context to these tools |
 | Static Analysis | SonarQube, ESLint, Semgrep, CodeClimate | $800M | **Different axis** — AXIS analyzes architecture, not lint rules |
-| Code Intelligence | Sourcegraph, Codeium, Codacy | $500M | **Deeper output** — 142 artifacts vs. search results |
+| Code Intelligence | Sourcegraph, Codeium, Codacy | $500M | **Deeper output** — 143 artifacts vs. search results |
 | DevOps Intelligence | LinearB, Sleuth, Faros AI | $300M | **Repo-level** — AXIS operates at code level, not workflow |
 | Documentation | Mintlify, ReadMe, GitBook | $200M | **Broader scope** — docs are 1 of 20 program outputs |
 | AI Dev Tools (new) | Devin, SWE-Agent, OpenHands | $1B+ (projected) | **Infrastructure layer** — AXIS provides the context these agents need |
@@ -27,7 +27,7 @@
 
 | Advantage | Evidence | Defensibility |
 |-----------|---------|---------------|
-| 142 generators across 20 programs | apps/api/src/counts.ts canonical counts | High — breadth creates switching cost |
+| 143 generators across 20 programs | apps/api/src/counts.ts canonical counts | High — breadth creates switching cost |
 | Self-governing YAML constitution | docs/agentic-asset/ governance corpus | Very High — novel architecture |
 | Zero runtime HTTP dependencies | Custom router, verified in package.json | Medium — engineering discipline |
 | 91.5% test coverage (4,900+ tests) | vitest --coverage output | High — quality compounds |
@@ -37,7 +37,7 @@
 
 | Feature | Axis' Iliad | Sourcegraph | SonarQube | Devin |
 |---------|-------------|-------------|-----------|-------|
-| Repo analysis | ✅ 142 artifacts | ✅ Search + navigation | ✅ Quality gates | ✅ Task completion |
+| Repo analysis | ✅ 143 artifacts | ✅ Search + navigation | ✅ Quality gates | ✅ Task completion |
 | Agent instructions gen | ✅ AGENTS.md, CLAUDE.md | ❌ | ❌ | ❌ |
 | Design tokens gen | ✅ Theme program | ❌ | ❌ | ❌ |
 | Brand guidelines gen | ✅ Brand program | ❌ | ❌ | ❌ |
@@ -86,7 +86,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | # | Title | Format | Channel | Goal |
 |---|-------|--------|---------|------|
 | 1 | "Why Your AI Coding Assistant Needs Better Context" | Blog post (2,000 words) | Blog, HN, Dev.to | Problem awareness |
-| 2 | "142 Artifacts From One Upload: How Axis' Iliad Works" | Technical deep-dive | Blog, YouTube | Product understanding |
+| 2 | "143 Artifacts From One Upload: How Axis' Iliad Works" | Technical deep-dive | Blog, YouTube | Product understanding |
 | 3 | "The YAML Constitution: How We Built a Self-Governing AI System" | Architecture blog | Blog, HN | Technical credibility |
 | 4 | "From 0 to 91.5% Coverage: Testing a 20-Program Generator" | Engineering blog | Blog, Dev.to | Developer respect |
 | 5 | "Zero Dependencies: Why We Built Our Own HTTP Router" | Opinion piece | Blog, HN, Reddit | Philosophy alignment |
@@ -123,14 +123,14 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | 0 | Your first snapshot is ready | Welcome + link to generated artifacts. Highlight AGENTS.md. |
 | 2 | 3 files that make Copilot 10x better | Tutorial: using AGENTS.md, CLAUDE.md, .cursorrules with their existing tools |
 | 5 | Your debug playbook is waiting | Show debug-playbook.md value. "Found a bug faster? Tell us." |
-| 10 | What the full 142-generator catalog looks like | Preview of paid-tier outputs: Theme, Brand, Marketing. Show examples. |
+| 10 | What the full 143-generator catalog looks like | Preview of paid-tier outputs: Theme, Brand, Marketing. Show examples. |
 | 15 | "We analyzed 500 repos this month" | Social proof + conversion CTA |
 
 ### Sequence 2: Pro Trial / Conversion
 
 | Day | Subject | Content |
 |-----|---------|---------|
-| 0 | You just unlocked the full catalog | Welcome to Pro. Guide to all 20 programs and 142 generators. |
+| 0 | You just unlocked the full catalog | Welcome to Pro. Guide to all 20 programs and 143 generators. |
 | 3 | Your brand guidelines are generated | Highlight Brand program output. "Share with your designer." |
 | 7 | Ship a video about your project | Remotion storyboard walkthrough |
 | 14 | Your optimization rules are saving tokens | Cost savings report from Optimization program |
@@ -149,7 +149,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 ## Landing Page Copy
 
 ### Hero Section
-**Headline**: 142 generators. 20 programs. One upload.
+**Headline**: 143 generators. 20 programs. One upload.
 **Subhead**: Axis' Iliad analyzes your codebase and generates structured intelligence — from agent instructions to brand guidelines to video storyboards.
 **CTA**: Analyze your repo free →
 
@@ -158,7 +158,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | Column | Headline | Body |
 |--------|----------|------|
 | 1 | Make AI tools smarter | Generate AGENTS.md, CLAUDE.md, and .cursorrules that give your AI assistant real context about your codebase. |
-| 2 | 142 artifacts, zero effort | From architecture diagrams to marketing copy to design tokens — all generated from a single snapshot of your repo. |
+| 2 | 143 artifacts, zero effort | From architecture diagrams to marketing copy to design tokens — all generated from a single snapshot of your repo. |
 | 3 | Self-auditing quality | 4,900+ tests. 91.5% coverage. A system that checks its own work. |
 
 ### Social Proof Section
@@ -173,7 +173,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | | Free | Starter | Pro | Growth |
 |-|------|---------|-----|--------|
 | Programs | Search, Debug, Skills | All 20 programs | All 20 programs | All 20 programs |
-| Generators | 16 | 142 | 142 | 142 |
+| Generators | 16 | 143 | 143 | 143 |
 | Monthly credits | 10,000 | 75,000 | 300,000 | 1,200,000 |
 | Outputs | AGENTS.md, debug playbook, context map | + Theme, Brand, Marketing, MCP, Obsidian, Remotion... | (same, full catalog) | (same, full catalog) |
 | Snapshots | 5/month | Unlimited | Unlimited | Unlimited |
