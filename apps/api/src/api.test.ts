@@ -381,7 +381,11 @@ describe("API integration", () => {
     expect(data.program).toBe("canvas");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "canvas")).toBe(true);
-    expect(files.length).toBe(5);
+    // 6 since architecture-diagram.d2 was added to PROGRAM_OUTPUTS. app_24 added
+    // the generator but not the endpoint entry, so this endpoint served 5 while a
+    // 6th existed and no customer could reach it — see
+    // endpoint-outputs-coverage.test.ts, which now makes that impossible.
+    expect(files.length).toBe(6);
   });
 
   it("POST /v1/algorithmic/generate returns algorithmic files", async () => {
