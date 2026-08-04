@@ -64,7 +64,6 @@ const UNGUARDED: Array<{ path: string; reason: string }> = [
   { path: "AGENTS.md", reason: "AXIS-generated artifact, same as CLAUDE.md" },
   { path: "LAUNCH_CLAIMS.yaml", reason: "IS the claims registry — launch-claims.test.ts pins its values to counts.ts directly" },
   { path: "capability_inventory.yaml", reason: "carries pricing-tier and per-program PARTIAL counts, not global totals — strategic-docs-honesty.test.ts documents it as hand-corrected by design" },
-  { path: ".tmp-vitest.json", reason: "transient vitest reporter output, not a committed surface" },
   // OWNER DECISION NEEDED (2026-08-04). Both are hand-maintained customer-facing
   // packs and belong in launch-claims' corpus alongside canvas/remotion-pack.
   // Their COUNTS were stale and are now fixed, and obsidian-vault-pack's stale
@@ -118,7 +117,12 @@ const GUARDED_PREFIXES = [
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
-    if (SKIP_DIRS.has(entry) || isGeneratedOutputDir(entry)) continue;
+    // `.tmp*` is untracked local scratch (e.g. .tmp-vitest.json, a reporter
+    // dump). Skipped rather than exempted: an UNGUARDED entry asserts the file
+    // EXISTS, and CI proved that wrong — the entry passed locally and failed on
+    // a clean checkout where the scratch file was never created. An exemption
+    // list may only name committed files.
+    if (SKIP_DIRS.has(entry) || isGeneratedOutputDir(entry) || entry.startsWith(".tmp")) continue;
     const abs = join(dir, entry);
     let st;
     try {
