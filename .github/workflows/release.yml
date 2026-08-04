@@ -51,10 +51,18 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}:latest
+      # Was `test -f` on both files — that confirmed they EXIST, never that they
+      # were true, so a bundle asserting integrity over bytes that no longer
+      # match shipped with every Release unchallenged. This recomputes the leaf
+      # digests and the merkle root and fails the release rather than publishing
+      # a false integrity claim.
+      #
+      # EXPECT THIS TO FAIL on the next release until the owner picks a remedy
+      # (docs/OPEN_WORK_STRATEGY.md §A1). That is intended: the bundle currently
+      # does not verify, and a loud failure at ship time is strictly better than
+      # continuing to attach it silently.
       - name: Verify attestation bundle
-        run: |
-          test -f packaging/trust-fabric/attestation.json
-          test -f packaging/trust-fabric/merkle-proof.json
+        run: node scripts/verify-attestation.mjs
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

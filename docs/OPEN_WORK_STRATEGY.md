@@ -36,27 +36,47 @@ checking the attestation is being told these bytes were verified; they were not.
 remaining Tier 0 rows this is the only one where inaction is itself the harm — 0.1 (alerting)
 is an owner-accepted risk and 0.5 (sandbox) is a hosting decision.
 
-**Strategy — build the guard first, regardless of which remedy is chosen.** The remedy is an
-owner decision (regenerate at ship time vs. mark `SAMPLE`), but *both* remedies make the same
-test pass, so the test is not blocked on the decision:
+> **CORRECTED 2026-08-04 — this section's original premise was wrong, and the real problem is
+> worse than `ROI_CANDIDATES.md` 0.3 describes.** Building the verifier disproved the plan
+> written above it. Recorded rather than quietly rewritten, because the wrong version is the
+> one a reader would otherwise repeat.
+>
+> **Measured:** 5 of 9 attested leaves do not match the repo's shipped files — `Dockerfile`,
+> `docker-compose.yml`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `Makefile`
+> — and a 6th, `packaging/manifests/npm-package.json`, **is attested but does not exist**
+> (deleted; `cli-docs-parity.test.ts` requires it stay deleted). Only 4 leaves match, and only
+> because the closer's generated output for those paths happens to be committed verbatim.
+>
+> **Cause is structural, not staleness.** The leaves come from generator-core's
+> `closerAttestedArtifacts`, which hashes **what the closer program generates for a project**,
+> not what this repository ships — while the leaf paths read like repo paths and the bundle is
+> attached to every Release as an integrity claim.
+>
+> **Therefore "make `make attest` regenerate at ship time" is NOT a remedy.** It would attest
+> freshly-generated content under repo-looking paths — the same false shape, newly dated.
+>
+> Two remedies actually resolve it. **(a) Re-point the attestation at the repo's real files** —
+> makes it a genuine supply-chain artifact, but requires deciding the attested set deliberately,
+> since the current one includes a deleted file and excludes everything that actually ships to
+> users. **(b) Stop publishing it** — mark the files `SAMPLE`, drop them from the Release, and
+> delete the verification step. Honest, and cheap.
 
-1. Write a test asserting the committed attestation is internally honest — `generated_at` is
-   not the epoch, and the merkle root equals a freshly computed root over the files it claims
-   to cover. **It will fail immediately.** That is the point: it converts a dormant liability
-   into a red build that cannot be ignored.
-2. Then apply whichever remedy the owner picks. `make attest` regenerating during `make ship`
-   is the better end state — `release.yml` already runs `make ship`, so the wiring is small,
-   and it turns the liability into a real feature.
-3. If the owner prefers `SAMPLE`: rename the files, strip the verification step from
-   `release.yml`, and stop attaching them. The guard then asserts no attestation is published
-   at all.
+**Done, and not gated on the remedy:** `scripts/verify-attestation.mjs` recomputes leaf
+digests, rebuilds the merkle root, and checks the signature and timestamp;
+`release.yml` now runs it instead of `test -f`. The next release **will fail loudly** rather
+than publish a bundle that does not verify. That is correct under either remedy and required
+under both.
 
-**Trap:** do not "fix" this by regenerating the file by hand and committing a fresh timestamp.
-That produces a file that is honest for exactly one commit and silently false again on the
-next — the same failure mode as `test_file_count`, which sat `verified` and wrong for a month.
-The value has to be derived at ship time or not published.
+**Trap (still true):** do not "fix" this by regenerating the file by hand and committing a
+fresh timestamp. That produces a file honest for exactly one commit and silently false again
+on the next — the same failure mode as `test_file_count`, which sat `verified` and wrong for
+a month.
 
-**Gate:** owner picks the remedy. The guard needs no gate.
+**Deliberately NOT added to the main CI suite.** A permanently-red `main` would block every
+deploy to force a decision that belongs to the owner. `release.yml` runs on tag push, so the
+failure lands at ship time — the moment the claim would actually be published.
+
+**Gate:** owner picks (a) or (b).
 
 ### A2 · Two packs still assert an unverifiable self-audit
 
