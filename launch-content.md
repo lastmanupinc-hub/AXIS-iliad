@@ -32,7 +32,7 @@ Built for AI-native development - the operating system AI assistants need.
 
 **Tweet 1/3:** 🎉 Axis' Iliad is now PUBLIC!
 
-After 125+ sessions building, I made public the AI development OS that generates 143 artifacts from any codebase.
+After 125+ sessions building, I made public the AI development OS that generates 144 artifacts from any codebase.
 
 From context maps to brand systems, debug playbooks to SEO audits - it creates everything AI assistants need.
 
@@ -96,7 +96,7 @@ Check it out: https://github.com/lastmanupinc-hub/axis-iliad
 **Cursor Discord:**
 "Hey @everyone - Axis' Iliad, the AI development OS that Cursor has been missing, is now public!
 
-It analyzes repos and generates 143 artifacts that would take days to create manually. Perfect companion for Cursor's AI coding.
+It analyzes repos and generates 144 artifacts that would take days to create manually. Perfect companion for Cursor's AI coding.
 
 Already has MCP integration - works seamlessly with Cursor.
 
@@ -115,7 +115,7 @@ What would you generate for your project?"
 
 ## Hacker News Submission
 
-**Title:** Show HN: Axis' Iliad - AI that generates 143 artifacts from any codebase
+**Title:** Show HN: Axis' Iliad - AI that generates 144 artifacts from any codebase
 
 **Text:**
 I've been building Axis' Iliad for the past 6+ months - an AI-native development operating system that analyzes codebases and generates comprehensive artifacts automatically.

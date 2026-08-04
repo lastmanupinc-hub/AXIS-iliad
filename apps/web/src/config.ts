@@ -58,7 +58,7 @@ export const FREE_PROGRAM_NAMES = ["search", "skills", "debug"] as const;
 export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
 
 /** Generated artifacts per full run (= TOTAL_GENERATORS). */
-export const ARTIFACT_COUNT = 143;
+export const ARTIFACT_COUNT = 144;
 
 /**
  * Artifacts produced by the FREE_PROGRAM_NAMES programs alone (search+skills+debug) —

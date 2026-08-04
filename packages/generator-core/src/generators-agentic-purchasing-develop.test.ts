@@ -71,9 +71,9 @@ describe("DEVELOP: commerce-registry catalog derives every output count", () => 
     expect(proAll.programs).toHaveLength(TOTAL_PROGRAMS);
     expect(proAll.outputs).toBe(TOTAL_GENERATORS);
   });
-  it("bundle counts are the corrected values (free 16, dev 32, brand 21)", () => {
+  it("bundle counts are the corrected values (free 16, dev 32, brand 22)", () => {
     expect(byId("free-bundle").outputs).toBe(16);
     expect(byId("dev-essentials").outputs).toBe(32);
-    expect(byId("brand-marketing").outputs).toBe(21); // canvas gained architecture-diagram.d2 (app_24)
+    expect(byId("brand-marketing").outputs).toBe(22); // canvas gained architecture-diagram.d2 (app_24); seo gained seo-head-tags.html (app_30)
   });
 });

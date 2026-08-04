@@ -74,7 +74,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Technical SEO rules, schema.org markup & sitemap strategy",
     keywords: ["technical SEO generator", "schema.org markup generator", "ContactPage schema", "SEO rules for Next.js", "structured data generator", "sitemap strategy"],
-    outputs: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json"],
+    outputs: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
     cta: "Generate SEO rules",
   },
   {

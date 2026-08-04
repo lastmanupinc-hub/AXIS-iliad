@@ -5,6 +5,7 @@ const processThemeTokenSync = vi.fn();
 const processMcpHostedSync = vi.fn();
 const processSearchIndexSync = vi.fn();
 const processCanvasDiagramSync = vi.fn();
+const processSeoApply = vi.fn();
 
 vi.mock("./skills-refresh-watcher.js", () => ({
   processSkillsRefresh: (...args: unknown[]) => processSkillsRefresh(...args),
@@ -25,6 +26,10 @@ vi.mock("./search-index-watcher.js", () => ({
 vi.mock("./canvas-diagram-watcher.js", () => ({
   processCanvasDiagramSync: (...args: unknown[]) => processCanvasDiagramSync(...args),
   defaultCanvasDiagramSyncDeps: () => "canvas-deps",
+}));
+vi.mock("./seo-apply-watcher.js", () => ({
+  processSeoApply: (...args: unknown[]) => processSeoApply(...args),
+  defaultSeoApplyDeps: () => "seo-deps",
 }));
 vi.mock("@axis/snapshots", () => ({
   registerWatchWorker: vi.fn(async (handler: unknown) => {
@@ -100,6 +105,19 @@ describe("watch-dispatcher", () => {
     const dispatch = await loadDispatchWatchJob();
     await dispatch({ ...payload, product_id: "canvas" });
     expect(processCanvasDiagramSync).toHaveBeenCalledWith({ ...payload, product_id: "canvas" }, "canvas-deps");
+    expect(processSeoApply).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the seo processor when every earlier handler declines the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
+    processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
+    processSeoApply.mockResolvedValue({ status: "pr_opened" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "seo" });
+    expect(processSeoApply).toHaveBeenCalledWith({ ...payload, product_id: "seo" }, "seo-deps");
   });
 
   it("does not throw when no processor claims the product_id (an unhandled product is a log line, not a crash)", async () => {
@@ -108,6 +126,7 @@ describe("watch-dispatcher", () => {
     processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
     processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
     processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
+    processSeoApply.mockResolvedValue({ status: "not_seo_product" });
     const dispatch = await loadDispatchWatchJob();
     await expect(dispatch({ ...payload, product_id: "some-future-product" })).resolves.toBeUndefined();
   });

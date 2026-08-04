@@ -985,3 +985,115 @@ export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): Gen
     description: "Per-route meta tag audit with OG, Twitter card, and structured data recommendations",
   };
 }
+
+// ─── seo-head-tags.html (app_30_seo_applies) ────────────────────
+//
+// The rest of this program RECOMMENDS ("add a Product schema with these
+// fields"). This emits the actual, injectable markup — meta tags and JSON-LD
+// ready to paste into a <head> — because the candidate's acceptance bar is
+// "recommendations land as merged tags, not a report".
+//
+// HONESTY RULE, and the reason this generator is short: every value is a REAL
+// fact already derived from the repo (name, description, summary, repo_url,
+// detected frameworks). Nothing is invented. SEO copy is exactly the place a
+// generator would be tempted to fabricate a tagline, and a fabricated
+// description shipped into a user's <head> is a lie published under their
+// domain. Where a fact is missing the tag is OMITTED, never filled with a
+// plausible-sounding placeholder.
+//
+// No ctx.generated_at anywhere: this file is diffed by the Watch consumer
+// (apps/api/src/seo-apply-watcher.ts) to decide whether anything changed, and a
+// fresh timestamp would make every push look like a change. Same lesson as
+// architecture-diagram.d2.
+
+/** Escape for an HTML attribute value. */
+function attr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Collapse to a single line and clamp — meta descriptions are truncated by search engines around 160 chars. */
+function metaText(value: string, max = 160): string {
+  const flat = value.replace(/\s+/g, " ").trim();
+  return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
+ * The one description this project can honestly advertise: its own manifest
+ * description if it has one, else the analyzer's summary. Null when neither
+ * exists — callers omit the tag rather than invent copy.
+ */
+function honestDescription(ctx: ContextMap): string | null {
+  const explicit = ctx.project_identity.description?.trim();
+  if (explicit) return metaText(explicit);
+  const summary = ctx.ai_context.project_summary?.trim();
+  if (summary) return metaText(summary);
+  return null;
+}
+
+/** schema.org type from what the repo actually is — a library is not a SoftwareApplication. */
+function schemaTypeFor(ctx: ContextMap): "SoftwareApplication" | "WebSite" {
+  const t = ctx.project_identity.type.toLowerCase();
+  return t.includes("saas") || t.includes("web_app") || t.includes("application")
+    ? "SoftwareApplication"
+    : "WebSite";
+}
+
+export function generateSeoHeadTags(ctx: ContextMap, _files?: SourceFile[]): GeneratedFile {
+  const id = ctx.project_identity;
+  const description = honestDescription(ctx);
+  const url = id.repo_url?.trim() || null;
+  const schemaType = schemaTypeFor(ctx);
+
+  const lines: string[] = [];
+  lines.push(`<!-- AXIS SEO: generated from this repository's real metadata. -->`);
+  lines.push(`<!-- Every value below is derived from the repo; missing facts are omitted, not invented. -->`);
+  lines.push(`<title>${attr(id.name)}</title>`);
+  if (description) {
+    lines.push(`<meta name="description" content="${attr(description)}" />`);
+  }
+
+  // Open Graph
+  lines.push(`<meta property="og:title" content="${attr(id.name)}" />`);
+  if (description) lines.push(`<meta property="og:description" content="${attr(description)}" />`);
+  lines.push(`<meta property="og:type" content="website" />`);
+  if (url) lines.push(`<meta property="og:url" content="${attr(url)}" />`);
+
+  // Twitter. summary_large_image would advertise an image this generator has no
+  // honest way to know exists, so the plain summary card is the correct default.
+  lines.push(`<meta name="twitter:card" content="summary" />`);
+  lines.push(`<meta name="twitter:title" content="${attr(id.name)}" />`);
+  if (description) lines.push(`<meta name="twitter:description" content="${attr(description)}" />`);
+
+  // JSON-LD. Built as an object and JSON.stringify'd so every value is escaped
+  // by construction (the same containment the other JSON generators rely on).
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": schemaType,
+    name: id.name,
+  };
+  if (description) jsonLd.description = description;
+  if (url) jsonLd.url = url;
+  if (schemaType === "SoftwareApplication") {
+    jsonLd.applicationCategory = "DeveloperApplication";
+    const langs = ctx.detection.languages.map((l) => l.name).filter(Boolean);
+    if (langs.length > 0) jsonLd.programmingLanguage = langs.slice(0, 5);
+  }
+
+  lines.push("");
+  lines.push(`<script type="application/ld+json">`);
+  lines.push(JSON.stringify(jsonLd, null, 2));
+  lines.push(`</script>`);
+
+  return {
+    path: "seo-head-tags.html",
+    content: `${lines.join("\n")}\n`,
+    content_type: "text/html",
+    program: "seo",
+    description:
+      "Injectable <head> markup — meta tags and JSON-LD built from this repo's real metadata, ready to merge (see also seo-rules.md for the reasoning behind them).",
+  };
+}

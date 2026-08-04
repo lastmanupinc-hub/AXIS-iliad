@@ -230,7 +230,7 @@ export async function assertProjectAccess(req: IncomingMessage, res: ServerRespo
 export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug:        ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
   frontend:     ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
-  seo:          ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json"],
+  seo:          ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
   optimization: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
   theme:        ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
   brand:        ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
@@ -1573,6 +1573,7 @@ const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string 
   "route-priority-map.md":    { placement: ".ai/", adoption_hint: "Use for sitemap generation and crawl budget allocation. Reference in your deployment pipeline." },
   "content-audit.md":         { placement: ".ai/", adoption_hint: "Review with your content team. Identifies thin content, duplicate metadata, and coverage gaps." },
   "meta-tag-audit.json":      { placement: ".ai/", adoption_hint: "Feed to your SEO tooling. Per-route meta tag analysis in machine-readable format." },
+  "seo-head-tags.html":       { placement: "root", adoption_hint: "Paste into your <head>, or let the seo watch mechanic open a PR that injects it for you." },
   "optimization-rules.md":    { placement: ".ai/", adoption_hint: "Reference in code review. Locks in performance and cost optimization patterns for AI-assisted work." },
   "prompt-diff-report.md":    { placement: ".ai/", adoption_hint: "Use before/after AI-assisted sessions to measure prompt quality drift and output consistency." },
   "cost-estimate.json":       { placement: ".ai/", adoption_hint: "Import into your billing dashboard or cost tracking pipeline. Per-operation token cost model." },

@@ -55,7 +55,7 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
   skills: ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"],
   debug: ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
   frontend: ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
-  seo: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json"],
+  seo: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
   optimization: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
   theme: ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
   brand: ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
@@ -255,9 +255,9 @@ describe("verify-gate generators", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 143 registered generators", () => {
+  it("returns all 144 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(143); // +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1); +1: architecture-diagram.d2 (app_24)
+    expect(generators.length).toBe(144); // +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1); +1: architecture-diagram.d2 (app_24); +1: seo-head-tags.html (app_30)
   });
 
   it("returns objects with path and program fields", () => {

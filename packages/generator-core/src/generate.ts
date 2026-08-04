@@ -6,7 +6,7 @@ import { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSu
 import { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack, generateModelCascade } from "./generators-skills.js";
 import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
 import { generateFrontendRules, generateComponentGuidelines, generateLayoutPatterns, generateUiAudit } from "./generators-frontend.js";
-import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit, generateMetaTagAudit } from "./generators-seo.js";
+import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit, generateMetaTagAudit, generateSeoHeadTags } from "./generators-seo.js";
 import { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate, generateTokenBudgetPlan } from "./generators-optimization.js";
 import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap, generateDarkModeTokens } from "./generators-theme.js";
 import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
@@ -152,6 +152,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "layout-patterns.md": (ctx, _p, files) => generateLayoutPatterns(ctx, files),
   "ui-audit.md": (ctx, _p, files) => generateUiAudit(ctx, files),
   "meta-tag-audit.json": (ctx, _p, files) => generateMetaTagAudit(ctx, files),
+  "seo-head-tags.html": (ctx, _p, files) => generateSeoHeadTags(ctx, files),
   "token-budget-plan.md": (ctx, profile, files) => generateTokenBudgetPlan(ctx, profile, files),
   "dark-mode-tokens.json": (ctx, _p, files) => generateDarkModeTokens(ctx, files),
   "channel-rulebook.md": (ctx, _p, files) => generateChannelRulebook(ctx, files),

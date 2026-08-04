@@ -36,6 +36,7 @@ export const GENERATOR_PROGRAMS: Record<string, string> = {
   "route-priority-map.md": "seo",
   "content-audit.md": "seo",
   "meta-tag-audit.json": "seo",
+  "seo-head-tags.html": "seo",
   "optimization-rules.md": "optimization",
   "prompt-diff-report.md": "optimization",
   "cost-estimate.json": "optimization",

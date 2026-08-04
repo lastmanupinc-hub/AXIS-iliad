@@ -35,7 +35,7 @@ import {
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
  * drift fails CI.
  */
-const ARTIFACT_COUNT = 143; // +3 verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1 ap2-interop-samples.json (WO-07); +1 model-cascade.md (H7.1); +1 architecture-diagram.d2 (app_24)
+const ARTIFACT_COUNT = 144; // +3 verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1 ap2-interop-samples.json (WO-07); +1 model-cascade.md (H7.1); +1 architecture-diagram.d2 (app_24); +1 seo-head-tags.html (app_30)
 const PROGRAM_COUNT = 20;
 
 /**
