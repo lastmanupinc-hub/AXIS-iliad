@@ -31,7 +31,7 @@
 │  │  #e6edf3  ██ │  │  base █     │  │  Signal      │  │  [Su][Re][Ca]      │  │
 │  │  #58a6ff  ██ │  │  sm   ▪     │  │              │  │  [Al][P]            │  │
 │  │  #d29922  ██ │  │  xs   ·     │  │  Green  ●    │  │                     │  │
-│  │  #3fb950  ██ │  │              │  │  Pass        │  │  83/83 Grade A      │  │
+│  │  #3fb950  ██ │  │              │  │  Pass        │  │                     │  │
 │  │  #f85149  ██ │  │  JetBrains  │  │              │  │                     │  │
 │  │              │  │  Mono (code) │  │  Red    ●    │  │                     │  │
 │  │              │  │              │  │  Fail        │  │                     │  │
@@ -176,7 +176,7 @@ Show a mini example: two buttons (one cyan hover state, one green confirmed stat
 [ Super  ] [Remotion] [ Canvas ]
 [ Algo   ] [Payment*]               * Grade F, red border
 ```
-Corner badge on each: generator count. Bottom label: "83/83 Grade A"
+Corner badge on each: generator count.
 
 ### Pipeline Flow (Cols 1-6, Row 3)
 Horizontal flow: 5 connected nodes with arrows:

@@ -144,11 +144,10 @@ AXIS-Iliad-Vault/
 ## Aggregate
 | Stat | Value |
 |------|-------|
-| Total programs | 17 |
-| Total generators | 80 |
-| Free generators | 13 |
-| Pro generators | 67 |
-| Grade A | 81/82 |
+| Total programs | 20 |
+| Total generators | 144 |
+| Free generators | 16 |
+| Pro generators | 128 |
 ```
 
 ### Governance MOC

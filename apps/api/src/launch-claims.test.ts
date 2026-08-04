@@ -96,15 +96,14 @@ function corpus(): Array<{ name: string; text: string }> {
     // respect — hand-maintained, repo-root, customer-facing — and outside the
     // corpus only because nothing had forced the question.
     //
-    // obsidian-vault-pack.md and superpowers-pack.md are NOT here yet, on
-    // purpose: their counts are now correct, but both still assert "81/82 at
-    // Grade A" — the unverifiable capability-inventory self-audit SPEC-12
-    // already stripped from this corpus. Removing it from them is a content
-    // call for the owner, not something a test refactor should do silently, so
-    // they are exempted in count-surface-coverage.test.ts with that reason
-    // recorded rather than quietly rewritten here.
+    // obsidian-vault-pack.md and superpowers-pack.md joined 2026-08-04, once
+    // their "81/82 at Grade A" assertions were removed — the unverifiable
+    // capability-inventory self-audit SPEC-12 had already stripped from this
+    // corpus, applied consistently to the two files it missed.
     "canvas-pack.md",
+    "obsidian-vault-pack.md",
     "remotion-pack.md",
+    "superpowers-pack.md",
   ];
   return files.map((name) => ({ name, text: readFileSync(join(ROOT, name), "utf8") }));
 }
@@ -323,10 +322,33 @@ describe("launch corpus vs the registry (SPEC-12)", () => {
     // can't be verified against runtime — SPEC-12 removed them. This guards the
     // class the numbers-only gate (generatorClaims etc.) structurally can't see,
     // so a reworded "capabilities at Grade A" can't creep back into launch copy.
-    const CAPABILITY_GRADE = /capabilit(?:y|ies)\b[^.\n]{0,40}\bgrade\s*a\b/gi;
+    // Retargeted 2026-08-04. The old pattern — capabilit* within 40 chars of
+    // "grade a" — was measurably backwards: across the two packs it matched
+    // three innocuous strings (a section heading "Capabilities Below Grade A",
+    // an Obsidian template field "Capabilities: N/82 Grade A" whose N is a
+    // literal placeholder, and process prose "capability can be promoted from
+    // Grade B to Grade A") while missing BOTH real violations, because
+    // "Grade A | 81/82" and "81/82 at Grade A" phrase the number outside that
+    // window and don't need the word "capabilities" adjacent at all.
+    //
+    // What makes a claim unverifiable is the NUMBER asserted against the grade,
+    // not the vocabulary around it. So: a ratio next to "Grade A" in either
+    // order, or a counted "N capabilities ... Grade A". A heading with no number
+    // asserts nothing, and "N/82" is not a ratio.
+    const CAPABILITY_GRADE_PATTERNS = [
+      /\d+\s*\/\s*\d+[^.\n]{0,30}\bgrade\s*a\b/gi, // "81/82 at Grade A"
+      /\bgrade\s*a\b[^.\n]{0,30}\d+\s*\/\s*\d+/gi, // "| Grade A | 81/82 |"
+      /\b\d+\s+capabilit(?:y|ies)\b[^.\n]{0,40}\bgrade\s*a\b/gi, // "all 82 capabilities at Grade A"
+    ];
     const bad: string[] = [];
     for (const { name, text } of corpus()) {
-      for (const m of visible(text).matchAll(CAPABILITY_GRADE)) bad.push(`${name}: "${m[0].trim()}"`);
+      // Deduped: the ratio patterns overlap by design (either word order), so a
+      // single claim would otherwise be reported twice and read like two.
+      const hits = new Set<string>();
+      for (const pattern of CAPABILITY_GRADE_PATTERNS) {
+        for (const m of visible(text).matchAll(pattern)) hits.add(m[0].trim());
+      }
+      for (const hit of hits) bad.push(`${name}: "${hit}"`);
     }
     expect(bad).toEqual([]);
   });

@@ -64,17 +64,6 @@ const UNGUARDED: Array<{ path: string; reason: string }> = [
   { path: "AGENTS.md", reason: "AXIS-generated artifact, same as CLAUDE.md" },
   { path: "LAUNCH_CLAIMS.yaml", reason: "IS the claims registry — launch-claims.test.ts pins its values to counts.ts directly" },
   { path: "capability_inventory.yaml", reason: "carries pricing-tier and per-program PARTIAL counts, not global totals — strategic-docs-honesty.test.ts documents it as hand-corrected by design" },
-  // OWNER DECISION NEEDED (2026-08-04). Both are hand-maintained customer-facing
-  // packs and belong in launch-claims' corpus alongside canvas/remotion-pack.
-  // Their COUNTS were stale and are now fixed, and obsidian-vault-pack's stale
-  // "SQLite WAL, 5 tables" data-layer claim is corrected to Neon Postgres. What
-  // still blocks them is prose, not numbers: both assert "81/82 at Grade A",
-  // the unverifiable capability_inventory self-audit that SPEC-12 already
-  // stripped from the launch corpus. Deleting that line from marketing copy is
-  // the owner's call, so it is recorded here rather than silently rewritten.
-  // Resolve the claim, then move both into corpus() and delete these entries.
-  { path: "obsidian-vault-pack.md", reason: "OWNER: still asserts the unverifiable '81/82 at Grade A' self-audit SPEC-12 removed from the launch corpus; counts and SQLite claims already corrected" },
-  { path: "superpowers-pack.md", reason: "OWNER: same unverifiable '81/82 at Grade A' self-audit claim; counts already corrected to 143/20" },
 ];
 
 /**
@@ -109,7 +98,9 @@ const GUARDED_PREFIXES = [
   "marketing-pack.md",
   "AXIS_Board_Pitch.md",
   "canvas-pack.md",
+  "obsidian-vault-pack.md",
   "remotion-pack.md",
+  "superpowers-pack.md",
   "server.json",
   "package.json",
   "packages/", // packages/*/package.json descriptions, via counts-consistency
