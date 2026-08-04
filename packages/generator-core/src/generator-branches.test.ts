@@ -2177,6 +2177,52 @@ describe("Superpowers workflow and refactor branches", () => {
     expect(parsed.workflows.some((w: { id: string }) => w.id === "schema-migration")).toBe(true);
   });
 
+  // app_25_superpowers_executable: exec_steps is what makes a registry entry
+  // runnable, not just readable — these pin exactly which entries qualify.
+  it("workflow-registry: exec_steps distinguishes machine-runnable automations from human process ones", () => {
+    const s = snap({ name: "exec-steps-wf", files: [
+      { path: "package.json", content: JSON.stringify({ devDependencies: { vitest: "^2" } }), size: 40, language: null },
+    ]});
+    const inp = input(s, ["workflow-registry.json"]);
+    inp.context_map.detection.test_frameworks = ["vitest"];
+    const result = generateFiles(inp);
+    const parsed = JSON.parse(getFile(result, "workflow-registry.json")!.content);
+    type Automation = { id: string; steps: string[]; exec_steps: string[] | null };
+    const byId = (id: string): Automation => parsed.workflows.find((w: Automation) => w.id === id);
+
+    // Pure-shell-step automations run exactly their documented steps.
+    expect(byId("full-build-verify").exec_steps).toEqual(byId("full-build-verify").steps);
+    expect(byId("quick-test").exec_steps).toEqual(["npx vitest --changed"]);
+
+    // dependency-audit's last step is advisory prose ("Review ... in
+    // optimization-rules.md") — real commands only, that line is dropped.
+    const audit = byId("dependency-audit");
+    expect(audit.steps.length).toBe(3);
+    expect(audit.exec_steps!.length).toBe(2);
+    expect(audit.exec_steps).not.toContain(audit.steps[2]);
+
+    // Human-process workflows are readable but never machine-runnable.
+    expect(byId("new-feature").exec_steps).toBeNull();
+    expect(byId("hotfix").exec_steps).toBeNull();
+
+    expect(parsed.total_executable).toBe(
+      parsed.workflows.filter((w: Automation) => w.exec_steps !== null).length,
+    );
+  });
+
+  it("workflow-registry: quick-test is not machine-runnable when no test framework is detected", () => {
+    const s = snap({ name: "no-test-fw", files: [
+      { path: "package.json", content: "{}", size: 2, language: null },
+    ]});
+    const inp = input(s, ["workflow-registry.json"]);
+    inp.context_map.detection.test_frameworks = [];
+    const result = generateFiles(inp);
+    const parsed = JSON.parse(getFile(result, "workflow-registry.json")!.content);
+    const quickTest = parsed.workflows.find((w: { id: string }) => w.id === "quick-test");
+    expect(quickTest.applicable).toBe(false);
+    expect(quickTest.exec_steps).toBeNull();
+  });
+
   it("refactor-checklist: renders high-risk hotspot files", () => {
     const s = snap({ name: "risky-proj", files: [
       { path: "god.ts", content: "x=1", size: 5, language: null },

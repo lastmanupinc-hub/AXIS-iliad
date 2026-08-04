@@ -730,6 +730,56 @@ project_begin:
         roi_reason: "automation 5, validation_strength 4."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-superpowers.ts"
+        completion_status: complete  # SCOPED 2026-08-04: generateWorkflowRegistry now emits `exec_steps` alongside the human-readable `steps` — a strict subset containing ONLY directly-executable shell commands (prose like "Write failing test first" and unfilled placeholders like "--name <description>" are excluded; null marks a human process), plus a `total_executable` count. apps/cli/src/automation-verifier.ts + the new `axis verify-automations` command actually RUN those steps in order against a real repo, stop at the first failure, and only then (with --execute) write .github/workflows/axis-automation-<id>.yml as a workflow_dispatch-only job (never push/PR triggers, never auto-committed, never auto-pushed — same local-only posture as app_10/app_21). OWNER DECISION 2026-08-03: verification is CLI-only/local — explicitly NOT server-side sandboxed execution, since exec_steps run the target repo's own install/build/test scripts (postinstall hooks included) and that surface must never exist inside AXIS's shared API process. Proven end-to-end against a real fixture repo with the built binary: real `npm install` + real build passed, real `vitest run` genuinely FAILED (no test files) and correctly withheld the workflow file; adding a real passing test flipped it green and wrote the file. CLI bundle 77→78 modules, still 100% self-contained (zero-runtime-dependency constraint intact). NOTE: full local suite reported 17 resetTestDb-timeout failures, ALL in files this diff never touches (production-startup, rate-limiter) and ALL passing 62/62 when re-run in isolation — environmental contention on the shared test Postgres, not a regression; see the testing-consolidation candidate filed below.
+
+      # ── OWNER DIRECTIVE 2026-08-03: "it's time to start looking into ways to
+      # consolidate testing. 7800 is too many." Measured before proposing; the
+      # test COUNT turned out not to be the cost. Filed here so the numbers
+      # survive the session. NOT started — awaiting owner's pick of entry point.
+      - id: "infra_01_test_suite_cost"
+        description: >
+          Test-suite cost reduction. MEASURED 2026-08-03 on this machine: the full local suite is
+          240 min wall-clock (19:10:55->23:10:47) for 7855 tests / 423 files, while CI runs the SAME
+          suite plus build+typecheck+lint+freshness in 11 min. Root cause is NOT the test count —
+          it is packages/snapshots/src/pg-test.ts's resetTestDb(), which issues a SEPARATE
+          `TRUNCATE ... RESTART IDENTITY CASCADE` per table, in a loop, across all 49 tables, on
+          EVERY test's beforeEach. Benchmarked head-to-head against the real test Postgres:
+          per-table loop 7825ms | single multi-table TRUNCATE 2348ms | probe-then-truncate-only-dirty
+          153ms for 3 dirty tables (65ms for 1, 7.5ms when nothing is dirty). Realistic win 51-121x;
+          projected ~2000 DB-backed tests: 261 min -> ~5 min.
+          LEVERS, revised into ROI order after measurement:
+          (1) dirty-only reset in pg-test.ts — one function, biggest payoff;
+          (2) consolidate the redundant invariant tests — the real COUNT reduction: the 142->143 bump
+              this session was enforced by FIVE separate files (count-honesty, counts-consistency x2,
+              launch-claims, strategic-docs-honesty), needed edits in 8+ files, and STILL missed
+              generators-agentic-purchasing.ts's private ARTIFACT_COUNT until CI caught it — scattered
+              enforcement is simultaneously redundant AND incomplete; replace with one table-driven
+              test over a declared list of (file, pattern) surfaces;
+          (3) split vitest into two projects — `fileParallelism: false` (vitest.config.ts) serializes
+              all 423 files because only ~113 touch Postgres; pure files (generator-core, context-engine,
+              repo-parser, ap2, agentic-compliance, iliad-md) can run parallel;
+          (4) per-worker test databases — likely unnecessary once (1) lands;
+          (5) the 33 `*-branches*.test.ts` coverage-chasers (~1500 tests in generator-core alone) —
+              genuine count reduction but they are FAST, so maintainability only, and collapsing them
+              risks the 60/60/50/60 coverage thresholds. Lowest priority.
+          TWO TRAPS FOUND WHILE MEASURING, both must be handled by (1):
+          (a) TRUNCATE cost is NON-LINEAR — 3 tables 145ms but 5 tables 1670ms (11x jump for 2 more),
+              almost certainly FK CASCADE fan-out; a test dirtying the wrong 5 tables still pays ~1.7s,
+              so the average win may land below 51x. Understand the fan-out before finalizing.
+          (b) CORRECTNESS: `RESTART IDENTITY` resets sequences even on EMPTY tables, and pg-test.ts's
+              docstring promises deterministic per-test IDENTITY values. A test that inserts then
+              deletes leaves the table empty but the sequence ADVANCED — dirty-only would skip it and
+              silently break ID-asserting tests intermittently. The probe must cover sequences, not
+              just row counts, or this "fix" reintroduces flakiness while appearing to solve it.
+          EVIDENCE the shared DB already causes false failures: two consecutive full runs failed
+          DIFFERENT file sets (run 1: closer-deploy-metering x3 + web-research x1; run 2:
+          production-startup + rate-limiter, 17 total), every one a resetTestDb/hook timeout, every one
+          passing in isolation, zero failing on CI. This is why CI has been the only trustworthy gate
+          all session — a real tax on the autonomy loop, not just slowness.
+        roi_score: 89
+        roi_reason: "unblocks every future candidate's verification loop; owner-raised; 51-121x measured, not estimated."
+        severity: HIGH
+        source_file: "packages/snapshots/src/pg-test.ts"
         completion_status: open
 
       - id: "app_30_seo_applies"

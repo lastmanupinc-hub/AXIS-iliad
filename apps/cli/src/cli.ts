@@ -9,6 +9,7 @@ import { writeZip } from "./zip.js";
 import { fetchAccountStatus, DEFAULT_API_URL } from "./status.js";
 import { verifyDeploy, realDeps, extractHealthCheckPath } from "./deploy-verify.js";
 import { getLastTag, getCommitsSince, computeReleasePreview, executeRelease, realRunCmd } from "./release-operator.js";
+import { verifyAutomation, writeDispatchableWorkflow, type RegistryAutomation } from "./automation-verifier.js";
 import { fetchGitHubRepo } from "@axis/snapshots";
 import { listAvailableGenerators } from "@axis/generator-core";
 import { loadConfig, saveConfig, getConfigFile, type AxisConfig } from "./credential-store.js";
@@ -24,6 +25,7 @@ export const CLI_COMMANDS = [
   "auth",
   "verify-deploy",
   "release",
+  "verify-automations",
   "help",
   "version",
 ] as const;
@@ -42,6 +44,8 @@ interface CliArgs {
   verbose: boolean;
   /** release only: actually tag (still never pushes) instead of a dry-run preview. */
   execute: boolean;
+  /** verify-automations only: run a single registry entry by id (default: all executable entries). */
+  automationId?: string;
 }
 
 function envIsTrue(v: string | undefined): boolean {
@@ -92,6 +96,8 @@ function parseArgs(argv: string[]): CliArgs {
       result.quiet = true;
     } else if (args[i] === "--execute") {
       result.execute = true;
+    } else if (args[i] === "--id" && args[i + 1]) {
+      result.automationId = args[++i];
     } else if (args[i] === "--verbose") {
       result.verbose = true;
     } else if (args[i] === "--help" || args[i] === "-h") {
@@ -123,6 +129,9 @@ Usage:
                                               local Docker daemon — never sent to the API
   axis-iliad release [path] [--execute]      Preview (default) or cut (--execute) the next
                                               release from conventional commits — never pushes
+  axis-iliad verify-automations [path]       Actually run the superpowers registry's machine-runnable
+    [--id <id>] [--execute]                  automations locally; --execute writes a workflow_dispatch
+                                              job for each one that passed
 
 Commands:
   analyze        Scan a local repository and generate config files (default)
@@ -136,6 +145,8 @@ Commands:
                  (falls back to hadolint if Docker isn't installed)
   release        Compute the next version + changelog from conventional commits;
                  --execute builds/checksums/tags locally — never pushes
+  verify-automations  Run the superpowers registry's machine-runnable automations locally;
+                 --execute writes a workflow_dispatch job for each one that passed
   help           Show this help message
   version        Show version
 
@@ -146,7 +157,8 @@ Options:
       --program <name>   Single program filter (repeatable, legacy)
   -f, --format <fmt>     Export format: dir (default) or zip
       --key <api_key>    API key for auth; --api-key also works everywhere
-      --execute          release only: actually build/checksum/tag (default: dry-run preview)
+      --execute          release/verify-automations only: actually tag, or write workflow files (default: dry-run preview)
+      --id <id>          verify-automations only: run a single registry entry by id
       --quiet            Suppress progress output
       --verbose          Verbose logging (per-file paths, timing)
   -h, --help             Show help
@@ -314,6 +326,16 @@ export function main(): void {
   if (args.command === "release") {
     try {
       runRelease(args);
+    } catch (err) {
+      console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (args.command === "verify-automations") {
+    try {
+      runVerifyAutomations(args);
     } catch (err) {
       console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
       process.exitCode = 1;
@@ -547,6 +569,67 @@ function runRelease(args: CliArgs): void {
   console.log(`Tagged ${result.tag} locally (package.json + CHANGELOG.md committed). Nothing was pushed.`);
   console.log("Review the changes, then run: git push --follow-tags");
   console.log("Pushing the tag is what triggers your generated .github/workflows/release.yml (build, publish, GitHub Release) — axis release never does that for you.");
+}
+
+/**
+ * verify-automations — actually RUNS the superpowers program's machine-runnable
+ * workflow-registry.json entries against this repo (never just reads them),
+ * and (only with --execute) writes a real .github/workflows/axis-automation-<id>.yml
+ * workflow_dispatch job for each one that passed. Deliberately local-only —
+ * see automation-verifier.ts's header for why this never runs server-side.
+ */
+function runVerifyAutomations(args: CliArgs): void {
+  const targetDir = resolve(args.target);
+  const pipeline = runLocalPipeline({ ...args, programs: ["superpowers"] });
+  if (!pipeline) return; // runLocalPipeline already reported the error and set exitCode
+
+  const registryFile = pipeline.result.generator_result.files.find((f) => f.path === "workflow-registry.json");
+  if (!registryFile) {
+    console.error("The superpowers program did not produce workflow-registry.json — nothing to verify.");
+    process.exitCode = 1;
+    return;
+  }
+  const registry = JSON.parse(registryFile.content) as { workflows: RegistryAutomation[] };
+  let automations = registry.workflows.filter((w) => w.applicable && w.exec_steps !== null);
+  if (args.automationId) {
+    automations = automations.filter((w) => w.id === args.automationId);
+    if (automations.length === 0) {
+      console.error(`No machine-runnable automation with id "${args.automationId}" (run without --id to list all).`);
+      process.exitCode = 1;
+      return;
+    }
+  }
+  if (automations.length === 0) {
+    console.log("No machine-runnable automations for this repo (every registry entry is a human process — see workflow-registry.json).");
+    return;
+  }
+
+  const run = realRunCmd();
+  let anyFailed = false;
+  console.log("");
+  for (const automation of automations) {
+    if (!args.quiet) console.log(`Running "${automation.name}" (${automation.id}) ...`);
+    const result = verifyAutomation(automation, targetDir, run);
+    console.log(`  ${result.ok ? "PASS" : "FAIL"}  ${automation.name} — ${result.steps.length}/${automation.exec_steps!.length} step(s) run`);
+    if (!result.ok) {
+      anyFailed = true;
+      console.error(`    failed: ${result.failed_command}`);
+      if (args.verbose && result.failure_output) console.error(result.failure_output);
+      continue;
+    }
+    if (args.execute) {
+      const written = writeDispatchableWorkflow(targetDir, automation);
+      console.log(`    wrote ${written}`);
+    }
+  }
+  console.log("");
+
+  if (!args.execute) {
+    console.log("Dry run — nothing was written. Pass --execute to write a workflow_dispatch job for each automation that passed.");
+  } else {
+    console.log("Review the generated .github/workflows/axis-automation-*.yml file(s), then commit and push yourself — axis never does that for you.");
+  }
+  if (anyFailed) process.exitCode = 1;
 }
 
 /**

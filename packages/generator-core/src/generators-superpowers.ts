@@ -233,34 +233,45 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
     category: string;
     trigger: string;
     steps: string[];
+    // A strict subset of `steps` containing ONLY directly-executable shell
+    // commands — no prose ("Write failing test first"), no unfilled
+    // placeholders ("--name <description>"). null means this automation is a
+    // human process, not something a machine can run. app_25_superpowers_executable:
+    // this is what makes a registry entry runnable (axis verify-automations),
+    // not just readable — the human-facing `steps` stays untouched for docs.
+    exec_steps: string[] | null;
     applicable: boolean;
   }> = [];
 
   // Core workflows
+  const fullBuildSteps = [
+    `${pkgMgr} install`,
+    `${pkgMgr} run build`,
+    testRunCommand(testFws, pkgMgr),
+    ...(hasTypecheck(ctx) ? ["npx tsc --noEmit"] : []),
+  ];
   workflows.push({
     id: "full-build-verify",
     name: "Full Build & Verify",
     category: "build",
     trigger: "Before commit / Before PR",
-    steps: [
-      `${pkgMgr} install`,
-      `${pkgMgr} run build`,
-      testRunCommand(testFws, pkgMgr),
-      ...(hasTypecheck(ctx) ? ["npx tsc --noEmit"] : []),
-    ],
+    steps: fullBuildSteps,
+    exec_steps: fullBuildSteps,
     applicable: true,
   });
 
+  const quickTestSteps = testFws.includes("vitest")
+    ? ["npx vitest --changed"]
+    : testFws.includes("jest")
+      ? ["npx jest --onlyChanged"]
+      : [testRunCommand(testFws, pkgMgr)];
   workflows.push({
     id: "quick-test",
     name: "Quick Test Loop",
     category: "testing",
     trigger: "During development",
-    steps: testFws.includes("vitest")
-      ? ["npx vitest --changed"]
-      : testFws.includes("jest")
-        ? ["npx jest --onlyChanged"]
-        : [testRunCommand(testFws, pkgMgr)],
+    steps: quickTestSteps,
+    exec_steps: testFws.length > 0 ? quickTestSteps : null,
     applicable: testFws.length > 0,
   });
 
@@ -274,6 +285,9 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
       `${pkgMgr} outdated`,
       "Review dependency hotspots in optimization-rules.md",
     ],
+    // The last step is advisory prose (read a doc), not a command — dropped
+    // here, kept above for the human-readable doc.
+    exec_steps: [`${pkgMgr} audit`, `${pkgMgr} outdated`],
     applicable: true,
   });
 
@@ -291,6 +305,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
       "Commit with descriptive message",
       "Open PR",
     ],
+    exec_steps: null, // a human process, not a machine-runnable one
     applicable: true,
   });
 
@@ -308,6 +323,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
       "Merge and deploy",
       "Update incident log",
     ],
+    exec_steps: null,
     applicable: true,
   });
 
@@ -325,6 +341,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
         "Add to sitemap if public",
         "Write integration test",
       ],
+      exec_steps: null,
       applicable: true,
     });
   }
@@ -342,6 +359,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
         "Update affected queries",
         "Run tests",
       ],
+      exec_steps: null, // contains an unfilled placeholder — not machine-runnable as-is
       applicable: true,
     });
   }
@@ -356,6 +374,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
       confidence: fw.confidence,
     })),
     total_workflows: workflows.length,
+    total_executable: workflows.filter(w => w.exec_steps !== null).length,
     workflows,
     source_config_files: null as string[] | null,
   };
