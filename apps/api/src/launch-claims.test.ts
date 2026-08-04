@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 // Shared with every other honesty guard — see count-extractors.ts. The CORPUS
 // below stays scoped per SPEC-12; only the extraction logic is shared.
 import { visible, programClaims, generatorClaims, endpointClaims } from "./count-extractors.js";
@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { PLAN_CATALOG, MARKETED_TIERS } from "@axis/snapshots";
+import { listAvailableGenerators } from "@axis/generator-core";
 
 // apps/api/src -> repo root
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -110,6 +111,39 @@ function corpus(): Array<{ name: string; text: string }> {
 
 const VALID_STATUSES = new Set(["verified", "needs_regeneration_before_publish", "forbidden_until_owner_decision"]);
 
+/**
+ * The test_file_count claim's own stated command, as code:
+ * `find apps packages -name '*.test.ts' (excluding node_modules/dist)`.
+ * Deliberately `.test.ts` only — not `.test.tsx` — because that is what the
+ * claim says it counts. Deriving it differently would make the guard agree
+ * with a number the claim never actually asserted.
+ */
+function countTestFiles(root: string): number {
+  let total = 0;
+  const walk = (dir: string): void => {
+    let entries: string[];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry === "node_modules" || entry === "dist") continue;
+      const abs = join(dir, entry);
+      let st;
+      try {
+        st = statSync(abs);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) walk(abs);
+      else if (entry.endsWith(".test.ts")) total++;
+    }
+  };
+  for (const top of ["apps", "packages"]) walk(join(root, top));
+  return total;
+}
+
 describe("LAUNCH_CLAIMS.yaml registry hygiene", () => {
   it("every claim has id/text/value/source/status, unique ids, and a recognized status", () => {
     const claims = loadClaims();
@@ -163,6 +197,82 @@ describe("LAUNCH_CLAIMS.yaml registry vs live constants", () => {
     expect(b.starter_credits).toBe(byId("starter").monthly_credits);
     expect(b.pro_credits).toBe(byId("pro").monthly_credits);
     expect(b.growth_credits).toBe(byId("growth").monthly_credits);
+  });
+
+  // ─── No claim may be marked "verified" without a live derivation ───────
+  //
+  // The gap this closes, and why it is the guard Phase T actually asked for:
+  // the registry holds 16 claims and only 8 were pinned by anything. The rest
+  // sat marked `status: verified` with nobody checking them, and one had been
+  // wrong for over a month — test_file_count asserted 205 `verified` while its
+  // OWN stated command yielded 384. Phase T caught it at 359 on 2026-07-27; it
+  // drifted further and stayed published. A stale claim inside the registry
+  // built to prevent stale claims is the exact failure this file exists to stop.
+  //
+  // The rule is now structural rather than a list of spot-checks: every claim
+  // whose status is "verified" MUST appear in DERIVATIONS. A new claim cannot be
+  // marked verified without also saying how to verify it — if it can't be
+  // derived, it doesn't get to call itself verified.
+  //
+  // Mode is per-claim because the honest shape differs. Counts of things that
+  // only grow (test files) are FLOORS: an exact assertion goes stale the moment
+  // anyone adds a test, which trains people to bump the number rather than
+  // question it. Everything else is EXACT.
+  it("every claim marked verified has a live derivation, and matches it", () => {
+    const freeSet = new Set(["search", "skills", "debug"]);
+    const testFileCount = countTestFiles(ROOT);
+
+    const DERIVATIONS: Record<string, { mode: "exact" | "floor"; derive: () => unknown }> = {
+      artifact_count: { mode: "exact", derive: () => ARTIFACT_COUNT },
+      program_count: { mode: "exact", derive: () => PROGRAM_COUNT },
+      endpoint_count: { mode: "exact", derive: () => ENDPOINT_COUNT },
+      mcp_tool_count: { mode: "exact", derive: () => MCP_TOOL_COUNT },
+      api_version: { mode: "exact", derive: () => API_VERSION },
+      free_programs: { mode: "exact", derive: () => freeSet.size },
+      free_tier_generators: {
+        mode: "exact",
+        derive: () => listAvailableGenerators().filter((g) => freeSet.has(g.program)).length,
+      },
+      determinism_test_count: {
+        mode: "exact",
+        derive: () =>
+          (readFileSync(join(ROOT, "packages", "generator-core", "src", "determinism.test.ts"), "utf8").match(/^\s*it\(/gm) ?? []).length,
+      },
+      test_file_count: { mode: "floor", derive: () => testFileCount },
+      persistence: {
+        mode: "exact",
+        // Guards the wording itself — the source line says "NEVER say SQLite".
+        derive: () => "Neon Postgres",
+      },
+      // Structured values with their own dedicated assertions above.
+      pricing: { mode: "exact", derive: () => claimById(loadClaims(), "pricing").value },
+      billing_tiers: { mode: "exact", derive: () => claimById(loadClaims(), "billing_tiers").value },
+    };
+
+    const unverifiable: string[] = [];
+    const wrong: string[] = [];
+    for (const claim of loadClaims()) {
+      if (claim.status !== "verified") continue; // an honest non-verified status is not a lie
+      const d = DERIVATIONS[claim.id];
+      if (!d) {
+        unverifiable.push(claim.id);
+        continue;
+      }
+      const actual = d.derive();
+      if (d.mode === "floor") {
+        if (typeof claim.value !== "number" || typeof actual !== "number" || actual < claim.value) {
+          wrong.push(`${claim.id}: claims at least ${String(claim.value)}, reality is ${String(actual)}`);
+        }
+      } else if (JSON.stringify(claim.value) !== JSON.stringify(actual)) {
+        wrong.push(`${claim.id}: claims ${JSON.stringify(claim.value)}, reality is ${JSON.stringify(actual)}`);
+      }
+    }
+
+    expect(
+      unverifiable,
+      'These claims are marked status: verified but nothing derives them. Add a derivation, or change the status to something honest.',
+    ).toEqual([]);
+    expect(wrong, "A published claim disagrees with the code it claims to describe.").toEqual([]);
   });
 
   it("the open_source claim stays forbidden until the registry itself is flipped by the owner", () => {

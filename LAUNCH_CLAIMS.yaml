@@ -74,11 +74,16 @@ claims:
     verified_at: "2026-07-02"
 
   - id: test_file_count
-    text: "205 test files"
-    value: 205
-    source: "find apps packages -name '*.test.ts' (excluding node_modules/dist)"
+    # FLOOR, not an exact count (changed 2026-08-04). The exact form claimed 205
+    # while its own command yielded 384 — it went stale the moment anyone added a
+    # test, which is every session. Phase T flagged it at 359 on 2026-07-27 and it
+    # drifted further while still marked "verified". A floor stays true as the
+    # suite grows and still fails if the suite SHRINKS below what was published.
+    text: "384+ test files"
+    value: 384
+    source: "find apps packages -name '*.test.ts' (excluding node_modules/dist) — asserted as a FLOOR by launch-claims.test.ts"
     status: verified
-    verified_at: "2026-07-02"
+    verified_at: "2026-08-04"
 
   - id: api_version
     text: "v0.5.3"
