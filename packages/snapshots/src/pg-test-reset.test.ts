@@ -111,6 +111,24 @@ describe("resetTestDb — dirty-only reset", () => {
     ).rejects.toMatchObject({ code: "23503" }); // foreign_key_violation
   });
 
+  // ─── the third trap ──────────────────────────────────────────────
+  // Tables can be created LAZILY, after the first reset has already run —
+  // apps/api/src/analytics.ts does exactly that on first use. An earlier draft
+  // cached the probe SQL, so any such table was invisible to every later reset
+  // and its rows leaked across tests indefinitely, surfacing as some unrelated
+  // assertion failing much later. The probe is rebuilt per reset to prevent it.
+  it("clears a table that did not exist when the first reset ran", async () => {
+    await sql.exec(`CREATE TABLE IF NOT EXISTS _axis_late_table (id TEXT PRIMARY KEY)`);
+    try {
+      await sql.run(`INSERT INTO _axis_late_table (id) VALUES (?)`, ["leaked"]);
+      await resetTestDb();
+      const r = await sql.one<{ n: string }>(`SELECT count(*)::int AS n FROM _axis_late_table`);
+      expect(Number(r!.n)).toBe(0);
+    } finally {
+      await sql.exec(`DROP TABLE IF EXISTS _axis_late_table`);
+    }
+  });
+
   it("is a safe no-op when nothing is dirty", async () => {
     expect(await rowCount()).toBe(0);
     await expect(resetTestDb()).resolves.toBeUndefined();

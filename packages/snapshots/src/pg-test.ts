@@ -62,9 +62,6 @@ function assertTestEnv(): void {
 // Kept deliberately — this is the verification substrate the whole suite rests
 // on, and a one-env-var fallback is cheap next to debugging a subtly wrong reset.
 
-/** Cached per worker: the table/sequence set is fixed once migrations have run. */
-let probeSql: string | null = null;
-
 function quoteIdent(name: string): string {
   return `"${name.replace(/"/g, '""')}"`;
 }
@@ -84,25 +81,63 @@ const FULL_SWEEP_SQL = `DO $$
       END LOOP;
     END $$;`;
 
-/** One roundtrip that names every table holding rows AND every sequence that has been advanced. */
-async function buildProbeSql(): Promise<string> {
-  const tables = await sql.many<{ tablename: string }>(
-    `SELECT tablename FROM pg_tables
-     WHERE schemaname = current_schema() AND tablename <> 'schema_migrations'
-     ORDER BY tablename`,
-  );
-  // EXISTS short-circuits, and on an empty table it needs no heap I/O — which
-  // is why probing 49 tables costs ~7ms while truncating them costs seconds.
+/**
+ * The reset is a cached, STATIC probe followed by a clear — a shape arrived at
+ * by measuring three alternatives against the real test Postgres:
+ *
+ *  * blanket TRUNCATE of all 49 tables per test ....... ~7825ms  (the original)
+ *  * probe + clear, probe SQL cached ................... ~129s / snapshots pkg
+ *  * probe + clear, catalog re-read every reset ........ ~230s   (correct, slow)
+ *  * one server-side DO block doing everything ......... ~256s   (correct, slower)
+ *
+ * The two "correct" variants lose because they cannot reuse a query plan: the
+ * DO block re-plans 49 dynamic `EXECUTE format(...)` statements per reset, and
+ * re-reading the catalog rebuilds the SQL string so the planner sees a new
+ * query each time. The cached static UNION ALL is planned once and reused.
+ *
+ * But a plain cache is WRONG: tables can be created LAZILY after the first
+ * reset (apps/api/src/analytics.ts does `CREATE TABLE IF NOT EXISTS
+ * analytics_events` on first use), and a stale probe never learns about them,
+ * leaking their rows between tests forever — contamination that surfaces as
+ * some unrelated assertion failing much later.
+ *
+ * So the probe reports the CURRENT table count as an extra row. If it differs
+ * from the count the probe was built for, the probe is rebuilt and re-run. The
+ * common case stays one roundtrip with a warm plan; a new table self-heals on
+ * the very next reset. Tables are only ever added mid-run (never dropped), so
+ * a count is a sound change signal here.
+ */
+const TABLE_SET_SQL = `SELECT tablename FROM pg_tables
+   WHERE schemaname = current_schema() AND tablename <> 'schema_migrations'
+   ORDER BY tablename`;
+
+let probeSql: string | null = null;
+let probeTableCount = -1;
+
+function buildProbeSql(tables: string[]): string {
+  // EXISTS short-circuits and touches no heap on an empty table, which is why
+  // probing all 49 costs ~7ms while truncating them costs seconds.
   const parts = tables.map(
     (t) =>
-      `SELECT 't'::text AS kind, ${quoteLiteral(t.tablename)}::text AS name` +
-      ` WHERE EXISTS (SELECT 1 FROM ${quoteIdent(t.tablename)})`,
+      `SELECT 't'::text AS kind, ${quoteLiteral(t)}::text AS name` +
+      ` WHERE EXISTS (SELECT 1 FROM ${quoteIdent(t)})`,
   );
   parts.push(
     `SELECT 's'::text AS kind, sequencename::text AS name FROM pg_sequences` +
       ` WHERE schemaname = current_schema() AND last_value IS NOT NULL`,
   );
+  // Self-invalidation signal — see the docblock above.
+  parts.push(
+    `SELECT 'n'::text AS kind, count(*)::text AS name FROM pg_tables` +
+      ` WHERE schemaname = current_schema() AND tablename <> 'schema_migrations'`,
+  );
   return parts.join(" UNION ALL ");
+}
+
+async function refreshProbe(): Promise<void> {
+  const rows = await sql.many<{ tablename: string }>(TABLE_SET_SQL);
+  probeSql = buildProbeSql(rows.map((r) => r.tablename));
+  probeTableCount = rows.length;
 }
 
 async function resetTestDbUnserialized(): Promise<void> {
@@ -116,46 +151,61 @@ async function resetTestDbUnserialized(): Promise<void> {
     return;
   }
 
-  if (!probeSql) probeSql = await buildProbeSql();
-  const dirty = await sql.many<{ kind: string; name: string }>(probeSql);
-  if (dirty.length === 0) return; // already pristine — the common case between tests
+  if (!probeSql) await refreshProbe();
+
+  let rows: Array<{ kind: string; name: string }>;
+  try {
+    rows = await sql.many<{ kind: string; name: string }>(probeSql!);
+  } catch (err) {
+    // 42P01 = undefined_table: a table the cached probe names has been DROPPED,
+    // so the probe throws before it can report the count. The count signal only
+    // catches ADDITIONS; this catches removals. Refresh and retry once.
+    if ((err as { code?: string }).code !== "42P01") throw err;
+    await refreshProbe();
+    rows = await sql.many<{ kind: string; name: string }>(probeSql!);
+  }
+
+  // A table appeared since the probe was built — rebuild and re-probe so the
+  // newcomer is not silently skipped (see the docblock above).
+  const reported = rows.find((r) => r.kind === "n");
+  if (reported && Number(reported.name) !== probeTableCount) {
+    await refreshProbe();
+    rows = await sql.many<{ kind: string; name: string }>(probeSql!);
+  }
 
   const tables: string[] = [];
   const sequences: string[] = [];
-  for (const row of dirty) {
-    if (row.kind === "t") tables.push(row.name);
-    else sequences.push(row.name);
+  for (const r of rows) {
+    if (r.kind === "t") tables.push(r.name);
+    else if (r.kind === "s") sequences.push(r.name);
   }
+  if (tables.length === 0 && sequences.length === 0) return; // already pristine
 
   await clearTables(tables);
 
-  // Must run AFTER clearing, and is not optional: DELETE (the fast path below)
-  // does not touch sequences at all, and even TRUNCATE's RESTART IDENTITY only
-  // covers tables it actually truncated — never a table that is already empty
-  // with an advanced sequence. The probe found both cases; this closes them.
+  // Must run AFTER clearing, and is not optional: DELETE does not touch
+  // sequences at all, and TRUNCATE's RESTART IDENTITY only covers tables it
+  // actually truncated — never one already empty with an advanced sequence.
   if (sequences.length > 0) {
     await sql.exec(sequences.map((n) => `ALTER SEQUENCE ${quoteIdent(n)} RESTART`).join("; "));
   }
 }
 
-/**
- * null = not yet probed, true = FK triggers can be suspended, false = fall back
- * to TRUNCATE forever (a non-superuser test Postgres can't set the role).
- */
+/** null = not yet probed, false = this role cannot suspend FK triggers. */
 let canSuspendFkTriggers: boolean | null = null;
 
 /**
- * Empties the dirty tables. Prefers DELETE over TRUNCATE: test tables hold a
+ * Empties the dirty tables. DELETE rather than TRUNCATE: test tables hold a
  * handful of rows, and at that scale DELETE is ~19.5x cheaper (measured 450ms
  * vs 8793ms over a 12-table write-heavy set) because it skips TRUNCATE's
  * per-relation ACCESS EXCLUSIVE lock, file truncation and fsync.
  *
  * DELETE has no CASCADE, so FK order would matter — suspending FK triggers via
- * session_replication_role sidesteps that. Two things make that safe here:
- * it runs inside sql.tx so every statement shares ONE connection (the setting
- * is per-session, and on a pool the DELETEs could otherwise land on a different
- * connection with FK checks still live), and SET LOCAL reverts at COMMIT *or*
- * ROLLBACK, so a mid-reset failure can never return a connection to the pool
+ * session_replication_role sidesteps that. Two things make that safe: it runs
+ * inside sql.tx so every statement shares ONE connection (the setting is
+ * per-session, and on a pool the DELETEs could otherwise land on a different
+ * connection with FK checks still live), and SET LOCAL reverts on COMMIT *or*
+ * ROLLBACK, so a mid-reset failure can never hand a pooled connection back
  * with constraint enforcement quietly disabled.
  */
 async function clearTables(tables: string[]): Promise<void> {
@@ -171,9 +221,9 @@ async function clearTables(tables: string[]): Promise<void> {
       canSuspendFkTriggers = true;
       return;
     } catch (err) {
-      // 42501 = insufficient_privilege: this Postgres role may not set the
-      // parameter, so use TRUNCATE from here on. Any OTHER error is a real
-      // failure and must surface rather than be masked by a silent fallback.
+      // 42501 = insufficient_privilege: this role may not set the parameter, so
+      // use TRUNCATE from here on. Any OTHER error is a real failure and must
+      // surface rather than be masked by a silent fallback.
       if ((err as { code?: string }).code !== "42501") throw err;
       canSuspendFkTriggers = false;
     }
@@ -183,6 +233,7 @@ async function clearTables(tables: string[]): Promise<void> {
   // locks and syncs once instead of per table (2348ms vs 7825ms across all 49).
   await sql.exec(`TRUNCATE TABLE ${idents.join(", ")} RESTART IDENTITY CASCADE`);
 }
+
 
 // Serializes resetTestDb() calls one at a time (migration AND truncate), so
 // overlapping beforeEach hooks can never run concurrent DDL/TRUNCATE against
@@ -209,7 +260,12 @@ export function resetTestDb(): Promise<void> {
 /** Close the pool (registered as a global afterAll in vitest.setup.ts). */
 export async function closeTestDb(): Promise<void> {
   schemaReadyPromise = null;
-  probeSql = null; // rebuilt against the schema the next worker migrates
+  // Drop the cached probe alongside the migration promise: the next caller may
+  // migrate a different schema, and a probe naming the old tables would either
+  // throw 42P01 or silently skip new ones.
+  probeSql = null;
+  probeTableCount = -1;
+  canSuspendFkTriggers = null;
   resetChain = Promise.resolve();
   await closePool();
 }

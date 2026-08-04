@@ -736,7 +736,16 @@ export interface RecentActivity {
 
 export async function getRecentActivity(limit = 50): Promise<RecentActivity[]> {
   return await sql.many<RecentActivity>(
-    "SELECT event_id, account_id, event_type, stage, created_at FROM funnel_events ORDER BY created_at DESC LIMIT ?",
+    // `seq DESC` is the tiebreaker the funnel_events schema declares this column
+    // FOR (see pg-schema.ts) and that funnel-store.ts already uses in its three
+    // ordered reads — this query had drifted from that convention. Without it,
+    // two events written in the same millisecond come back in whatever physical
+    // order the heap happens to yield, so "most recent" was undefined. That
+    // stayed hidden only because the old test fixture TRUNCATEd every table
+    // between tests, handing each test a fresh heap whose physical order
+    // matched insertion order; once resetTestDb switched to DELETE (which
+    // leaves dead tuples behind) the tie broke the other way and CI caught it.
+    "SELECT event_id, account_id, event_type, stage, created_at FROM funnel_events ORDER BY created_at DESC, seq DESC LIMIT ?",
     [limit],
   );
 }
