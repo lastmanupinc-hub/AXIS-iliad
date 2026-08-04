@@ -59,7 +59,7 @@ jobs:
       # don't hit this because they run `pnpm install` right after this step,
       # giving the Post step a real store to save. `package-manager-cache:
       # false` below turns off the auto-detection for good.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           package-manager-cache: false
@@ -215,7 +215,7 @@ jobs:
       - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -297,10 +297,10 @@ jobs:
       # No pnpm/action-setup here — live-probe.mjs is pure native fetch and
       # never shells out to pnpm (unlike determine-affected's job above,
       # which genuinely needs the pnpm CLI). package-manager-cache: false
-      # keeps actions/setup-node@v5 from auto-enabling pnpm caching off the
+      # keeps actions/setup-node@v7 from auto-enabling pnpm caching off the
       # "packageManager" field in package.json — see determine-affected's
       # comment (2026-07-31) for the root cause this avoids.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           package-manager-cache: false
