@@ -263,7 +263,15 @@ describe("API integration", () => {
     expect(data.program).toBe("seo");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "seo")).toBe(true);
-    expect(files.length).toBe(5);
+    // 6 since app_30 added seo-head-tags.html. NOTE (2026-08-04): every program
+    // test in this block hardcodes its count, so each new generator needs a
+    // manual edit here and nothing flags the omission — this assertion is what
+    // caught app_30's. Deriving them from PROGRAM_OUTPUT_COUNTS would be wrong
+    // as written: superpowers asserts 5 here while the manifest says 8, because
+    // the endpoint returns a subset (the 3 verify-gate files come from
+    // elsewhere). Making these derived needs that endpoint-vs-manifest
+    // relationship modelled first, not a blanket substitution.
+    expect(files.length).toBe(6);
   });
 
   it("POST /v1/optimization/analyze returns optimization files", async () => {
