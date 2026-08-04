@@ -5,27 +5,21 @@ import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
 import { deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 import { PRICING_TIERS } from "@axis/mpp";
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { visible, htmlWithMetaContent, programClaims, generatorClaims, toolClaims, endpointClaims } from "./count-extractors.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 // apps/api/src -> repo root
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-// Strip JSX/HTML tags so SPLIT markup (`<div>19</div><div>Programs</div>` or a table row
-// `Programs | 3 | 19 | 19 | 19`) collapses to adjacent visible text the regexes can see.
-const visible = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+// Extractors live in count-extractors.ts — ONE implementation shared by every
+// honesty guard (this file, launch-claims, strategic-docs-honesty,
+// counts-consistency). They used to be copy-pasted per guard, four near-identical
+// PROG_ADJ/GEN_ADJ sets free to drift apart. The CORPORA stay separate per
+// SPEC-12; only the extraction logic is shared.
 
 function indexHtmlText(): string {
-  const html = readFileSync(join(ROOT, "apps", "web", "index.html"), "utf8");
-  // visible()'s tag-stripper is built for JSX text nodes (content BETWEEN tags,
-  // e.g. <div>19</div>) -- fed a self-closing <meta ... content="140 Artifacts" />,
-  // it matches the WHOLE tag as `<[^>]+>` and erases the attribute value along
-  // with the markup, so a stale og:title/twitter:title count would be invisible
-  // to every check below. Pull meta content="..." values out as bare text first
-  // (JSON-LD <script> text already survives visible() unchanged, since it sits
-  // between tags, not inside one).
-  const metaContents = [...html.matchAll(/<meta[^>]+content="([^"]*)"/gi)].map((m) => m[1]);
-  return `${html}\n${metaContents.join("\n")}`;
+  return htmlWithMetaContent(readFileSync(join(ROOT, "apps", "web", "index.html"), "utf8"));
 }
 
 // Read once per run, not once per test. Nine tests call docs(), and each call
@@ -59,54 +53,6 @@ function docs(): Array<{ name: string; text: string }> {
   }
   docsCache = out;
   return out;
-}
-
-// PROGRAM total claims, in any layout: forward ("20 [adj] programs", incl. a split stat
-// card that tag-stripping turns into "20 Programs"), a tier table row ("Programs 3 20 20 20"),
-// and reversed ("Programs (20)"). Interposed words are an ALLOWLIST of real adjectives so a
-// distant number can't bind to "programs" (the table pattern needs 3+ cells, not prose).
-// Legit partial counts are the 3 free-tier programs, the 17-program Pro tier (20 − 3 free),
-// and a per-example "Pro (17 programs)" — all < 18. The stale GLOBAL totals were 18/19, so a
-// >= 18 floor isolates a wrong global total from those legitimate tier/example counts.
-const PROG_ADJ = "(?:specialized|axis|public|separately|billable|free|pro|distinct|total|additional)";
-function programClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(new RegExp(`(\\d+)\\s+(?:${PROG_ADJ}\\s+){0,3}programs?\\b`, "gi"))) ns.push(Number(m[1]));
-  for (const m of v.matchAll(/\bprograms?\s+(\d+(?:\s+\d+){2,})\b/gi)) for (const x of m[1].split(/\s+/)) ns.push(Number(x));
-  for (const m of v.matchAll(/\bprograms?\s*\((\d+)\)/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 18);
-}
-
-// GENERATOR/ARTIFACT/OUTPUT totals (forward incl. tag-stripped stat cards, and reversed).
-// Per-example subsets ("75 structured artifacts", a "Pro (…, 89 files)") are legitimate and
-// < 95; the global total is 137; the stale globals were 99/102 — so a >= 95 floor isolates
-// genuine global claims from example subsets. Interposed words are an allowlist of adjectives.
-const GEN_ADJ = "(?:deterministic|structured|ai|context|generated|specialized|distinct|unique)";
-function generatorClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(new RegExp(`(\\d+)\\s*(?:\\+\\s*)?(?:${GEN_ADJ}\\s+){0,3}(?:generators?|artifacts?|outputs?)\\b`, "gi"))) ns.push(Number(m[1]));
-  for (const m of v.matchAll(/\b(?:generators?|artifacts?|outputs?)\s*\((\d+)\)/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 95);
-}
-
-// Advertised MCP tool count, e.g. "29 MCP tools" / "29 public tools". The qualifier
-// (MCP|public) is required so this never binds to prose like "your AI tools" or the
-// named "Free MCP tools:" list (no leading number). The live count is MCP_TOOL_COUNT,
-// itself pinned == MCP_TOOLS.length by counts-consistency.test.ts. Stale value was 14.
-function toolClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(/(\d+)\s+(?:MCP|public)\s+tools\b/gi)) ns.push(Number(m[1]));
-  return ns;
-}
-
-// Advertised HTTP endpoint count, e.g. "143 endpoints" / "143 REST endpoints". The live
-// value is ENDPOINT_COUNT (pinned in counts.ts, guarded by counts-consistency.test.ts).
-// A >= 50 floor isolates a GLOBAL API-surface claim from any small per-example count.
-// Stale values were 102 (README) and 110 (QAPage).
-function endpointClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(/(\d+)\+?\s*(?:REST |API |HTTP )?endpoints?\b/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 50);
 }
 
 describe("count honesty — docs/UI match the code (A4)", () => {

@@ -57,7 +57,7 @@ AXIS-Iliad-Vault/
 ├── 05-Invariants/
 │   ├── Zero External HTTP Deps.md
 │   ├── Deterministic Generators.md
-│   ├── SQLite Only.md
+│   ├── Postgres Only.md
 │   ├── Vanilla CSS.md
 │   ├── YAML Truth Source.md
 │   ├── Evidence-Required Promotion.md
@@ -96,15 +96,15 @@ AXIS-Iliad-Vault/
 - [[Package Dependencies]] — Dependency flow across 4 packages
 
 ## Infrastructure
-- [[Database Schema]] — SQLite WAL, 5 tables
-- [[API Surface]] — 75+ REST endpoints
+- [[Database Schema]] — Neon Postgres, 49 tables
+- [[API Surface]] — 166 REST endpoints
 - [[Frontend Dashboard]] — React 19 + Vite 6 SPA
 
 ## Packages
 - [[generator-core]] — 80 generators, template engine
 - [[repo-parser]] — 60+ languages, 10+ frameworks
 - [[context-engine]] — Context map, repo profile
-- [[snapshots]] — SQLite store, intake pipeline
+- [[snapshots]] — Neon Postgres store, intake pipeline
 
 ## Key Metrics
 | Metric | Value |

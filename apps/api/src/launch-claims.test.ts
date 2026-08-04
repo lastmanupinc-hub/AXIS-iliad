@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+// Shared with every other honesty guard — see count-extractors.ts. The CORPUS
+// below stays scoped per SPEC-12; only the extraction logic is shared.
+import { visible, programClaims, generatorClaims, endpointClaims } from "./count-extractors.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
@@ -81,42 +84,28 @@ function claimById(claims: Claim[], id: string): Claim {
 // ─── Launch corpus (NOT the same scope as count-honesty's README+web) ──
 
 function corpus(): Array<{ name: string; text: string }> {
-  return [
-    { name: "launch-content.md", text: readFileSync(join(ROOT, "launch-content.md"), "utf8") },
-    { name: "marketing-pack.md", text: readFileSync(join(ROOT, "marketing-pack.md"), "utf8") },
-    { name: "AXIS_Board_Pitch.md", text: readFileSync(join(ROOT, "AXIS_Board_Pitch.md"), "utf8") },
+  const files = [
+    "launch-content.md",
+    "marketing-pack.md",
+    "AXIS_Board_Pitch.md",
+    // Hand-maintained root packs, added 2026-08-04 after
+    // count-surface-coverage.test.ts found they were guarded by NOTHING and had
+    // gone stale: "102 Artifacts" (real 143) and "75+ REST endpoints" (real
+    // 166), untouched since 2026-06-30. Siblings of marketing-pack.md in every
+    // respect — hand-maintained, repo-root, customer-facing — and outside the
+    // corpus only because nothing had forced the question.
+    //
+    // obsidian-vault-pack.md and superpowers-pack.md are NOT here yet, on
+    // purpose: their counts are now correct, but both still assert "81/82 at
+    // Grade A" — the unverifiable capability-inventory self-audit SPEC-12
+    // already stripped from this corpus. Removing it from them is a content
+    // call for the owner, not something a test refactor should do silently, so
+    // they are exempted in count-surface-coverage.test.ts with that reason
+    // recorded rather than quietly rewritten here.
+    "canvas-pack.md",
+    "remotion-pack.md",
   ];
-}
-
-// Strip markup so split/table layouts collapse to adjacent visible text (mirrors
-// count-honesty's `visible()` — this corpus is plain markdown today, but a stray
-// inline HTML table would otherwise hide a claim from the regexes below).
-const visible = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-
-// Same extractor-with-floor idiom as count-honesty.test.ts (duplicated per SPEC-12 —
-// count-honesty stays scoped to README/web). Floors isolate a GLOBAL claim from a
-// legitimate small per-example/per-tier subset (e.g. "15 free-tier generators").
-const PROG_ADJ = "(?:specialized|axis|public|separately|billable|free|pro|distinct|total|additional)";
-function programClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(new RegExp(`(\\d+)\\s+(?:${PROG_ADJ}\\s+){0,3}programs?\\b`, "gi"))) ns.push(Number(m[1]));
-  for (const m of v.matchAll(/\bprograms?\s+(\d+(?:\s+\d+){2,})\b/gi)) for (const x of m[1].split(/\s+/)) ns.push(Number(x));
-  for (const m of v.matchAll(/\bprograms?\s*\((\d+)\)/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 18);
-}
-
-const GEN_ADJ = "(?:deterministic|structured|ai|context|generated|specialized|distinct|unique)";
-function generatorClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(new RegExp(`(\\d+)\\s*(?:\\+\\s*)?(?:${GEN_ADJ}\\s+){0,3}(?:generators?|artifacts?|outputs?)\\b`, "gi"))) ns.push(Number(m[1]));
-  for (const m of v.matchAll(/\b(?:generators?|artifacts?|outputs?)\s*\((\d+)\)/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 95);
-}
-
-function endpointClaims(v: string): number[] {
-  const ns: number[] = [];
-  for (const m of v.matchAll(/(\d+)\+?\s*(?:REST |API |HTTP )?endpoints?\b/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 50);
+  return files.map((name) => ({ name, text: readFileSync(join(ROOT, name), "utf8") }));
 }
 
 const VALID_STATUSES = new Set(["verified", "needs_regeneration_before_publish", "forbidden_until_owner_decision"]);
