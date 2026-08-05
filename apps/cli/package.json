@@ -45,6 +45,6 @@
     "@axis/repo-parser": "workspace:*",
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
-    "typescript": "^5.7.0"
+    "typescript": "^7.0.2"
   }
 }
