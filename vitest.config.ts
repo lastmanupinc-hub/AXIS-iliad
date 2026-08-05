@@ -46,11 +46,30 @@ export default defineConfig({
       ],
       reporter: ["text", "json-summary"],
       reportsDirectory: "coverage",
+      // RAISED 2026-08-05 from 60/60/50/60, which had become decorative.
+      //
+      // Measured on CI run 30967855150 (full suite, both Node versions agreeing
+      // exactly): statements 89.44, branches 79.12, functions 87.89, lines 90.88.
+      // Against thresholds of 60/60/50/60 that is ~29 points of slack on every
+      // metric — the gate would not have failed until roughly a THIRD of the
+      // suite stopped running. A gate that cannot detect the regression it
+      // exists to catch is worse than no gate: it reports "coverage enforced"
+      // in every CI run while enforcing nothing.
+      //
+      // Set ~5 points below measured actual. That is deliberately not tight:
+      // the failure mode worth catching is "a chunk of the suite silently
+      // stopped running" (a broken glob, a skipped file, an import that throws
+      // at collection), not a percentage point of ordinary churn. Tightening
+      // further would trade real signal for false failures on normal work.
+      //
+      // These are a floor to RAISE as coverage rises, not a target to code to.
+      // If a change legitimately lowers coverage, lower the number in the same
+      // commit with the reason — do not silently widen the gap again.
       thresholds: {
-        lines: 60,
-        functions: 60,
-        branches: 50,
-        statements: 60,
+        lines: 85,
+        functions: 82,
+        branches: 74,
+        statements: 84,
       },
     },
   },
