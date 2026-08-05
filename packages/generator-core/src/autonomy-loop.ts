@@ -200,21 +200,82 @@ ${known}
  */
 function inferGoal(ctx: ContextMap): string {
   const name = ctx.project_identity?.name ?? "this project";
+
+  // This function used to interpolate ONLY the name into a fixed sentence while
+  // asserting "This was inferred from the repo" — inferring nothing. That made
+  // the highest-priority entry in the queue (candidate #1, priority 100) a
+  // placeholder, in a product whose whole premise is that the files are derived
+  // from the repo the user submitted. Everything below is read from the same
+  // analysis the tailored docs use, so the claim of inference is now true.
+  const facts: string[] = [];
+
+  const summary = ctx.ai_context?.project_summary?.trim();
+  if (summary) facts.push(summary);
+
+  const described = ctx.project_identity?.description?.trim();
+  if (described) facts.push(`Its own manifest describes it as: ${described}`);
+
+  const abstractions = (ctx.ai_context?.key_abstractions ?? []).filter(Boolean).slice(0, 5);
+  if (abstractions.length > 0) facts.push(`Its main pieces are ${abstractions.join(", ")}.`);
+
+  const entry = (ctx.entry_points ?? [])[0]?.path;
+  if (entry) facts.push(`It starts at ${entry}.`);
+
+  const routeCount = (ctx.routes ?? []).length;
+  const modelCount = (ctx.domain_models ?? []).length;
+  if (routeCount > 0 || modelCount > 0) {
+    const parts: string[] = [];
+    if (routeCount > 0) parts.push(`${routeCount} route${routeCount === 1 ? "" : "s"}`);
+    if (modelCount > 0) parts.push(`${modelCount} domain model${modelCount === 1 ? "" : "s"}`);
+    facts.push(`It already defines ${parts.join(" and ")}.`);
+  }
+
+  // Fall back to the name alone only when the analysis genuinely yielded nothing
+  // — and say so, rather than implying an inference that did not happen.
+  const derived =
+    facts.length > 0
+      ? `What the analysis found: ${facts.join(" ")}`
+      : `The analysis could not characterise ${name} beyond its name — treat the goal as unknown.`;
+
   return (
-    `Complete the owner's idea for ${name}. This was inferred from the repo, NOT confirmed — ` +
-    `before building, restate the goal in one plain-English sentence and ask the human "is this right?". ` +
-    `Treat their answer as the authoritative goal and record it here in continuation.yaml.`
+    `Finish building ${name}. ${derived} ` +
+    `That describes what EXISTS, which is not the same as what the owner WANTS — so before building, ` +
+    `restate the goal in one plain-English sentence and ask the human "is this right?". ` +
+    `Treat their answer as the authoritative goal and replace this text with it in continuation.yaml.`
   );
 }
 
 /** Build candidate entries: the work queue, seeded from the analysis. Deterministic order. */
 function buildCandidates(ctx: ContextMap): Array<{ id: string; description: string; priority: number; check: string }> {
   const out: Array<{ id: string; description: string; priority: number; check: string }> = [];
-  // The goal is always candidate #1.
+
+  // CANDIDATE #1 IS THE SMART DOCS, not the build. The product promise is: drop a
+  // repo in, get artifacts, open your coding agent, type `begin`, and the agent
+  // writes the docs that actually describe YOUR program. The generator can only
+  // get you a deterministic scaffold — it has no model, so it cannot write prose
+  // about intent. The agent can, and this is the step that tells it to, BEFORE it
+  // starts building against a goal nobody has confirmed.
+  //
+  // Previously the queue opened with "build the owner's stated goal", which
+  // skipped straight past that: an agent would start writing code guided by
+  // scaffold prose nobody had tailored.
+  out.push({
+    id: "smart-docs",
+    description:
+      "FIRST MOVE — turn the generated scaffolds into real docs for THIS project. " +
+      "Read context.md, prd.md and tasks.md (Iliad generated them deterministically from the repo, so they are accurate but generic). " +
+      "Then ask the human, in plain English, what they are actually trying to build and who it is for — begin.yaml's project_identity.goal is inferred from code that EXISTS, not from what they WANT. " +
+      "Rewrite the three docs so they describe that program specifically: what it does, who uses it, what done looks like, and the concrete next tasks. " +
+      "Record the confirmed goal in continuation.yaml, replacing the inferred text. Everything after this candidate is built against those docs.",
+    priority: 100,
+    check:
+      "The human reads context.md, prd.md and tasks.md and confirms they describe THEIR project — not a generic description of the code that happens to be present.",
+  });
+
   out.push({
     id: "goal",
-    description: "Build the owner's stated goal (see begin.yaml → project_identity.goal). Decompose it into small, verifiable steps and append them here as you discover them.",
-    priority: 100,
+    description: "Build the goal confirmed in the smart-docs step (recorded in continuation.yaml, and reflected in prd.md/tasks.md). Decompose it into small, verifiable steps and append them here as you discover them.",
+    priority: 99,
     check: "The owner confirms the built feature does what they asked, via a runnable demo.",
   });
   // Detected gaps become candidates. Stable order = analysis order.
@@ -389,26 +450,51 @@ function continueFooter(path: string, idx: number, mdTotal: number, next: string
  * a generation. Call AFTER appendQualityArtifacts so the quality docs are sequenced too.
  */
 export function appendAutonomyLoop(generated: GeneratorResult, ctx: ContextMap): void {
+  if (!generated.files.length) return;
+  // Idempotent: begin.yaml present ⇒ the loop (footers + continuation.yaml) was already
+  // woven in by an earlier call. Safe to call at generation AND again at export over a
+  // stored package (e.g. one produced by the MCP path) without double-footering.
+  if (generated.files.some((f) => f.path === "begin.yaml")) return;
+
+  // ORDER MATTERS, and it used to be wrong. The previous version footered every
+  // markdown file FIRST and built the yaml SECOND, all inside a catch that
+  // swallowed everything. A throw between those steps shipped a package whose
+  // artifacts all say "re-read begin.yaml" while begin.yaml was never written —
+  // a dangling self-reference, with no error surfaced anywhere. Build the
+  // content first: if it throws, nothing has been mutated and the package is
+  // simply loop-less rather than loop-less-but-claiming-otherwise.
+  let beginYaml: string;
+  let continuationYaml: string;
   try {
-    if (!generated.files.length) return;
-    // Idempotent: begin.yaml present ⇒ the loop (footers + continuation.yaml) was already
-    // woven in by an earlier call. Safe to call at generation AND again at export over a
-    // stored package (e.g. one produced by the MCP path) without double-footering.
-    if (generated.files.some((f) => f.path === "begin.yaml")) return;
-    // 1. Footer every markdown artifact; the last markdown one carries the self-prompt.
-    const md = generated.files.filter(isMarkdown);
-    md.forEach((f, i) => {
-      const next = i < md.length - 1 ? md[i + 1].path : null;
-      f.content = f.content + continueFooter(f.path, i, md.length, next);
-    });
-    // 2. Add the loop head + state (path-collision guarded, like the quality gate).
-    const add = (path: string, content: string, description: string) => {
-      if (generated.files.some((f) => f.path === path)) return;
-      generated.files.push({ path, content, content_type: "application/yaml", program: BEGIN_PROGRAM, description });
-    };
-    add("begin.yaml", buildBeginYaml(ctx), "Autonomy loop head — hand the repo to an agent and say 'begin'");
-    add("continuation.yaml", buildContinuationYaml(ctx, generated.files), "Autonomy loop state — ordered steps + the candidate queue the agent works");
-  } catch {
-    // Best-effort; the generated package already succeeded.
+    beginYaml = buildBeginYaml(ctx);
+    // Built against the pre-footer file list deliberately — the step list names
+    // artifacts, and footering does not change any path.
+    continuationYaml = buildContinuationYaml(ctx, generated.files);
+  } catch (err) {
+    // Best-effort by design (the generated package already succeeded), but NOT
+    // silent. A silent skip here is indistinguishable from "this build has no
+    // loop system", which is exactly the confusion it caused in practice.
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(
+      `[axis] autonomy loop NOT generated — begin.yaml/continuation.yaml are missing from this package.\n` +
+        `       reason: ${msg}\n` +
+        `       The rest of the artifacts are unaffected and no footers were added.`,
+    );
+    return;
   }
+
+  // 1. Footer every markdown artifact; the last markdown one carries the self-prompt.
+  const md = generated.files.filter(isMarkdown);
+  md.forEach((f, i) => {
+    const next = i < md.length - 1 ? md[i + 1].path : null;
+    f.content = f.content + continueFooter(f.path, i, md.length, next);
+  });
+
+  // 2. Add the loop head + state (path-collision guarded, like the quality gate).
+  const add = (path: string, content: string, description: string) => {
+    if (generated.files.some((f) => f.path === path)) return;
+    generated.files.push({ path, content, content_type: "application/yaml", program: BEGIN_PROGRAM, description });
+  };
+  add("begin.yaml", beginYaml, "Autonomy loop head — hand the repo to an agent and say 'begin'");
+  add("continuation.yaml", continuationYaml, "Autonomy loop state — ordered steps + the candidate queue the agent works");
 }
