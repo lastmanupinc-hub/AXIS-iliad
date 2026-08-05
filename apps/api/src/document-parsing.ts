@@ -255,14 +255,23 @@ async function parsePdf(buf: Buffer): Promise<PdfExtractResult> {
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(buf),
     useSystemFonts: true,
-    isEvalSupported: false,
+    // NOTE: `isEvalSupported: false` used to sit here and was REMOVED with the
+    // pdfjs 4 -> 6 upgrade, not dropped to appease the compiler. v6 deletes the
+    // option because it deletes the capability: the v4 legacy bundle contains
+    // one `eval(`/`new Function(` occurrence, v6 contains zero (verified by
+    // grepping both shipped bundles). There is no longer an eval path to
+    // disable in a parser that reads untrusted uploads.
     disableFontFace: true,
   });
   const doc = await loadingTask.promise;
   const pages: string[] = [];
+  // Captured BEFORE the teardown below. Every numPages read after the `finally`
+  // would otherwise touch a destroyed document — it happened to work under v4
+  // because destroy() left the cached value readable, which is luck, not API.
+  const pageCount = doc.numPages;
   // Page-bomb / slow-PDF guard: cap both the page count AND the wall-clock spent.
   // The loop awaits between pages, so both bounds are actually enforceable here.
-  const maxPages = Math.min(doc.numPages, MAX_PDF_PAGES);
+  const maxPages = Math.min(pageCount, MAX_PDF_PAGES);
   const start = Date.now();
   let stoppedAt = 0;
   try {
@@ -278,16 +287,20 @@ async function parsePdf(buf: Buffer): Promise<PdfExtractResult> {
       pages.push(`--- page ${p} ---\n\n${pageText}`);
     }
   } finally {
-    await doc.destroy();
+    // pdfjs 6 moved destroy() off PDFDocumentProxy and onto the loading task,
+    // where it also tears down the worker ("Abort all network requests and
+    // destroy the worker"). Destroying the task is the strictly wider cleanup,
+    // so this frees the worker the old call left running.
+    await loadingTask.destroy();
   }
   if (stoppedAt > 0) {
-    pages.push(`--- parsing stopped after ${stoppedAt} pages (time budget exceeded; document has ${doc.numPages}) ---`);
-  } else if (doc.numPages > MAX_PDF_PAGES) {
-    pages.push(`--- truncated: extracted first ${MAX_PDF_PAGES} of ${doc.numPages} pages ---`);
+    pages.push(`--- parsing stopped after ${stoppedAt} pages (time budget exceeded; document has ${pageCount}) ---`);
+  } else if (pageCount > MAX_PDF_PAGES) {
+    pages.push(`--- truncated: extracted first ${MAX_PDF_PAGES} of ${pageCount} pages ---`);
   }
   return {
     markdown: pages.join("\n\n").trim(),
-    page_count: doc.numPages,
+    page_count: pageCount,
   };
 }
 

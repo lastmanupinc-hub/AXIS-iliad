@@ -18,7 +18,7 @@ jobs:
       checks: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Run Axis compliance check
         uses: ./.github/actions/compliance-check
