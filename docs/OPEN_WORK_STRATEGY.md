@@ -235,13 +235,40 @@ justification was database contention, and lever 1 removed it — the reset went
 ~150ms and the bottleneck moved to module import. Re-measure before spending a day on either;
 the measurement will likely say no.
 
-**Lever 5 (33 `*-branches*` files, ~1,500 tests): decide with coverage data, not aesthetics.**
-This is where the test *count* actually lives, but those tests run in milliseconds, so cutting
-them buys review burden relief and costs coverage. **Strategy:** run coverage with the
-`*-branches*` files excluded and compare against the 60/60/50/60 thresholds. If they
-contribute little unique coverage, consolidate; if they are what holds the thresholds,
-keep them and stop treating the count as a problem. Either way the decision is data, not
-taste.
+**Lever 5 (33 `*-branches*` files, ~1,500 tests): MEASURED 2026-08-05.**
+
+In `packages/generator-core` alone: **21 branches files hold 1,060 of its 2,245 tests — 47%
+of the package's test count.** Running that package's suite with and without them:
+
+| metric | with | without | delta |
+|---|---|---|---|
+| lines | 46.98 | 45.46 | −1.52 |
+| statements | 45.05 | 43.48 | −1.57 |
+| functions | 29.39 | 28.79 | −0.60 |
+| branches | 27.84 | 25.53 | **−2.31** |
+
+(Absolute values are low because only one package's tests ran while the whole repo was
+instrumented — the DELTA is the meaningful figure.)
+
+**The thresholds are not at risk.** Full-suite coverage in CI is statements 89.44 / branches
+79.12 / functions 87.89 / lines 90.88, against thresholds of 60/60/50/60 — roughly **29 points
+of headroom on every metric**. Losing ~2.3 points of branch coverage leaves branches near 77%,
+still 27 points clear.
+
+**Conclusion: consolidation is SAFE from a threshold standpoint.** 1,060 tests buy 2.31 points
+of the metric they are named for. Nothing about the coverage gate requires keeping them.
+
+**What this measurement cannot tell you, and the reason it is not an instruction to delete:**
+coverage counts lines EXECUTED, not assertions that would catch a regression. A mechanically
+generated branch test can execute a great deal while asserting almost nothing — so a small
+delta proves these files are not load-bearing for the GATE, not that they catch nothing. The
+remaining question is qualitative: do they encode real expectations, or do they exist to move
+a number? That is a reading task, not a measuring one.
+
+**Also worth noting:** thresholds of 60/60/50/60 against actual coverage of ~90/79/88/91 are
+so slack they would not fail until roughly a third of the suite was deleted. They are not
+currently protecting anything. Raising them toward actual (with headroom) would turn a
+decorative gate into a real one — a cheaper and more useful change than deleting tests.
 
 ---
 
