@@ -1,90 +1,36 @@
 {
   "schema_version": "1.0",
-  "merkle_root": "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18",
+  "merkle_root": "547dd71ad4c93cbc287d2ef93a5e90959d2592df19c6a05b9dae8166ec5bbec4",
   "levels": [
     [
       "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e",
-      "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0",
-      "a5ab2b574fbbcc845917547f5fcfc58702e285e72cb23178d338cb45910b6c7c",
-      "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2",
-      "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad",
-      "e5cbee85c965b5717bbea83a195e9cb92c59d11566e087024a8f6b4645ffb4c0",
+      "9e0a0468f6e116f8777030efec97ce229f1387b4be08de14d04dfed53553448b",
+      "6bb8cf1e72e26058759ff753557bea4992733cc5f77c82670302b8e2b969af4c",
+      "77a81b62a832d4ff537e165e3a50231e1ba432d25b3501c5aa0eee63052d7990",
+      "f4728c603c96306b44b5c5314e9c1ae8a9df661c71e5f3a771a03e24c30abf55",
+      "33e4828ffa00f64f973d64a709b3f95f279e6135630128ec8bbee200b56bd7d6",
       "c2df0ed39e2f94c2ab6d932c413153fc5b99a8a584f7d9355a349004eeb352fd",
       "328ea322352f1e320d238afb577140d54e895efc3969aee722bfac28e12ec9a6",
-      "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
+      "6fc7b5fe7e265c194214487a4cb3c9de948618edbaab60b52dfdf568f88d45c4"
     ],
     [
-      "9f4f7d6599115cd6d987c360d8070bd011a6f8d075ce872a70af3101a1590137",
-      "4cd8a4c4daa1736e7a2644964ed4bfd3bf9b70aa62551e7f52b2823423368fd1",
-      "ae3f1874665f37517d61158aac82c12e3bed2fbb2c47309c518ae1b98a925839",
+      "56719afb65c3643d19f05df96c27db0a2b8074a2b80ce98685070b6fffe0b50e",
+      "9dae91d328f281e1a29bd0ce16de33fb5c1476c58bf8c13f6da8612f442fc1ab",
+      "c211649caf9e52bf3520e4db47f5b55b59adbcadb9a931d18ddc72afcb05a9a9",
       "0da395d912e2b6b8a666aaccc110ccc2582b58f278a30b321a80b8726508722d",
-      "ed5bb941af16da52c48fe372d826da4b4b301194778c81c4171a5b74e6c92f21"
+      "8912ddd9f477ac46328d39ee2c166bd9cee541d181519ac59b534936145366de"
     ],
     [
-      "2234b30e3db587cd42ab7a990b056332640d1e17071bf5de4cf8dd13301b7860",
-      "ce834066aa1b7058b3ce17c3496749a18a362b47b625a10f1eb9702309f2e554",
-      "844d25f301a5016b770f0bd1ed7f67053949570ef92703db0b776431a287e648"
+      "4d0c27725e10bf8489bcdf38a65f20569a7b24839f2311b513a4848ec55b239b",
+      "1b008ecf36ad8ac4d746e0d1df618bc6d7b44769fc3b260bae369700b3887ee8",
+      "15f03eb1f991d154cac9911e3e6f4e2206e403ec3556512dc44aa1f27963cd65"
     ],
     [
-      "fa1d4e4c6fb30e60344bd19897351122404e6ac48c123122200619c6ab75b350",
-      "16b078b4bbc84b220d9f523c76b8afaa4570e188768061363980c975b137a4ea"
+      "ccd6a750ac7240157537786299f0c89d59919afc3b8688d6c628dbfd63f6e86d",
+      "b14884550f1804bb1709210d58640e466d5675cea908bc883195f3ae5ed7550e"
     ],
     [
-      "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18"
+      "547dd71ad4c93cbc287d2ef93a5e90959d2592df19c6a05b9dae8166ec5bbec4"
     ]
-  ],
-  "leaf_index": [
-    {
-      "index": 0,
-      "path": "packaging/LICENSE",
-      "digest": "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e"
-    },
-    {
-      "index": 1,
-      "path": "Dockerfile",
-      "digest": "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0"
-    },
-    {
-      "index": 2,
-      "path": "docker-compose.yml",
-      "digest": "a5ab2b574fbbcc845917547f5fcfc58702e285e72cb23178d338cb45910b6c7c"
-    },
-    {
-      "index": 3,
-      "path": ".github/workflows/ci.yml",
-      "digest": "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2"
-    },
-    {
-      "index": 4,
-      "path": ".github/workflows/release.yml",
-      "digest": "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad"
-    },
-    {
-      "index": 5,
-      "path": "packaging/manifests/npm-package.json",
-      "digest": "e5cbee85c965b5717bbea83a195e9cb92c59d11566e087024a8f6b4645ffb4c0"
-    },
-    {
-      "index": 6,
-      "path": "packaging/manifests/unreal.uplugin",
-      "digest": "c2df0ed39e2f94c2ab6d932c413153fc5b99a8a584f7d9355a349004eeb352fd"
-    },
-    {
-      "index": 7,
-      "path": "packaging/manifests/vscode-extension.json",
-      "digest": "328ea322352f1e320d238afb577140d54e895efc3969aee722bfac28e12ec9a6"
-    },
-    {
-      "index": 8,
-      "path": "Makefile",
-      "digest": "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
-    }
-  ],
-  "verification": {
-    "algorithm": "sha256",
-    "certlib_profile": "certlib-offline-v1",
-    "leaf_formula": "sha256(path + \"\\n\" + file_bytes)",
-    "recompute_leaf": "{ printf '%s\\n' <path>; cat <path>; } | sha256sum",
-    "note": "Recompute each leaf digest from its file, rebuild the tree pairwise (sha256 of concatenated child digests, last node duplicated when odd), and compare the root to .merkle_root in attestation.json."
-  }
+  ]
 }

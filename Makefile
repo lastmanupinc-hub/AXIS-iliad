@@ -10,7 +10,8 @@ package:
 	docker build -t product-release:latest .
 
 attest:
-	@echo "Attestation bundle: packaging/trust-fabric/attestation.json"
+	@node scripts/generate-attestation.mjs
+	@node scripts/verify-attestation.mjs
 
 ship: build test package attest
 	@echo "Ready to ship: run release workflow and publish marketplace manifests"

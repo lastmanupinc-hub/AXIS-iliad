@@ -27,6 +27,22 @@ updates:
         update-types:
           - "minor"
           - "patch"
+        # MONEY-PATH EXCLUSION (ops_02, 2026-08-05). mppx must never ride inside
+        # a grouped PR. It is a 0.x package, so semver treats its MINOR bumps as
+        # BREAKING ranges, and it is what apps/api/src/cashier.ts and mpp.ts
+        # import — the only checkout rail. HARDEN_POLISH_LOOP.md §7's money-path
+        # law requires red-before-green demonstration for changes there, which a
+        # batch labelled "minor-and-patch" actively discourages.
+        #
+        # This is not hypothetical. Dependabot proposed exactly that twice:
+        # PR #241 carried mppx 0.5.12 -> 0.8.14 among 11 updates, and after the
+        # safe members were taken individually it regrouped the remainder into
+        # #253 with 0.8.15 still inside. The grouping is semver-literal and
+        # cannot know this repo has a money path; the label invites a rubber
+        # stamp. Excluding it means the bump always arrives as its own visible
+        # PR that has to be reasoned about on its own.
+        exclude-patterns:
+          - "mppx"
 
   # Root Dockerfile (axis-api's Render build).
   - package-ecosystem: "docker"
