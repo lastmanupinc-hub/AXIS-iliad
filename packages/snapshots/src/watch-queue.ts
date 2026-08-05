@@ -1,6 +1,5 @@
-// TYPE-ONLY: erased at compile time, so importing this module costs nothing at
-// runtime. The VALUE is loaded lazily in getBoss() below — see the note there.
-import type { PgBoss, Job } from "pg-boss";
+import { PgBoss } from "pg-boss";
+import type { Job } from "pg-boss";
 
 /**
  * The durable job queue behind the Watch mechanic (docs/saas-strategy/
@@ -35,17 +34,6 @@ async function getBoss(): Promise<PgBoss> {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set — required for the watch queue.");
   }
-  // infra_02: pg-boss is loaded HERE, not at module scope. This module is
-  // re-exported by packages/snapshots/src/index.ts, which 154 test files import
-  // — so a top-level `import { PgBoss } from "pg-boss"` made every one of them
-  // pay for the job-queue library and its transitive deps, whether or not they
-  // ever touch the watch queue. Measured: importing the barrel cost ~5.6s cold
-  // against ~1.4s for a single module from the same package.
-  //
-  // Nothing else in this file needs the value at module scope (PgBoss appears
-  // only in type positions and in this factory), so deferring it is invisible
-  // to callers: getBoss() was already async and already a lazy singleton.
-  const { PgBoss } = await import("pg-boss");
   const instance = new PgBoss(connectionString);
   // pg-boss emits 'error' for internal maintenance failures (e.g. a transient
   // connection blip during archival) — these must never crash the process;
