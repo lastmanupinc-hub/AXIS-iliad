@@ -141,6 +141,47 @@ the one that would actually catch that, and it is the one most likely to get ski
 
 ---
 
+### B1 pre-flight — DONE 2026-08-05, and it de-risks the bump substantially
+
+Two things measured rather than assumed, both of which change the picture:
+
+**1. The consumed API surface is four symbols, not "the library".**
+`Receipt` from `mppx` (only `Receipt.deserialize`), and `Mppx` / `stripe` / `tempo` from
+`mppx/server`. Only two files import mppx at all: `apps/api/src/cashier.ts` and
+`apps/api/src/mpp.ts`. Three breaking `0.x` ranges matter enormously against a wide surface;
+against four symbols the blast radius is enumerable.
+
+**2. mppx 0.8.15 is API-compatible with every shape this repo actually calls.** Installed in
+isolation and exercised directly:
+
+| what `mpp.ts`/`cashier.ts` call | 0.8.15 |
+|---|---|
+| `Mppx.create({ methods, secretKey })` | constructs OK |
+| `stripe.charge({ secretKey, networkId, paymentMethodTypes })` | function |
+| `tempo.charge({ testnet })` | function |
+| `Receipt.deserialize(value)` | function |
+| `instance.compose(...)` | function |
+| `instance.tempo.charge` (dual-rail build) | function |
+
+A first probe reported `instance.tempo` as ABSENT — that was the probe constructing with only
+the stripe method, not the dual-rail construction `mpp.ts` uses when a Tempo recipient is set.
+Re-tested correctly it is present. Recorded because it would have been a false alarm on the
+USDC rail, and the near-miss is the point: this check is easy to get wrong.
+
+**Why this hand-probe was necessary at all, and why `tsc` cannot replace it:** `mpp.ts`
+declares `type AnyMppx = any` (with an explicit eslint-disable) for the instance. The compiler
+therefore offers **zero** protection on any instance method — `inst.compose`, `inst.tempo.charge`
+and friends are unchecked. A shape change across 0.5 → 0.8 would not fail the build; it would
+fail in production, on the money path. The probe above is the type check the toolchain cannot do.
+
+**What remains, unchanged:** API compatibility is not behaviour compatibility. Receipt
+encoding, challenge ordering, and charge semantics can all move without any signature moving,
+and the mocks in the money suites would not notice. That is precisely what live PAI'D
+test-mode exercises, and it stays the gate. The bump is now known to be a *behavioural* risk
+only, not a structural one — which is a much smaller and better-defined thing to verify.
+
+---
+
 ## C · Dependency queue — 13 open Dependabot PRs
 
 **Context that changes how to read all of them:** PR #241's `build-and-test` was **skipped**,
