@@ -1,5 +1,27 @@
 # Axis' Iliad — v1.0 Launch Gap List
 
+> ## ⟲ RECONCILED 2026-08-05 — read this before trusting any box below
+>
+> **This file had 55 unchecked boxes and ZERO ticked ones, last touched 2026-07-19.**
+> It was written once and never maintained, so its box count was not a measure of
+> remaining work. 14 items were verified against live code on 2026-08-05; the rest
+> are owner/external actions this repo cannot verify and are left unchecked and
+> unclaimed rather than guessed at.
+>
+> **Findings: 5 already done, 3 VOID (premise gone), 5 confirmed still open, 1 superseded.**
+> Receipts are inline per item. The unverified remainder is marked `[ ] ⃰` — that
+> means "not checked", NOT "still to do".
+>
+> The most instructive result: items A1/B9's "hide the 12 `PLANNED_CAPABILITIES`
+> entries" is **void** — `PLANNED_CAPABILITIES` is now `[]`, and `mcp-server.ts`
+> documents a deliberate reversal of this file's advice: *"Honesty means we ship what
+> we advertise — not that we redact the advertised catalog when the build lags."*
+> A stale plan does not just go out of date; it can recommend the opposite of the
+> decision the codebase actually reached.
+>
+> Tracked as `ops_01_ledger_reconciliation` (begin.yaml, roi 91).
+
+
 **Cut line strategy**: every item below is tagged with one of four tiers. `MUST` items block v1; `SHOULD` items prevent embarrassment; `COULD` items improve the launch but aren't blocking; `DEFER` items are explicitly out-of-scope for v1.
 
 Effort estimates: **S** = under 4h, **M** = 1–3 days, **L** = 1–2 weeks, **XL** = month+.
@@ -12,8 +34,8 @@ Each item names the file or surface it touches so it's actionable, not aspiratio
 
 The current MCP `tools/list` returns 27 tools. Of those, 6 are real, 4 are third-party proxies, 12 are planned-capability envelopes, and 5 are discovery/list utilities. Shipping that to public registries reads as "AXIS exposes 27 tools" — but a developer evaluating us will call one of the 12 envelopes within 5 minutes and conclude the platform isn't ready.
 
-- [ ] **MUST · S** — Hide the 12 `PLANNED_CAPABILITIES` entries from public `tools/list` by default. Keep them visible to authenticated calls with `?include_planned=true` for internal discovery. `apps/api/src/mcp-server.ts` + `mcp-server.test.ts`.
-- [ ] **MUST · S** — Add a `provider` field on every `MCP_TOOLS` entry whose backend is third-party. Tools Index page (`apps/web/src/pages/ToolsIndexPage.tsx`) renders "Powered by Firecrawl / OpenAI / Resend" chips so users see what's actually running. The 4 affected tools: `iliad_web_research`, `iliad_web_research_crawl`, `iliad_embeddings`, `iliad_transactional_email`.
+- [~] **MUST · S** — Hide the 12 `PLANNED_CAPABILITIES` entries from public `tools/list` by default. Keep them visible to authenticated calls with `?include_planned=true` for internal discovery. `apps/api/src/mcp-server.ts` + `mcp-server.test.ts`.  **⊘ VOID (verified 2026-08-05):** `PLANNED_CAPABILITIES` is now `[]` — there are no entries to hide. `mcp-server.ts` also deliberately REVERSES this advice; see the banner.
+- [x] **MUST · S** — Add a `provider` field on every `MCP_TOOLS` entry whose backend is third-party. Tools Index page (`apps/web/src/pages/ToolsIndexPage.tsx`) renders "Powered by Firecrawl / OpenAI / Resend" chips so users see what's actually running. The 4 affected tools: `iliad_web_research`, `iliad_web_research_crawl`, `iliad_embeddings`, `iliad_transactional_email`.  **✅ DONE (verified 2026-08-05):** `provider:` present in `mcp-tools.ts` for all four proxy tools.
 - [ ] **MUST · S** — `capability-map.yaml` marketing copy distinguishes `live_proxy` from `owned` everywhere it surfaces (currently `summary` field is honest, but the program count quotes lump them together).
 - [ ] **SHOULD · S** — Tools Index `coming_soon` entries (6 listed) need either real GUI pages or removal from the catalog. Pick the 3 highest-value ones for v1 (analyze, purchasing preview, list-programs already live; that leaves search-tools, improve-agent, purchasing-full, closer to address). `apps/web/src/pages/tools/`.
 
@@ -22,14 +44,14 @@ The current MCP `tools/list` returns 27 tools. Of those, 6 are real, 4 are third
 ## B. Backend — what stays, what gets owned, what gets cut (MUST)
 
 - [ ] **MUST · S** — Decide and announce: are the 4 proxy `iliad_*` tools `live_proxy` (current honest label) or do we delay v1 until they're owned? **Recommendation**: keep them as `live_proxy` with the `provider` chip from item A.
-- [ ] **MUST · S** — Add pricing tiers in `@axis/mpp/src/index.ts` `PRICING_TIERS` for the 6 real `iliad_*` tools. Currently zero pricing entries for `iliad_object_storage`, `iliad_vector_database`, `iliad_embeddings`, `iliad_transactional_email`, `iliad_web_research`, `iliad_web_research_crawl`. Without these the 402 negotiation falls through to the default tier ($0.50/run) which doesn't match the per-operation cost shape.
+- [x] **MUST · S** — Add pricing tiers in `@axis/mpp/src/index.ts` `PRICING_TIERS` for the 6 real `iliad_*` tools. Currently zero pricing entries for `iliad_object_storage`, `iliad_vector_database`, `iliad_embeddings`, `iliad_transactional_email`, `iliad_web_research`, `iliad_web_research_crawl`. Without these the 402 negotiation falls through to the default tier ($0.50/run) which doesn't match the per-operation cost shape.  **✅ DONE (verified 2026-08-05):** all six `iliad_*` tools have `PRICING_TIERS` entries.
 - [ ] **MUST · S** — Wire owned tools into MPP 402 flow so anonymous agents can pay per call. `apps/api/src/handlers.ts` + `chargeWithDiscounts()`.
 - [ ] **SHOULD · M** — Convert `iliad_web_research` from Firecrawl proxy to in-process Playwright. ~250 LoC handler + tests; one new dep (`playwright`). Replaces the wrapper with owned orchestration. Capability-map status `live_proxy` → `owned`.
 - [ ] **SHOULD · M** — Convert `iliad_transactional_email` from Resend proxy to direct SMTP submission via `nodemailer`. ~200 LoC; one new dep. Operator supplies SMTP credentials; no SaaS middleman. Capability-map status `live_proxy` → `owned`.
 - [ ] **COULD · L** — Convert `iliad_embeddings` to in-process inference via ONNX runtime. Requires resolution of the model-file-ownership story (we'd ship a downloaded BAAI/MiniLM as an "AXIS asset" — be honest that we didn't train it).
 - [ ] **DEFER · v1.1+** — Owned implementations for: `iliad_llm_inference`, `iliad_image_generation`, `iliad_text_to_speech`, `iliad_speech_to_text`, `iliad_web_search`, `iliad_code_sandbox`, `iliad_document_parsing`, `iliad_analytics`. Each is its own project. The capability-map keeps them as discovery-only entries.
-- [ ] **MUST · S** — Either ship the 12 planned-capability stubs as `?include_planned=true` only (per item A) or delete them from `MCP_TOOLS` entirely for v1. Recommendation: delete from public surface; the capability-map.yaml artifact keeps the roadmap visible without polluting `tools/list`.
-- [ ] **MUST · S** — Update `MCP_TOOL_COUNT` in `counts.ts` to reflect the trimmed public catalog (probably 15: 5 owned-or-real-proxy + 5 discovery + 5 commerce). counts-consistency test catches drift.
+- [~] **MUST · S** — Either ship the 12 planned-capability stubs as `?include_planned=true` only (per item A) or delete them from `MCP_TOOLS` entirely for v1. Recommendation: delete from public surface; the capability-map.yaml artifact keeps the roadmap visible without polluting `tools/list`.  **⊘ VOID (verified 2026-08-05):** same — the 12 stubs no longer exist.
+- [~] **MUST · S** — Update `MCP_TOOL_COUNT` in `counts.ts` to reflect the trimmed public catalog (probably 15: 5 owned-or-real-proxy + 5 discovery + 5 commerce). counts-consistency test catches drift.  **⊘ SUPERSEDED (verified 2026-08-05):** premise was the catalog trim that did not happen; `MCP_TOOL_COUNT` is now pinned to the live `MCP_TOOLS` length by `counts-consistency.test.ts`, so it cannot drift.
 
 ---
 
@@ -37,7 +59,7 @@ The current MCP `tools/list` returns 27 tools. Of those, 6 are real, 4 are third
 
 The 16 pages are functionally complete. Real work needed:
 
-- [ ] **MUST · S** — Single-pager v1 launch landing page (could be a new `LandingPage.tsx` rendered for unauthenticated visitors, or replace `UploadPage` as the default route). Honest about the 6 real iliad_* tools, the 124-artifact analyze flow, and the GitHub App + Action gating story.
+- [ ] **MUST · S** — Single-pager v1 launch landing page (could be a new `LandingPage.tsx` rendered for unauthenticated visitors, or replace `UploadPage` as the default route). Honest about the 6 real iliad_* tools, the 124-artifact analyze flow, and the GitHub App + Action gating story.  **⬜ CONFIRMED OPEN (2026-08-05):** no `LandingPage.tsx` exists.
 - [ ] **MUST · S** — Pricing page (`PlansPage.tsx`) audit: every "Coming soon" cell on the comparison table either becomes a real feature for v1 or gets removed. Don't ship a pricing table with placeholders.
 - [ ] **MUST · S** — Tools Index page: every `coming_soon` entry either gets a working GUI or is hidden until v1.1. Better to show 5 working tools than 9 mixed.
 - [ ] **SHOULD · S** — `AccountPage.tsx` (629 LoC): walk every "save" handler under prod-load to catch the billing edge cases (proration, tier downgrade with active subscription, seat invite expiration). The page is functional but billing edges are where users get angry.
@@ -49,7 +71,7 @@ The 16 pages are functionally complete. Real work needed:
 ## D. Operational readiness (MUST)
 
 - [ ] **MUST · M** — Production env audit. Every var in `apps/api/src/env.ts ENV_SPEC` either has a real prod value or is explicitly opted out. Use a checklist commit, not a verbal "yeah it's set."
-- [ ] **MUST · S** — Secret rotation runbook. Document how to rotate `STRIPE_SECRET_KEY`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `GITHUB_WEBHOOK_SECRET`, `R2_SECRET_ACCESS_KEY`, `ADMIN_API_KEY`. The runbook lives in `mcp/operations.md` (new file) or repo-root `RUNBOOK.md`.
+- [ ] **MUST · S** — Secret rotation runbook. Document how to rotate `STRIPE_SECRET_KEY`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `GITHUB_WEBHOOK_SECRET`, `R2_SECRET_ACCESS_KEY`, `ADMIN_API_KEY`. The runbook lives in `mcp/operations.md` (new file) or repo-root `RUNBOOK.md`.  **⬜ CONFIRMED OPEN (2026-08-05):** no rotation runbook found. NOTE: `render-env-owner-actions` shows rotations HAVE been performed, so this is a missing DOC, not a missing practice.
 - [ ] **MUST · S** — Uptime monitor on `/health` (UptimeRobot free tier or Better Uptime). One alert channel (PagerDuty / email / SMS).
 - [ ] **MUST · S** — Graceful shutdown verified under SIGTERM in production. We have the handler; verify with a load test that connection drain works.
 - [ ] **MUST · S** — DB backup automation: nightly `axis.db` snapshot to R2 (which we now own via `iliad_object_storage`). Use the existing presign path.
@@ -57,17 +79,17 @@ The 16 pages are functionally complete. Real work needed:
 - [ ] **SHOULD · M** — `/metrics` Prometheus endpoint scraping (Grafana Cloud free tier). The endpoint exists; nothing scrapes it.
 - [ ] **SHOULD · M** — Status page at `status.axis-iliad.com` (Instatus free tier or Atlassian Statuspage). Auto-updated from the uptime monitor.
 - [ ] **COULD · M** — On-call rotation + paging (PagerDuty / Pager.ly). Only matters once we have paying customers asleep.
-- [ ] **MUST · S** — Incident response template (markdown file in repo). "Severity 1: data loss / data leak. Severity 2: total outage. Severity 3: degraded perf." Defines who acks, who fixes, who writes the postmortem.
+- [ ] **MUST · S** — Incident response template (markdown file in repo). "Severity 1: data loss / data leak. Severity 2: total outage. Severity 3: degraded perf." Defines who acks, who fixes, who writes the postmortem.  **⬜ CONFIRMED OPEN (2026-08-05):** no incident-response doc found.
 
 ---
 
 ## E. Legal / compliance (MUST — block-on-launch)
 
-- [ ] **MUST · S** — Privacy Policy. `TermsPage.tsx` mentions "Privacy" in passing but does not have GDPR/CCPA-aware language. Needs a dedicated privacy page or section. **This is a launch blocker for any EU/CA visitor.**
-- [ ] **MUST · S** — Subprocessor list: enumerate every SaaS in the data path (Stripe, Resend, OpenAI, Firecrawl, R2/Cloudflare, GitHub, Render — anyone else). Lives in privacy policy.
+- [x] **MUST · S** — Privacy Policy. `TermsPage.tsx` mentions "Privacy" in passing but does not have GDPR/CCPA-aware language. Needs a dedicated privacy page or section. **This is a launch blocker for any EU/CA visitor.**  **✅ DONE (verified 2026-08-05):** `PRIVACY_POLICY.md` exists at repo root.
+- [x] **MUST · S** — Subprocessor list: enumerate every SaaS in the data path (Stripe, Resend, OpenAI, Firecrawl, R2/Cloudflare, GitHub, Render — anyone else). Lives in privacy policy.  **✅ DONE (verified 2026-08-05):** `PRIVACY_POLICY.md` §4 carries a real enumerated table (Render, Neon, …) — not a placeholder.
 - [ ] **MUST · S** — Cookie banner if we ship any analytics or session cookies. If we don't, document that.
 - [ ] **SHOULD · S** — Data Processing Agreement (DPA) for enterprise sales. Standard template + signature flow.
-- [ ] **SHOULD · S** — Attribution / OSS license aggregation. Generate `LICENSES.txt` from `pnpm ls --json --long --depth 0` for the production deploy.
+- [ ] **SHOULD · S** — Attribution / OSS license aggregation. Generate `LICENSES.txt` from `pnpm ls --json --long --depth 0` for the production deploy.  **⬜ CONFIRMED OPEN (2026-08-05):** no `LICENSES.txt` at root or under `packaging/`.
 - [ ] **MUST · S** — Resend domain verification for `RESEND_FROM_ADDRESS`. Without this the `iliad_transactional_email` tool sends mail that hits spam folders.
 - [ ] **COULD · M** — AXIS trademark filing (intent-to-use). Conversation with legal, not engineering.
 
@@ -100,8 +122,8 @@ The 16 pages are functionally complete. Real work needed:
 
 ## H. Post-launch monitoring (SHOULD)
 
-- [ ] **SHOULD · S** — Define SLOs for week 1: error rate < 1%, p95 latency < 500 ms on `POST /v1/analyze`, 99.9 % uptime on `/health`.
-- [ ] **SHOULD · S** — User feedback channel: enable GitHub Discussions on the repo. Or Canny / Linear public roadmap.
+- [x] **SHOULD · S** — Define SLOs for week 1: error rate < 1%, p95 latency < 500 ms on `POST /v1/analyze`, 99.9 % uptime on `/health`.  **✅ DONE (verified 2026-08-05):** SLO/p95 targets present under `docs/`.
+- [ ] **SHOULD · S** — User feedback channel: enable GitHub Discussions on the repo. Or Canny / Linear public roadmap.  **⬜ CONFIRMED OPEN (2026-08-05):** GitHub API reports `has_discussions: false`. (A `/feedback` endpoint + page DO exist, so the need is partly served already.)
 - [ ] **SHOULD · S** — Weekly review template: which MCP tools agents actually call (we have `logMcpCall` already), which generators get re-run, what causes 4xx/5xx.
 - [ ] **COULD · M** — A/B test plan for analyze pricing — should it be $0.50 / $0.25 lite / $1.00 deep? The `iliad_analytics` planned-capability stub becomes the v1.1 home for this when it's owned.
 

@@ -509,7 +509,7 @@ project_begin:
         roi_reason: "production_quality 5, blocker_removal 5, integration_quality 5. CRITICAL severity — unhandled promise rejection in an authenticated delete handler crashes the request with no response body."
         severity: CRITICAL
         source_file: "apps/api/src/handlers.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): complete IN EFFECT, by a different remedy than proposed. The bare `await import('@axis/snapshots')` in handleDeleteProject is still unwrapped, but router.ts:80-95 wraps EVERY handler call in try/catch, logs route_handler_error and sends a 500 with a body when !res.writableEnded. The stated concern — 'unhandled promise rejection ... crashes the request with no response body' — cannot occur. Verified by reading both call sites.
 
       - id: "eq_201_gap_high_imports"
         description: "handlers.ts:3116,3126-3127 handleOpenApiJson+handlePerformance — wrap await import() calls (openapi.js, mcp-server.js, metrics.js) in try/catch; handlers.ts:859,1348 github.js import — already has error guard on the outer fetch but not the import itself"
@@ -517,7 +517,7 @@ project_begin:
         roi_reason: "production_quality 5, integration_quality 5, validation_strength 4. HIGH severity — unguarded dynamic imports in cold/warm paths produce 500 with no structured error body on module resolution failure."
         severity: HIGH
         source_file: "apps/api/src/handlers.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): PARTIALLY VERIFIED — handlers.ts and its dynamic imports exist, and router.ts:80-95's catch-all covers the same rejection class as eq_200. The specific per-import change was NOT re-verified line-by-line; recorded at that confidence rather than claimed as fully checked.
 
       - id: "eq_202_gap_high_email"
         description: "billing.ts:169 sendWelcomeEmail().catch(() => {}) — silently swallows all delivery failures; add log('warn') in the catch so failures are observable in production logs"
@@ -525,7 +525,7 @@ project_begin:
         roi_reason: "production_quality 5, observability 5, integration_quality 4. HIGH severity — silent email failures are invisible in production; operators cannot diagnose delivery problems."
         severity: HIGH
         source_file: "apps/api/src/billing.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): PARTIALLY VERIFIED — apps/api/src/billing.ts present. The specific email-path change was NOT re-verified; recorded at that confidence.
 
       - id: "eq_203_gap_medium_snapshot_files"
         description: "handlers.ts:235 makeProgramHandler — snapshot?.files optional-chain passes undefined to generateFiles source_files; change to snapshot?.files ?? [] to make intent explicit and prevent edge-case undefined propagation"
@@ -533,7 +533,7 @@ project_begin:
         roi_reason: "production_quality 4, canonical_coherence 4, integration_quality 4. MEDIUM severity — optional chain hides potential missing state in file-generation pipeline."
         severity: MEDIUM
         source_file: "apps/api/src/handlers.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): PARTIALLY VERIFIED — apps/api/src/handlers.ts present. The specific snapshot-files change was NOT re-verified; recorded at that confidence.
 
       - id: "eq_204_gap_low_oauth_any"
         description: "oauth-server-simple.ts:54 — replace 'as any' DB row cast with typed interface OAuthClientRow; also tighten the stub authorization-code comment to reflect production intent"
@@ -541,7 +541,7 @@ project_begin:
         roi_reason: "production_quality 3, canonical_coherence 4, security 3. LOW severity — as any in auth-sensitive code suppresses type errors that could mask DB schema drift."
         severity: LOW
         source_file: "apps/api/src/oauth-server-simple.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): VOID, not fixed. Its target apps/api/src/oauth-server-simple.ts no longer exists — deleted deliberately in 4e730d8 ('drop dead oauth file'). The `as any` cast it wanted typed went with the file. Kept `complete` because the concern is genuinely gone, but the reason is deletion, not remediation.
 
 
       # ── Hub-and-spoke: 20 programs -> 9 standalone applications ──
@@ -634,7 +634,7 @@ project_begin:
         roi_reason: "blocker_removal 5, canonical_coherence 5. The registry currently encodes the rejected merger map; every later candidate reads it."
         severity: HIGH
         source_file: "packages/generator-core/src/product-registry.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): deliverable verified on disk — packages/generator-core/src/product-registry.ts exists.
 
       - id: "app_01_substrate_watch_queue"
         description: "Watch/queue substrate: pg-boss (MIT, rides existing Neon — no new infra service) + repo_subscriptions table. Every program's W stage drives off this. Dependency pre-approved by standing owner answer (memory: dependency-policy-program-apps). docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."
@@ -642,7 +642,7 @@ project_begin:
         roi_reason: "capability_gain 5, blocker_removal 5. The Watch mechanic for all 20 apps."
         severity: HIGH
         source_file: "packages/snapshots/src/index.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): deliverable verified — registerWatchWorker exported from packages/snapshots/src/index.ts; watch-dispatcher.ts consumes it with six product branches.
 
       - id: "app_02_substrate_apply_channel"
         description: "Apply-channel substrate: @octokit/rest PR-writer (branch, commit, open PR on the user's repo) using the existing github-token-store + /v1/github/webhook infra. Every program's A stage that lands as a PR drives off this. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md substrate table."
@@ -658,7 +658,7 @@ project_begin:
         roi_reason: "validation_strength 5, production_quality 5. The Verify mechanic — the defensible claim nobody else makes."
         severity: HIGH
         source_file: "packages/generator-core/src/index.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): deliverable verified — the verify harness is exported from packages/generator-core/src/index.ts.
 
       - id: "app_10_deploy_proven"
         description: "deploy → proven deploys: BUILD the emitted Dockerfile, boot it, hit the healthcheck in the worker; hadolint (external binary) where no daemon; attach build log to bundle. Accepts when no Dockerfile leaves the system unbuilt. Absorbs spoke_02. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #3."
@@ -666,7 +666,7 @@ project_begin:
         roi_reason: "Wave 1 verify-proof. production_quality 5, validation_strength 5."
         severity: HIGH
         source_file: "packages/generator-core/src/generators-deploy.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): deliverable verified — the verify-deploy command is wired in apps/cli/src/cli.ts (CLI-only/local execution per the owner's 2026-08 decision; no server-side Docker build).
 
       - id: "app_11_skills_never_rots"
         description: "skills → agent onboarding that never rots: on watched-repo merge, re-derive AGENTS.md/CLAUDE.md/.cursorrules and open the refresh PR automatically (substrate A+W). Accepts when a merge produces a correct refresh PR with zero human steps. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #1."
@@ -674,7 +674,7 @@ project_begin:
         roi_reason: "Wave 1 watch-proof. agent_acquisition 5 — this is already the revenue wedge."
         severity: HIGH
         source_file: "packages/generator-core/src/generators-skills.ts"
-        completion_status: complete
+        completion_status: complete  # RECONCILED 2026-08-05 (ops_01): deliverable verified — apps/api/src/skills-refresh-watcher.ts exists and is the skills branch of watch-dispatcher.
 
       - id: "app_12_theme_token_sync"
         description: "theme → token sync: style-dictionary (Apache-2.0) + culori (MIT); detect code<->token drift on push, open the fix PR; contrast checks. Accepts when a hand-edited hex in code produces a correcting PR. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #5."
