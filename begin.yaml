@@ -790,6 +790,101 @@ project_begin:
         source_file: "packages/generator-core/src/generators-seo.ts"
         completion_status: complete  # SCOPED 2026-08-05 (commit 57edf62, CI green). The A and V halves shipped; the W half is owner-gated and NOT done — recorded honestly rather than marked complete wholesale. DELIVERED: generateSeoHeadTags emits real injectable <head> markup (meta/OG/Twitter + JSON-LD) built ONLY from facts the repo has — manifest description, else analyzer summary, else the tag is OMITTED. A fabricated description shipped into a user's <head> is a lie published under their domain, so missing facts are never filled with plausible-sounding copy. seo-structured-data.ts is the V gate: validates every JSON-LD block (schema.org @context, required fields per @type, placeholder rejection) and the Watch consumer REFUSES to open a PR when it fails, so invalid structured data cannot reach a user's site through AXIS. Hand-rolled rather than schema-dts because schema-dts is TYPES ONLY — compile-time against a type graph, nothing at runtime — so despite being named in this candidate it could not have done this job. seo-apply-watcher.ts is the 6th watch-dispatcher branch and injects between markers so re-runs are idempotent. Artifact count 143->144 with the full guard cascade. NOT DONE, owner-gated: Search Console deltas and sitemap submission both need Google OAuth plus the owner's GSC property; the candidate says "build it, don't fake data", so no placeholder GSC path was written.
 
+      # ── AUDIT-DERIVED CANDIDATES, added 2026-08-05 ──────────────────────
+      # Source: a full-repo incomplete-work sweep. These are NOT app_* product
+      # work; they are the things that sweep proved are wrong or missing. They
+      # sit ABOVE the remaining app_* queue deliberately — docs/ROI_CANDIDATES.md
+      # ranks a false claim or a silent loss above any new capability, and the
+      # sweep found the project's own ledgers are the biggest false claim left.
+      #
+      # NOT duplicated here: everything already ranked in docs/ROI_CANDIDATES.md
+      # (Tier 0 attestation/alerting/sandbox, Tier 1 revenue, Tier 2 listings,
+      # Tier 3 branch hygiene/protection/test-tooling). That file stays
+      # authoritative for those; a third competing list is how the drift below
+      # happened in the first place.
+
+      - id: "ops_01_ledger_reconciliation"
+        description: >
+          The project's own tracking documents misreport project state, so every planning
+          decision made from them is made on bad data. MEASURED 2026-08-05:
+          (a) begin.yaml said app_30_seo_applies was `open` when it had shipped in 57edf62
+          with CI green — fixed in this same commit, but it drifted silently and nothing
+          would have caught it;
+          (b) V1_LAUNCH_TODO.md shows 55 unchecked boxes, last touched 2026-07-19. Three were
+          spot-checked against live code and AT LEAST TWO ARE ALREADY DONE — every one of the
+          4 proxy tools carries the `provider` field the doc asks for, and all 6 iliad_* tools
+          have PRICING_TIERS entries the doc says are missing. The count overstates real work
+          by an unknown margin;
+          (c) continuation.yaml is a session-121 (2026-06-11) snapshot whose own header tells
+          readers not to trust its numbers, while its reference_policy still says
+          `after_session: update_this_file: true`. Both cannot be true.
+          WORK: reconcile all three against the code, one pass, marking each item done/open/void
+          with a receipt. Then add a guard for the class — the honesty suites already pin scalar
+          COUNTS across docs, and the same technique applied to ledger STATUS (a candidate marked
+          open whose deliverable exists on disk) would have caught (a) and (b) automatically.
+          TRAP: do not simply tick the boxes. Each needs verifying against code, because the
+          sample says the doc is wrong in BOTH directions — overstating open work here, and
+          begin.yaml understating completed work there.
+        roi_score: 91
+        roi_reason: "integrity 5 — three documents actively misreport state; every roadmap decision reads them. Cheap, and upstream of all other prioritisation."
+        severity: HIGH
+        source_file: "V1_LAUNCH_TODO.md"
+        completion_status: open
+
+      - id: "ops_02_dependabot_money_path_grouping"
+        description: >
+          Dependabot's "minor-and-patch" group has now proposed a BREAKING payment-library bump
+          twice: PR #241 contained mppx 0.5.12 -> 0.8.14, and after the safe members were taken
+          individually it regrouped the remainder into #253 with mppx 0.8.15 still inside. mppx is
+          a 0.x package, so those minors are breaking ranges by semver, and it is what
+          apps/api/src/cashier.ts and mpp.ts import — the only checkout rail.
+          The label is semver-literal and cannot know this repo has a money path, so it will keep
+          proposing it as routine maintenance, and the failure mode is a rubber-stamp merge.
+          WORK: in .github/dependabot.yml, exclude mppx (and any future money-path dependency)
+          from the grouped PR so it always arrives standalone and visibly. Converts "spot it every
+          time" into "cannot happen". NOT DONE unilaterally because it changes how the owner's
+          dependency automation behaves.
+        roi_score: 86
+        roi_reason: "integrity 5, prevention 5 — a recurring trap that already fired twice; the fix is one config block."
+        severity: HIGH
+        source_file: ".github/dependabot.yml"
+        completion_status: open
+
+      - id: "infra_02_test_import_cost"
+        description: >
+          The successor to infra_01 and the next real test-suite win — and it is NOT deleting tests.
+          MEASURED on a full local run 2026-08-05 (5646s total): IMPORT is 3104s (55%) against
+          1285s (23%) of actual test execution; transform 151s, setup 60s. infra_01's resetTestDb
+          fix took the suite from 240min to 94min by removing database teardown as the bottleneck,
+          and module loading is now what remains. Deleting the 1060 *-branches* tests would reduce
+          the 23%, not the 55%.
+          WORK: attack import cost — barrel-file fan-out (index.ts re-exports pulling whole packages
+          into every test), duplicated heavy imports across test files, and whether vitest can share
+          more module graph between files. Measure before and after; the win is real only if the
+          55% moves.
+        roi_score: 79
+        roi_reason: "developer_velocity 4 — a 94-minute local suite is still not a pre-commit gate; this is where the remaining time actually is, measured not guessed."
+        severity: MEDIUM
+        source_file: "vitest.config.ts"
+        completion_status: open
+
+      - id: "sec_01_tar_advisory_override"
+        description: >
+          `pnpm audit` reports one moderate advisory: node-tar <=7.5.20 (GHSA-r292-9mhp-454m,
+          uncontrolled recursion -> uncatchable stack-overflow DoS via a crafted long-path tar),
+          reached via apps/api > node-llama-cpp > cmake-js > tar. BUILD-TIME ONLY: cmake-js uses
+          tar to unpack Node headers during native compilation, so it is not reachable from any
+          request path — which is why this is `sec_01` and not a Tier 0 integrity row.
+          WORK: a pnpm `overrides` entry forcing tar >=7.5.21. That is a patch above the vulnerable
+          range (same major/minor), so the compatibility risk is low, but forcing a transitive
+          version is still a real decision and cmake-js's native build must be re-verified after —
+          node-llama-cpp is the sovereign embeddings backend, so a broken build breaks that feature.
+        roi_score: 68
+        roi_reason: "security 3 — real advisory, but build-time only and not request-reachable; cheap to clear and it removes noise from every audit run."
+        severity: LOW
+        source_file: "package.json"
+        completion_status: open
+
       - id: "app_31_frontend_v0_answer"
         description: "frontend → the v0 answer, standalone (NOT merged into artifacts — owner directive): generate components satisfying the repo's own extracted conventions via AXIS LLM inference; enforce the same rules as a custom ESLint plugin on every PR; the generator must pass its own lint. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #6."
         roi_score: 78
