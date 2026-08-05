@@ -37,7 +37,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
