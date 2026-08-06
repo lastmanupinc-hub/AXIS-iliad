@@ -452,6 +452,60 @@ function continueFooter(path: string, idx: number, mdTotal: number, next: string
  * continuation.yaml. Best-effort — a throw is swallowed so the loop layer can never fail
  * a generation. Call AFTER appendQualityArtifacts so the quality docs are sequenced too.
  */
+/**
+ * Files a coding agent reads on its own when it opens a repo. These are the only
+ * place a `begin` contract can live and actually be seen — anywhere else and the
+ * agent has to be told to look, which is the problem this solves.
+ */
+const AGENT_ENTRY_FILES = new Set([
+  "CLAUDE.md",
+  "AGENTS.md",
+  ".cursorrules",
+  "GEMINI.md",
+  ".github/copilot-instructions.md",
+]);
+
+/** Stable marker so re-running never stacks contracts. */
+export const BEGIN_CONTRACT_MARKER = "<!-- axis:begin-contract -->";
+
+/**
+ * The bootstrap contract. Deliberately short: it competes for attention with the
+ * rest of the file, and its only job is to route the agent to begin.yaml.
+ *
+ * `.cursorrules` is not markdown, so it gets a comment-free variant — an HTML
+ * comment marker there would be shown to the model as literal noise.
+ */
+function beginContract(path: string): string {
+  const body = [
+    "## If the first instruction is `begin`",
+    "",
+    "This repository was analysed by Axis' Iliad, which left an autonomous work queue in it.",
+    "",
+    "When the human's first message is `begin` (or they ask you to start, continue, or pick up the work):",
+    "",
+    "1. Read `begin.yaml` — the loop rules, the inferred goal, and how to choose the next move.",
+    "2. Read `continuation.yaml` — the live candidate queue and what has already been done.",
+    "3. Take the highest-priority candidate whose `status` is `open`. The first one asks you to",
+    "   interview the human about what they are actually building, and rewrite `context.md`,",
+    "   `prd.md` and `tasks.md` to describe THAT — the generated versions are accurate about the",
+    "   code but generic about intent.",
+    "4. Verify against the candidate's `acceptance_check`, update `continuation.yaml`, then continue.",
+    "",
+    "The goal recorded in `begin.yaml` was inferred from the code that EXISTS. Confirm it with the",
+    "human before building against it.",
+  ].join("\n");
+
+  if (path === ".cursorrules") {
+    // Plain text: no HTML comment, marker rendered as a normal line.
+    return `# axis:begin-contract
+${body}
+`;
+  }
+  return `${BEGIN_CONTRACT_MARKER}
+${body}
+`;
+}
+
 export function appendAutonomyLoop(generated: GeneratorResult, ctx: ContextMap): void {
   if (!generated.files.length) return;
   // Idempotent: begin.yaml present ⇒ the loop (footers + continuation.yaml) was already
@@ -484,6 +538,26 @@ export function appendAutonomyLoop(generated: GeneratorResult, ctx: ContextMap):
         `       The rest of the artifacts are unaffected and no footers were added.`,
     );
     return;
+  }
+
+  // 0. THE BOOTSTRAP CONTRACT — prepended, not appended, to the files a coding
+  // agent actually auto-reads.
+  //
+  // Without this the product's core promise did not work. begin.yaml opens with
+  // "Hand this repository to an AI coding agent and say: begin" — but that
+  // instruction lives INSIDE the file the agent will not open unless something
+  // tells it to. What agents auto-read is CLAUDE.md / AGENTS.md / .cursorrules,
+  // and there the only reference was the ⟳ footer on the LAST line, phrased as
+  // "to iterate" rather than "start here". .cursorrules had no reference at all.
+  // So `begin` working depended on the agent scrolling to the bottom and
+  // inferring intent — an accident, not a design.
+  //
+  // Prepended because agents read top-down and may truncate long files; a
+  // bootstrap instruction at the bottom is one the agent may never reach.
+  for (const f of generated.files) {
+    if (!AGENT_ENTRY_FILES.has(f.path)) continue;
+    if (f.content.includes(BEGIN_CONTRACT_MARKER)) continue; // idempotent
+    f.content = `${beginContract(f.path)}\n${f.content}`;
   }
 
   // 1. Footer every markdown artifact; the last markdown one carries the self-prompt.
