@@ -213,7 +213,10 @@ function inferGoal(ctx: ContextMap): string {
   if (summary) facts.push(summary);
 
   const described = ctx.project_identity?.description?.trim();
-  if (described) facts.push(`Its own manifest describes it as: ${described}`);
+  // Terminate it: these facts are joined with spaces into one paragraph, and a
+  // README tagline or manifest description rarely ends in punctuation — without
+  // this the sentences run together ("...small businesses Its main pieces are").
+  if (described) facts.push(`Its own description: ${/[.!?]$/.test(described) ? described : `${described}.`}`);
 
   const abstractions = (ctx.ai_context?.key_abstractions ?? []).filter(Boolean).slice(0, 5);
   if (abstractions.length > 0) facts.push(`Its main pieces are ${abstractions.join(", ")}.`);

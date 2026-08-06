@@ -97,6 +97,44 @@ export function buildRepoProfile(snapshot: SnapshotRecord, parsed?: ParseResult)
   };
 }
 
+/**
+ * A repo's own one-line statement of what it is. README first — a human wrote
+ * that for humans — then the manifest.
+ *
+ * The manifest fallback was missing entirely: description came ONLY from the
+ * README, so a repo with a perfectly good `"description": "Send and track
+ * invoices for small businesses"` in package.json and no README reported null.
+ * That is the single most explicit statement of INTENT a repo offers, and the
+ * autonomy loop's inferred goal is built from exactly this kind of signal — so
+ * dropping it made the goal weaker for precisely the small/new repos the loop
+ * is most useful on.
+ *
+ * Deterministic: reads committed files only, no clock, no network.
+ */
+function firstManifestDescription(snapshot: SnapshotRecord): string | null {
+  // package.json (npm) and composer.json (php) share the `description` field.
+  for (const name of ["package.json", "composer.json"]) {
+    const f = snapshot.files.find((x) => x.path === name);
+    if (!f) continue;
+    try {
+      const parsed: unknown = JSON.parse(f.content);
+      const d = (parsed as { description?: unknown }).description;
+      if (typeof d === "string" && d.trim().length > 0) return d.trim();
+    } catch {
+      // A malformed manifest is not this function's problem to report — the
+      // parser surfaces that elsewhere. Fall through to the next candidate.
+    }
+  }
+  // pyproject.toml / Cargo.toml: `description = "..."` at the top level.
+  for (const name of ["pyproject.toml", "Cargo.toml"]) {
+    const f = snapshot.files.find((x) => x.path === name);
+    if (!f) continue;
+    const m = /^\s*description\s*=\s*"([^"]+)"/m.exec(f.content);
+    if (m?.[1]?.trim()) return m[1].trim();
+  }
+  return null;
+}
+
 function buildProjectIdentity(snapshot: SnapshotRecord, parsed: ParseResult): ContextMap["project_identity"] {
   const readme = snapshot.files.find((f) => /^readme\.(md|txt)?$/i.test(f.path));
   const firstLine = readme?.content.split("\n").find((l) => l.trim().length > 0 && !l.startsWith("#"))?.trim() ?? null;
@@ -106,7 +144,7 @@ function buildProjectIdentity(snapshot: SnapshotRecord, parsed: ParseResult): Co
     type: snapshot.manifest.project_type,
     /* v8 ignore next */
     primary_language: parsed.languages[0]?.name ?? "unknown",
-    description: firstLine,
+    description: firstLine ?? firstManifestDescription(snapshot),
     repo_url: null,
     go_module: parsed.go_module?.module_path ?? null,
   };
