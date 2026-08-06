@@ -48,47 +48,30 @@ describe("billing claims — the registry may not contradict the Terms", () => {
     expect(products().length).toBeGreaterThan(10);
   });
 
-  // The mismatch that exists TODAY, declared rather than silently tolerated.
-  // Recurring billing is gated on the 2026-08-15 Terms change (see begin.yaml);
-  // until then these entries describe the INTENDED model, not the live one.
-  // Listing them here is not approval — it is a dated record so that (a) nothing
-  // NEW joins them unnoticed, and (b) publishing any of them stays blocked.
-  const KNOWN_PENDING_RECURRING_GATE = "2026-08-15";
-
-  it("no NEW product advertises recurring billing while the Terms say one-time", () => {
+  it("no product advertises recurring billing while the Terms say one-time", () => {
     if (!termsSayOneTimeOnly()) return; // Terms updated — constraint retired
 
+    // FIXED 2026-08-06: this previously needed a 17-product exception list.
+    // The registry now states today's truth in `billing` and keeps the intent
+    // in `billing_at_gate`, so the honest answer is simply zero.
     const recurring = products()
       .filter((p) => String(p.billing).toLowerCase() === "recurring")
-      .map((p) => p.id)
-      .sort();
-
-    // The exact set known and accepted as of 2026-08-06, pending the gate above.
-    // Derived from the registry on 2026-08-06, not hand-typed — my first pass at
-    // this list omitted `superpowers` and wrongly included `obsidian`, which is
-    // the same hand-maintained-list defect Phase T found in ProgramsPage.
-    const known = [
-      "agentic-purchasing", "algorithmic", "artifacts", "brand", "canvas", "debug",
-      "deploy", "frontend", "marketing", "mcp", "notebook", "optimization",
-      "remotion", "seo", "skills", "superpowers", "theme",
-    ];
-    const unexpected = recurring.filter((id) => !known.includes(id));
+      .map((p) => p.id);
 
     expect(
-      unexpected,
-      `TERMS_OF_SERVICE.md states a purchase is a single, one-time charge that does not auto-renew. ` +
-        `These products newly advertise recurring billing and are not in the known set pending the ` +
-        `${KNOWN_PENDING_RECURRING_GATE} Terms change. Do not publish them (e.g. as generated landing ` +
-        `pages) while the Terms say otherwise.`,
+      recurring,
+      "TERMS_OF_SERVICE.md states a purchase is a single, one-time charge that does not auto-renew. " +
+        "A product whose `billing` says recurring contradicts it. Use `billing_at_gate` to record what " +
+        "it becomes after the 2026-08-15 change; `billing` must describe what happens TODAY.",
     ).toEqual([]);
   });
 
-  it("the known-pending set has not silently grown or shrunk", () => {
-    if (!termsSayOneTimeOnly()) return;
-    // If this fails, the registry changed: re-confirm against the Terms and the
-    // gate date rather than editing the list to make it pass.
-    const recurring = products().filter((p) => String(p.billing).toLowerCase() === "recurring");
-    expect(recurring.length, "count of recurring-billing products changed").toBe(17);
+  it("the products intended to become recurring still say so", () => {
+    // The intent must survive the fix, or nobody can tell which products flip
+    // on the gate date — which is the failure mode that made overwriting the
+    // field unattractive in the first place.
+    const flip = products().filter((p) => (p as { billing_at_gate?: string }).billing_at_gate === "recurring");
+    expect(flip.length, "expected the 17 paid products to carry billing_at_gate").toBe(17);
   });
 
   it("once the Terms describe recurring billing, the registry must not still claim one_time", () => {
