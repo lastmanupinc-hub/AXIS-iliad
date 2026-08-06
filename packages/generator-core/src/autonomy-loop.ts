@@ -248,6 +248,62 @@ function inferGoal(ctx: ContextMap): string {
   );
 }
 
+/**
+ * Pro programs worth recommending, grounded in what the analysis actually saw.
+ *
+ * RULE, and it is the whole design: recommend a program only when the NEED is
+ * detected AND the thing is ABSENT. "You have a GUI and no design tokens" is a
+ * fact about the repo; "you might like theme" is an advert. The first converts
+ * because it is true and checkable, the second is the same defect class as a
+ * generated file claiming an inference it never performed.
+ *
+ * Every entry carries the evidence that triggered it, so a reader can disagree.
+ * search / skills / debug are omitted — they are the free tier, so recommending
+ * them sells nothing and adds noise.
+ *
+ * Deterministic: derived from the analysis only, fixed order, no clock.
+ */
+function recommendPrograms(ctx: ContextMap): Array<{ program: string; because: string }> {
+  const out: Array<{ program: string; because: string }> = [];
+  const paths = (ctx.structure?.file_tree_summary ?? []).map((f) => String(f.path ?? "").toLowerCase());
+  const has = (re: RegExp) => paths.some((p) => re.test(p));
+  const frameworks = (ctx.detection?.frameworks ?? []).map(asName).filter(Boolean) as string[];
+  const fw = frameworks.join(" ").toLowerCase();
+
+  // GUI present but no design system. Per the owner: a theme is fundamentally
+  // needed by any repo with a GUI that lacks one — this is a gap, not an upsell.
+  const hasGui = /(react|vue|svelte|angular|next|nuxt|remix|solid|astro)/.test(fw);
+  const hasTheme = has(/(tailwind\.config|theme\.(css|ts|js)|design-tokens?|tokens\.(css|json)|styled|\.scss$)/);
+  if (hasGui && !hasTheme) {
+    out.push({
+      program: "theme",
+      because: `${frameworks.join(", ")} detected, but no design-token, theme or Tailwind config found — the UI has no shared design system to build against.`,
+    });
+  }
+
+  // Public pages but nothing making them findable.
+  const routeCount = (ctx.routes ?? []).length;
+  const hasSeo = has(/(sitemap|robots\.txt|next-seo|meta-tags?)/);
+  if (hasGui && routeCount > 0 && !hasSeo) {
+    out.push({
+      program: "seo",
+      because: `${routeCount} route${routeCount === 1 ? "" : "s"} detected with no sitemap, robots.txt or meta-tag config — public pages that search engines cannot index well.`,
+    });
+  }
+
+  // Runnable app with no way to ship it.
+  const hasEntry = (ctx.entry_points ?? []).length > 0;
+  const hasDeploy = has(/(dockerfile|docker-compose|fly\.toml|vercel\.json|netlify\.toml|render\.yaml|procfile)/);
+  if (hasEntry && !hasDeploy) {
+    out.push({
+      program: "deploy",
+      because: "an application entry point exists but no Dockerfile, compose file or hosting config — nothing describes how this gets deployed.",
+    });
+  }
+
+  return out;
+}
+
 /** Build candidate entries: the work queue, seeded from the analysis. Deterministic order. */
 function buildCandidates(ctx: ContextMap): Array<{ id: string; description: string; priority: number; check: string }> {
   const out: Array<{ id: string; description: string; priority: number; check: string }> = [];
@@ -305,6 +361,27 @@ function buildCandidates(ctx: ContextMap): Array<{ id: string; description: stri
 }
 
 /** The loop HEAD. Generalized from Axis' own begin.yaml; parameterized to the repo. */
+/**
+ * Renders the recommendations, or NOTHING when the analysis found no grounded
+ * reason. An empty section would still read as an advert; silence is the honest
+ * output when there is no evidence.
+ */
+function recommendationBlock(ctx: ContextMap): string {
+  const recs = recommendPrograms(ctx);
+  if (recs.length === 0) return "";
+  const rows = recs
+    .map((r) => `    - program: ${yq(r.program)}
+      because: ${yblock(r.because, "      ")}`)
+    .join("\n");
+  return `
+  # Paid AXIS programs whose NEED this analysis actually detected. Each carries the
+  # evidence that triggered it — if the evidence is wrong, ignore the recommendation.
+  # Tell the human about these when the goal is confirmed; do not act on them alone.
+  recommended_programs:
+${rows}
+`;
+}
+
 export function buildBeginYaml(ctx: ContextMap): string {
   const name = ctx.project_identity?.name ?? "this repository";
   const hotspots = (ctx.dependency_graph?.hotspots ?? []).map((h) => h.path).filter(Boolean).slice(0, 8);
@@ -326,6 +403,7 @@ project_begin:
     stack: ${yq(stackLabel(ctx))}
     goal: ${yblock(inferGoal(ctx), "    ")}
 
+${recommendationBlock(ctx)}
   required_read_order:
     - read_this_file_first
     - then_read_continuation_yaml
