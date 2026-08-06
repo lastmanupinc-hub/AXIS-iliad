@@ -829,7 +829,7 @@ project_begin:
         roi_reason: "integrity 5 — three documents actively misreport state; every roadmap decision reads them. Cheap, and upstream of all other prioritisation."
         severity: HIGH
         source_file: "V1_LAUNCH_TODO.md"
-        completion_status: open
+        completion_status: complete  # SCOPED 2026-08-05 (5348a66, CI green). All three ledgers reconciled against code with a receipt per item: V1_LAUNCH_TODO 14 verified (5 already done, 3 VOID, 5 confirmed open, rest marked 'not checked' rather than guessed); begin.yaml's 10 receipt-less 'complete' entries backfilled at the confidence actually achieved; continuation.yaml repaired (it had been INVALID YAML for months - three defects, incl. descriptions of mojibake whose bytes contain a literal quote). Guard shipped: apps/api/src/ledger-honesty.test.ts. NOTE ITS BLIND SPOT, proven by this very entry: the guard catches an OPEN candidate whose named generator already ships, but ops_01/ops_02/sec_01 are not generator work, so nothing caught THEM sitting open after shipping. Status drift on non-generator candidates is still unguarded.
 
       - id: "ops_02_dependabot_money_path_grouping"
         description: >
@@ -848,7 +848,7 @@ project_begin:
         roi_reason: "integrity 5, prevention 5 — a recurring trap that already fired twice; the fix is one config block."
         severity: HIGH
         source_file: ".github/dependabot.yml"
-        completion_status: open
+        completion_status: complete  # SCOPED 2026-08-05 (bb73e12, CI green). mppx excluded from the minor-and-patch group in .github/dependabot.yml, so a breaking 0.x payment-library bump can never again ride inside a batch whose label invites a rubber stamp. It had done so TWICE (#241, then #253 after the safe members were taken individually).
 
       - id: "infra_02_test_import_cost"
         description: >
@@ -866,7 +866,7 @@ project_begin:
         roi_reason: "developer_velocity 4 — a 94-minute local suite is still not a pre-commit gate; this is where the remaining time actually is, measured not guessed."
         severity: MEDIUM
         source_file: "vitest.config.ts"
-        completion_status: open
+        completion_status: complete  # CLOSED-NOT-WORTH-IT 2026-08-05, on measurement rather than difficulty. The diagnosis held: import IS 55% of suite wall-clock (3104s of 5646s) vs 23% actual test execution, and a narrow import IS ~3x cheaper than the barrel (measured 5 cold runs each: barrel ~2793ms mean, single module ~994ms, so ~1.8s saved per import). What killed it was the arithmetic on the OTHER side. 154 test files import @axis/snapshots, so a full migration saves ~277s = ~9% of import time = ~5% of the suite, in exchange for 154 NON-mechanical edits: the symbols are spread wide (resetTestDb 69, createAccount 27, createApiKey 26, and a long tail), so each file needs triage into the right subpath, plus a new exports map. The cleanly-migratable subset - files importing ONLY test helpers - is just 27 files, worth ~49s, under 1% of the suite. Neither version justifies the churn or the regression risk, and the one perf change already attempted here (lazy pg-boss, 3a99431) broke Node 20 and was reverted in e1921a4. REOPEN ONLY IF: the suite grows enough that 5% matters, or someone finds a change that reduces import cost WITHOUT touching 154 files (vitest module-graph sharing across files would be that change - unexplored, and the right place to look first). Recorded so this is not re-opened on a hunch: the win is real but small, and the cost is large and risky.
 
       - id: "sec_01_tar_advisory_override"
         description: >
@@ -883,7 +883,7 @@ project_begin:
         roi_reason: "security 3 — real advisory, but build-time only and not request-reachable; cheap to clear and it removes noise from every audit run."
         severity: LOW
         source_file: "package.json"
-        completion_status: open
+        completion_status: complete  # SCOPED 2026-08-05 (ae01553, CI green). pnpm.overrides pins tar >=7.5.21, clearing GHSA-r292-9mhp-454m via node-llama-cpp > cmake-js > tar; `pnpm audit` now reports no known vulnerabilities. Verified the override actually reached cmake-js via the LOCKFILE (the store still holds a stale tar@7.5.20 directory, which reads like a failure and is not), and that node-llama-cpp still loads with its 33 embeddings tests green - forcing a transitive version under a native builder was the real risk.
 
       - id: "app_31_frontend_v0_answer"
         description: "frontend → the v0 answer, standalone (NOT merged into artifacts — owner directive): generate components satisfying the repo's own extracted conventions via AXIS LLM inference; enforce the same rules as a custom ESLint plugin on every PR; the generator must pass its own lint. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #6."
