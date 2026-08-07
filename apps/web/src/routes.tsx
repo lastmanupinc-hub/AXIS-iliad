@@ -500,6 +500,7 @@ export const ROUTES: RouteDef[] = [
     pattern: "changelog",
     label: "Changelog",
     section: "REFERENCE",
+    aliases: ["/changelog"],
     render: () => <ChangelogPage />,
   },
   {
@@ -518,6 +519,7 @@ export const ROUTES: RouteDef[] = [
     label: "Examples",
     section: "AGENTS",
     nav: { group: "LIBRARY", icon: "grid" },
+    aliases: ["/examples"],
     render: () => <ExamplesPage />,
   },
   {
@@ -704,6 +706,7 @@ export const ROUTES: RouteDef[] = [
     label: "Terms",
     section: "REFERENCE",
     // Footer-only — deliberately absent from the sidebar/drawer/rail.
+    aliases: ["/terms"],
     render: () => <TermsPage />,
   },
   {
@@ -713,6 +716,7 @@ export const ROUTES: RouteDef[] = [
     label: "Privacy",
     section: "REFERENCE",
     // Footer-only — deliberately absent from the sidebar/drawer/rail (matches "terms").
+    aliases: ["/privacy"],
     render: () => <PrivacyPage />,
   },
   {
