@@ -21,9 +21,9 @@ Iliad is the **x402 showcase** in the Trust Fabric stack. Full registry: [`ecosy
 | Project | Role | x402 |
 |---------|------|------|
 | **Axis' Iliad** (this repo) | Agent artifacts + MCP gateway | **Wired** — [`@axis/mpp`](packages/mpp/README.md) |
-| **[PAI'D](https://paid.trustfabric.ai)** | Multi-rail payments + settlement | Settlement layer (planned Go x402) |
+| **[PAID](https://paid.trustfabric.ai)** | Multi-rail payments + settlement | Settlement layer (planned Go x402) |
 | **[AXIS Foundry](https://github.com/lastmanupinc-hub/AXIS-Foundry)** | 3D pipeline + MCP | Partial |
-| **[Trust Fabric](https://tf.jonathanarvay.com)** | Certification marketplace | Planned |
+| **[Trust Fabric](https://trustfabric.ai)** | Compliance audit, remediation + Trust Passport | Planned |
 
 x402 contract: [`docs/x402/CONTRACT.md`](docs/x402/CONTRACT.md)
 
