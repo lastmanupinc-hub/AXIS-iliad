@@ -2,11 +2,27 @@
 
 **BUILD COMMAND: `continue`** — when the operator sends `continue` (any casing, with or
 without other text), the executing model MUST: read this file top-to-bottom → ground-truth
-the STATE table against `git log`/`git status`/CI (never trust the table over reality) →
-execute the next pending unit(s) → verify → commit → push → update STATE → keep going until
-the session ends or the CONVERGENCE test passes. Do not ask permission between units; the
-only stops are the ESCALATION list. This document is the single source of truth for the
-loop; edit it in place as you work.
+the STATE table against `git log`/`git status` and the LOCAL gates (never trust the table
+over reality) → execute the next pending unit(s) → verify → commit → push → update STATE →
+keep going until the session ends or the CONVERGENCE test passes. Do not ask permission
+between units; the only stops are the ESCALATION list. This document is the single source
+of truth for the loop; edit it in place as you work.
+
+**⇢ CURRENT STATE (2026-08-16, supersedes the 2026-07-27 note below for DISPATCH only —
+the Phase A pause itself still stands):** Phase R CONVERGED (playbook), Phase T DONE
+(T.1–T.3 shipped 2026-07-27), Phase A remains OWNER-PAUSED. The operative work queue is
+**`begin.yaml`'s ROI-ranked candidates** (owner-directed since 2026-08-05), executed under
+begin.yaml's own autonomous_execution_policy. `continue` therefore means: highest-ROI open
+candidate not blocked on an owner decision, with receipts written back to begin.yaml.
+
+**⇢ VERIFICATION LAW (2026-08-15, owner: "GitHub as a garage, not a CI/CD"):** GitHub
+Actions is DISABLED (synthetic/nightly/ci/compliance/context-freshness); any reference
+below to "CI", "push=deploy", or GH-based ground-truthing is historical. Verification runs
+LOCALLY: `scripts/ship.sh gate` (full container gate via docker-compose.ci.yml when the
+engine is up; a LABELED degraded non-container set when it is not), deploys go out via
+`ship api` / `ship web` and are WATCHED to live/failed via the host's own API — a deploy
+has exactly two honest endings, and silence is not one of them. Git pushes land in the
+GitHub garage AND the local bare mirror (double-pushurl on origin) atomically.
 
 **⇢ CURRENT PHASE (2026-07-27): Phase T.** The owner paused Phase A's two-clean-pass
 convergence gate (full directive + constraints in the note under the STATE table) and

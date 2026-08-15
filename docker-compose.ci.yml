@@ -22,7 +22,12 @@ services:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 24
+      # First boot runs initdb (bootstrap + post-bootstrap) before accepting
+      # connections; the maiden run of this gate died here with "dependency
+      # failed to start: postgres unhealthy" while initdb was still mid-flight.
+      # start_period excludes that window from the retry count entirely.
+      start_period: 60s
 
   ci:
     image: node:22-bookworm-slim
