@@ -1,4 +1,4 @@
-// ProgramsPage — keyword-rich landing for all 20 AXIS programs
+// ProgramsPage — keyword-rich landing for all 21 AXIS programs
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
 
@@ -76,6 +76,16 @@ const PROGRAMS: ProgramDef[] = [
     keywords: ["technical SEO generator", "schema.org markup generator", "ContactPage schema", "SEO rules for Next.js", "structured data generator", "sitemap strategy"],
     outputs: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
     cta: "Generate SEO rules",
+  },
+  {
+    id: "pitch",
+    name: "Pitch",
+    tier: "pro",
+
+    tagline: "Truth-first pitch deck from runtime evidence — docs claims audited, never repeated",
+    keywords: ["pitch deck generator", "truth-first pitch deck", "investor deck from codebase", "claims audit", "evidence-based pitch"],
+    outputs: ["pitch-deck.md", "pitch-deck.json", "slide-art-prompts.json"],
+    cta: "Generate the deck",
   },
   {
     id: "optimization",

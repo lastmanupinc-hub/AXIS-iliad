@@ -97,7 +97,7 @@ AXIS-Iliad-Vault/
 
 ## Infrastructure
 - [[Database Schema]] — Neon Postgres, 49 tables
-- [[API Surface]] — 166 REST endpoints
+- [[API Surface]] — 167 REST endpoints
 - [[Frontend Dashboard]] — React 19 + Vite 6 SPA
 
 ## Packages
@@ -144,8 +144,8 @@ AXIS-Iliad-Vault/
 ## Aggregate
 | Stat | Value |
 |------|-------|
-| Total programs | 20 |
-| Total generators | 144 |
+| Total programs | 21 |
+| Total generators | 147 |
 | Free generators | 16 |
 | Pro generators | 128 |
 ```

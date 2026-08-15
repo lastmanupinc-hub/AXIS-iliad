@@ -50,13 +50,13 @@ curl https://axis-api-6c7z.onrender.com/v1/projects/PROJECT_ID/export \
   -H 'Authorization: Bearer YOUR_API_KEY' -o artifacts.zip
 ```
 
-**Free tier includes:** Search (context maps), Skills (AGENTS.md, CLAUDE.md, .cursorrules), Debug (playbooks, incident templates). Pro unlocks all 20 programs.
+**Free tier includes:** Search (context maps), Skills (AGENTS.md, CLAUDE.md, .cursorrules), Debug (playbooks, incident templates). Pro unlocks all 21 programs.
 
 ---
 
 ## What you get
 
-One scan → 144 artifacts across 20 programs, ready in seconds:
+One scan → 147 artifacts across 21 programs, ready in seconds:
 
 | What you need | Program | Key outputs |
 |---------------|---------|-------------|
@@ -131,7 +131,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 | Tier | Price | Programs |
 |------|-------|----------|
 | **Free** | $0 | Search, Skills, Debug |
-| **Pro** | $0.50 / run | All 20 programs, 144 artifacts |
+| **Pro** | $0.50 / run | All 21 programs, 147 artifacts |
 | **Lite mode** | $0.15–$0.25 / run | Top-gap summary, reduced output |
 
 Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` + `X-Agent-Mode: lite` on any paid call.
@@ -184,18 +184,18 @@ Requires: Docker 20.10+ or Docker Desktop
 ```
 axis-iliad/
 ├── apps/
-│   ├── api/          → Zero-dependency HTTP server (port 4000, 166 endpoints)
+│   ├── api/          → Zero-dependency HTTP server (port 4000, 167 endpoints)
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/
 │   ├── snapshots/    → Snapshot intake, Postgres (Neon) persistence, billing, funnel
 │   ├── repo-parser/  → Language detection (60+), framework detection (10), import graph
 │   ├── context-engine/ → Context map builder, repo profile, route/architecture analysis
-│   └── generator-core/ → 144 generators across 20 programs
+│   └── generator-core/ → 147 generators across 21 programs
 └── vitest.config.ts  → Shared test config
 ```
 
-## Programs (20)
+## Programs (21)
 
 | Program | Outputs | Tier |
 |---------|---------|------|

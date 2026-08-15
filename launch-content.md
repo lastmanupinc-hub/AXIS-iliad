@@ -15,7 +15,7 @@ It analyzes any codebase and generates everything from:
 - Debug playbooks & incident templates
 
 **Free tier:** 3 programs (Search, Skills, Debug)
-**Paid tiers:** All 20 programs — Starter $29/mo, Pro $99/mo, Growth $299/mo
+**Paid tiers:** All 21 programs — Starter $29/mo, Pro $99/mo, Growth $299/mo
 
 **Try it:**
 - Web UI: https://axis-api-6c7z.onrender.com
@@ -32,14 +32,14 @@ Built for AI-native development - the operating system AI assistants need.
 
 **Tweet 1/3:** 🎉 Axis' Iliad is now PUBLIC!
 
-After 125+ sessions building, I made public the AI development OS that generates 144 artifacts from any codebase.
+After 125+ sessions building, I made public the AI development OS that generates 147 artifacts from any codebase.
 
 From context maps to brand systems, debug playbooks to SEO audits - it creates everything AI assistants need.
 
 #AI #DeveloperTools
 
 **Tweet 2/3:** What's included:
-✅ 20 specialized programs
+✅ 21 specialized programs
 ✅ MCP server integration
 ✅ 4,900+ tests (91.5% coverage)
 ✅ Freemium model ($0 / $29 / $99 / $299)
@@ -79,11 +79,11 @@ After 6+ months of development and 125+ coding sessions, this AI-native developm
 • 4,900+ automated tests
 • Zero runtime HTTP dependencies
 • MCP server integration
-• Production-grade API with 166 endpoints
+• Production-grade API with 167 endpoints
 
 **Freemium model:**
 • Free: 3 core programs
-• Paid tiers: Starter $29/mo, Pro $99/mo, Growth $299/mo — all 20 programs
+• Paid tiers: Starter $29/mo, Pro $99/mo, Growth $299/mo — all 21 programs
 
 Check it out: https://github.com/lastmanupinc-hub/axis-iliad
 
@@ -96,7 +96,7 @@ Check it out: https://github.com/lastmanupinc-hub/axis-iliad
 **Cursor Discord:**
 "Hey @everyone - Axis' Iliad, the AI development OS that Cursor has been missing, is now public!
 
-It analyzes repos and generates 144 artifacts that would take days to create manually. Perfect companion for Cursor's AI coding.
+It analyzes repos and generates 147 artifacts that would take days to create manually. Perfect companion for Cursor's AI coding.
 
 Already has MCP integration - works seamlessly with Cursor.
 
@@ -115,13 +115,13 @@ What would you generate for your project?"
 
 ## Hacker News Submission
 
-**Title:** Show HN: Axis' Iliad - AI that generates 144 artifacts from any codebase
+**Title:** Show HN: Axis' Iliad - AI that generates 147 artifacts from any codebase
 
 **Text:**
 I've been building Axis' Iliad for the past 6+ months - an AI-native development operating system that analyzes codebases and generates comprehensive artifacts automatically.
 
 **What it does:**
-Takes any repository (GitHub URL or uploaded) and generates 143 different outputs across 20 specialized programs:
+Takes any repository (GitHub URL or uploaded) and generates 143 different outputs across 21 specialized programs:
 
 **Free Programs:**
 - Search: context maps, repo profiles, architecture summaries
@@ -139,7 +139,7 @@ Takes any repository (GitHub URL or uploaded) and generates 143 different output
 - Zero HTTP dependencies in runtime
 - Neon Postgres persistence with full-text search
 - MCP server integration
-- 166 API endpoints
+- 167 API endpoints
 
 **Try it:** https://axis-api-6c7z.onrender.com
 **Source:** https://github.com/lastmanupinc-hub/axis-iliad
@@ -157,7 +157,7 @@ Axis' Iliad analyzes any codebase and generates 143 comprehensive artifacts auto
 
 **What makes it special:**
 • Built specifically for AI-native development workflows
-• 20 specialized programs covering every aspect of software development
+• 21 specialized programs covering every aspect of software development
 • MCP server integration for seamless AI assistant connectivity
 • Production-grade with 4,900+ tests and 91.5% coverage
 • Freemium model (Free + Starter $29 / Pro $99 / Growth $299 per month)

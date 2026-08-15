@@ -607,9 +607,9 @@ function AccountGuideSection() {
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Programs</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>3</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>20</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>20</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>20</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>21</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>21</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>21</td>
             </tr>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Monthly credits</td>

@@ -2359,6 +2359,7 @@ function programEndpoints(): Record<string, unknown> {
     { path: "/v1/debug/analyze", name: "debugAnalyze", summary: "Run debug analysis program" },
     { path: "/v1/frontend/audit", name: "frontendAudit", summary: "Run frontend audit program" },
     { path: "/v1/seo/analyze", name: "seoAnalyze", summary: "Run SEO analysis program" },
+    { path: "/v1/pitch/generate", name: "pitchGenerate", summary: "Generate the truth-first pitch deck (measured evidence only; docs claims audited, never repeated)" },
     { path: "/v1/optimization/analyze", name: "optimizationAnalyze", summary: "Run optimization analysis program" },
     { path: "/v1/theme/generate", name: "themeGenerate", summary: "Generate design theme tokens" },
     { path: "/v1/brand/generate", name: "brandGenerate", summary: "Generate brand guidelines" },

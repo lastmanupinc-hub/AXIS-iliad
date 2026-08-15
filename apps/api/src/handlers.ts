@@ -231,6 +231,7 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug:        ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
   frontend:     ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
   seo:          ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
+  pitch:        ["pitch-deck.md", "pitch-deck.json", "slide-art-prompts.json"],
   optimization: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
   theme:        ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
   brand:        ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
@@ -521,6 +522,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
 export const handleDebugAnalyze        = makeProgramHandler("debug", PROGRAM_OUTPUTS.debug);
 export const handleFrontendAudit       = makeProgramHandler("frontend", PROGRAM_OUTPUTS.frontend);
 export const handleSeoAnalyze          = makeProgramHandler("seo", PROGRAM_OUTPUTS.seo);
+export const handlePitchGenerate       = makeProgramHandler("pitch", PROGRAM_OUTPUTS.pitch);
 export const handleOptimizationAnalyze = makeProgramHandler("optimization", PROGRAM_OUTPUTS.optimization);
 export const handleThemeGenerate       = makeProgramHandler("theme", PROGRAM_OUTPUTS.theme);
 export const handleBrandGenerate       = makeProgramHandler("brand", PROGRAM_OUTPUTS.brand);
@@ -1574,6 +1576,9 @@ const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string 
   "content-audit.md":         { placement: ".ai/", adoption_hint: "Review with your content team. Identifies thin content, duplicate metadata, and coverage gaps." },
   "meta-tag-audit.json":      { placement: ".ai/", adoption_hint: "Feed to your SEO tooling. Per-route meta tag analysis in machine-readable format." },
   "seo-head-tags.html":       { placement: "root", adoption_hint: "Paste into your <head>, or let the seo watch mechanic open a PR that injects it for you." },
+  "pitch-deck.md":            { placement: "root", adoption_hint: "The truth-first deck. Every figure is measured; docs numbers appear only on the Truth slide as audited claims." },
+  "pitch-deck.json":          { placement: ".ai/", adoption_hint: "Machine-readable slides with per-fact analyzer sources. Feed to your deck tool of choice." },
+  "slide-art-prompts.json":   { placement: ".ai/", adoption_hint: "Per-slide background prompts. Render via POST /v1/pitch/backgrounds (xAI) or scripts/pitch-backgrounds.mjs." },
   "optimization-rules.md":    { placement: ".ai/", adoption_hint: "Reference in code review. Locks in performance and cost optimization patterns for AI-assisted work." },
   "prompt-diff-report.md":    { placement: ".ai/", adoption_hint: "Use before/after AI-assisted sessions to measure prompt quality drift and output consistency." },
   "cost-estimate.json":       { placement: ".ai/", adoption_hint: "Import into your billing dashboard or cost tracking pipeline. Per-operation token cost model." },

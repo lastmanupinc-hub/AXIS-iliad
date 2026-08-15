@@ -71,7 +71,7 @@ describe("billing claims — the registry may not contradict the Terms", () => {
     // on the gate date — which is the failure mode that made overwriting the
     // field unattractive in the first place.
     const flip = products().filter((p) => (p as { billing_at_gate?: string }).billing_at_gate === "recurring");
-    expect(flip.length, "expected the 17 paid products to carry billing_at_gate").toBe(17);
+    expect(flip.length, "expected the 18 paid products to carry billing_at_gate").toBe(18); // +pitch (2026-08-13)
   });
 
   it("once the Terms describe recurring billing, the registry must not still claim one_time", () => {

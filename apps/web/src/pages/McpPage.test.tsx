@@ -58,7 +58,7 @@ const MANIFEST_RESPONSE = {
 const TOOLS = [
   {
     name: "list_programs",
-    description: "Inventory mode. List all 20 AXIS programs. Free, no auth, and no side effects.",
+    description: "Inventory mode. List all 21 AXIS programs. Free, no auth, and no side effects.",
     inputSchema: { type: "object", properties: {} },
     annotations: { title: "List Programs", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   },
@@ -128,7 +128,7 @@ const PROBE_RESPONSE = {
   intent: "checkout compliance",
   recommendations: [
     { tool: "prepare_agentic_purchasing", reason: "Full purchasing readiness audit", auth: true, pricing: "$0.50/call via MPP or included in Pro plan" },
-    { tool: "search_and_discover_tools", reason: "Keyword search across all 20 programs", auth: false, pricing: "free" },
+    { tool: "search_and_discover_tools", reason: "Keyword search across all 21 programs", auth: false, pricing: "free" },
   ],
   call_next: "prepare_agentic_purchasing",
   mcp_endpoint: "https://x/mcp",

@@ -182,7 +182,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     price_annual_cents: annualPriceCents(2900),
     highlights: [
       "75,000 monthly credits",
-      "All 20 programs",
+      "All 21 programs",
       "Overage at $0.0018 per credit",
       "Annual billing saves 20%",
     ],
@@ -195,7 +195,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     price_annual_cents: annualPriceCents(9900),
     highlights: [
       "300,000 monthly credits",
-      "All 20 programs",
+      "All 21 programs",
       "Overage at $0.0018 per credit",
       "Annual billing saves 20%",
     ],
@@ -208,7 +208,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     price_annual_cents: annualPriceCents(29900),
     highlights: [
       "1,200,000 monthly credits",
-      "All 20 programs",
+      "All 21 programs",
       "Overage at $0.0018 per credit",
       "Priority support",
     ],
@@ -229,7 +229,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
 
 export const PLAN_FEATURES: PlanFeature[] = [
   { name: "Monthly credits", free: marketedCredits("free"), starter: marketedCredits("starter"), pro: marketedCredits("pro"), growth: marketedCredits("growth"), enterprise: "Custom" },
-  { name: "Programs available", free: "3 core", starter: "All 20", pro: "All 20", growth: "All 20", enterprise: "All 20" },
+  { name: "Programs available", free: "3 core", starter: "All 21", pro: "All 21", growth: "All 21", enterprise: "All 21" },
   { name: "Overage", free: "$0.0018 / credit", starter: "$0.0018 / credit", pro: "$0.0018 / credit", growth: "$0.0018 / credit", enterprise: "Custom" },
   { name: "Annual savings", free: false, starter: "20%", pro: "20%", growth: "20%", enterprise: "Custom" },
   { name: "Team seats", free: 1, starter: 5, pro: 10, growth: 25, enterprise: "Unlimited" },

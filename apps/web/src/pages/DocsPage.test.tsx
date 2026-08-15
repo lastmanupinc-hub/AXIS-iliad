@@ -138,7 +138,7 @@ describe("DocsPage — Programs tab (regression: PROGRAM_DOCS drift)", () => {
 });
 
 describe("DocsPage — Outputs tab (regression: same PROGRAM_DOCS drift, different table)", () => {
-  it("full output inventory covers all 20 programs, not 17", async () => {
+  it("full output inventory covers all 21 programs, not 17", async () => {
     render(<DocsPage onNavigate={noop} />);
     fireEvent.click(screen.getByRole("tab", { name: /Output Formats/ }));
 

@@ -41,7 +41,7 @@ export const DOCS_API_BASE: string = import.meta.env.VITE_API_URL || PROD_API_BA
 // Mirrors of apps/api/src/counts.ts — guarded against it by count-honesty.
 
 /** Distinct programs in the catalog (= TOTAL_PROGRAMS). */
-export const PROGRAM_COUNT = 20;
+export const PROGRAM_COUNT = 21;
 
 /** Always-free programs: Search, Skills, Debug. */
 export const FREE_PROGRAM_COUNT = 3;
@@ -58,7 +58,7 @@ export const FREE_PROGRAM_NAMES = ["search", "skills", "debug"] as const;
 export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
 
 /** Generated artifacts per full run (= TOTAL_GENERATORS). */
-export const ARTIFACT_COUNT = 144;
+export const ARTIFACT_COUNT = 147;
 
 /**
  * Artifacts produced by the FREE_PROGRAM_NAMES programs alone (search+skills+debug) —
@@ -73,4 +73,4 @@ export const FREE_FILE_COUNT = 16;
 export const TOOL_COUNT = 37;
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
-export const ENDPOINT_COUNT = 166;
+export const ENDPOINT_COUNT = 167;

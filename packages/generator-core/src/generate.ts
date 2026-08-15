@@ -7,6 +7,7 @@ import { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkfl
 import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
 import { generateFrontendRules, generateComponentGuidelines, generateLayoutPatterns, generateUiAudit } from "./generators-frontend.js";
 import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit, generateMetaTagAudit, generateSeoHeadTags } from "./generators-seo.js";
+import { generatePitchDeck, generatePitchDeckJson, generateSlideArtPrompts } from "./generators-pitch.js";
 import { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate, generateTokenBudgetPlan } from "./generators-optimization.js";
 import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap, generateDarkModeTokens } from "./generators-theme.js";
 import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
@@ -153,6 +154,9 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "ui-audit.md": (ctx, _p, files) => generateUiAudit(ctx, files),
   "meta-tag-audit.json": (ctx, _p, files) => generateMetaTagAudit(ctx, files),
   "seo-head-tags.html": (ctx, _p, files) => generateSeoHeadTags(ctx, files),
+  "pitch-deck.md": (ctx, _p, files) => generatePitchDeck(ctx, files),
+  "pitch-deck.json": (ctx, _p, files) => generatePitchDeckJson(ctx, files),
+  "slide-art-prompts.json": (ctx, _p, files) => generateSlideArtPrompts(ctx, files),
   "token-budget-plan.md": (ctx, profile, files) => generateTokenBudgetPlan(ctx, profile, files),
   "dark-mode-tokens.json": (ctx, _p, files) => generateDarkModeTokens(ctx, files),
   "channel-rulebook.md": (ctx, _p, files) => generateChannelRulebook(ctx, files),

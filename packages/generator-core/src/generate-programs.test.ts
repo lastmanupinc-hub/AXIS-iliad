@@ -56,6 +56,7 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug: ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
   frontend: ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
   seo: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
+  pitch: ["pitch-deck.md", "pitch-deck.json", "slide-art-prompts.json"],
   optimization: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
   theme: ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
   brand: ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
@@ -255,9 +256,9 @@ describe("verify-gate generators", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 144 registered generators", () => {
+  it("returns all 147 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(144); // +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1); +1: architecture-diagram.d2 (app_24); +1: seo-head-tags.html (app_30)
+    expect(generators.length).toBe(147); // +3 pitch (pitch-deck.md/json, slide-art-prompts.json); +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1); +1: architecture-diagram.d2 (app_24); +1: seo-head-tags.html (app_30)
   });
 
   it("returns objects with path and program fields", () => {
@@ -270,10 +271,10 @@ describe("listAvailableGenerators", () => {
     }
   });
 
-  it("classifies all 20 programs correctly", () => {
+  it("classifies all 21 programs correctly", () => {
     const generators = listAvailableGenerators();
     const programs = new Set(generators.map(g => g.program));
-    expect(programs.size).toBe(20);
+    expect(programs.size).toBe(21);
     for (const expected of Object.keys(PROGRAM_OUTPUTS)) {
       expect(programs.has(expected), `missing program: ${expected}`).toBe(true);
     }

@@ -97,6 +97,12 @@ export const PRODUCT_REGISTRY: Record<string, Product> = {
     id: "superpowers", name: "Superpowers", subdomain: "superpowers.trustfabric.ai",
     programs: ["superpowers"], price_usd: 19, billing: "one_time", billing_at_gate: "recurring", tier_min: "paid",
   },
+  pitch: {
+    id: "pitch", name: "Pitch", subdomain: "pitch.trustfabric.ai",
+    // price_usd 19 matches the $19 sibling tier (theme/frontend/seo/deploy).
+    // OWNER: adjust if the truth-first deck should price differently.
+    programs: ["pitch"], price_usd: 19, billing: "one_time", billing_at_gate: "recurring", tier_min: "paid",
+  },
   "agentic-purchasing": {
     id: "agentic-purchasing", name: "Agentic Purchasing", subdomain: "commerce.trustfabric.ai",
     programs: ["agentic-purchasing"], price_usd: 99, billing: "one_time", billing_at_gate: "recurring", tier_min: "suite",

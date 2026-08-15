@@ -80,6 +80,17 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     notes: "SSR/SSG vs SPA awareness (Next.js, React)",
   },
   {
+    name: "pitch", label: "Axis Pitch", icon: "pitch", category: "Growth & Content",
+    promise: "A pitch deck that argues from runtime evidence",
+    description: "Truth-first deck: every figure measured from the repo; docs numbers audited on the Truth slide, never repeated as facts. Slide art prompts derived per repo.",
+    tier: "pro", generatorCount: 3,
+    endpoints: ["POST /v1/pitch/generate"],
+    outputFiles: ["pitch-deck.md", "pitch-deck.json", "slide-art-prompts.json"],
+    freeFeatures: ["Preview slide structure"],
+    paidFeatures: ["Full deck with claims audit", "Per-repo slide art prompts", "xAI background rendering (operator)", "API access"],
+    notes: "Claims audit never accuses from a capped scan; unit mismatches are unverifiable, not contradictions",
+  },
+  {
     name: "optimization", label: "Axis Optimization", icon: "optimization", category: "Repo Intelligence",
     promise: "Reduce waste and improve prompt and context efficiency",
     description: "Analyze prompts, context packing, and model workflows for cost, clarity, and output quality.",

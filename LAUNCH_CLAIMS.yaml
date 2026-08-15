@@ -11,22 +11,22 @@
 
 claims:
   - id: artifact_count
-    text: "144 artifacts per analysis"
-    value: 144
+    text: "147 artifacts per analysis"
+    value: 147
     source: "apps/api/src/counts.ts ARTIFACT_COUNT (derived from the generator REGISTRY)"
     status: verified
     verified_at: "2026-07-14"
 
   - id: program_count
-    text: "20 specialized programs"
-    value: 20
+    text: "21 specialized programs"
+    value: 21
     source: "apps/api/src/counts.ts PROGRAM_COUNT"
     status: verified
     verified_at: "2026-07-02"
 
   - id: endpoint_count
-    text: "166 REST endpoints"
-    value: 166
+    text: "167 REST endpoints"
+    value: 167
     source: "apps/api/src/counts.ts ENDPOINT_COUNT (guarded by counts-consistency.test.ts)"
     status: verified
     verified_at: "2026-07-12"

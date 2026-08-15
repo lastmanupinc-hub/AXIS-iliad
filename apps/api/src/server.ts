@@ -14,6 +14,7 @@ import {
   handleDebugAnalyze,
   handleFrontendAudit,
   handleSeoAnalyze,
+  handlePitchGenerate,
   handleOptimizationAnalyze,
   handleThemeGenerate,
   handleBrandGenerate,
@@ -207,6 +208,7 @@ router.post("/v1/skills/generate", handleSkillsGenerate);
 router.post("/v1/debug/analyze", handleDebugAnalyze);
 router.post("/v1/frontend/audit", handleFrontendAudit);
 router.post("/v1/seo/analyze", handleSeoAnalyze);
+router.post("/v1/pitch/generate", handlePitchGenerate);
 router.post("/v1/optimization/analyze", handleOptimizationAnalyze);
 router.post("/v1/theme/generate", handleThemeGenerate);
 router.post("/v1/brand/generate", handleBrandGenerate);
