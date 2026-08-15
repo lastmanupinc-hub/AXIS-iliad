@@ -708,6 +708,48 @@ project_begin:
         source_file: "packages/context-engine/src/engine.ts"
         completion_status: complete  # SCOPED 2026-08-01: Watch step only — processSearchIndexSync re-fetches+re-indexes (indexSnapshotContent+indexSymbols, both pre-existing pgvector-backed) on every push for "search"-subscribed repos, keeping freshness <= one merge behind. Does NOT add a new MCP tool on the main hub surface (that dispatch path is the paid/metered/security-sensitive one, a separate and larger change than an isolated Watch consumer) — searchSnapshotContent already exists and is already wired to real REST handlers (/v1/search/query); this just keeps what it reads current automatically instead of requiring a manual re-index call after every code change.
 
+      - id: "app_45_pitch_program"
+        description: >
+          Pitch program (21st): a deck that argues from runtime evidence. Owner-directed
+          2026-08-13 ("we need a new program in iliad. pitch deck"; spec: docs are
+          "notoriously offline with the actual repo functions" - trust NOTHING from
+          dev/marketing/markdown; every slide number measured; docs numbers appear only on
+          the Truth slide as audited claims; xAI-rendered slide art from repo-derived prompts).
+        roi_score: 85
+        roi_reason: "owner-directed; first program whose OUTPUT is itself a sales artifact for the repo it analyzes."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-pitch.ts"
+        completion_status: complete  # SCOPED 2026-08-15. RECEIPTS: 72a9d36 (3 generators + xai-images runtime + full 21/147/167 cascade, guards-enumerated 24->0), 56aca15 (stragglers), 224f096 (dogfood fixes below). LIVE IN PROD same day: /v1/programs lists pitch (21 programs), iliad.trustfabric.ai titles "21 generator programs, 147 artifacts". xAI backgrounds generated LIVE on the owner's team (grok-imagine-image-quality, model list verified against GET /v1/models after stale hardcodes 404'd), images visually inspected, no-text contract held. DOGFOODED against PAI'D 3 rounds, each finding real defects no unit test caught: R1 evidence junk (YAML-as-primary-language; go.mod never scanned - ".mod" not included and nothing name-carved it); R2 my source-first fix starved README and the truth slide went DARK while 9 scanner tests stayed green (tests asserted admission mechanics, not the consumer's needs); R3 acceptance: Go/97-models/291-tables evidence AND a genuine contradiction caught in the customer's own docs ('go-backend/README.md claims "21 models" - measured 97') under the floors regime's one permitted accusation direction. Claims-audit false positives fixed with the real shapes as regression tests ("2, Test" trailing comma; "5 User Rights" numbered heading). Determinism re-proven byte-identical AFTER a false DIFFERS from my own broken harness (missing fixture + || fallthrough). PRICE: $19 one_time / billing_at_gate recurring in PRODUCT_REGISTRY - OWNER may reprice. Public xAI endpoint deliberately NOT shipped (pricing is an owner decision; scripts/pitch-backgrounds.mjs is the operator path).
+
+      - id: "ops_03_garage_doctrine"
+        description: >
+          Owner law 2026-08-15: "whatever fixes this so we don't rely on GitHub for git and
+          Render for action"; "GitHub as a garage, not a CI/CD - too expensive for our
+          velocity". Local machine = source of truth; GitHub = dumb mirror; Render = watched
+          dumb host; ALL verification local.
+        roi_score: 92
+        roi_reason: "owner law; removes the failure mode that broke deploys for 8 days AND the ambient CI spend."
+        severity: HIGH
+        source_file: "scripts/ship.sh"
+        completion_status: complete  # SCOPED 2026-08-15. THE INCIDENT: prod served an 8-day-old build while 3 Render deploys died at ~30s (verified via Render's own deploys API); root cause f171844's target - commit 3771206 declared "@axis/seo": "file:../../../AXIS Launch/..." (a SIBLING-REPO path no clone resolves) plus a rogue npm lockfile in the pnpm workspace; NOTHING paged (ALERT_WEBHOOK_URL absent, owner-accepted). RECEIPTS: f171844 (vendored plugin closure, deploy fix - pushed and WATCHED to live: build->update->live on 56aca15), 1ed5ad4 (docker-compose.ci.yml + ci-local.sh; first green STILL PENDING - docker engine wedged, owner GUI needed), f1a1283 (ship.sh: gate/api/web/probe with watched deploys), ee41fc1 (live-probe modernized: asserted dead 5MB-era policy for 2 weeks behind an unconditional exit-0 - now asserts the 50MB reality, 6/6 vs prod, honest exit code). GIT INDEPENDENCE: local bare mirror git-mirrors/axis-iliad.git + double-pushurl on origin (one push lands both; verified both remotes advancing). WEB INDEPENDENCE: built+prerendered+audited 10/10 locally, deployed via wrangler with the key.txt CF token (web had ALSO been stale since Aug 7 - its CI deploy path died on the same broken install). SPEND: synthetic (48/day) + nightly + ci + compliance-check + context-freshness workflows DISABLED; remaining active are manual-only/call-only/Dependabot; ambient GitHub cost zero. OPEN SEAMS (owner): registry choice + git->image service conversion for full Render-build excision; ship.sh grows `api --image` without redesign. AUTONOMY AUDIT delivered same day: revenue path 100% agentless (proved by the outage itself - runtime served customers for 8 days unattended); Watch->Apply DORMANT in prod for want of GITHUB_TOKEN; change-path still operator-bound.
+
+      - id: "app_46_pitch_snapshot_input"
+        description: >
+          Snapshot-input mode for analyze: accept a curated forensic snapshot (e.g.
+          REPO_SNAPSHOT.yaml - the owner literally pointed the CLI at one and it could only
+          scan directories) as an evidence source for 1000+-file repos where even a
+          source-first capped scan under-samples. REQUIRES REAL DESIGN before code: the deck's
+          honesty law knows two evidence classes (measured, claim); a snapshot is a THIRD -
+          "attested by an owner-supplied audit" - and slides/truth-assessment must label it as
+          such, never launder it into "measured". Scope questions for the owner: does attested
+          evidence appear on the main slides or only in a labeled appendix; does a
+          snapshot-vs-measurement disagreement become a contradiction or a provenance note.
+        roi_score: 74
+        roi_reason: "owner-demonstrated need (they reached for it before it existed); unlocks honest decks for repos the cap cannot represent."
+        severity: MEDIUM
+        source_file: "apps/cli/src/cli.ts"
+        completion_status: open
+
       - id: "app_23_artifacts_embed_platform"
         description: "artifacts → embed platform: bundle the generated widget with esbuild (MIT), host at versioned R2 URL (existing iliad_object_storage), rebuild on relevant merges; verify bundle loads headless without console errors. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #11."
         roi_score: 83
