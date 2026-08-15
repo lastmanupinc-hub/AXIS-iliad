@@ -77,7 +77,12 @@ async function checkAnon413() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        files: [{ path: "big.bin", content: "x", size: 6_291_456 }],
+        // 60MB declared: ABOVE the free per-file cap (raised 5MB -> 50MB in
+        // b6d713c, 2026-07-31, "fix(pricing)"). This probe asserted the 5MB-era
+        // behavior for two weeks after that change and nobody saw it fail,
+        // because this script always exited 0 — a monitor that cannot fail.
+        // Both defects fixed together (see exit code below).
+        files: [{ path: "big.bin", content: "x", size: 62_914_560 }],
         programs: ["skills"],
       }),
     });
@@ -164,8 +169,12 @@ async function main() {
     appendFileSync(process.env.GITHUB_OUTPUT, `alert_failed_names=${alertWorthy.map((r) => r.name).join(",")}\n`);
   }
 
-  // Always exit 0 — non-gating by design, see the header comment above.
-  process.exit(0);
+  // Exit reflects reality. The old "always exit 0 — non-gating by design"
+  // served a CI job that must not block merges; that CI is disabled (garage
+  // doctrine, 2026-08-15) and this now runs as the OPERATOR's synthetic via
+  // `ship probe`. Its one meaningful failure went invisible for two weeks
+  // behind the unconditional 0 — never again.
+  process.exit(failed.length > 0 ? 1 : 0);
 }
 
 main();
