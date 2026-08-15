@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# pre-push — the garage doctrine's enforcement point (INERT until activated).
+#
+# Activate (owner decision, one line):   git config core.hooksPath .githooks
+# Deactivate:                            git config --unset core.hooksPath
+#
+# WHY THIS EXISTS. On 2026-08-16, two pushes went out with bare `git push` and
+# their Render deploys ran UNWATCHED — the exact silence that let three failed
+# deploys hide for 8 days earlier that week. Both happened to succeed; luck is
+# not a process. This hook does not run the full gate (that is ship.sh's job) —
+# it enforces the two invariants a push must never violate:
+#
+#   1. The push is going through the double-pushurl origin (garage + local
+#      mirror together), not a hand-typed single remote.
+#   2. You are consciously choosing the deploy path: pushes to main require
+#      either SHIP=1 (set by scripts/ship.sh, which watches the deploy) or an
+#      explicit AXIS_PUSH_UNWATCHED=1 acknowledgment that logs the bypass.
+#
+# A bypass is a decision, not an accident — that is the entire design.
+set -euo pipefail
+
+remote_name="${1:-}"
+
+# Invariant 1: warn (not block) if pushing a remote that skips the mirror.
+if [ "$remote_name" != "origin" ] && [ "$remote_name" != "mirror" ]; then
+  echo "[pre-push] note: pushing remote '$remote_name' — the local mirror only updates via 'origin'." >&2
+fi
+
+# Invariant 2: main deploys must be watched or consciously waived.
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      if [ "${SHIP:-0}" = "1" ] || [ "${AXIS_PUSH_UNWATCHED:-0}" = "1" ]; then
+        [ "${AXIS_PUSH_UNWATCHED:-0}" = "1" ] && echo "[pre-push] UNWATCHED push to main acknowledged (AXIS_PUSH_UNWATCHED=1) — the Render deploy will run with nobody looking." >&2
+        exit 0
+      fi
+      echo "" >&2
+      echo "[pre-push] BLOCKED: push to main outside the ship flow." >&2
+      echo "  A push to main triggers a Render deploy. Deploys have exactly two honest" >&2
+      echo "  endings — live or failed — and something must be watching for either." >&2
+      echo "" >&2
+      echo "  Use:    scripts/ship.sh api            (gate -> push -> watched deploy)" >&2
+      echo "  Or:     AXIS_PUSH_UNWATCHED=1 git push  (conscious, logged bypass)" >&2
+      exit 1
+      ;;
+  esac
+done
+
+exit 0

@@ -75,7 +75,9 @@ case "${1:-}" in
     cd "$ROOT"
     sha="$(git rev-parse --short HEAD)"
     echo "[api] pushing (lands in garage AND local mirror via double-pushurl)"
-    git -c http.postBuffer=157286400 push origin main
+    # SHIP=1 satisfies .githooks/pre-push when the owner activates hook
+    # enforcement — this is the one push path that WATCHES its deploy.
+    SHIP=1 git -c http.postBuffer=157286400 push origin main
     watch_deploy "$sha"
     ;;
   web)
