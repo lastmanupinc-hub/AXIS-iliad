@@ -7,11 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build && npm run seo:prerender && npm run seo:audit",
     "preview": "vite preview",
-    "seo:prerender": "axis-seo-prerender dist --routes seo.routes.ts --wait 4000",
-    "seo:audit": "axis-seo-audit dist"
+    "seo:prerender": "node scripts/seo-prerender.mjs dist --routes seo.routes.ts --wait 4000",
+    "seo:audit": "node scripts/seo-audit.mjs dist"
   },
   "dependencies": {
-    "@axis/seo": "file:../../../AXIS Launch/packages/axis-seo",
     "jszip": "^3.10.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

@@ -10,7 +10,7 @@
  * crawler landing on /docs and a user clicking through both resolve to the same
  * page.
  */
-import type { RouteSeo } from "@axis/seo";
+import type { RouteSeo } from "./src/plugins/axis-seo/vitePlugin";
 
 export const SITE_URL = "https://iliad.trustfabric.ai/";
 export const SITE_NAME = "Iliad";
@@ -30,7 +30,7 @@ export const seoRoutes: RouteSeo[] = [
     product: "iliad",
     title: "Documentation — Iliad",
     description:
-      "How to run Iliad against a codebase, what each of the 144 generators produces, and how to wire the output into your agent workflow.",
+      "How to run Iliad against a codebase, what each of the 147 generators produces, and how to wire the output into your agent workflow.",
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "Docs", url: "/docs" },
@@ -40,7 +40,7 @@ export const seoRoutes: RouteSeo[] = [
     path: "/programs",
     kind: "collection",
     product: "iliad",
-    title: "Programs — 20 generator programs, 144 artifacts",
+    title: "Programs — 21 generator programs, 147 artifacts",
     description:
       "Every Iliad program: artifacts, brand, SEO, marketing, skills, search, superpowers, agentic purchasing, and more — with the files each one generates.",
     breadcrumbs: [
