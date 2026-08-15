@@ -132,3 +132,45 @@ describe("pitch — truth-first deck", () => {
     expect(a).not.toContain("2026-01-01"); // generated_at must not leak (Watch-diff lesson)
   });
 });
+
+describe("claims audit — the two real false positives from the PAI'D dogfood (2026-08-15)", () => {
+  // Both shapes below appeared verbatim on a real customer's generated deck.
+  // They were found by GENERATING, not by review — the fixture carries them so
+  // they can never return.
+  it('never manufactures a claim from a trailing comma ("...2, Test cases...")', () => {
+    const files: SourceFile[] = [
+      { path: "README.md", content: "We ship fast. See section 2, Test cases are described later.", size: 60 },
+    ];
+    const deck = generatePitchDeck(ctxFixture(), files).content;
+    expect(deck).not.toContain('"2, Test"');
+    expect(deck).not.toMatch(/claims?.*2, Test/i);
+  });
+
+  it('never reads a numbered heading as a claim ("5 User Rights")', () => {
+    const files: SourceFile[] = [
+      { path: "docs/DATA_GOVERNANCE.md", content: "## 5 User Rights\n\nUsers may request deletion.", size: 50 },
+    ];
+    const deck = generatePitchDeck(ctxFixture(), files).content;
+    expect(deck).not.toMatch(/5 User/);
+  });
+
+  it("still catches real claims: plural, lowercase, thousands-separated", () => {
+    const files: SourceFile[] = [
+      { path: "README.md", content: "Serving 1,234 users across 689 routes today.", size: 60 },
+    ];
+    const deck = generatePitchDeck(ctxFixture(), files).content;
+    // users is not code-measurable -> unverifiable claim, listed with its number
+    expect(deck).toMatch(/1,?234 users/);
+    // routes IS measured (fixture has 0 routes; capped scan -> floors regime,
+    // so an overstated claim is unverifiable, never silently dropped)
+    expect(deck).toMatch(/689 routes/);
+  });
+
+  it('does not bleed across word boundaries ("5 routers" is not "5 routes")', () => {
+    const files: SourceFile[] = [
+      { path: "README.md", content: "Our lab rack has 5 routers humming.", size: 40 },
+    ];
+    const deck = generatePitchDeck(ctxFixture(), files).content;
+    expect(deck).not.toMatch(/5 route/);
+  });
+});

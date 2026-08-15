@@ -96,7 +96,11 @@ function countTestFiles(ctx: ContextMap): number {
 // This is the concrete form of "do not trust dev, marketing, and markdown
 // docs": their numbers are inputs to VERIFICATION, never to slides.
 
-const CLAIM_RE = /(\d[\d,]*)\s*\+?\s*(endpoints?|routes?|tests?|users?|customers?|models?|tables?|generators?|artifacts?|integrations?|downloads?|stars?)/gi;
+// Number syntax is REAL thousands groups or a plain integer — never a trailing
+// comma. The first version used (\d[\d,]*), which matched the "2," in
+// "...2, Test cases..." and produced the nonsense claim "2, Test" on a real
+// customer deck (PAI'D dogfood, 2026-08-15). Found by generating, not by review.
+const CLAIM_RE = /(\d{1,3}(?:,\d{3})+|\d+)\s*\+?\s*(endpoints?|routes?|tests?|users?|customers?|models?|tables?|generators?|artifacts?|integrations?|downloads?|stars?)\b/gi;
 
 function auditDocClaims(ctx: ContextMap, files?: SourceFile[]): DocClaim[] {
   if (!files?.length) return [];
@@ -115,6 +119,15 @@ function auditDocClaims(ctx: ContextMap, files?: SourceFile[]): DocClaim[] {
     for (const m of doc.content.matchAll(CLAIM_RE)) {
       const number = Number(m[1].replace(/,/g, ""));
       if (!Number.isFinite(number) || number === 0) continue;
+      // Numbered-heading guard: "Section 5 User Rights" is a heading, not a
+      // claim of five users (the second real false positive from the PAI'D
+      // dogfood). Narrow on purpose: a CAPITALIZED SINGULAR noun immediately
+      // followed by another Capitalized word is heading-shaped; "5 Users",
+      // "5 users", and "5 user accounts" all still count as claims.
+      const rawNoun = m[2];
+      const after = doc.content.slice((m.index ?? 0) + m[0].length);
+      const headingShaped = /^[A-Z]/.test(rawNoun) && !rawNoun.endsWith("s") && /^\s+[A-Z]/.test(after);
+      if (headingShaped) continue;
       const noun = m[2].toLowerCase();
       const measured = measuredFor(noun);
       let verdict: DocClaim["verdict"];
