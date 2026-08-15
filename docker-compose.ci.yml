@@ -1,0 +1,63 @@
+# ─── Local CI (docker) ──────────────────────────────────────────────────────
+#
+# THE verification gate for this repository as of 2026-08-08. GitHub Actions is
+# unfunded — pushes still land there, but nothing runs. This compose file is a
+# faithful mirror of .github/workflows/reusable-test-suite.yml (same image
+# family, same Postgres service, same gate order), so "green here" means what
+# "green in CI" used to mean.
+#
+#   run:            scripts/ci-local.sh          (bash, from Git Bash or WSL)
+#   or directly:    docker compose -f docker-compose.ci.yml up
+#                     --build --abort-on-container-exit --exit-code-from ci
+#
+# The suite mutates nothing outside the container except node_modules/.pnpm
+# inside its own volume and the coverage/ output dir.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: axis_test
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ci:
+    image: node:22-bookworm-slim
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /repo
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/axis_test
+      CI: "true"
+      # pnpm store inside the volume so repeat runs reuse downloads.
+      PNPM_HOME: /repo/.pnpm-ci
+    volumes:
+      # The repo is mounted read-write: vitest writes coverage/, the web build
+      # writes dist/. Everything else the run needs lives in the container.
+      - .:/repo
+    command:
+      - bash
+      - -ceu
+      - |
+        echo "=== [0/7] toolchain ==="
+        corepack enable && corepack prepare pnpm@10 --activate
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates make git >/dev/null
+        echo "=== [1/7] install (frozen lockfile — the gate that has broken twice) ==="
+        pnpm install --frozen-lockfile
+        echo "=== [2/7] build (full workspace) ==="
+        pnpm run build
+        echo "=== [3/7] D2 (real renderer, so its tests run instead of skipping) ==="
+        curl -fsSL https://d2lang.com/install.sh | sh -s -- --prefix /usr/local
+        echo "=== [4/7] tests (full + coverage, real Postgres) ==="
+        npx vitest run --coverage --coverage.provider=v8 --coverage.reporter=text-summary --coverage.reportDir=coverage
+        echo "=== [5/7] typecheck ==="
+        pnpm -r exec tsc --noEmit
+        echo "=== [6/7] lint ==="
+        pnpm lint
+        echo "=== [7/7] artifact freshness gate ==="
+        npx tsx scripts/check-artifact-freshness.ts
+        echo "=== LOCAL CI GREEN ==="
