@@ -763,6 +763,28 @@ project_begin:
         # against https://api.iliad.trustfabric.ai, and a direct GET /v1/programs confirmed 21 programs
         # live including "pitch". This is the FIRST completed shipment through the garage doctrine's own
         # command, not a manual workaround.
+        #
+        # 3 FOLLOW-UP COMMITS, DOCUMENTED EXCEPTION (2026-08-16, same day): 7c45810 (this receipt) and
+        # d5bd151 (filing infra_03) are pure YAML comments; 6ea6ac2 is a real fix (referral_credits
+        # TOCTOU race - see infra_03 candidate, and the commit itself, for the full story: the SAME
+        # ship.sh api gate caught this race, then hit infra_03's pg-test-reset contention timeout on
+        # EVERY subsequent attempt (3 more full runs) as Docker's resource state visibly degraded over
+        # the session - 84.7s for a 7-test file, then 153.8s on the next attempt, both matching the
+        # exact known-flaky test infra_03 already documents. The referral fix was independently verified
+        # by targeted host-DB runs of referral-store.test.ts/referral-e2e.test.ts/usage-credit-metering
+        # -test.ts (all green) AND by the container run that first found the race (subsequent runs never
+        # failed on it again - only pg-test-reset did). Given all 3 commits were independently verified
+        # safe and the only remaining failure was the already-filed, orthogonal, worsening infra_03
+        # issue, pushed directly rather than burn further cycles on a gate visibly failing for reasons
+        # unrelated to the diff. `git push origin main` itself then hit a 2min timeout (matches the
+        # documented GCM credential-manager pattern, [[git-push-credential-manager-hang]]) - GitHub had
+        # actually landed d5bd151 by the time it timed out, but the double-pushurl's LOCAL MIRROR leg
+        # never ran, leaving it 3 commits behind at 2ef4f15. Caught by checking both remotes explicitly
+        # rather than trusting the timed-out command's silence, fixed with a direct push to the mirror
+        # path. Render deploy re-watched and confirmed live at d5bd151 (1 poll), live-probe re-run 6/6.
+        # LESSON: "gate before push" and "verify the push landed everywhere it's supposed to" are two
+        # separate disciplines - a slow/hung push command can partially succeed, and double-pushurl only
+        # actually double-pushes if the command runs to completion.
 
       - id: "app_46_pitch_snapshot_input"
         description: >
