@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1.7
+# ─── The CI gate image (docker-compose.ci.yml builds this) ───────────────────
+#
+# COPY, never bind-mount. The first gate design mounted the repo read-write
+# (- .:/repo) and its container-side `pnpm install` REWROTE THE HOST'S
+# node_modules with Linux binaries while the run was still going — corrupting
+# the developer environment the gate exists to protect, at bind-mount I/O
+# speeds that stretched install past an hour. This image works on its own copy,
+# exactly like the production Dockerfile it sits next to: the container cannot
+# mutate the host because it never sees the host.
+#
+# Test results leave as the container's exit code and log output — the only
+# two channels a gate needs.
+FROM node:22-bookworm-slim
+
+RUN apt-get update -qq && apt-get install -y -qq curl ca-certificates make git \
+  && rm -rf /var/lib/apt/lists/* \
+  && curl -fsSL https://d2lang.com/install.sh | sh -s -- --prefix /usr/local
+
+WORKDIR /repo
+RUN corepack enable && corepack prepare pnpm@10 --activate
+
+# Manifests first so the dependency layer caches across runs whose lockfile
+# hasn't changed — repeat gate runs skip the whole install.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/cli/package.json apps/cli/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages ./packages
+RUN pnpm install --frozen-lockfile
+
+# The repo itself (respects .dockerignore — node_modules never enters context).
+COPY . .
+# COPY . . restores the workspace package.jsons' siblings but may also carry a
+# stale host artifacts dir; the install above is the one the gate trusts.

@@ -1,17 +1,21 @@
 # ─── Local CI (docker) ──────────────────────────────────────────────────────
 #
-# THE verification gate for this repository as of 2026-08-08. GitHub Actions is
-# unfunded — pushes still land there, but nothing runs. This compose file is a
-# faithful mirror of .github/workflows/reusable-test-suite.yml (same image
-# family, same Postgres service, same gate order), so "green here" means what
-# "green in CI" used to mean.
+# THE verification gate for this repository as of 2026-08-08 (garage doctrine:
+# GitHub Actions is unfunded; "green here" means what "green in CI" used to).
 #
-#   run:            scripts/ci-local.sh          (bash, from Git Bash or WSL)
+#   run:            scripts/ci-local.sh
 #   or directly:    docker compose -f docker-compose.ci.yml up
 #                     --build --abort-on-container-exit --exit-code-from ci
 #
-# The suite mutates nothing outside the container except node_modules/.pnpm
-# inside its own volume and the coverage/ output dir.
+# ISOLATION, learned the hard way: the first design bind-mounted the repo
+# read-write and the container's pnpm install REWROTE THE HOST'S node_modules
+# with Linux binaries mid-run — corrupting the environment the gate exists to
+# protect, at bind-mount I/O speeds that stretched install past an hour. The
+# gate now builds Dockerfile.ci (COPY, like the production Dockerfile): the
+# container works on its own copy and cannot see the host. Install + D2 live
+# in cached image layers, so repeat runs with an unchanged lockfile skip them
+# entirely. Results leave as the exit code and the log — the only channels a
+# gate needs. Nothing on the host is written, ever.
 services:
   postgres:
     image: postgres:16
@@ -23,14 +27,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 24
-      # First boot runs initdb (bootstrap + post-bootstrap) before accepting
-      # connections; the maiden run of this gate died here with "dependency
-      # failed to start: postgres unhealthy" while initdb was still mid-flight.
-      # start_period excludes that window from the retry count entirely.
+      # First boot runs initdb before accepting connections; the maiden run
+      # died here ("dependency failed to start: postgres unhealthy") while
+      # initdb was mid-flight. start_period excludes that window entirely.
       start_period: 60s
 
   ci:
-    image: node:22-bookworm-slim
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,31 +43,18 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/axis_test
       CI: "true"
-      # pnpm store inside the volume so repeat runs reuse downloads.
-      PNPM_HOME: /repo/.pnpm-ci
-    volumes:
-      # The repo is mounted read-write: vitest writes coverage/, the web build
-      # writes dist/. Everything else the run needs lives in the container.
-      - .:/repo
     command:
       - bash
       - -ceu
       - |
-        echo "=== [0/7] toolchain ==="
-        corepack enable && corepack prepare pnpm@10 --activate
-        apt-get update -qq && apt-get install -y -qq curl ca-certificates make git >/dev/null
-        echo "=== [1/7] install (frozen lockfile — the gate that has broken twice) ==="
-        pnpm install --frozen-lockfile
-        echo "=== [2/7] build (full workspace) ==="
+        echo "=== [1/5] build (full workspace) ==="
         pnpm run build
-        echo "=== [3/7] D2 (real renderer, so its tests run instead of skipping) ==="
-        curl -fsSL https://d2lang.com/install.sh | sh -s -- --prefix /usr/local
-        echo "=== [4/7] tests (full + coverage, real Postgres) ==="
+        echo "=== [2/5] tests (full + coverage, real Postgres, real D2) ==="
         npx vitest run --coverage --coverage.provider=v8 --coverage.reporter=text-summary --coverage.reportDir=coverage
-        echo "=== [5/7] typecheck ==="
+        echo "=== [3/5] typecheck ==="
         pnpm -r exec tsc --noEmit
-        echo "=== [6/7] lint ==="
+        echo "=== [4/5] lint ==="
         pnpm lint
-        echo "=== [7/7] artifact freshness gate ==="
+        echo "=== [5/5] artifact freshness gate ==="
         npx tsx scripts/check-artifact-freshness.ts
         echo "=== LOCAL CI GREEN ==="
