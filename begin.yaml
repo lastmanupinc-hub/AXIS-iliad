@@ -1038,6 +1038,31 @@ project_begin:
         source_file: "packages/generator-core/src/generators-algorithmic.ts"
         completion_status: open
 
+      - id: "infra_03_pg_test_reset_contention_timeout"
+        description: >
+          packages/snapshots/src/pg-test-reset.test.ts's "still clears everything under the
+          AXIS_TEST_RESET_FULL escape hatch" test times out at exactly its 60000ms budget under
+          real contention — reproduced 2026-08-16 both inside the Docker gate (84.7s for the whole
+          7-test file) AND on the bare host (77.2s) when several other test/Docker operations were
+          running concurrently. The test's own comment already documents the OLD (TRUNCATE) path as
+          slow under contention, which is why 60s was chosen over the default 5s — but 60s isn't
+          enough headroom when the shared axis-test-pg container is under genuine concurrent load,
+          which the local gate now regularly creates (Docker's own I/O plus whatever else is running
+          against the same Postgres). NOT a regression from any change in this session — reproduces
+          on unmodified code, is orthogonal to referral/webhook code (found alongside two OTHER
+          transient failures — a referral_credits TOCTOU race, real, fixed in 6ea6ac2 — that were
+          themselves confirmed as separate, unrelated flakiness by clean reruns). Candidate fixes,
+          none applied yet (needs real measurement before choosing): raise the timeout further
+          (blunt, doesn't address root contention), give the escape-hatch test its own isolated
+          connection/pool so it doesn't compete with whatever else is mid-flight, or profile why the
+          TRUNCATE fallback path is this slow under contention in the first place rather than just
+          absorbing it with a bigger number.
+        roi_score: 62
+        roi_reason: "production_quality_gain 3; makes the local gate's results trustworthy — a gate that sometimes fails for reasons unrelated to the diff erodes the exact discipline ops_03 exists to enforce."
+        severity: MEDIUM
+        source_file: "packages/snapshots/src/pg-test-reset.test.ts"
+        completion_status: open
+
   highest_roi_definition:
     meaning: >
       The next valid move inside the project boundary that most increases durable
