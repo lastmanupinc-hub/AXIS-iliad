@@ -732,6 +732,37 @@ project_begin:
         severity: HIGH
         source_file: "scripts/ship.sh"
         completion_status: complete  # SCOPED 2026-08-15. THE INCIDENT: prod served an 8-day-old build while 3 Render deploys died at ~30s (verified via Render's own deploys API); root cause f171844's target - commit 3771206 declared "@axis/seo": "file:../../../AXIS Launch/..." (a SIBLING-REPO path no clone resolves) plus a rogue npm lockfile in the pnpm workspace; NOTHING paged (ALERT_WEBHOOK_URL absent, owner-accepted). RECEIPTS: f171844 (vendored plugin closure, deploy fix - pushed and WATCHED to live: build->update->live on 56aca15), 1ed5ad4 (docker-compose.ci.yml + ci-local.sh; first green STILL PENDING - docker engine wedged, owner GUI needed), f1a1283 (ship.sh: gate/api/web/probe with watched deploys), ee41fc1 (live-probe modernized: asserted dead 5MB-era policy for 2 weeks behind an unconditional exit-0 - now asserts the 50MB reality, 6/6 vs prod, honest exit code). GIT INDEPENDENCE: local bare mirror git-mirrors/axis-iliad.git + double-pushurl on origin (one push lands both; verified both remotes advancing). WEB INDEPENDENCE: built+prerendered+audited 10/10 locally, deployed via wrangler with the key.txt CF token (web had ALSO been stale since Aug 7 - its CI deploy path died on the same broken install). SPEND: synthetic (48/day) + nightly + ci + compliance-check + context-freshness workflows DISABLED; remaining active are manual-only/call-only/Dependabot; ambient GitHub cost zero. OPEN SEAMS (owner): registry choice + git->image service conversion for full Render-build excision; ship.sh grows `api --image` without redesign. AUTONOMY AUDIT delivered same day: revenue path 100% agentless (proved by the outage itself - runtime served customers for 8 days unattended); Watch->Apply DORMANT in prod for want of GITHUB_TOKEN; change-path still operator-bound.
+        # FIRST GREEN, 2026-08-16: the "first green STILL PENDING" line above is resolved. Getting there
+        # took 3 infra failures before the gate suite ever ran to completion: healthcheck race (fixed
+        # start_period), host corruption from bind-mounting the repo read-write into the container -
+        # its own pnpm install overwrote the HOST's node_modules with Linux binaries mid-run (fixed via
+        # Dockerfile.ci, COPY not mount, 3c72815), and context-transfer bloat that turned out to be
+        # self-inflicted cache thrashing (pruning the builder cache while a build was still consuming
+        # it) rather than a real sizing problem - the actual filtered repo content is ~30MB. Once the
+        # gate could finally run, it found 3 REAL bugs no host run had ever caught, all from the pitch
+        # program's rollout (72a9d36, "21st program"): (1) .dockerignore excluded *.md (except
+        # README/CHANGELOG) - harmless for the production Dockerfile (targeted COPYs) but fatal for
+        # Dockerfile.ci's `COPY . .`, which lost CLAUDE.md/AGENTS.md/TERMS_OF_SERVICE.md/etc. that the
+        # ledger/count/claims honesty guards read - never surfaced before because every prior run used
+        # the host's real filesystem; (2) ALL_PROGRAMS (packages/snapshots/src/billing-types.ts) and a
+        # SEPARATE hand-typed program list inside generateProductSchema (generators-agentic-purchasing.ts,
+        # whose own comment claimed it "can never drift") both never got "pitch" added, though
+        # PRODUCT_REGISTRY and PROGRAM_OUTPUTS already had it - PRODUCT_REGISTRY was selling a program
+        # ALL_PROGRAMS didn't recognize; (3) XAI_API_KEY/XAI_BASE_URL (this session's xai-images.ts)
+        # were read but never declared in env.ts's EnvSpec. Fixed all 3 plus 7 stale test-count literals
+        # (20->21, 18->19) that were the honest expected value before pitch, in 2ef4f15. One retry run
+        # (ship-api-run1) hit 2 more failures (webhook-retry.test.ts, usage-credit-metering.test.ts) with
+        # DB-concurrency signatures (duplicate-key race, missing rows from async retry processing) -
+        # reproduced clean 2x on the host DB and clean on an immediate unchanged Docker rerun (run2, also
+        # LOCAL CI GREEN), so treated as environmental flakiness under that specific loaded moment
+        # (image had just rebuilt, engine had just restarted) rather than chased as a phantom regression.
+        # SHIPPED FOR REAL: ship.sh api ran its actual gate->push->watch flow end to end - GATE EXIT
+        # CODE: 0, pushed to both github.com/lastmanupinc-hub/AXIS-iliad and the local mirror (verified
+        # both refs advanced to 2ef4f15), Render's own deploys API polled build_in_progress ->
+        # update_in_progress -> live (7 polls, ~3min), then scripts/ship.sh probe: 6/6 live checks green
+        # against https://api.iliad.trustfabric.ai, and a direct GET /v1/programs confirmed 21 programs
+        # live including "pitch". This is the FIRST completed shipment through the garage doctrine's own
+        # command, not a manual workaround.
 
       - id: "app_46_pitch_snapshot_input"
         description: >
