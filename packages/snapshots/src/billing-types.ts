@@ -95,7 +95,7 @@ export function exceedsFileCountLimit(count: number, limit: number): boolean {
 }
 
 export const ALL_PROGRAMS = [
-  "search", "debug", "skills", "frontend", "seo",
+  "search", "debug", "skills", "frontend", "seo", "pitch",
   "optimization", "theme", "brand", "superpowers",
   "marketing", "notebook", "obsidian", "mcp",
   "artifacts", "remotion", "canvas", "algorithmic", "agentic-purchasing", "closer", "deploy",

@@ -14,8 +14,8 @@ import { PRODUCT_REGISTRY, PRODUCT_IDS, productIdForProgram, getProduct } from "
 const FREE_PRODUCTS = ["search", "obsidian"];
 
 describe("PRODUCT_REGISTRY — coverage", () => {
-  it("has exactly 20 products — one per generator program, no mergers", () => {
-    expect(PRODUCT_IDS.length).toBe(20);
+  it("has exactly 21 products — one per generator program, no mergers", () => {
+    expect(PRODUCT_IDS.length).toBe(21);
     expect(PRODUCT_IDS.sort()).toEqual([...(ALL_PROGRAMS as readonly string[])].sort());
   });
 

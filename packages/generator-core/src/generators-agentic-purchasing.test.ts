@@ -109,7 +109,7 @@ describe("generateProductSchema", () => {
     expect(() => JSON.parse(file.content)).not.toThrow();
   });
 
-  it("schema includes all 20 programs", () => {
+  it("schema includes all 21 programs", () => {
     const file = generateProductSchema(ctx, profile);
     const schema = JSON.parse(file.content);
     expect(schema.programs).toHaveLength(TOTAL_PROGRAMS);

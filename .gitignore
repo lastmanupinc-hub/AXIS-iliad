@@ -1,6 +1,7 @@
 ﻿node_modules/
 dist/
 .pnpm-store/
+.pnpm-ci/
 *.tsbuildinfo
 .env
 .env.local
@@ -56,3 +57,4 @@ apps/cli/.tsc-out/
 /ls-coverage.txt
 /stalling fix.txt
 /*.log
+/axis_toolbox_*.txt

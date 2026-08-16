@@ -360,7 +360,7 @@ describe("CLI integration", () => {
 
     // Verify programs are represented
     const programs = new Set(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").map((f) => f.program));
-    expect(programs.size).toBe(20);
+    expect(programs.size).toBe(21);
   });
 });
 

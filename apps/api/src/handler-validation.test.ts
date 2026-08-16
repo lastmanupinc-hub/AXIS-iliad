@@ -283,8 +283,8 @@ describe("successful snapshot flow", () => {
 // ─── PROGRAM_OUTPUTS coverage ───────────────────────────────────
 
 describe("PROGRAM_OUTPUTS", () => {
-  it("has exactly 18 programs", async () => {
-    expect(Object.keys(PROGRAM_OUTPUTS).length).toBe(18);
+  it("has exactly 19 programs", async () => {
+    expect(Object.keys(PROGRAM_OUTPUTS).length).toBe(19);
   });
 
   it("every program has at least one output file", async () => {

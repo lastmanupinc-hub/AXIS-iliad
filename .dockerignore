@@ -15,7 +15,19 @@ coverage
 *.tar.gz
 vitest-*.txt
 coverage-*.txt
-*.md
-!README.md
-!CHANGELOG.md
 .ai
+
+# ─── Gate-context hygiene (2026-08-16) ──────────────────────────────────────
+# Gate attempt 4's context transfer hit 639MB+ and was still climbing at 24
+# minutes: the two aborted bind-mount gate runs left a LINUX pnpm store on the
+# host (.pnpm-ci), and a legacy repo-local .pnpm-store predates it — both were
+# being tarred into every docker build context (production Dockerfile's too).
+.pnpm-ci
+.pnpm-store
+.ai-output*
+.ai
+.claude
+.dogfood-closer-output
+axis_toolbox_*.txt
+*.log
+git-mirrors

@@ -1491,6 +1491,7 @@ export function generateProductSchema(
       { slug: "debug",             tier: "free", description: "Debug playbook, incident template, tracing rules, root cause checklist" },
       { slug: "frontend",          tier: "pro",  description: "Frontend rules, component guidelines, layout patterns, UI audit" },
       { slug: "seo",               tier: "pro",  description: "SEO rules, schema recommendations, route priority map, content audit, meta tag audit" },
+      { slug: "pitch",             tier: "pro",  description: "Investor-grade pitch deck (markdown + JSON) and slide art prompts, argued from measured repo evidence" },
       { slug: "optimization",      tier: "pro",  description: "Optimization rules, prompt diff report, cost estimate, token budget plan" },
       { slug: "theme",             tier: "pro",  description: "Design tokens, theme CSS, theme guidelines, component theme map, dark mode tokens" },
       { slug: "brand",             tier: "pro",  description: "Brand guidelines, voice and tone, content constraints, messaging system, channel rulebook" },

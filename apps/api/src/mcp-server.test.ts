@@ -1448,9 +1448,9 @@ describe("POST /mcp — branch coverage: anonymous snapshots", () => {
 // ─── runSearchTools unit tests ───────────────────────────────────
 
 describe("runSearchTools — no query returns all programs", () => {
-  it("returns all 20 programs when q is omitted", async () => {
+  it("returns all 21 programs when q is omitted", async () => {
     const parsed = JSON.parse(runSearchTools({}));
-    expect(parsed.total_matches).toBe(20);
+    expect(parsed.total_matches).toBe(21);
     expect(Array.isArray(parsed.results)).toBe(true);
   });
 
@@ -1638,7 +1638,7 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
     expect(result.isError).toBe(false);
     const content = result.content as Array<{ type: string; text: string }>;
     const parsed = JSON.parse(content[0].text);
-    expect(parsed.total_matches).toBe(20);
+    expect(parsed.total_matches).toBe(21);
   });
 
   it("tool name appears in MCP_TOOLS", async () => {
