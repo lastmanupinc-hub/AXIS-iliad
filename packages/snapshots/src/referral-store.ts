@@ -141,13 +141,24 @@ export async function getReferralConversionCount(account_id: string): Promise<nu
 
 // ─── Credits Management ─────────────────────────────────────────
 
-/** Ensure a referral_credits row exists for account. */
+/**
+ * Ensure a referral_credits row exists for account. Atomic INSERT ... ON
+ * CONFLICT DO NOTHING, not check-then-insert: the prior SELECT-then-INSERT
+ * shape was a real TOCTOU race — two concurrent calls for the SAME
+ * account_id could both see "no row" and both attempt the INSERT, one
+ * throwing a duplicate-key error on referral_credits_pkey that propagated
+ * unhandled up through getReferralCredits -> getReferralTokenUsageModifier
+ * -> gatherChargeInputs -> consumeUsageCredits. Caught by the gate's own
+ * concurrent-consumes test under Docker's wider scheduling window (rare but
+ * real on a fast production DB too — any account's first burst of parallel
+ * calls hits this exact path before its row exists).
+ */
 async function ensureReferralCredits(account_id: string): Promise<void> {
-  const existing = await sql.one("SELECT 1 FROM referral_credits WHERE account_id = ?", [account_id]);
-  if (!existing) {
-    const now = new Date().toISOString();
-    await sql.run("INSERT INTO referral_credits (account_id, earned_credits_millicents, lifetime_referrals, free_calls_remaining, initial_grant_given, paid_call_count, last_reset_at, updated_at) VALUES (?, 0, 0, 0, 0, 0, ?, ?)", [account_id, now, now]);
-  }
+  const now = new Date().toISOString();
+  await sql.run(
+    "INSERT INTO referral_credits (account_id, earned_credits_millicents, lifetime_referrals, free_calls_remaining, initial_grant_given, paid_call_count, last_reset_at, updated_at) VALUES (?, 0, 0, 0, 0, 0, ?, ?) ON CONFLICT (account_id) DO NOTHING",
+    [account_id, now, now],
+  );
 }
 
 /** Get referral credits for an account. Returns defaults if none exist. */
