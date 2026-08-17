@@ -53,6 +53,11 @@ export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSu
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
 export { generateFrontendRules, generateComponentGuidelines, generateLayoutPatterns, generateUiAudit } from "./generators-frontend.js";
+// analyzeUiSurface is exported for app_31: apps/api/src/frontend-components.ts runs
+// GENERATED components back through the frontend program's own auditor before any of
+// them can be applied. The program that writes the component is the program that
+// judges it — and it is deterministic, so the gate holds with or without an LLM.
+export { analyzeUiSurface, renderUiFindings, type UiFinding } from "./generators-frontend.js";
 export { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit, generateMetaTagAudit, generateSeoHeadTags } from "./generators-seo.js";
 export { validateStructuredData, extractJsonLdBlocks, type StructuredDataResult, type StructuredDataIssue } from "./seo-structured-data.js";
 export { generatePitchDeck, generatePitchDeckJson, generateSlideArtPrompts } from "./generators-pitch.js";
