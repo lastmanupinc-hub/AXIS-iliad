@@ -17,6 +17,7 @@ import { processMcpHostedSync, defaultMcpHostedSyncDeps } from "./mcp-hosted.js"
 import { processSearchIndexSync, defaultSearchIndexSyncDeps } from "./search-index-watcher.js";
 import { processCanvasDiagramSync, defaultCanvasDiagramSyncDeps } from "./canvas-diagram-watcher.js";
 import { processSeoApply, defaultSeoApplyDeps } from "./seo-apply-watcher.js";
+import { processFrontendApply, defaultFrontendApplyDeps } from "./frontend-apply-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -53,6 +54,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const seo = await processSeoApply(payload, defaultSeoApplyDeps());
   if (seo.status !== "not_seo_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "seo", status: seo.status });
+    return;
+  }
+
+  const frontend = await processFrontendApply(payload, defaultFrontendApplyDeps());
+  if (frontend.status !== "not_frontend_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "frontend", status: frontend.status });
     return;
   }
 

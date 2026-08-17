@@ -72,7 +72,7 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 | agentic-purchasing | 6 | $99 | suite | **45%** | live-counterparty verify; apply; watch; storefront |
 | pitch | 3 | $19 | paid | **40%** | apply; watch; storefront |
 | artifacts | 11 | $29 | paid | **40%** | blocked on output-shape decision | *react high end*
-***| frontend | 4 | $19 | paid | **40%** | apply; watch; storefront | *LLM infered formsingle source*
+| frontend | 4 | $19 | paid | **80%** | storefront (apply needs an LLM configured — see note) |
 | debug | 4 | $15 | paid | **40%** | apply; watch; storefront |
 | optimization | 4 | $29 | paid | **40%** | apply; watch; storefront |
 | notebook | 5 | $15 | paid | **40%** | apply; watch; storefront |
@@ -82,11 +82,11 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 | remotion | 5 | $29 | paid | **40%** | license-gated; apply; watch; storefront |
 | algorithmic | 5 | $19 | paid | **40%** | apply; watch; storefront |
 
-**10 of 21** have their "become an application" candidate complete. **11** remain open.
+**11 of 21** have their "become an application" candidate complete. **10** remain open.
 
 ---
 
-## The four at 80% — Apply and Watch both shipped
+## The five at 80% — Apply and Watch both shipped
 
 ### skills — 6 generators · $9 · `app_11` complete
 **Does:** AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack, model cascade —
@@ -245,17 +245,27 @@ there is nothing framework-agnostic to bundle yet. Needs an owner decision — s
 runtime, or always emit vanilla-JS widgets. **Standing note: when resumed, bundle the
 *quality* widgets specifically, cross-referenced with the Package Quality Judge work.**
 
-### frontend — 4 generators · $19 · `app_31` open (40%)
-**Does:** frontend rules, component guidelines, layout patterns, UI audit — markdown only,
-zero code today.
-**Three directions:** (1) generate components that satisfy the repo's own extracted design
-system; (2) verify they render and pass a11y; (3) land them as PRs.
-**Highest-ROI trajectory:** **the v0 answer, standalone** (explicit owner directive: *not*
-merged into artifacts). Generating working UI that already matches the customer's tokens is
-a far stronger claim than describing rules.
-**Gaps:** needs a real design decision first — generating components implies LLM inference,
-which sits in tension with this repo's byte-determinism law. That tension must be resolved
-before implementation, not during.
+### frontend — 4 generators · $19 · `app_31` **80% as of 2026-08-17**
+**Does:** frontend rules, component guidelines, layout patterns, UI audit — *and now real
+components*. `buildComponentContract` reads the design-token artifact the theme program
+actually ships (the fixed **averionics** preset), and components are inferred from that one
+source: `temperature: 0`, fixed seed, JSON-schema-constrained.
+**Verifies (the part that matters):** every colour the model emits must already exist in the
+contract, and the component must survive the frontend program's *own* auditor
+(`analyzeUiSurface`). Fail either — invented colour, `div` used as a button, `img` without
+alt, `dangerouslySetInnerHTML`, `any` — and the component is **withheld**, not annotated.
+**Applies:** `frontend-apply-watcher.ts` opens a PR under the managed `src/components/axis/`
+directory. Partial success is the normal case and is handled honestly: passing components
+ship, failing ones are named with their reason and never smuggled in.
+**Watches:** the 7th `watch-dispatcher` branch; re-runs on push. The request list is fixed,
+so a diff means *the design system changed*, not that the model wandered.
+**Highest-ROI trajectory:** **the v0 answer, standalone** (owner directive: *not* merged into
+artifacts). The defensible claim is not "an LLM wrote your component" — it is **"your design
+system provably constrains what it could write."**
+**Gaps:** storefront. **Honest caveat that separates it from the other 80% programs:** its
+apply stage needs an LLM configured, and degrades to `all_withheld` (no PR) without one —
+where skills/theme/canvas/seo need only `GITHUB_TOKEN`. Not yet built: the custom ESLint
+plugin that would enforce the same rules on the user's *own* components on every PR.
 
 ### debug — 4 generators · $15 · `app_32` open (40%)
 **Does:** debug playbook, incident template, tracing rules, root-cause checklist.
