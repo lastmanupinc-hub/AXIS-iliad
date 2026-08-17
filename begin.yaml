@@ -598,7 +598,25 @@ project_begin:
         roi_reason: "automation 5, canonical_coherence 4, agent_acquisition 4, team_scale 3. Makes the ninth spoke cost a fraction of the first."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-seo.ts"
-        completion_status: open  # UNBLOCKED-ON-DATA 2026-08-06 (owner: "fix the data"). The registry no longer contradicts the Terms: `billing` states TODAY's truth (18 one_time, 2 free) and the intent moved to a new `billing_at_gate` field, so all 17 products that become recurring on 2026-08-15 still say so and nobody has to reconstruct that list. billing-claim-honesty.test.ts enforces both halves and needed its 17-product exception list DELETED as a result - the honest answer is now zero. STILL BLOCKED ON: the 20 subdomains (DNS/TLS/Cloudflare Pages), which is owner-gated and browser-only, so generated pages cannot go live yet. Original blocker, for the record:  on a data-integrity defect in its OWN INPUT, found by scoping it. PRODUCT_REGISTRY marks 17 of 20 products billing:'recurring' at monthly prices ($9 skills, $29 mcp, $19 theme/frontend/seo/deploy...), while TERMS_OF_SERVICE.md - the legal document that governs - says 'Payment for a paid tier is a single, one-time charge ... a purchase does not automatically renew'. Generating a landing page per product from that registry would have published 17 pricing claims contradicting our own Terms, across 20 public pages. The contradiction is LATENT today (nothing serves the registry's billing or price_usd; admin.ts reads only `name`) and spoke_05 is precisely what would have made it live. SHIPPED INSTEAD: apps/api/src/billing-claim-honesty.test.ts - declares the 17 as a dated exception tied to the 2026-08-15 recurring-billing gate, fails on any NEW recurring product, fails if the count moves off 17, and flips to the OPPOSITE check automatically once the Terms are updated (no one has to remember to come back). Red-tested: an undeclared recurring product fails with an actionable message. Also caught price_usd being mixed number|string ('free' sentinel), which makes Math.min return NaN - harmless only while nothing renders it. UNBLOCKS WHEN: the 2026-08-15 Terms change lands and the registry's billing matches reality. The pages themselves also need the 20 subdomains (DNS/TLS/Cloudflare Pages), which is separately owner-gated - so this was never shippable end-to-end today regardless. DELIBERATELY NOT DONE: rewriting 17 products' billing field. That is a pricing decision, not a cleanup.
+        completion_status: open  # ⚠ FULLY UNBLOCKED 2026-08-17 — AND THE "owner-gated, browser-only" CLAIM BELOW WAS WRONG.
+        # Owner note on docs/PROGRAM_PORTFOLIO.md, verbatim: "all necessary api keys to unlock this step
+        # are in keys.txt. the page layouts should build on averionics and maintain a sense of continuity
+        # with individual favicons that build together on the AXIS' iliad brand".
+        # I VERIFIED IT AGAINST THE LIVE API INSTEAD OF ARGUING (2026-08-17): CLOUDFLARE_ADMIN_API_KEY is
+        # present in the estate key.txt; token verify => success/active; it lists all 3 zones INCLUDING
+        # trustfabric.ai (active); a real DNS TXT create AND delete both returned OK (probe cleaned up);
+        # Pages projects are listable and axis-web ALREADY serves custom domains
+        # (axis-web-dze.pages.dev, iliad.trustfabric.ai, iliad.jonathanarvay.com). Adding
+        # <program>.trustfabric.ai is the SAME operation that already succeeded for iliad.
+        # WHY I GOT IT WRONG, because the failure mode matters more than the fix: the
+        # [[cloudflare-web-connect]] memory says Pages *Git-connect* is browser-only OAuth, which is TRUE
+        # and irrelevant — ship.sh web deploys by direct `wrangler pages deploy` upload and never needed
+        # Git-connect. I over-generalized one narrow limitation into "the storefront is owner-gated",
+        # never re-tested it, and that single mislabel removed the highest-leverage item in the entire
+        # portfolio from the working queue for weeks. See roi_policy.blocked_candidate_law below.
+        # DESIGN DIRECTION (owner): layouts build on the avionics language; continuity across pages with
+        # individual per-program favicons that compose into the AXIS' Iliad brand.
+        # PRIOR NOTE (data half, still accurate): UNBLOCKED-ON-DATA 2026-08-06 (owner: "fix the data"). The registry no longer contradicts the Terms: `billing` states TODAY's truth (18 one_time, 2 free) and the intent moved to a new `billing_at_gate` field, so all 17 products that become recurring on 2026-08-15 still say so and nobody has to reconstruct that list. billing-claim-honesty.test.ts enforces both halves and needed its 17-product exception list DELETED as a result - the honest answer is now zero. STILL BLOCKED ON: the 20 subdomains (DNS/TLS/Cloudflare Pages), which is owner-gated and browser-only, so generated pages cannot go live yet. Original blocker, for the record:  on a data-integrity defect in its OWN INPUT, found by scoping it. PRODUCT_REGISTRY marks 17 of 20 products billing:'recurring' at monthly prices ($9 skills, $29 mcp, $19 theme/frontend/seo/deploy...), while TERMS_OF_SERVICE.md - the legal document that governs - says 'Payment for a paid tier is a single, one-time charge ... a purchase does not automatically renew'. Generating a landing page per product from that registry would have published 17 pricing claims contradicting our own Terms, across 20 public pages. The contradiction is LATENT today (nothing serves the registry's billing or price_usd; admin.ts reads only `name`) and spoke_05 is precisely what would have made it live. SHIPPED INSTEAD: apps/api/src/billing-claim-honesty.test.ts - declares the 17 as a dated exception tied to the 2026-08-15 recurring-billing gate, fails on any NEW recurring product, fails if the count moves off 17, and flips to the OPPOSITE check automatically once the Terms are updated (no one has to remember to come back). Red-tested: an undeclared recurring product fails with an actionable message. Also caught price_usd being mixed number|string ('free' sentinel), which makes Math.min return NaN - harmless only while nothing renders it. UNBLOCKS WHEN: the 2026-08-15 Terms change lands and the registry's billing matches reality. The pages themselves also need the 20 subdomains (DNS/TLS/Cloudflare Pages), which is separately owner-gated - so this was never shippable end-to-end today regardless. DELIBERATELY NOT DONE: rewriting 17 products' billing field. That is a pricing decision, not a cleanup.
 
       - id: "spoke_06_scoped_program_runs"
         description: "A spoke calls the same generators as the hub with the program set narrowed by the registry — never a forked code path. Add a program-set filter to the analyze pipeline plus a guard test asserting a spoke's output for program P is byte-identical to the hub's output for program P. A spoke whose output drifts from the hub is a bug, and REST/MCP twin divergence is already a named recurring bug family here."
@@ -675,6 +693,15 @@ project_begin:
         severity: HIGH
         source_file: "packages/generator-core/src/generators-skills.ts"
         completion_status: complete  # RECONCILED 2026-08-05 (ops_01): deliverable verified — apps/api/src/skills-refresh-watcher.ts exists and is the skills branch of watch-dispatcher.
+        # FOLLOW-UP FILED 2026-08-17 (owner note on docs/PROGRAM_PORTFOLIO.md, verbatim): "each artifact
+        # should have a list of artifiacts in our system, that work together as a development multiplier
+        # for the LLM to purchase or present for purchase". i.e. every generated artifact carries a
+        # COMPOSITION MANIFEST: the other AXIS artifacts that multiply its value, machine-readable enough
+        # for the reading agent to buy them or surface them for purchase. This turns each of the 147
+        # artifacts into a cross-sell surface rather than a terminal deliverable, and it lands on the
+        # existing self-propagation vector (skills already writes the files every next agent reads).
+        # Must obey the existing claims discipline — the manifest names real artifacts from
+        # PRODUCT_REGISTRY/PROGRAM_ORDER, never an invented catalogue.
 
       - id: "app_12_theme_token_sync"
         description: "theme → token sync: style-dictionary (Apache-2.0) + culori (MIT); detect code<->token drift on push, open the fix PR; contrast checks. Accepts when a hand-edited hex in code produces a correcting PR. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #5."
@@ -682,7 +709,13 @@ project_begin:
         roi_reason: "Wave 1 apply-proof. usability 4, production_quality 4."
         severity: HIGH
         source_file: "packages/generator-core/src/generators-theme.ts"
-        completion_status: complete  # DEVIATION 2026-07-31: shipped WITHOUT style-dictionary/culori — a hand-rolled WCAG contrast module (color-contrast.ts) + palette derived from the REAL generateThemeCss output cover the same need with zero new runtime deps, required by apps/cli/build.mjs's self-contained-bundle constraint (discovered the hard way on app_03/verify-harness.ts) for anything generator-core exports, and generators-theme.ts already hand-rolls its own token->CSS transform, so style-dictionary would have duplicated existing, working, tested code rather than adding capability
+        completion_status: complete  # REOPENED-AS-FOLLOW-UP 2026-08-17 — owner note on docs/PROGRAM_PORTFOLIO.md, verbatim: "build the style dictionary".
+        # The 2026-07-31 deviation below declined style-dictionary to protect the CLI's zero-runtime-dep
+        # bundle. That trade is now overruled: BUILD the style dictionary. Constraint to respect, not to
+        # hide behind — apps/cli/build.mjs requires anything generator-core EXPORTS to stay
+        # self-contained, so the dictionary belongs on the server/worker side of that line, or is
+        # hand-rolled to the same spec. The owner asked for the capability, not for the dependency.
+        # ORIGINAL DEVIATION 2026-07-31: shipped WITHOUT style-dictionary/culori — a hand-rolled WCAG contrast module (color-contrast.ts) + palette derived from the REAL generateThemeCss output cover the same need with zero new runtime deps, required by apps/cli/build.mjs's self-contained-bundle constraint (discovered the hard way on app_03/verify-harness.ts) for anything generator-core exports, and generators-theme.ts already hand-rolls its own token->CSS transform, so style-dictionary would have duplicated existing, working, tested code rather than adding capability
 
       - id: "app_20_mcp_hosted"
         description: "mcp → hosted MCP endpoints: repo in, live per-account multi-tenant MCP endpoint out (existing native MCP code on Render, no new dep); schemas derived from code, re-synced on merge; verify by round-tripping tools/call. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #2."
@@ -811,7 +844,12 @@ project_begin:
         roi_reason: "capability_gain 4, usability 4."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-artifacts.ts"
-        completion_status: open  # BLOCKED 2026-08-01: generateDashboardWidget's output is conditionally React (JSX, no bundled React/ReactDOM, no DOM mount point) whenever the target repo uses React — there's no framework-agnostic widget to esbuild-bundle today. Needs a real design decision on the artifacts generator's output shape (bundle+ship a React runtime vs. make the generator always emit vanilla-JS widgets) before "bundle + host + verify" is well-scoped, unlike the recent Watch-consumer candidates. Deferred, not attempted partially. OWNER NOTE 2026-08-01: when resumed, bundle/host the QUALITY widgets specifically (cross-reference the Package Quality Judge / quality-floors work, [[quality-judge]] memory) — not just any generated widget regardless of correctness.
+        completion_status: open  # UNBLOCKED 2026-08-17 — owner note on docs/PROGRAM_PORTFOLIO.md, verbatim: "react high end".
+        # The output-shape decision is MADE: ship the React runtime, aim high-end. Do NOT downgrade the
+        # generator to vanilla-JS widgets to dodge the bundling problem — bundle React/ReactDOM with the
+        # widget and give it a real mount point. That resolves the blocker below in the opposite
+        # direction from the cheaper option, deliberately.
+        # PRIOR BLOCKER, for the record: generateDashboardWidget's output is conditionally React (JSX, no bundled React/ReactDOM, no DOM mount point) whenever the target repo uses React — there's no framework-agnostic widget to esbuild-bundle today. Needs a real design decision on the artifacts generator's output shape (bundle+ship a React runtime vs. make the generator always emit vanilla-JS widgets) before "bundle + host + verify" is well-scoped, unlike the recent Watch-consumer candidates. Deferred, not attempted partially. OWNER NOTE 2026-08-01: when resumed, bundle/host the QUALITY widgets specifically (cross-reference the Package Quality Judge / quality-floors work, [[quality-judge]] memory) — not just any generated widget regardless of correctness.
 
       - id: "app_24_canvas_rendered_diagrams"
         description: "canvas → rendered, current diagrams: D2 external binary (MPL-2.0, single Go binary — chosen over Mermaid, which needs headless Chromium); real SVG/PNG committed into README by PR; redraw when architecture signals change. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #18."
@@ -988,7 +1026,15 @@ project_begin:
         roi_reason: "capability_gain 5 — closes the prose-vs-code gap on its own terms."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-frontend.ts"
-        completion_status: open
+        completion_status: open  # *** PRIORITY 1, owner-marked 2026-08-17 on docs/PROGRAM_PORTFOLIO.md. ***
+        # THE DESIGN QUESTION IS ANSWERED — owner note, verbatim: "LLM infered form single source".
+        # Components are LLM-INFERRED FROM A SINGLE SOURCE: the repo's own extracted design system
+        # (theme tokens + extracted conventions), not free-form generation. That is what reconciles
+        # this with the byte-determinism law — the inference is anchored to one canonical input, so
+        # the generator is grounded and auditable rather than improvisational. I had recorded this as
+        # "needs a real design decision first"; it no longer does. Build it.
+        # STANDING CONTEXT (owner, same review): Iliad is NOT to move into new territory until every
+        # program clears the 80% bar with full QA and is storefront-ready. This is the first of those.
 
       - id: "app_32_debug_wired_to_incidents"
         description: "debug → wired to real incidents: ingest user's Sentry stream (plain REST, deliberately no SDK), draft postmortems from real events grounded in current-repo symbols; needs Sentry-token connect flow. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #8."
@@ -1145,7 +1191,40 @@ project_begin:
         weight: -4
 
   roi_policy:
+    blocked_candidate_law:
+      added: "2026-08-17"
+      why: >
+        A candidate marked blocked leaves the ranking entirely, no matter how high it scores.
+        So the ONE thing this system can never recover from is a blocker that was never true.
+        spoke_05 (the storefront — the only gap shared by all 21 programs) sat "owner-gated,
+        browser-only" for weeks on the strength of a memory about a DIFFERENT operation
+        (Pages Git-connect OAuth), which was true and irrelevant, since deploys go by direct
+        wrangler upload. Nobody re-tested it. When the owner finally challenged it, verifying
+        took ONE command: the Cloudflare token in key.txt verifies active, lists trustfabric.ai,
+        and creates+deletes real DNS records. The highest-leverage work in the portfolio was
+        never blocked at all. A wrong blocker is more expensive than a wrong score, because a
+        wrong score still gets ranked and revisited while a wrong blocker is invisible forever.
+      rules:
+        - Every blocked candidate MUST record the exact check that proved it blocked, the date,
+          and what would prove it unblocked. "Owner-gated" alone is not a blocker, it is a guess.
+        - Re-verify any blocker older than 30 days BEFORE ranking a queue. Run the check; do not
+          re-read the note. A blocker citing a credential must actually attempt the credential.
+        - Never generalize a narrow limitation into a broad one. "Operation X needs a browser"
+          does not imply "this capability is unavailable" — name the exact operation.
+        - A blocker that gates MORE THAN ONE program is re-verified first, always, because the
+          cost of it being wrong scales with the number of programs it hides.
     scoring_axes:
+      portfolio_leverage_multiplier:
+        weight: 6
+        description: >
+          ADDED 2026-08-17 after the ranking failed in production. Every other axis scores a
+          candidate IN ISOLATION, so a gap shared by all 21 programs scored the same as one
+          affecting a single program — and a new 21st program (roi 85) outranked the storefront
+          (roi 78) that gates the sellability of ALL 21. That is not a judgement call gone wrong,
+          it is a missing term. Score this axis by how many programs the candidate unblocks at
+          once: 1 program = 0, a few = 3, most = 5, all = 6. A candidate that raises the whole
+          portfolio's ceiling must be able to outrank any candidate that raises one program's
+          floor, and before this axis existed it structurally could not.
       capability_gain:
         weight: 5
       active_vertical_advancement:
