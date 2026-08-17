@@ -61,6 +61,38 @@ for (const product of products) {
   console.log(`  ${product.id.padEnd(20)} ${input.artifacts.length} artifacts  ->  ${page.path}`);
 }
 
+// ─── host routing ────────────────────────────────────────────────────────────
+// Every product page lives at /<id>/, but each product's SUBDOMAIN must serve
+// its own page at the root: theme.trustfabric.ai/ is the theme page, not the
+// index of all products. Pages advanced mode (_worker.js) is the one mechanism
+// that can see the Host header, so the mapping is done here rather than with
+// _redirects (which is path-based only).
+//
+// Unknown hosts — the raw *.pages.dev preview, or the apex — fall through to the
+// normal asset served for that path, so the preview index keeps working.
+// Keyed by the registry's ACTUAL subdomain label, which is NOT always the product
+// id: agentic-purchasing is sold at commerce.trustfabric.ai. Assuming label === id
+// would have served the wrong page there, so the map is built from the registry.
+const hostMap = Object.fromEntries(products.map((p) => [p.subdomain.split(".")[0], p.id]));
+writeFileSync(
+  join(OUT, "_worker.js"),
+  `const HOSTS = ${JSON.stringify(hostMap)};
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const id = HOSTS[url.hostname.split(".")[0]];
+    // Only the root is rewritten; deeper paths and assets (favicons) are served
+    // as-is so /theme-favicon.svg still resolves from any host.
+    if (id && (url.pathname === "/" || url.pathname === "")) {
+      return env.ASSETS.fetch(new Request(new URL("/" + id + "/", url), request));
+    }
+    return env.ASSETS.fetch(request);
+  },
+};
+`,
+  "utf8",
+);
+
 // An index so the deployed preview is navigable before any DNS exists.
 const links = products
   .map((p) => `<li><a href="/${p.id}/">${p.name}</a></li>`)
