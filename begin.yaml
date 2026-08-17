@@ -616,6 +616,35 @@ project_begin:
         # portfolio from the working queue for weeks. See roi_policy.blocked_candidate_law below.
         # DESIGN DIRECTION (owner): layouts build on the avionics language; continuity across pages with
         # individual per-program favicons that compose into the AXIS' Iliad brand.
+        #
+        # BUILT 2026-08-17 (80c05ce), gate LOCAL CI GREEN 434/437. generators-storefront.ts emits all 21
+        # pages + 21 favicons from PRODUCT_REGISTRY joined to the real GENERATOR_PROGRAMS manifest, so a
+        # page cannot drift from the program it sells (mcp shows 19 artifacts, pitch 3, because that is
+        # what they emit). Palette is the averionics contract already in generateDesignTokens — HUD cyan
+        # #06b6d4 on cockpit slate #0d141d — read, not re-typed. Favicons share one frame (same rounded
+        # square, same cyan border) with a per-product instrument arc + initial, so the set composes.
+        # TWO HONESTY GATES, both tested against the REAL registry (20/20):
+        #   1. BILLING — priceLine() is the single place the decision lives and renders `billing`, never
+        #      `billing_at_gate`. Guard proven non-vacuous: it asserts products DO carry
+        #      billing_at_gate:"recurring" before asserting none of it reaches a page. Zero renewal
+        #      language across all 21. This is the defect that blocked spoke_05 originally, now closed.
+        #   2. GATE NOTES — caught by READING MY OWN OUTPUT, not by a test. The first draft published
+        #      remotion's ledger note verbatim on a public page ("do not ship renders before the license
+        #      exists") AND advertised $29 for something we cannot deliver. Same defect class as (1): a
+        #      public claim our own records contradict. Now a gated product shows NO price and NO buy
+        #      action (inviting a purchase we cannot fulfil is the lie) and states the fact in customer
+        #      language while the internal reasoning stays internal; tests assert the internal vocabulary
+        #      leaks in no form. LESSON: generated public copy must be read, not just asserted about.
+        # Pages are judged by OUR OWN frontend auditor (analyzeUiSurface, zero findings on all 21) —
+        # second time today one program's verifier polices another's output.
+        # scripts/build-storefront.mjs is plain .mjs run with node, deliberately NOT a .ts needing
+        # `npx tsx` (that fetches from the npm registry mid-run and broke the gate earlier today).
+        # DEPLOYED TO PREVIEW ONLY: https://axis-storefront.pages.dev — a NEW Pages project, so live
+        # axis-web was untouched. All 21 pages + 21 favicons verified 200 against the live URL (two
+        # transient failures on first request, clean on retry — verified rather than assumed).
+        # STILL OPEN, AND DELIBERATELY OWNER-GATED: creating the ~20 public <program>.trustfabric.ai
+        # DNS records. DNS write is PROVEN working, so this is a short step — but publishing 20 public
+        # URLs is a launch action, not a build step. spoke_06 (program-scoped runs) is the other half.
         # PRIOR NOTE (data half, still accurate): UNBLOCKED-ON-DATA 2026-08-06 (owner: "fix the data"). The registry no longer contradicts the Terms: `billing` states TODAY's truth (18 one_time, 2 free) and the intent moved to a new `billing_at_gate` field, so all 17 products that become recurring on 2026-08-15 still say so and nobody has to reconstruct that list. billing-claim-honesty.test.ts enforces both halves and needed its 17-product exception list DELETED as a result - the honest answer is now zero. STILL BLOCKED ON: the 20 subdomains (DNS/TLS/Cloudflare Pages), which is owner-gated and browser-only, so generated pages cannot go live yet. Original blocker, for the record:  on a data-integrity defect in its OWN INPUT, found by scoping it. PRODUCT_REGISTRY marks 17 of 20 products billing:'recurring' at monthly prices ($9 skills, $29 mcp, $19 theme/frontend/seo/deploy...), while TERMS_OF_SERVICE.md - the legal document that governs - says 'Payment for a paid tier is a single, one-time charge ... a purchase does not automatically renew'. Generating a landing page per product from that registry would have published 17 pricing claims contradicting our own Terms, across 20 public pages. The contradiction is LATENT today (nothing serves the registry's billing or price_usd; admin.ts reads only `name`) and spoke_05 is precisely what would have made it live. SHIPPED INSTEAD: apps/api/src/billing-claim-honesty.test.ts - declares the 17 as a dated exception tied to the 2026-08-15 recurring-billing gate, fails on any NEW recurring product, fails if the count moves off 17, and flips to the OPPOSITE check automatically once the Terms are updated (no one has to remember to come back). Red-tested: an undeclared recurring product fails with an actionable message. Also caught price_usd being mixed number|string ('free' sentinel), which makes Math.min return NaN - harmless only while nothing renders it. UNBLOCKS WHEN: the 2026-08-15 Terms change lands and the registry's billing matches reality. The pages themselves also need the 20 subdomains (DNS/TLS/Cloudflare Pages), which is separately owner-gated - so this was never shippable end-to-end today regardless. DELIBERATELY NOT DONE: rewriting 17 products' billing field. That is a pricing decision, not a cleanup.
 
       - id: "spoke_06_scoped_program_runs"
