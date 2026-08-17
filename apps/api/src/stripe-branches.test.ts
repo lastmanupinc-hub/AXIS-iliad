@@ -21,7 +21,7 @@ import {
   type EmailMessage,
 } from "@axis/snapshots";
 import { Router } from "./router.js";
-import { startTestServer } from "./test-helpers.js";
+import { startTestServer, waitForSpyCall } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
 import {
   handleStripeWebhook,
@@ -177,14 +177,10 @@ async function seedSubscription(accountId: string, subscriptionId: string, price
 // only setTimeout/clearTimeout are) until the fetch stub has actually been
 // invoked, so its AbortController's setTimeout is guaranteed to already be
 // registered before the fake clock gets advanced past it.
-async function waitForFetchCall(spy: { mock: { calls: unknown[][] } }, calls: number, maxTicks = 500): Promise<void> {
-  for (let i = 0; i < maxTicks && spy.mock.calls.length < calls; i++) {
-    // Flush any already-due fake timer (e.g. a library's internal
-    // setTimeout(fn, 0)) without moving the clock past it, THEN yield to the
-    // real event loop so pending real I/O (DB/socket) can also progress.
-    await vi.advanceTimersByTimeAsync(0);
-    await new Promise<void>((resolve) => setImmediate(resolve));
-  }
+// Bounded by real wall-clock, not a tick count — see waitForSpyCall's comment
+// in test-helpers.ts for why the tick-counting version raced under load.
+async function waitForFetchCall(spy: { mock: { calls: unknown[][] } }, calls: number): Promise<void> {
+  await waitForSpyCall(spy, calls, { tick: () => vi.advanceTimersByTimeAsync(0) });
 }
 
 // H-Phase-A cycle 11: the "handleCreateCheckout branches" describe block

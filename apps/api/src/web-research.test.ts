@@ -21,7 +21,7 @@ import { firecrawlScrape, firecrawlCrawl, isWebResearchNotConfigured } from "./w
 import { dispatch } from "./mcp-server.js";
 import { putCachedScrape } from "@axis/snapshots";
 import { Router } from "./router.js";
-import { startTestServer } from "./test-helpers.js";
+import { startTestServer, waitForSpyCall } from "./test-helpers.js";
 import { handleFirecrawlScrape, handleFirecrawlCrawl } from "./handlers.js";
 import { ErrorCode } from "./logger.js";
 
@@ -734,10 +734,10 @@ describe("POST /v1/research/scrape — Firecrawl transport & malformed-response 
     try {
       const pending = post("https://example.com/timeout-scrape", apiKey);
       // Let real I/O reach the fetch() call so its abort timer is registered.
-      for (let i = 0; i < 500 && fetchSpy.mock.calls.length < 1; i++) {
-        await vi.advanceTimersByTimeAsync(0);
-        await new Promise<void>((resolve) => setImmediate(resolve));
-      }
+      // Bounded by real time, not ticks: this raced and failed the 2026-08-17
+      // gate ("expected 1 times, got 0 times") because a tick budget does not
+      // grow when the DB does. See waitForSpyCall in test-helpers.ts.
+      await waitForSpyCall(fetchSpy, 1, { tick: () => vi.advanceTimersByTimeAsync(0) });
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       await vi.advanceTimersByTimeAsync(30000);
       const r = await pending;
@@ -846,12 +846,12 @@ describe("POST /v1/research/crawl — Firecrawl transport & malformed-response h
     try {
       const pending = postCrawl({ url: "https://example.com", limit: 5 }, apiKey);
       // Crawl's handler path does more async work before reaching fetch() than
-      // scrape's (see the scrape-path test above, which uses the same idiom at
-      // 500 iterations) -- give this one more headroom so it isn't a race.
-      for (let i = 0; i < 3000 && fetchSpy.mock.calls.length < 1; i++) {
-        await vi.advanceTimersByTimeAsync(0);
-        await new Promise<void>((resolve) => setImmediate(resolve));
-      }
+      // scrape's. That used to be handled by raising the tick budget 500 ->
+      // 3000 ("give this one more headroom so it isn't a race") — which is the
+      // non-fix: more ticks still measures ticks, and the thing being waited on
+      // is real I/O. A wall-clock bound removes the race for both paths, so
+      // neither needs a hand-tuned number. See waitForSpyCall in test-helpers.ts.
+      await waitForSpyCall(fetchSpy, 1, { tick: () => vi.advanceTimersByTimeAsync(0) });
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       await vi.advanceTimersByTimeAsync(60000);
       const r = await pending;
