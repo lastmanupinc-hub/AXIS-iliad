@@ -58,6 +58,16 @@ export { generateFrontendRules, generateComponentGuidelines, generateLayoutPatte
 // them can be applied. The program that writes the component is the program that
 // judges it — and it is deterministic, so the gate holds with or without an LLM.
 export { analyzeUiSurface, renderUiFindings, type UiFinding } from "./generators-frontend.js";
+// spoke_05 — our own storefront, generated from PRODUCT_REGISTRY + the real
+// manifest so a page can never drift from the product it sells.
+export {
+  generateStorefrontPage,
+  generateStorefrontFavicon,
+  priceLine,
+  AVERIONICS,
+  type StorefrontProduct,
+  type StorefrontInput,
+} from "./generators-storefront.js";
 export { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit, generateMetaTagAudit, generateSeoHeadTags } from "./generators-seo.js";
 export { validateStructuredData, extractJsonLdBlocks, type StructuredDataResult, type StructuredDataIssue } from "./seo-structured-data.js";
 export { generatePitchDeck, generatePitchDeckJson, generateSlideArtPrompts } from "./generators-pitch.js";

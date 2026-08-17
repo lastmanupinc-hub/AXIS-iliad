@@ -58,3 +58,6 @@ apps/cli/.tsc-out/
 /stalling fix.txt
 /*.log
 /axis_toolbox_*.txt
+
+# spoke_05 storefront build output (regenerate: node scripts/build-storefront.mjs)
+.storefront-dist/
