@@ -8,6 +8,9 @@
 // exactly how this would have shipped as intermittent "flakiness" in whichever
 // unlucky test asserted a generated id.
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { resetTestDb, closeTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
 
@@ -136,12 +139,20 @@ describe("resetTestDb — dirty-only reset", () => {
     expect(await sequenceLastValue()).toBeNull();
   });
 
-  // 60s timeout, not the 5s default. The blanket sweep this escape hatch
-  // restores measures ~7.8s unloaded, but it is highly variable under
-  // contention — at 30s this test itself flaked. Needing a 12x timeout just to
-  // exercise the OLD path is the clearest possible summary of why the new one
-  // exists. Kept as a real invocation rather than a mock: an escape hatch that
-  // is never actually run is not an escape hatch.
+  // 60s, not the file-wide 30s. Kept as a real invocation rather than a mock:
+  // an escape hatch that is never actually run is not an escape hatch, so this
+  // is the one test that deliberately pays for the whole blanket sweep.
+  //
+  // The budget used to be justified by "~7.8s unloaded", and that number had
+  // gone stale: measured 2026-08-16 on an IDLE machine the sweep ran med 30.8s
+  // / max 43.4s against a 60s budget, so it was consuming most of its own
+  // ceiling before any load and timed out repeatedly in the Docker gate. That
+  // was diagnosed as contention (infra_03) and it was not — it was the sweep
+  // issuing one TRUNCATE per table. Fixed in pg-test.ts (one statement over all
+  // tables, 5.6x), which is what makes the number below honest again:
+  //   sweep now: min 4.1s  med 5.5s  max 8.7s idle  => ~7x headroom at 60s
+  // If this test ever times out again, suspect a real regression in the sweep
+  // (or genuine lock contention) — do NOT just raise the number, measure first.
   it("still clears everything under the AXIS_TEST_RESET_FULL escape hatch", async () => {
     await insertEvents(2);
     process.env.AXIS_TEST_RESET_FULL = "1";
@@ -153,4 +164,59 @@ describe("resetTestDb — dirty-only reset", () => {
     expect(await rowCount()).toBe(0);
     expect(await sequenceLastValue()).toBeNull();
   }, 60_000);
+});
+
+// ─── the shape guard (infra_03) ────────────────────────────────────
+// The behavioural tests above pass either way — a per-table loop and a single
+// multi-table statement both clear the DB correctly. What separates them is a
+// 5.6x cost difference that only shows up as "flakiness" in whichever test is
+// closest to its timeout, which is exactly how this shipped: clearTables()
+// already knew not to truncate table-by-table and said so in its own comment,
+// but the escape hatch kept looping and nothing could fail when the lesson
+// failed to propagate. A comment cannot fail a build; this can.
+//
+// Asserted against source rather than timing on purpose — a wall-clock budget
+// on a shared machine is the flakiness this whole exercise exists to remove.
+describe("full-sweep shape — one TRUNCATE, not one per table", () => {
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "pg-test.ts"),
+    "utf8",
+  );
+
+  /** The FULL_SWEEP_SQL template literal, comments excluded. */
+  function sweepSql(): string {
+    const start = source.indexOf("const FULL_SWEEP_SQL");
+    expect(start, "FULL_SWEEP_SQL not found — was it renamed?").toBeGreaterThan(-1);
+    const open = source.indexOf("`", start);
+    const close = source.indexOf("`", open + 1);
+    expect(close, "FULL_SWEEP_SQL is not a single template literal").toBeGreaterThan(open);
+    return source.slice(open + 1, close);
+  }
+
+  // Counting TRUNCATE literals ALONE would be vacuous: the old per-table loop
+  // also contains exactly one, inside an EXECUTE it runs 47 times. What has to
+  // be asserted is that it runs once — i.e. one literal AND no iteration.
+  it("truncates every table in a single statement, not once per table", () => {
+    const sweep = sweepSql();
+    const truncates = sweep.match(/TRUNCATE/gi) ?? [];
+    const why =
+      "The blanket sweep must truncate every table in ONE statement. Each " +
+      "execution pays its own ACCESS EXCLUSIVE lock, relfilenode swap and " +
+      "fsync, so cost scales with table count, not row count — measured " +
+      "med 30.8s (per-table) vs 5.5s (single) across 47 tables, against a 60s " +
+      "test budget. See pg-test.ts's FULL_SWEEP_SQL comment.";
+
+    expect(truncates.length, why).toBe(1);
+    // The clause that actually catches the historical regression: one literal
+    // inside a FOR ... LOOP is still one truncate PER TABLE at runtime.
+    expect(/\bLOOP\b/i.test(sweep), why).toBe(false);
+    expect(/\bFOR\b/i.test(sweep), why).toBe(false);
+  });
+
+  it("still discovers tables at call time, so lazily-created ones are swept", () => {
+    // The speed fix must not become a static table list: analytics.ts creates
+    // its table on first use, long after the first reset has run.
+    expect(sweepSql()).toMatch(/pg_tables/);
+    expect(sweepSql()).toMatch(/current_schema\(\)/);
+  });
 });

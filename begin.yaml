@@ -767,10 +767,12 @@ project_begin:
         # 3 FOLLOW-UP COMMITS, DOCUMENTED EXCEPTION (2026-08-16, same day): 7c45810 (this receipt) and
         # d5bd151 (filing infra_03) are pure YAML comments; 6ea6ac2 is a real fix (referral_credits
         # TOCTOU race - see infra_03 candidate, and the commit itself, for the full story: the SAME
-        # ship.sh api gate caught this race, then hit infra_03's pg-test-reset contention timeout on
-        # EVERY subsequent attempt (3 more full runs) as Docker's resource state visibly degraded over
-        # the session - 84.7s for a 7-test file, then 153.8s on the next attempt, both matching the
-        # exact known-flaky test infra_03 already documents. The referral fix was independently verified
+        # ship.sh api gate caught this race, then hit infra_03's pg-test-reset timeout on EVERY
+        # subsequent attempt (3 more full runs) - 84.7s for a 7-test file, then 153.8s on the next.
+        # NOTE, corrected later the same day: this paragraph originally attributed that to "Docker's
+        # resource state degrading" i.e. contention. It was not. infra_03 turned out to be the sweep
+        # itself costing med 30.8s against a 60s budget on an IDLE db; see that candidate for the
+        # measurement that disproved the contention story. The referral fix was independently verified
         # by targeted host-DB runs of referral-store.test.ts/referral-e2e.test.ts/usage-credit-metering
         # -test.ts (all green) AND by the container run that first found the race (subsequent runs never
         # failed on it again - only pg-test-reset did). Given all 3 commits were independently verified
@@ -1060,7 +1062,7 @@ project_begin:
         source_file: "packages/generator-core/src/generators-algorithmic.ts"
         completion_status: open
 
-      - id: "infra_03_pg_test_reset_contention_timeout"
+      - id: "infra_03_pg_test_reset_sweep_cost"
         description: >
           packages/snapshots/src/pg-test-reset.test.ts's "still clears everything under the
           AXIS_TEST_RESET_FULL escape hatch" test times out at exactly its 60000ms budget under
@@ -1083,7 +1085,30 @@ project_begin:
         roi_reason: "production_quality_gain 3; makes the local gate's results trustworthy — a gate that sometimes fails for reasons unrelated to the diff erodes the exact discipline ops_03 exists to enforce."
         severity: MEDIUM
         source_file: "packages/snapshots/src/pg-test-reset.test.ts"
-        completion_status: open
+        completion_status: complete  # FIXED 2026-08-16. THE DIAGNOSIS ABOVE WAS WRONG, and measuring is what showed it: I filed this as
+        # "contention" because every observation happened under load. It is not contention. Benchmarked the escape-hatch sweep against the
+        # real test Postgres with ZERO other connections (verified via pg_stat_activity — nothing else attached, no orphans), n=7, 47 tables:
+        # the shipped per-table DO loop cost min 22.7s / MED 30.8s / max 43.4s. On an IDLE machine. Against a 60s budget. It was consuming
+        # half its own ceiling before any load existed, so anything slower — the Docker gate's I/O, coverage instrumentation — pushed it over.
+        # Same shape vitest.config.ts's testTimeout comment already describes: "not failing at random; guaranteed to fail the moment anything
+        # got slightly slower." ROOT CAUSE: the sweep issued one `TRUNCATE ... RESTART IDENTITY CASCADE` PER TABLE, so cost scaled with table
+        # count (each pays its own ACCESS EXCLUSIVE lock, relfilenode swap and fsync) rather than with the near-zero row count. The galling
+        # part: clearTables() in the SAME FILE already rejected exactly this shape for the fast path, with its own measurement in its own
+        # comment ("2348ms vs 7825ms across all 49") — the lesson was learned once and never propagated to the fallback, and nothing could
+        # fail when it didn't. FIX: one statement over all tables, built server-side with string_agg so it stays a single self-contained SQL
+        # string that still re-reads pg_tables per call (a lazily-created table — analytics.ts does that — must not be baked out). MEASURED
+        # AFTER: min 4.1s / med 5.5s / max 8.7s = 5.6x, turning ~2x headroom into ~7x. EQUIVALENCE PROVEN BEFORE SHIPPING, not assumed: both
+        # forms clear every table, return every sequence to last_value IS NULL, and preserve schema_migrations (17 rows) — and no FK anywhere
+        # references schema_migrations, so CASCADE cannot reach it. A/B UNDER IDENTICAL SYNTHETIC LOAD (4 clients holding ACCESS SHARE in open
+        # transactions, 2820 lock-holding txns — ACCESS SHARE is precisely what conflicts with TRUNCATE): old = 35.9s for that ONE test (60% of
+        # budget); new = 15.1s for the WHOLE 9-test file. Whole file went 77-153s-with-a-failure to 25-35s green. REGRESSION GUARD: new
+        # "full-sweep shape" describe in pg-test-reset.test.ts asserts the sweep issues one TRUNCATE and does not iterate, and that it still
+        # discovers tables at call time. Asserted against SOURCE, not wall-clock, because a timing budget on a shared machine is the very
+        # flakiness being removed. RED-PROVEN against the real old shape — and that red test caught a vacuous assertion in my OWN first draft:
+        # counting TRUNCATE literals PASSES on the per-table loop (it contains exactly one, inside an EXECUTE it runs 47 times), so the
+        # literal count was merged with the no-iteration clause that actually fails. VERIFIED: 84/84 across pg-test-reset + billing +
+        # usage-credit-metering + referral-store. NOT DONE, deliberately: no lock_timeout added — it would guard against a cause the
+        # measurement disproved, and speculative guards are how the stale "~7.8s under contention" comment misled this in the first place.
 
   highest_roi_definition:
     meaning: >

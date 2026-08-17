@@ -70,15 +70,37 @@ function quoteLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
+// ONE truncate over every table, not one truncate PER table (infra_03).
+//
+// This originally looped, issuing a separate `TRUNCATE ... RESTART IDENTITY
+// CASCADE` per table — the same shape clearTables() below already rejected for
+// the fast path, with the same reason and its own measurement ("2348ms vs
+// 7825ms across all 49"). The lesson simply never got applied to the fallback:
+// every TRUNCATE pays its own ACCESS EXCLUSIVE lock, relfilenode swap and
+// fsync, so the cost scales with the table count instead of the (near-zero)
+// row count.
+//
+// MEASURED 2026-08-16, real test Postgres, idle machine, 47 tables, n=7:
+//   per-table loop (what shipped) ... min 22.7s  med 30.8s  max 43.4s
+//   one statement (this)  .......... min  4.1s  med  5.5s  max  8.7s   5.6x
+//
+// That is why pg-test-reset's escape-hatch test kept timing out: its budget is
+// 60s and the median cost was 30.8s BEFORE any load — the same "guaranteed to
+// fail the moment anything gets slightly slower" shape vitest.config.ts
+// documents for testTimeout. It was never lock contention; it was the sweep.
+//
+// string_agg keeps this a single self-contained statement that still re-reads
+// pg_tables on every call, so a lazily-created table (analytics.ts does that)
+// is picked up rather than baked in. NULL guard covers the empty-schema case.
 const FULL_SWEEP_SQL = `DO $$
-    DECLARE r RECORD;
+    DECLARE stmt text;
     BEGIN
-      FOR r IN (
-        SELECT tablename FROM pg_tables
-        WHERE schemaname = current_schema() AND tablename <> 'schema_migrations'
-      ) LOOP
-        EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE';
-      END LOOP;
+      SELECT string_agg(quote_ident(tablename), ', ') INTO stmt
+        FROM pg_tables
+       WHERE schemaname = current_schema() AND tablename <> 'schema_migrations';
+      IF stmt IS NOT NULL THEN
+        EXECUTE 'TRUNCATE TABLE ' || stmt || ' RESTART IDENTITY CASCADE';
+      END IF;
     END $$;`;
 
 /**
