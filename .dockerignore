@@ -31,3 +31,5 @@ coverage-*.txt
 axis_toolbox_*.txt
 *.log
 git-mirrors
+# spoke_05 storefront build output — regenerated, never needed in the gate image
+.storefront-dist

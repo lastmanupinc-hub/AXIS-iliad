@@ -21,7 +21,7 @@ export function outputsForPrograms(programs: readonly string[]): string[] {
   const want = new Set(programs);
   const out: string[] = [];
   for (const [generator, program] of Object.entries(GENERATOR_PROGRAMS)) {
-    if (want.has(program as string)) out.push(generator);
+    if (want.has(program)) out.push(generator);
   }
   // Sorted so a spoke's request is deterministic regardless of registry order —
   // generateFiles dedupes into a Set, but a stable request keeps logs diffable.
