@@ -1137,6 +1137,30 @@ project_begin:
         source_file: "packages/generator-core/src/generators-algorithmic.ts"
         completion_status: open
 
+      - id: "money_01_subscription_revenue_invisible"
+        description: >
+          The admin revenue view reports settled_revenue_cents_all_time = $0 while subscription money
+          HAS actually settled to the owner's account (owner report, 2026-08-18). Traced: the figure is
+          SUM(amount_cents) over `payment_receipts`, and the only writer of that table is
+          recordSettledPayment(), called exclusively from settleOverageCash() in cashier.ts — the
+          METERED per-call path (x402/MPP overage) reached from handlers.ts and mcp-server.ts. A PAI'D
+          subscription checkout never touches it. So the field measures metered tool revenue only,
+          while its name reads as all revenue, and the platform cannot report money it genuinely
+          earned. Same family as the two bugs fixed the same day (23c50b0, 75f9b95): a number that
+          looks authoritative while silently covering one branch of reality. FIX DIRECTION (needs an
+          owner call, not a guess): either the subscription settlement webhook writes a receipt row so
+          one table honestly means "money received", or the metric splits explicitly into metered vs
+          subscription revenue with both surfaced. The first is better if a receipt can be written
+          faithfully from PAI'D settlement data; the second is right if that data lives only in Stripe.
+          DO NOT paper over it by summing estimated MRR into the settled figure — estimated_mrr_cents
+          is already derived from tier counts, and merging an estimate into a settled number is how a
+          revenue report starts lying.
+        roi_score: 88
+        roi_reason: "revenue_loop_closure 5, production_quality_gain 5, validation_strength 4. The business cannot see its own income; every downstream decision reads a zero that is false."
+        severity: HIGH
+        source_file: "packages/snapshots/src/growth-store.ts"
+        completion_status: open
+
       - id: "infra_03_pg_test_reset_sweep_cost"
         description: >
           packages/snapshots/src/pg-test-reset.test.ts's "still clears everything under the
