@@ -58,6 +58,9 @@ export { generateFrontendRules, generateComponentGuidelines, generateLayoutPatte
 // them can be applied. The program that writes the component is the program that
 // judges it — and it is deterministic, so the gate holds with or without an LLM.
 export { analyzeUiSurface, renderUiFindings, type UiFinding } from "./generators-frontend.js";
+// spoke_06 — a spoke is the SAME generators with a narrowed program set. One
+// resolver, shared by hub and spoke, so the two cannot fork.
+export { outputsForPrograms, programsForProduct, outputsForProduct } from "./spoke-scope.js";
 // spoke_05 — our own storefront, generated from PRODUCT_REGISTRY + the real
 // manifest so a page can never drift from the product it sells.
 export {
