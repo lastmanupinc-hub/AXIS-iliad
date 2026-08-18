@@ -198,13 +198,32 @@ export async function deleteAccount(account_id: string): Promise<{ deleted: bool
   return { deleted: true, projects_deleted: projects.length };
 }
 
+/**
+ * Every paid tier grants every program. PLAN_FEATURES — the marketed comparison
+ * table we publish — says "Programs available: All 21" for starter, pro AND
+ * growth, and starter/pro both collapse into the coarse `paid` tier.
+ *
+ * THE BUG THIS CLOSES (2026-08-18, found by a real customer): both tier-update
+ * paths granted entitlements only when `toTier === "suite"`. A free→paid upgrade
+ * therefore set the tier and granted NOTHING — and because TIER_LIMITS.paid
+ * declares `programs: []` ("governed by entitlements"), isProgramEnabled() found
+ * no row and returned false for every pro program. A customer whose payment had
+ * settled got 403 on everything they had just bought. Money in, access nil.
+ *
+ * Centralised here rather than repeated in both callers: the duplicated `if
+ * (toTier === "suite")` block in two functions is exactly how the paid case came
+ * to be missing from one mental model and then both.
+ */
+async function grantTierPrograms(account_id: string, tier: BillingTier): Promise<void> {
+  if (tier === "free") return; // free's programs come from TIER_LIMITS, not entitlements
+  for (const program of ALL_PROGRAMS) {
+    await enableProgram(account_id, program);
+  }
+}
+
 export async function updateAccountTier(account_id: string, tier: BillingTier): Promise<boolean> {
   const result = await sql.run("UPDATE accounts SET tier = ? WHERE account_id = ?", [tier, account_id]);
-  if (result.rowCount > 0 && tier === "suite") {
-    for (const program of ALL_PROGRAMS) {
-      await enableProgram(account_id, program);
-    }
-  }
+  if (result.rowCount > 0) await grantTierPrograms(account_id, tier);
   return result.rowCount > 0;
 }
 
@@ -226,11 +245,7 @@ export async function updateAccountTierIfCurrent(
     "UPDATE accounts SET tier = ? WHERE account_id = ? AND tier = ?",
     [toTier, account_id, fromTier],
   );
-  if (result.rowCount > 0 && toTier === "suite") {
-    for (const program of ALL_PROGRAMS) {
-      await enableProgram(account_id, program);
-    }
-  }
+  if (result.rowCount > 0) await grantTierPrograms(account_id, toTier);
   return result.rowCount > 0;
 }
 
