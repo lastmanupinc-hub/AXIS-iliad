@@ -6,6 +6,13 @@ read out of the built registry (`PROGRAM_ORDER`, `GENERATOR_PROGRAMS`,
 over from an older document — this repo has a standing rule that docs drift from
 runtime and must be diffed against `counts.ts` rather than trusted for reading clean.
 
+**🚀 LAUNCHED 2026-08-17.** All 21 products are live at `<program>.trustfabric.ai` —
+[theme](https://theme.trustfabric.ai/) · [search](https://search.trustfabric.ai/) ·
+[mcp](https://mcp.trustfabric.ai/) · [commerce](https://commerce.trustfabric.ai/) (agentic-purchasing) ·
+[remotion](https://remotion.trustfabric.ai/) (correctly showing *Not yet available*) — each serving
+its own generated page at the root. Pages are derived from `PRODUCT_REGISTRY` joined to the real
+generator manifest, so a page cannot drift from the program it sells.
+
 **Portfolio totals (measured):** 21 programs · 147 generators · 37 MCP tools ·
 167 endpoints · 2 free programs (search, obsidian) · 19 paid.
 
@@ -33,10 +40,14 @@ That gives five components, 20 points each:
 - **Floor = 40% for everything.** All 21 programs generate deterministically, and all 21
   pass a structural self-check (the verify-harness substrate, `app_03`, is complete and
   `generate-programs.test.ts` asserts every program's real output passes its own check).
-- **Ceiling = 80% for everything.** *No* program scores on Storefront. The 20+
-  `<name>.trustfabric.ai` subdomains are provisioned in `PRODUCT_REGISTRY` but not live, and
-  program-scoped runs (`spoke_06`) are still open. **Nothing is standalone-buyable today.**
-  That single shared gap is worth more than any individual program's remaining work.
+- **Ceiling = 90% for everything, as of the 2026-08-17 launch.** Storefront was the one gap
+  shared by all 21 and the sole reason nothing passed 80%. It is now **half closed**: all 21
+  `<program>.trustfabric.ai` subdomains are **LIVE** — each serving its own page at the root,
+  verified 21/21 against the live public URLs, not against build output. The remaining half is
+  `spoke_06` (program-scoped runs): a spoke still points at the hub rather than selling only
+  its own program, so **standalone-buyable is not finished** and Storefront scores 10, not 20.
+  That last 10 is still worth more than any individual program's remaining work, for the same
+  reason the first 10 was — it is the only point that moves all 21 at once.
 
   > **CORRECTION 2026-08-17.** The line above originally said this step was "owner-gated and
   > browser-only." **That was wrong, and it was wrong for weeks.** Owner note: *"all necessary
@@ -60,27 +71,27 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 
 | Program | Gens | Price | Tier | % | Missing |
 |---|---:|---:|---|---:|---|
-| skills | 6 | $9 | paid | **80%** | storefront |
-| theme | 5 | $19 | paid | **80%** | storefront |
-| canvas | 6 | $15 | paid | **80%** | storefront |
-| seo | 6 | $19 | paid | **80%** | storefront (+ GSC auth for the last mile) |
-| search | 6 | free | free | **70%** | apply is re-index only; storefront |
-| mcp | 19 | $29 | paid | **60%** | watch; storefront |
-| deploy | 13 | $19 | paid | **50%** | apply is CLI-local; watch; storefront |
-| closer | 16 | $49 | paid | **50%** | apply is CLI-local; watch; storefront |
-| superpowers | 8 | $19 | paid | **50%** | apply is CLI-local; watch; storefront |
-| agentic-purchasing | 6 | $99 | suite | **45%** | live-counterparty verify; apply; watch; storefront |
-| pitch | 3 | $19 | paid | **40%** | apply; watch; storefront |
-| artifacts | 11 | $29 | paid | **40%** | blocked on output-shape decision | *react high end*
-| frontend | 4 | $19 | paid | **80%** | storefront (apply needs an LLM configured — see note) |
-| debug | 4 | $15 | paid | **40%** | apply; watch; storefront |
-| optimization | 4 | $29 | paid | **40%** | apply; watch; storefront |
-| notebook | 5 | $15 | paid | **40%** | apply; watch; storefront |
-| obsidian | 5 | free | free | **40%** | apply; watch; storefront |
-| brand | 5 | $15 | paid | **40%** | apply; watch; storefront |
-| marketing | 5 | $19 | paid | **40%** | apply; watch; storefront |
-| remotion | 5 | $29 | paid | **40%** | license-gated; apply; watch; storefront |
-| algorithmic | 5 | $19 | paid | **40%** | apply; watch; storefront |
+| skills | 6 | $9 | paid | **90%** | spoke_06 |
+| theme | 5 | $19 | paid | **90%** | spoke_06 |
+| canvas | 6 | $15 | paid | **90%** | spoke_06 |
+| seo | 6 | $19 | paid | **90%** | spoke_06 (+ GSC auth) |
+| search | 6 | free | free | **80%** | apply is re-index only; spoke_06 |
+| mcp | 19 | $29 | paid | **70%** | watch; spoke_06 |
+| deploy | 13 | $19 | paid | **60%** | apply is CLI-local; watch; spoke_06 |
+| closer | 16 | $49 | paid | **60%** | apply is CLI-local; watch; spoke_06 |
+| superpowers | 8 | $19 | paid | **60%** | apply is CLI-local; watch; spoke_06 |
+| agentic-purchasing | 6 | $99 | suite | **55%** | live-counterparty verify; apply; watch; spoke_06 |
+| pitch | 3 | $19 | paid | **50%** | apply; watch; spoke_06 |
+| artifacts | 11 | $29 | paid | **50%** | blocked on output-shape decision | *react high end*
+| frontend | 4 | $19 | paid | **90%** | spoke_06 (apply needs an LLM configured — see note) |
+| debug | 4 | $15 | paid | **50%** | apply; watch; spoke_06 |
+| optimization | 4 | $29 | paid | **50%** | apply; watch; spoke_06 |
+| notebook | 5 | $15 | paid | **50%** | apply; watch; spoke_06 |
+| obsidian | 5 | free | free | **50%** | apply; watch; spoke_06 |
+| brand | 5 | $15 | paid | **50%** | apply; watch; spoke_06 |
+| marketing | 5 | $19 | paid | **50%** | apply; watch; spoke_06 |
+| remotion | 5 | $29 | paid | **50%** | license-gated; apply; watch; spoke_06 |
+| algorithmic | 5 | $19 | paid | **50%** | apply; watch; spoke_06 |
 
 **11 of 21** have their "become an application" candidate complete. **10** remain open.
 
@@ -357,12 +368,13 @@ revisiting. The public xAI endpoint is deliberately unshipped — pricing is an 
 
 Ranked by leverage across programs rather than within one:
 
-1. **The storefront (`spoke_05` + `spoke_06`).** It is the *only* gap shared by all 21 and
-   the sole reason nothing exceeds 80%. **Not blocked — verified 2026-08-17** (DNS write on
-   `trustfabric.ai` confirmed by a real create/delete; Pages admin confirmed). What remains is
-   engineering: per-program subdomains, the generated landing pages, and program-scoped runs
-   (`spoke_06`). Unblocking it raises the entire portfolio at once; no individual program's
-   work comes close to that leverage.
+1. **`spoke_06` — program-scoped runs.** The other half of the storefront, and still the
+   highest-leverage item for the same reason the first half was: it is the only work that moves
+   all 21 programs at once. **`spoke_05` SHIPPED 2026-08-17** — all 21
+   `<program>.trustfabric.ai` subdomains are live, each serving its own generated page at the
+   root (verified 21/21 on the live URLs). But a spoke currently points at the hub, so buying
+   *only* theme is still not possible. Until a run can be scoped to one program, the pages are
+   storefronts without tills, and no program can pass 90%.
 2. **Watch consumers for mcp, deploy, closer, superpowers.** Four programs are one mechanic
    from 80%, and Watch is what converts a one-shot artifact into a subscription — the honest
    billing axis the strategy is built on.
@@ -377,7 +389,7 @@ Ranked by leverage across programs rather than within one:
 
 | Item | Status |
 |---|---|
-| subdomain DNS/TLS | ✅ **not a decision — never was blocked**, keys verified working |
+| subdomain DNS/TLS | ✅ **LAUNCHED 2026-08-17** — all 21 subdomains live, verified 21/21 on the public URLs |
 | `app_23` widget output shape | ✅ **decided: React, high-end** (bundle the runtime; do not downgrade to vanilla JS) |
 | `app_31` frontend determinism | ✅ **decided: LLM-inferred from a single source** (the repo's extracted design system) — ***PRIORITY 1*** |
 | theme `style-dictionary` | ✅ **decided: build it** |
@@ -389,3 +401,9 @@ Ranked by leverage across programs rather than within one:
 
 **Standing mandate (owner, 2026-08-17):** *no new territory.* Every program reaches the 80%
 bar with full QA and is storefront-ready before anything new is started.
+
+**Against that mandate, as of the launch:** **5 of 21 are at 90%** — skills, theme, canvas,
+seo, frontend — and the floor moved from 40% to 50% for everyone, because storefront is
+half-closed for all of them at once. **16 programs are still below the bar**, all of them
+short the same two mechanics: Apply and Watch. That is the whole remaining shape of the work —
+`spoke_06` once, then Apply+Watch sixteen times.
