@@ -227,58 +227,40 @@ export async function assertProjectAccess(req: IncomingMessage, res: ServerRespo
 
 // ─── Per-program default outputs ────────────────────────────────
 
-export const PROGRAM_OUTPUTS: Record<string, string[]> = {
-  debug:        ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
-  frontend:     ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
-  seo:          ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json", "seo-head-tags.html"],
-  pitch:        ["pitch-deck.md", "pitch-deck.json", "slide-art-prompts.json"],
-  optimization: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
-  theme:        ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
-  brand:        ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
-  superpowers:  ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"],
-  marketing:    ["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md", "ab-test-plan.md"],
-  notebook:     ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md", "citation-index.json"],
-  obsidian:     ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md", "template-pack.md"],
-  mcp:          ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"],
-  artifacts:    ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json"],
-  remotion:     ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
-  canvas:       ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md", "architecture-diagram.d2"],
-  algorithmic:          ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
-  "agentic-purchasing": ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json", "ap2-interop-samples.json"],
-  closer: [
-    "packaging/README.md",
-    "packaging/LICENSE",
-    "Dockerfile",
-    "docker-compose.yml",
-    ".github/workflows/ci.yml",
-    ".github/workflows/release.yml",
-    "packaging/manifests/npm-package.json",
-    "packaging/manifests/unreal.uplugin",
-    "packaging/manifests/vscode-extension.json",
-    "packaging/manifests/dockerhub-repository.md",
-    "packaging/manifests/github-marketplace-listing.md",
-    "packaging/trust-fabric/attestation.json",
-    "packaging/trust-fabric/merkle-proof.json",
-    "packaging-report.md",
-    "DISTRIBUTABLE.md",
-    "Makefile",
-  ],
-  deploy: [
-    "deploy/Dockerfile",
-    "deploy/Dockerfile.dockerignore",
-    "deploy/docker-compose.dev.yml",
-    "deploy/render.yaml",
-    "deploy/deploy.sh",
-    "deploy/deploy.ps1",
-    "deploy/vscode-launch.json.template",
-    "deploy/wrangler.pages.toml",
-    "deploy/wrangler.containers.toml",
-    "deploy/worker.ts",
-    "deploy/deploy-cloudflare.sh",
-    "deploy/deploy-cloudflare.ps1",
-    "deploy/deploy-qualification-report.md",
-  ],
-};
+/**
+ * Per-program default outputs — DERIVED from the generator manifest, never
+ * hand-maintained (spoke_06).
+ *
+ * This was a literal object listing each program's files by hand, and it had
+ * silently drifted from the generators that actually exist: artifacts was
+ * missing 6 outputs (prd.md, design.md, tasks.md, context.md, index.html,
+ * capability-map.yaml), superpowers 3 (the entire verify gate — verify.sh,
+ * verify-full.sh, .githooks/pre-push) and mcp 2 (the fintech surface package
+ * and domain schema). Because these are the DEFAULTS used when a caller does
+ * not pass `outputs`, every such call to those three programs silently
+ * under-delivered artifacts the customer had paid for — and the storefront
+ * pages, which count from the manifest, advertised the larger number.
+ *
+ * Two hand-maintained lists of the same truth is the bug family this repo keeps
+ * paying for (ALL_PROGRAMS vs the product schema in the pitch rollout; REST/MCP
+ * twin divergence). So this one is computed. A new generator now reaches the
+ * REST surface the moment it is registered, with nobody remembering to edit here.
+ *
+ * search and skills are deliberately excluded: both have dedicated handlers with
+ * their own output contracts, and this map is only consulted by
+ * makeProgramHandler. program-outputs-drift.test.ts asserts both halves — no
+ * drift for the programs present, and exactly those two absent.
+ */
+export const PROGRAM_OUTPUTS: Record<string, string[]> = (() => {
+  const HAS_OWN_HANDLER = new Set(["search", "skills"]);
+  const byProgram: Record<string, string[]> = {};
+  for (const { path, program } of listAvailableGenerators()) {
+    if (HAS_OWN_HANDLER.has(program)) continue;
+    (byProgram[program] ??= []).push(path);
+  }
+  for (const program of Object.keys(byProgram)) byProgram[program].sort();
+  return byProgram;
+})();
 
 // ─── Generic program handler factory ────────────────────────────
 
