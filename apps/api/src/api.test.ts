@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+// Counts come from the DERIVED map, never a literal: a hardcoded number is how
+// these three assertions certified an under-delivering endpoint as correct
+// (artifacts 5-of-11, superpowers 5-of-8, mcp 17-of-19).
+import { PROGRAM_OUTPUTS } from "./handlers.js";
 import { createServer, type Server } from "node:http";
 import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp, sendJSON, sendError } from "./router.js";
@@ -311,7 +315,7 @@ describe("API integration", () => {
     expect(data.program).toBe("superpowers");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "superpowers")).toBe(true);
-    expect(files.length).toBe(5);
+    expect(files.length).toBe(PROGRAM_OUTPUTS.superpowers.length);
   });
 
   it("POST /v1/marketing/generate returns marketing files", async () => {
@@ -351,7 +355,7 @@ describe("API integration", () => {
     expect(data.program).toBe("mcp");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "mcp")).toBe(true);
-    expect(files.length).toBe(17);
+    expect(files.length).toBe(PROGRAM_OUTPUTS.mcp.length);
   });
 
   it("POST /v1/artifacts/generate returns artifacts files", async () => {
@@ -361,7 +365,7 @@ describe("API integration", () => {
     expect(data.program).toBe("artifacts");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "artifacts")).toBe(true);
-    expect(files.length).toBe(5);
+    expect(files.length).toBe(PROGRAM_OUTPUTS.artifacts.length);
   });
 
   it("POST /v1/remotion/generate returns remotion files", async () => {
