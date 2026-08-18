@@ -14,6 +14,7 @@ import {
   getFunnelMetrics,
   grantEntitlement,
   listEntitlements,
+  enableProgram,
 } from "@axis/snapshots";
 import { PRODUCT_IDS, getProduct } from "@axis/generator-core";
 
@@ -214,11 +215,26 @@ export async function handleAdminGrantEntitlement(
     return;
   }
 
+  // Write BOTH tables. account_entitlements records WHAT was bought;
+  // program_entitlements is what isProgramEnabled() actually gates on. Until
+  // 2026-08-18 this endpoint wrote only the first and returned {granted:true} —
+  // so an operator remediating a locked-out customer got a success response and
+  // changed nothing they could observe. `hasEntitlement` (the reader for
+  // account_entitlements) has no production caller at all; the access-bearing
+  // table is program_entitlements, and it was never touched here.
+  const product = getProduct(productId);
   await grantEntitlement(accountId, productId, "manual");
+  const programs = product?.programs ?? [];
+  for (const program of programs) {
+    await enableProgram(accountId, program);
+  }
   sendJSON(res, 200, {
     granted: true,
     account_id: accountId,
     product_id: productId,
-    product_name: getProduct(productId)?.name ?? productId,
+    product_name: product?.name ?? productId,
+    // Reported so the response describes what actually changed, rather than
+    // asserting a grant whose effect the caller cannot see.
+    programs_enabled: programs,
   });
 }
