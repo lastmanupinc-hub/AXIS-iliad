@@ -51,7 +51,7 @@ import {
 import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord, TierLimits } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, gradeCompliance } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
@@ -1773,7 +1773,36 @@ export async function handleAnalyze(
     sendError(res, 400, ErrorCode.INVALID_FORMAT, "programs must be an array of strings");
     return;
   }
-  const requestedPrograms = rawPrograms as string[] | undefined;
+
+  // spoke_06: a spoke (e.g. theme.trustfabric.ai) narrows a run to ONE
+  // product's programs, resolved from PRODUCT_REGISTRY server-side rather
+  // than trusting a client-supplied program list. This is deliberately NOT a
+  // second code path — it computes `requestedPrograms`, the exact same
+  // variable `programs` already sets, so every check downstream (paid-tier
+  // auth, per-tier limits, allOutputs derivation) applies unchanged. A spoke
+  // and the hub calling with an equivalent program list are proven
+  // byte-identical by spoke-scope.test.ts at the generator layer; this is
+  // what makes that guarantee reachable from a real request.
+  const rawProductId = body.product_id;
+  if (rawProductId !== undefined && typeof rawProductId !== "string") {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "product_id must be a string");
+    return;
+  }
+  if (rawProductId !== undefined && rawPrograms !== undefined) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Provide product_id or programs, not both — product_id already resolves to a program set");
+    return;
+  }
+  let requestedPrograms = rawPrograms as string[] | undefined;
+  if (rawProductId !== undefined) {
+    // programsForProduct expects an array; PRODUCT_REGISTRY is keyed by id.
+    // Same normalization the storefront generator and its tests already use.
+    const resolved = programsForProduct(Object.values(PRODUCT_REGISTRY), rawProductId);
+    if (resolved === null) {
+      sendError(res, 400, ErrorCode.INVALID_PROGRAM, `Unknown product_id: ${rawProductId}`);
+      return;
+    }
+    requestedPrograms = resolved;
+  }
 
   const inlineContent = body.inline_content !== false;
 

@@ -574,6 +574,88 @@ describe("POST /v1/analyze — programs filter", () => {
   });
 });
 
+// ─── POST /v1/analyze — product_id (spoke_06) ─────────────────────
+//
+// A spoke (theme.trustfabric.ai) resolves ONE product's program set from
+// PRODUCT_REGISTRY server-side, rather than trusting a client-supplied
+// `programs` array. The requirement this guards is spoke_06's own: "never a
+// forked code path" — product_id must compute the exact same
+// requestedPrograms variable `programs` already sets, so it inherits every
+// existing check (paid-tier auth, tier limits) automatically. The byte-
+// identity test below is that requirement made checkable from a real
+// request, not just at the generator layer (spoke-scope.test.ts already
+// proves it there).
+
+describe("POST /v1/analyze — product_id (spoke_06)", () => {
+  it("resolves a product to its own program's outputs, and no others", async () => {
+    const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: "theme" }, suiteApiKey);
+    expect(r.status).toBe(201);
+    const data = r.data as Record<string, unknown>;
+    const files = data.files as Array<{ program: string }>;
+    const programs = new Set(files.map((f) => f.program));
+    expect(programs.has("theme")).toBe(true);
+    expect(programs.has("debug")).toBe(false);
+    expect(programs.has("brand")).toBe(false);
+  });
+
+  it("is byte-identical to the hub calling with the equivalent explicit programs array", async () => {
+    // The actual guarantee spoke_06 exists for: a spoke and the hub must
+    // never be able to drift, because they run through the identical path.
+    // Two independent HTTP requests each build their own snapshot with its
+    // own `generated_at` — a real wall-clock gap, not scope drift — so that
+    // one field is normalized out before comparing. spoke-scope.test.ts
+    // already proves TRUE byte-identity at the generator layer, where both
+    // calls share one context_map and no clock is involved; this test proves
+    // the same claim end-to-end through the real HTTP path, which is what a
+    // spoke actually calls.
+    const viaProduct = await req("POST", "/v1/analyze", { files: minFiles, product_id: "theme" }, suiteApiKey);
+    const viaPrograms = await req("POST", "/v1/analyze", { files: minFiles, programs: ["theme"] }, suiteApiKey);
+    expect(viaProduct.status).toBe(201);
+    expect(viaPrograms.status).toBe(201);
+    const stripTimestamp = (content: string) => content.replace(/"generated_at":\s*"[^"]*"/g, '"generated_at":"<ts>"');
+    const normalize = (arr: Array<{ path: string; content: string }>) =>
+      [...arr]
+        .map((f) => ({ path: f.path, content: stripTimestamp(f.content) }))
+        .sort((x, y) => x.path.localeCompare(y.path));
+    const a = (viaProduct.data as Record<string, unknown>).files as Array<{ path: string; content: string }>;
+    const b = (viaPrograms.data as Record<string, unknown>).files as Array<{ path: string; content: string }>;
+    expect(normalize(a)).toEqual(normalize(b));
+  });
+
+  it("an unknown product_id is rejected, not silently treated as empty", async () => {
+    const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: "no-such-product" });
+    expect(r.status).toBe(400);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("INVALID_PROGRAM");
+  });
+
+  it("product_id and programs together are rejected as ambiguous", async () => {
+    const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: "theme", programs: ["debug"] });
+    expect(r.status).toBe(400);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("INVALID_FORMAT");
+  });
+
+  it("a non-string product_id is rejected", async () => {
+    const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: 123 });
+    expect(r.status).toBe(400);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("INVALID_FORMAT");
+  });
+
+  it("resolving to a PAID product still requires authentication — product_id is not a bypass", async () => {
+    const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: "theme" });
+    expect(r.status).toBe(401);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("AUTH_REQUIRED");
+  });
+
+  it("resolving to a FREE product needs no authentication", async () => {
+    const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: "search" });
+    expect(r.status).toBe(201);
+  });
+});
+
 // ─── POST /v1/analyze — inline_content: false ────────────────────
 
 describe("POST /v1/analyze — inline_content: false", () => {
