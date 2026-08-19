@@ -69,31 +69,38 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 
 ## Portfolio at a glance
 
-| Program | Gens | Price | Tier | % | Missing |
-|---|---:|---:|---|---:|---|
-| skills | 6 | $9 | paid | **90%** | spoke_06 |
-| theme | 5 | $19 | paid | **90%** | spoke_06 |
-| canvas | 6 | $15 | paid | **90%** | spoke_06 |
-| seo | 6 | $19 | paid | **90%** | spoke_06 (+ GSC auth) |
-| search | 6 | free | free | **80%** | apply is re-index only; spoke_06 |
-| mcp | 19 | $29 | paid | **70%** | watch; spoke_06 |
-| deploy | 13 | $19 | paid | **60%** | apply is CLI-local; watch; spoke_06 |
-| closer | 16 | $49 | paid | **60%** | apply is CLI-local; watch; spoke_06 |
-| superpowers | 8 | $19 | paid | **60%** | apply is CLI-local; watch; spoke_06 |
-| agentic-purchasing | 6 | $99 | suite | **55%** | live-counterparty verify; apply; watch; spoke_06 |
-| pitch | 3 | $19 | paid | **50%** | apply; watch; spoke_06 |
-| artifacts | 11 | $29 | paid | **50%** | blocked on output-shape decision | *react high end*
-| frontend | 4 | $19 | paid | **90%** | spoke_06 (apply needs an LLM configured — see note) |
-| debug | 4 | $15 | paid | **50%** | apply; watch; spoke_06 |
-| optimization | 4 | $29 | paid | **50%** | apply; watch; spoke_06 |
-| notebook | 5 | $15 | paid | **50%** | apply; watch; spoke_06 |
-| obsidian | 5 | free | free | **50%** | apply; watch; spoke_06 |
-| brand | 5 | $15 | paid | **50%** | apply; watch; spoke_06 |
-| marketing | 5 | $19 | paid | **50%** | apply; watch; spoke_06 |
-| remotion | 5 | $29 | paid | **50%** | license-gated; apply; watch; spoke_06 |
-| algorithmic | 5 | $19 | paid | **50%** | apply; watch; spoke_06 |
+> **VERIFIED 2026-08-19 against code, not the ledger.** Percentages below are computed by
+> `.tmp-grade.mjs` from the real generator manifest, the real product registry, and the real
+> `watch-dispatcher.ts` imports — not from `begin.yaml`'s claims. The audit corrected three
+> things: `mcp` DOES have a watch consumer (via `mcp-hosted.js`; this doc previously said it
+> did not), and `spoke_05` + `app_31` were still marked `open` in the ledger despite having
+> shipped. The ledger was stale in the direction that UNDERSTATES progress.
 
-**11 of 21** have their "become an application" candidate complete. **10** remain open.
+| program | gens | price | verified % | what is missing |
+|---|---:|---:|---:|---|
+| canvas | 6 | $15 | **90%** | spoke_06 |
+| frontend | 4 | $19 | **90%** | spoke_06 |
+| mcp | 19 | $29 | **90%** | spoke_06 |
+| search | 6 | free | **90%** | spoke_06 |
+| seo | 6 | $19 | **90%** | spoke_06 |
+| skills | 6 | $9 | **90%** | spoke_06 |
+| theme | 5 | $19 | **90%** | spoke_06 |
+| closer | 16 | $49 | **60%** | hosted apply; watch; spoke_06 |
+| deploy | 13 | $19 | **60%** | hosted apply; watch; spoke_06 |
+| superpowers | 8 | $19 | **60%** | hosted apply; watch; spoke_06 |
+| agentic-purchasing | 6 | $99 | **50%** | apply; watch; spoke_06 |
+| algorithmic | 5 | $19 | **50%** | apply; watch; spoke_06 |
+| artifacts | 11 | $29 | **50%** | apply; watch; spoke_06 |
+| brand | 5 | $15 | **50%** | apply; watch; spoke_06 |
+| debug | 4 | $15 | **50%** | apply; watch; spoke_06 |
+| marketing | 5 | $19 | **50%** | apply; watch; spoke_06 |
+| notebook | 5 | $15 | **50%** | apply; watch; spoke_06 |
+| obsidian | 5 | free | **50%** | apply; watch; spoke_06 |
+| optimization | 4 | $29 | **50%** | apply; watch; spoke_06 |
+| pitch | 3 | $19 | **50%** | apply; watch; spoke_06 |
+| remotion | 5 | $29 | **50%** | apply; watch; spoke_06 |
+
+**13 of 21** have their "become an application" candidate complete. **10** remain open.
 
 ---
 
@@ -183,8 +190,8 @@ whose apply stage is a running service rather than a PR.
 **Highest-ROI trajectory:** **the platform play, and the highest ceiling in the portfolio.**
 Every other program produces files; this one produces a running endpoint other agents call.
 That makes it the natural home for recurring revenue and the anchor of any agent-to-agent story.
-**Gaps:** no Watch consumer — a hosted endpoint that doesn't refresh when the repo changes
-undercuts its own value. Storefront. Deliberately scoped: it serves filesystem/resource tools
+**Gaps:** spoke_06. (An earlier revision of this doc claimed mcp had no Watch consumer. That was
+wrong: `processMcpHostedSync` from `mcp-hosted.js` is wired into watch-dispatcher.) Storefront. Deliberately scoped: it serves filesystem/resource tools
 from the latest synced snapshot and **declines** run_build/run_tests/git_* at call time
 rather than executing arbitrary customer code server-side.
 
@@ -402,8 +409,9 @@ Ranked by leverage across programs rather than within one:
 **Standing mandate (owner, 2026-08-17):** *no new territory.* Every program reaches the 80%
 bar with full QA and is storefront-ready before anything new is started.
 
-**Against that mandate, as of the launch:** **5 of 21 are at 90%** — skills, theme, canvas,
-seo, frontend — and the floor moved from 40% to 50% for everyone, because storefront is
-half-closed for all of them at once. **16 programs are still below the bar**, all of them
-short the same two mechanics: Apply and Watch. That is the whole remaining shape of the work —
-`spoke_06` once, then Apply+Watch sixteen times.
+**Against that mandate, VERIFIED 2026-08-19:** **7 of 21 are at 90%** — canvas, frontend, mcp,
+search, seo, skills, theme. The floor is 50% for everyone (storefront half-closed for all at
+once), and the **portfolio average is 65%**. 14 remain below the bar: 3 at 60% (closer, deploy,
+superpowers — apply exists but is CLI-local by owner decision, so it scores half) and 11 at 50%.
+Every one of the 14 is short the same mechanic pair: **Apply and Watch**. That is the whole remaining shape of the
+work: **`spoke_06` once, then Apply+Watch fourteen times.**

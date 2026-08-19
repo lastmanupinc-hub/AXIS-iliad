@@ -598,7 +598,7 @@ project_begin:
         roi_reason: "automation 5, canonical_coherence 4, agent_acquisition 4, team_scale 3. Makes the ninth spoke cost a fraction of the first."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-seo.ts"
-        completion_status: open  # ⚠ FULLY UNBLOCKED 2026-08-17 — AND THE "owner-gated, browser-only" CLAIM BELOW WAS WRONG.
+        completion_status: complete  # SHIPPED 2026-08-17/18 (80c05ce generator + 4c6074d host routing). All 21 <program>.trustfabric.ai subdomains LIVE, each serving its own generated page at the root, verified 21/21 against the live public URLs. Was still marked open on 2026-08-19 despite shipping - caught by the verified audit, not by reading the ledger.
         # Owner note on docs/PROGRAM_PORTFOLIO.md, verbatim: "all necessary api keys to unlock this step
         # are in keys.txt. the page layouts should build on averionics and maintain a sense of continuity
         # with individual favicons that build together on the AXIS' iliad brand".
@@ -696,7 +696,7 @@ project_begin:
         roi_score: 93
         roi_reason: "capability_gain 5, integration_quality 5. The Apply mechanic for all 20 apps."
         severity: HIGH
-        source_file: "apps/api/src/github-token-store.ts"
+        source_file: "packages/snapshots/src/github-token-store.ts"  # PATH CORRECTED 2026-08-19: recorded as apps/api/src/, which does not exist. The deliverable ships in packages/snapshots/. A wrong path reads as a missing deliverable in any audit.
         completion_status: complete
 
       - id: "app_03_substrate_verify_harness"
@@ -1055,7 +1055,7 @@ project_begin:
         roi_reason: "capability_gain 5 — closes the prose-vs-code gap on its own terms."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-frontend.ts"
-        completion_status: open  # *** PRIORITY 1, owner-marked 2026-08-17 on docs/PROGRAM_PORTFOLIO.md. ***
+        completion_status: complete  # SHIPPED 2026-08-17 (8e0836f + 5686df7). Verified 90%: generate from the single-source design contract, binding verification through the frontend program's OWN analyzeUiSurface auditor, PR apply, and a watch consumer wired into watch-dispatcher (processFrontendApply). Was still marked open on 2026-08-19 - same audit gap as spoke_05.
         # THE DESIGN QUESTION IS ANSWERED — owner note, verbatim: "LLM infered form single source".
         # Components are LLM-INFERRED FROM A SINGLE SOURCE: the repo's own extracted design system
         # (theme tokens + extracted conventions), not free-form generation. That is what reconciles
@@ -1182,6 +1182,26 @@ project_begin:
           DO NOT paper over it by summing estimated MRR into the settled figure — estimated_mrr_cents
           is already derived from tier counts, and merging an estimate into a settled number is how a
           revenue report starts lying.
+        # ANSWERED 2026-08-19 — asked PAI'D directly instead of guessing. YES, it can return a receipt:
+        #   GET https://api.trustfabric.ai/v1/settlements  (Bearer PAID_API_KEY, the value Render holds)
+        # returns {id, payment_intent_id, merchant_id, amount, currency, settlement_asset, payout_method,
+        # payout_destination, status, idempotency_key, version, created_at, updated_at}. The live record
+        # for the owner's purchase: amount 2900 / USD / created_at 2026-07-31 — i.e. the $29 starter plan.
+        # That is everything a faithful payment_receipts row needs (amount_cents, currency, timestamp,
+        # and payment_intent_id as a stable external reference), so money_01 is UNBLOCKED and does NOT
+        # require inventing data. Note /v1/openapi.json returns no paths and /health 404s — the surface
+        # is discoverable only by probing, so record the endpoint here rather than rediscovering it.
+        # THE JOIN IS THE REAL WORK, and it is not free: the settlement carries the checkout session in
+        # `idempotency_key` (checkout-card-cs_…), but Iliad's SUBSCRIPTION path matches purchases by
+        # customer_email (metadata.user_email / obj.customer_email), NOT by session id — only the
+        # credit-pack path persists paid_session_id / paid_payment_intent_id. So either Iliad starts
+        # persisting the session id on subscription grant, or the importer resolves
+        # payment_intent -> session -> email through PAI'D. Pick one deliberately; matching a settlement
+        # to an account by email alone is how you credit revenue to the wrong customer.
+        # SEPARATE CONCERN, RAISED FOR THE OWNER (money_03): that settlement's status is "queued", with
+        # payout_method usdc_on_chain to a wallet address, and it has read "queued" since 2026-07-31.
+        # Either that is PAI'D's terminal state for this flow, or a payout has been pending ~19 days.
+        # Iliad must not record a receipt as SETTLED off a record whose own status is queued.
         roi_score: 88
         roi_reason: "revenue_loop_closure 5, production_quality_gain 5, validation_strength 4. The business cannot see its own income; every downstream decision reads a zero that is false."
         severity: HIGH
