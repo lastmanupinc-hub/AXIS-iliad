@@ -14,7 +14,7 @@ its own generated page at the root. Pages are derived from `PRODUCT_REGISTRY` jo
 generator manifest, so a page cannot drift from the program it sells.
 
 **Portfolio totals (measured):** 21 programs · 147 generators · 37 MCP tools ·
-167 endpoints · 2 free programs (search, obsidian) · 19 paid.
+168 endpoints · 2 free programs (search, obsidian) · 19 paid.
 
 ---
 
