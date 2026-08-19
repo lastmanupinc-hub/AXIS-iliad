@@ -37,7 +37,7 @@ export function outputsForPrograms(programs: readonly string[]): string[] {
  * distinguishable from it.
  */
 export function programsForProduct(
-  registry: ReadonlyArray<{ id: string; programs: string[] }>,
+  registry: ReadonlyArray<{ id: string; programs: readonly string[] }>,
   productId: string,
 ): string[] | null {
   const found = registry.find((p) => p.id === productId);
@@ -46,7 +46,7 @@ export function programsForProduct(
 
 /** Convenience: the exact `requested_outputs` a spoke should ask for. */
 export function outputsForProduct(
-  registry: ReadonlyArray<{ id: string; programs: string[] }>,
+  registry: ReadonlyArray<{ id: string; programs: readonly string[] }>,
   productId: string,
 ): string[] | null {
   const programs = programsForProduct(registry, productId);
