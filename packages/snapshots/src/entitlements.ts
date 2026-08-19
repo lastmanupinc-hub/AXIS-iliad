@@ -34,6 +34,29 @@ export async function grantEntitlement(
 }
 
 /** Whether an account has been granted a specific spoke product. */
+/**
+ * Does this account have a RECORD OF PURCHASE for this product?
+ *
+ * ⚠ THIS IS NOT AN ACCESS GATE, and must not be used as one. There are two
+ * tables and they answer different questions:
+ *
+ *   account_entitlements  (this file)  — WHAT was bought, by product id.
+ *   program_entitlements  (billing-store) — WHAT MAY RUN, by program name.
+ *                                            isProgramEnabled() reads this,
+ *                                            and every pro program gates on it.
+ *
+ * A product maps to one or more programs, so the two are not interchangeable.
+ * As of 2026-08-18 this function has NO production caller — the access path
+ * goes exclusively through isProgramEnabled(). That is deliberate, not an
+ * oversight, and it is recorded here because the gap was expensive: the admin
+ * grant endpoint wrote only account_entitlements, returned {"granted": true},
+ * and left the customer as locked out as before (fixed in 75f9b95 — it now
+ * writes both).
+ *
+ * If you are reaching for this to decide whether someone may DO something, you
+ * want isProgramEnabled(). If you are reaching for it to show someone what they
+ * have bought, this is the right function.
+ */
 export async function hasEntitlement(account_id: string, product_id: string): Promise<boolean> {
   const rows = await sql.many<{ account_id: string }>(
     `SELECT account_id FROM account_entitlements WHERE account_id = ? AND product_id = ?`,

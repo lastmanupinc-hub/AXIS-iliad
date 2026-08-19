@@ -1137,6 +1137,33 @@ project_begin:
         source_file: "packages/generator-core/src/generators-algorithmic.ts"
         completion_status: open
 
+      - id: "money_02_paid_access_incident_hardened"
+        description: >
+          HARDENING PASS over the 2026-08-18 paid-access incident, in which a customer's funds settled
+          and their account received no Pro access. The two fixes (23c50b0 grant-on-upgrade, 75f9b95
+          admin-grant-writes-the-real-table) were both FORWARD-ONLY: neither could report that an
+          account was ALREADY stranded, which is why a human noticing was the detection mechanism.
+          SHIPPED (5e6d376): (1) getSystemStats counts paid accounts holding zero enabled programs —
+          invariant 0, suite excluded because isProgramEnabled short-circuits true there; (2)
+          live-probe gains a stranded_payers alarm that SKIPS without ADMIN_API_KEY but FAILS when it
+          cannot verify, because a check that passes for want of credentials is the
+          monitor-that-cannot-fail disease; (3) entitlements.test.ts was asserting against product ids
+          socket/palette/runway/embed/crate/reach — the rejected 9-product merger names killed by
+          app_00, none of which exist in PRODUCT_REGISTRY. Seven green tests were exercising a catalog
+          nobody can buy from and could never have caught a real entitlement bug; repointed at real
+          ids plus a guard that fails if a fictional id returns. (4) hasEntitlement documented at the
+          point of confusion as a record-of-purchase reader, NOT an access gate — it has zero
+          production callers by design, and mistaking it for a gate is what made 75f9b95's defect
+          possible. Both new guards RED-PROVEN against the exact defects (detection hardcoded to 0 →
+          2 failures; fictional id restored → catalog guard fails).
+          NOTE FOR WHOEVER READS THE PROBE FIRST: stranded_payers will report 1 and stay RED until the
+          owner's own account is repaired. That is the alarm working, not a bug in the alarm.
+        roi_score: 84
+        roi_reason: "revenue_loop_closure 5, validation_strength 5, production_quality_gain 4. Converts a class of silent revenue failure from human-noticed into machine-detected."
+        severity: HIGH
+        source_file: "packages/snapshots/src/billing-store.ts"
+        completion_status: complete  # SHIPPED 2026-08-18 (5e6d376). Detection + alarm + dead-catalog repair, both guards red-proven. The account repair itself is owner-run (self-serve POST /v1/account/programs, which writes only access rows and does not fabricate 21 product-purchase records).
+
       - id: "money_01_subscription_revenue_invisible"
         description: >
           The admin revenue view reports settled_revenue_cents_all_time = $0 while subscription money
