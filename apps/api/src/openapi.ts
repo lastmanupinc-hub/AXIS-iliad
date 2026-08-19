@@ -318,6 +318,62 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // ── Programs ──
       ...programEndpoints(),
 
+      // notebook/ask is deliberately hand-written, not folded into
+      // programEndpoints(): every entry there shares ProgramRequest
+      // (snapshot_id + outputs, the "generate more files" shape). This
+      // endpoint answers a QUESTION with citations — a genuinely different
+      // request and response shape, not another generator run.
+      "/v1/notebook/ask": {
+        post: {
+          summary: "Ask a citation-grounded question about a snapshot's code (notebook program)",
+          description:
+            "Retrieves relevant code via full-text search and answers the question using only what was " +
+            "retrieved. Every citation is verified against the actual retrieved rows before being " +
+            "returned — a citation the underlying model proposes but that does not match a real " +
+            "file_path/line_number pair is dropped, never surfaced.",
+          operationId: "notebookAsk",
+          tags: ["Programs"],
+          security: [{ apiKey: [] }],
+          requestBody: jsonBody({
+            type: "object",
+            required: ["snapshot_id", "question"],
+            properties: {
+              snapshot_id: { type: "string", description: "A snapshot this account owns" },
+              question: { type: "string", maxLength: 500, description: "A natural-language question about the snapshot's code" },
+            },
+          }),
+          responses: {
+            200: {
+              description: "A grounded answer (or grounded snippets alone, if no LLM is configured)",
+              content: jsonContent({
+                type: "object",
+                properties: {
+                  question: { type: "string" },
+                  answer: { type: "string", nullable: true, description: "null when no LLM is configured, or no matches were found" },
+                  synthesized: { type: "boolean" },
+                  citations: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        file_path: { type: "string" },
+                        line_number: { type: "integer" },
+                        content: { type: "string" },
+                      },
+                    },
+                  },
+                  rejected_citation_count: { type: "integer", description: "Citations the model proposed that did not match a retrieved row" },
+                },
+              }),
+            },
+            400: { description: "Missing or invalid snapshot_id / question" },
+            401: { description: "Authentication required" },
+            402: { description: "The notebook program is not enabled for this account" },
+            404: { description: "Snapshot not found, or not owned by this account" },
+          },
+        },
+      },
+
       // ── Analyze (unified one-call endpoint) ──
       "/v1/analyze": {
         post: {

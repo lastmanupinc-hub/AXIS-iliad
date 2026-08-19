@@ -42,7 +42,10 @@ describe("buildOpenApiSpec", () => {
         p.includes("/brand/") ||
         p.includes("/superpowers/") ||
         p.includes("/marketing/") ||
-        p.includes("/notebook/") ||
+        // notebook/generate triggers generation like the others here;
+        // notebook/ask is a live Q&A endpoint (answers a question, does not
+        // produce files) — same exclusion shape as mcp/hosted below.
+        (p.includes("/notebook/") && !p.includes("/notebook/ask")) ||
         p.includes("/obsidian/") ||
         // /mcp/ also matches app_20's hosted-endpoint path (/v1/mcp/hosted/{repo}),
         // a live serving endpoint, not a "trigger generation" endpoint like the
