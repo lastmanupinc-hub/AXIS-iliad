@@ -545,6 +545,11 @@ export interface SystemStats {
   total_snapshots: number;
   total_projects: number;
   total_usage_records: number;
+  /**
+   * Paid accounts with zero enabled programs — i.e. paying customers who can
+   * run nothing. Invariant: 0. See getSystemStats for why this is counted.
+   */
+  paid_accounts_without_entitlements: number;
   total_api_keys: number;
   active_api_keys: number;
 }
@@ -682,6 +687,25 @@ export async function getSystemStats(): Promise<SystemStats> {
     "SELECT COUNT(*) as total, SUM(CASE WHEN revoked_at IS NULL THEN 1 ELSE 0 END) as active FROM api_keys",
   );
 
+  // A paid account with zero enabled programs is a customer who paid and can
+  // run nothing. That state is not hypothetical: it happened in production and
+  // went unnoticed because nothing counted it (2026-08-18 — TIER_LIMITS.paid
+  // has programs:[] "governed by entitlements", so tier alone grants nothing).
+  // Suite is excluded: isProgramEnabled short-circuits true for it, so a suite
+  // account with no rows is correct, not stranded.
+  const strandedPaid = Number(
+    (
+      await sql.one<{ c: number }>(
+        `SELECT COUNT(*) as c FROM accounts a
+          WHERE a.tier = 'paid'
+            AND NOT EXISTS (
+              SELECT 1 FROM program_entitlements e
+               WHERE e.account_id = a.account_id AND e.enabled = 1
+            )`,
+      )
+    )?.c ?? 0,
+  );
+
   return {
     total_accounts: Number(accountRow?.total ?? 0),
     accounts_by_tier: {
@@ -692,6 +716,11 @@ export async function getSystemStats(): Promise<SystemStats> {
     total_snapshots: snapCount,
     total_projects: projCount,
     total_usage_records: usageCount,
+    /**
+     * Paid accounts that can run NOTHING. Should always be 0; any other value
+     * means someone is paying for access they do not have.
+     */
+    paid_accounts_without_entitlements: strandedPaid,
     total_api_keys: Number(keyTotals?.total ?? 0),
     active_api_keys: Number(keyTotals?.active ?? 0),
   };

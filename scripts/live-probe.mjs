@@ -130,6 +130,44 @@ async function checkWebBundle() {
 // the same live-confirmed, IP-specific root cause this one has.
 const EXCLUDED_FROM_AUTO_ALERT = new Set(["web_bundle_marker"]);
 
+/**
+ * No paying customer is locked out of everything.
+ *
+ * On 2026-08-18 an account was upgraded to `paid`, charged, and granted ZERO
+ * programs — TIER_LIMITS.paid carries programs:[] ("governed by entitlements"),
+ * so the tier alone opens nothing. Nobody noticed because nothing counted it.
+ * This is the alarm for that exact state.
+ *
+ * Needs ADMIN_API_KEY (the value Render holds, not necessarily key.txt's copy —
+ * those had drifted). SKIPS rather than fails when unset, so the probe stays
+ * runnable without admin credentials; a check that silently passes because it
+ * could not authenticate would be worse than no check.
+ */
+async function checkNoStrandedPayers() {
+  const key = process.env.ADMIN_API_KEY;
+  if (!key) {
+    console.log("  ○ stranded_payers — SKIPPED (ADMIN_API_KEY unset)");
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/v1/admin/stats`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    const body = await res.json();
+    const stranded = body.paid_accounts_without_entitlements;
+    if (typeof stranded !== "number") {
+      // Deployed API predates the field, or admin auth failed. Either way this
+      // check cannot answer its question, and must not report a pass.
+      record("stranded_payers", false, `field absent (status=${res.status}) — cannot verify`);
+      return;
+    }
+    record("stranded_payers", stranded === 0, `paid accounts with zero programs=${stranded}`);
+  } catch (err) {
+    record("stranded_payers", false, `fetch error: ${err.message}`);
+  }
+}
+
 async function main() {
   console.log(`[live-probe] ${new Date().toISOString()}`);
   console.log(`[live-probe] API: ${API_BASE}  WEB: ${WEB_BASE}\n`);
@@ -140,6 +178,7 @@ async function main() {
   await checkPaidConfig();
   await checkAnon413();
   await checkWebBundle();
+  await checkNoStrandedPayers();
 
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
