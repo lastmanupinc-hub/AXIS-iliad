@@ -18,6 +18,7 @@ import { processSearchIndexSync, defaultSearchIndexSyncDeps } from "./search-ind
 import { processCanvasDiagramSync, defaultCanvasDiagramSyncDeps } from "./canvas-diagram-watcher.js";
 import { processSeoApply, defaultSeoApplyDeps } from "./seo-apply-watcher.js";
 import { processFrontendApply, defaultFrontendApplyDeps } from "./frontend-apply-watcher.js";
+import { processNotebookReindex, defaultNotebookReindexDeps } from "./notebook-reindex-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -60,6 +61,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const frontend = await processFrontendApply(payload, defaultFrontendApplyDeps());
   if (frontend.status !== "not_frontend_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "frontend", status: frontend.status });
+    return;
+  }
+
+  const notebook = await processNotebookReindex(payload, defaultNotebookReindexDeps());
+  if (notebook.status !== "not_notebook_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "notebook", status: notebook.status });
     return;
   }
 

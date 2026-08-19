@@ -6,6 +6,8 @@ const processMcpHostedSync = vi.fn();
 const processSearchIndexSync = vi.fn();
 const processCanvasDiagramSync = vi.fn();
 const processSeoApply = vi.fn();
+const processFrontendApply = vi.fn();
+const processNotebookReindex = vi.fn();
 
 vi.mock("./skills-refresh-watcher.js", () => ({
   processSkillsRefresh: (...args: unknown[]) => processSkillsRefresh(...args),
@@ -30,6 +32,14 @@ vi.mock("./canvas-diagram-watcher.js", () => ({
 vi.mock("./seo-apply-watcher.js", () => ({
   processSeoApply: (...args: unknown[]) => processSeoApply(...args),
   defaultSeoApplyDeps: () => "seo-deps",
+}));
+vi.mock("./frontend-apply-watcher.js", () => ({
+  processFrontendApply: (...args: unknown[]) => processFrontendApply(...args),
+  defaultFrontendApplyDeps: () => "frontend-deps",
+}));
+vi.mock("./notebook-reindex-watcher.js", () => ({
+  processNotebookReindex: (...args: unknown[]) => processNotebookReindex(...args),
+  defaultNotebookReindexDeps: () => "notebook-deps",
 }));
 vi.mock("@axis/snapshots", () => ({
   registerWatchWorker: vi.fn(async (handler: unknown) => {
@@ -118,6 +128,41 @@ describe("watch-dispatcher", () => {
     const dispatch = await loadDispatchWatchJob();
     await dispatch({ ...payload, product_id: "seo" });
     expect(processSeoApply).toHaveBeenCalledWith({ ...payload, product_id: "seo" }, "seo-deps");
+    expect(processFrontendApply).not.toHaveBeenCalled();
+  });
+
+  // Pre-existing gap found while adding notebook below: frontend was wired
+  // into the dispatcher (5686df7) but never got a fall-through test of its
+  // own — the chain silently relied on the real (unmocked) processFrontendApply
+  // in every test after it, which only worked because none of those tests'
+  // product_ids happened to be "frontend". Closed alongside notebook rather
+  // than left to rot further.
+  it("falls through to the frontend processor when every earlier handler declines the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
+    processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
+    processSeoApply.mockResolvedValue({ status: "not_seo_product" });
+    processFrontendApply.mockResolvedValue({ status: "pr_opened" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "frontend" });
+    expect(processFrontendApply).toHaveBeenCalledWith({ ...payload, product_id: "frontend" }, "frontend-deps");
+    expect(processNotebookReindex).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the notebook processor when every earlier handler declines the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
+    processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
+    processSeoApply.mockResolvedValue({ status: "not_seo_product" });
+    processFrontendApply.mockResolvedValue({ status: "not_frontend_product" });
+    processNotebookReindex.mockResolvedValue({ status: "indexed" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "notebook" });
+    expect(processNotebookReindex).toHaveBeenCalledWith({ ...payload, product_id: "notebook" }, "notebook-deps");
   });
 
   it("does not throw when no processor claims the product_id (an unhandled product is a log line, not a crash)", async () => {
@@ -127,6 +172,8 @@ describe("watch-dispatcher", () => {
     processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
     processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
     processSeoApply.mockResolvedValue({ status: "not_seo_product" });
+    processFrontendApply.mockResolvedValue({ status: "not_frontend_product" });
+    processNotebookReindex.mockResolvedValue({ status: "not_notebook_product" });
     const dispatch = await loadDispatchWatchJob();
     await expect(dispatch({ ...payload, product_id: "some-future-product" })).resolves.toBeUndefined();
   });

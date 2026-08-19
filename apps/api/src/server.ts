@@ -73,6 +73,7 @@ import {
   handlePerformance,
   handlePerformanceReputation,
 } from "./handlers.js";
+import { handleNotebookAsk } from "./notebook-ask-handler.js";
 import {
   handleCreateAccount,
   handleGetAccount,
@@ -215,6 +216,7 @@ router.post("/v1/brand/generate", handleBrandGenerate);
 router.post("/v1/superpowers/generate", handleSuperpowersGenerate);
 router.post("/v1/marketing/generate", handleMarketingGenerate);
 router.post("/v1/notebook/generate", handleNotebookGenerate);
+router.post("/v1/notebook/ask", handleNotebookAsk);
 router.post("/v1/obsidian/analyze", handleObsidianAnalyze);
 router.post("/v1/mcp/provision", handleMcpProvision);
 router.post("/v1/artifacts/generate", handleArtifactsGenerate);
