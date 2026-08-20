@@ -742,6 +742,67 @@ project_begin:
         # URLs is a launch action, not a build step. spoke_06 (program-scoped runs) is the other half.
         # PRIOR NOTE (data half, still accurate): UNBLOCKED-ON-DATA 2026-08-06 (owner: "fix the data"). The registry no longer contradicts the Terms: `billing` states TODAY's truth (18 one_time, 2 free) and the intent moved to a new `billing_at_gate` field, so all 17 products that become recurring on 2026-08-15 still say so and nobody has to reconstruct that list. billing-claim-honesty.test.ts enforces both halves and needed its 17-product exception list DELETED as a result - the honest answer is now zero. STILL BLOCKED ON: the 20 subdomains (DNS/TLS/Cloudflare Pages), which is owner-gated and browser-only, so generated pages cannot go live yet. Original blocker, for the record:  on a data-integrity defect in its OWN INPUT, found by scoping it. PRODUCT_REGISTRY marks 17 of 20 products billing:'recurring' at monthly prices ($9 skills, $29 mcp, $19 theme/frontend/seo/deploy...), while TERMS_OF_SERVICE.md - the legal document that governs - says 'Payment for a paid tier is a single, one-time charge ... a purchase does not automatically renew'. Generating a landing page per product from that registry would have published 17 pricing claims contradicting our own Terms, across 20 public pages. The contradiction is LATENT today (nothing serves the registry's billing or price_usd; admin.ts reads only `name`) and spoke_05 is precisely what would have made it live. SHIPPED INSTEAD: apps/api/src/billing-claim-honesty.test.ts - declares the 17 as a dated exception tied to the 2026-08-15 recurring-billing gate, fails on any NEW recurring product, fails if the count moves off 17, and flips to the OPPOSITE check automatically once the Terms are updated (no one has to remember to come back). Red-tested: an undeclared recurring product fails with an actionable message. Also caught price_usd being mixed number|string ('free' sentinel), which makes Math.min return NaN - harmless only while nothing renders it. UNBLOCKS WHEN: the 2026-08-15 Terms change lands and the registry's billing matches reality. The pages themselves also need the 20 subdomains (DNS/TLS/Cloudflare Pages), which is separately owner-gated - so this was never shippable end-to-end today regardless. DELIBERATELY NOT DONE: rewriting 17 products' billing field. That is a pricing decision, not a cleanup.
 
+      - id: "spoke_05b_theme_seo_hardening"
+        description: "User directive 2026-08-20: 'now all the individual program pages need to match theme with iliad and get a massive seo update.' Closes a real gap in spoke_05's own 2026-08-17 receipt, which claimed the owner's design direction (avionics continuity, AXIS' Iliad brand) was satisfied when in fact the 21 pages used a generic system-ui font stack — never Inter/JetBrains Mono, the app's real fonts — and had no meta description, no Open Graph/Twitter tags, no structured data, and no sitemap.xml despite robots.txt promising one at a URL nothing generated."
+        roi_score: 80
+        roi_reason: "direct user instruction, all 21 live public product pages affected, closes a found ledger-overclaim (same class this session keeps catching)."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generators-storefront.ts"
+        completion_status: complete  # SHIPPED 2026-08-20.
+        # THEME: font-family switched from a generic system-ui stack to "Inter"/"JetBrains
+        # Mono" — read directly from apps/web/src/theme.css's own --font-sans/--font-mono
+        # values (test asserts the real file contains them, guarding against the whole
+        # theme-parity block passing vacuously), loaded via Google Fonts since this static
+        # site ships no local font files. Colour tokens (AVERIONICS) already matched before
+        # this change — only typography and elevation did not. Added --radius/--shadow
+        # tokens matching apps/web's own scale (cards get --shadow, the CTA gets
+        # --shadow-lg) so pages read as the same product as the app they sell, not a
+        # generic landing-page template wearing the brand colour. Added a minimal header
+        # brand strip linking every one of the 21 pages back to iliad.trustfabric.ai — the
+        # "continuity across pages" half of the owner's original design direction;
+        # per-product favicons (already shipped in spoke_05) are the other half.
+        #
+        # SEO: meta description composed PURELY from real fields (artifact count, program
+        # list, priceLine()'s own price) — metaDescription() is exported so nothing renders
+        # a second, driftable copy of it (tested: meta/og:description/twitter:description
+        # are byte-identical to the one function's output on all 21 real products). JSON-LD
+        # SoftwareApplication structured data (structuredData()), gated by the SAME
+        # isPurchasable() check the visible CTA already obeys — a gated product (remotion)
+        # gets no `offers` node, same honesty discipline as priceLine()/the gate-note
+        # handling already in this file. Verified against THIS REPO'S OWN validator
+        # (seo-structured-data.ts's validateStructuredData) run against all 21 real
+        # generated pages, not a synthetic sample — the second time this file's output is
+        # judged by another AXIS program's own tooling (analyzeUiSurface was the first).
+        # robots meta noindexes gated products (an indexable page for something that can't
+        # be bought yet is the same class of public-claim-contradicts-our-own-records
+        # defect priceLine() exists to prevent). No og:image: shipping one would need a
+        # raster image pipeline (a new dependency — CLAUDE.md's "no dependencies without
+        # discussion") and SVG favicons are not valid og:image on the major consumers
+        # (Facebook requires jpg/png/gif); omitting the tag is the honest choice over a
+        # broken preview.
+        #
+        # generateStorefrontSitemap(): closes robots.txt's dangling `Sitemap:
+        # https://iliad.trustfabric.ai/sitemap.xml` reference — verified nothing generated
+        # that file before this (grepped the whole storefront generator + build script).
+        # Wired into scripts/build-storefront.mjs alongside robots.txt/llms.txt.
+        #
+        # SELF-CAUGHT SECURITY BUG, found and fixed before shipping, not after: the first
+        # draft embedded JSON-LD via a raw JSON.stringify() inside a <script> tag.
+        # JSON.stringify does not escape "<", so a product name containing a
+        # script-closing sequence would terminate the tag early and inject whatever
+        # followed as live HTML/script — the exact class of hostile-input case this file's
+        # OWN pre-existing escaping tests already existed to catch elsewhere on the page,
+        # just missed for this one new surface. Fixed with jsonLdStringify() (escapes every
+        # "<" as its < unicode form, valid inside any JSON string). RED-PROVEN: reverted
+        # to raw JSON.stringify, confirmed exactly the 2 expected tests fail (the dedicated
+        # script-tag-escape guard plus the pre-existing "escapes hostile product text"
+        # test), restored the fix, confirmed 51/51 green again.
+        #
+        # 23 new/extended tests (28 -> 51) against the REAL PRODUCT_REGISTRY, not fixtures.
+        # tsc clean, eslint clean. Ran the real build (node scripts/build-storefront.mjs)
+        # end to end and read the actual generated output for theme, remotion (gated), and
+        # sitemap.xml — not just the test assertions.
+
       - id: "spoke_06_scoped_program_runs"
         description: "A spoke calls the same generators as the hub with the program set narrowed by the registry — never a forked code path. Add a program-set filter to the analyze pipeline plus a guard test asserting a spoke's output for program P is byte-identical to the hub's output for program P. A spoke whose output drifts from the hub is a bug, and REST/MCP twin divergence is already a named recurring bug family here."
         roi_score: 74

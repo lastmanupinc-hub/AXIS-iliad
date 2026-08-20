@@ -22,6 +22,22 @@
 import type { GeneratedFile } from "./types.js";
 import { htmlEscape } from "./md-sanitize.js";
 
+/**
+ * JSON.stringify for embedding inside a <script> tag.
+ *
+ * Plain JSON.stringify does not escape the less-than character, so a
+ * product name that happens to contain a script-closing sequence would end
+ * the tag early and inject whatever follows as live HTML/script — the exact
+ * hostile-input case this file's other escaping tests already cover for the
+ * rest of the page. Replacing every less-than with its < unicode escape
+ * is valid inside any JSON string (JSON strings may contain \uXXXX escapes
+ * for any character) and neutralizes that entirely, incidentally also
+ * defusing an HTML comment opener for the same reason.
+ */
+function jsonLdStringify(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
 export interface StorefrontProduct {
   id: string;
   name: string;
@@ -109,10 +125,70 @@ export function generateStorefrontFavicon(input: StorefrontInput): GeneratedFile
 }
 
 /**
+ * The page's meta description — and the only source for it. Composed purely
+ * from real fields (count, programs, price) the page's own body already
+ * renders, same discipline as priceLine(): a number in prose is a number
+ * that drifts, so there is no separately hand-written marketing sentence to
+ * fall out of sync with what the product actually ships.
+ */
+export function metaDescription(input: StorefrontInput): string {
+  const { product, artifacts } = input;
+  const count = artifacts.length;
+  const unit = count === 1 ? "artifact" : "artifacts";
+  const programList = product.programs.join(", ");
+  const price = priceLine(product);
+  const priceClause = isPurchasable(product) ? `${price}.` : "Not yet available for purchase.";
+  return `${product.name}: ${count} ${unit} generated from your own repository (${programList}). ${priceClause}`;
+}
+
+/**
+ * The page's JSON-LD payload, as a plain object — kept separate from the HTML
+ * string so tests can assert on specific fields without re-parsing markup,
+ * and so validateStructuredData (seo-structured-data.ts) can be run against
+ * the ACTUAL emitted block in generateStorefrontPage below, not a rebuilt
+ * copy that could silently diverge from it.
+ *
+ * @type SoftwareApplication, not Product: what's sold is a generator program,
+ * not physical/shippable inventory, and Google's SoftwareApplication rich
+ * result is the closer semantic match. `offers` is included only for a
+ * purchasable, numerically-priced product — the same isPurchasable() gate
+ * the page's own CTA already obeys, so structured data can never advertise a
+ * price the visible page withholds.
+ */
+export function structuredData(input: StorefrontInput): Record<string, unknown> {
+  const { product } = input;
+  const node: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: product.name,
+    applicationCategory: "DeveloperApplication",
+    description: metaDescription(input),
+    url: `https://${product.subdomain}/`,
+  };
+  if (isPurchasable(product) && product.price_usd !== "free" && typeof product.price_usd !== "undefined") {
+    const n = typeof product.price_usd === "number" ? product.price_usd : Number(product.price_usd);
+    if (Number.isFinite(n)) {
+      node.offers = { "@type": "Offer", price: n, priceCurrency: "USD", availability: "https://schema.org/InStock" };
+    }
+  } else if (product.price_usd === "free" || product.tier_min === "free") {
+    node.offers = { "@type": "Offer", price: 0, priceCurrency: "USD", availability: "https://schema.org/InStock" };
+  }
+  return node;
+}
+
+/**
  * The storefront page. Semantic and accessible by construction: one h1, real
  * <ul> for the artifact list, a real <a> for the call to action, and no
  * interactive div anywhere — the frontend program's own auditor is run against
  * this output in the tests.
+ *
+ * Typography and elevation match apps/web/src/theme.css byte-for-byte on the
+ * tokens that matter for continuity (Inter/JetBrains Mono, --radius-lg,
+ * --shadow-base/--shadow-lg) — read from that file's own values, not
+ * eyeballed, so a storefront page and the app it sells look like the same
+ * product rather than a generic landing-page template wearing the brand
+ * colour. Colour tokens (palette) already matched before this change; font
+ * and elevation did not.
  */
 export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
   const { product, artifacts, palette } = input;
@@ -120,23 +196,39 @@ export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
   const price = htmlEscape(priceLine(product));
   const count = artifacts.length;
   const programList = product.programs.map((p) => htmlEscape(p)).join(", ");
+  const description = htmlEscape(metaDescription(input));
+  const purchasable = isPurchasable(product);
+  const canonical = `https://${htmlEscape(product.subdomain)}/`;
+  const jsonLd = jsonLdStringify(structuredData(input));
 
   const css = [
-    `:root{--p:${palette.primary};--ink:${palette.ink};--bg:${palette.surface};--muted:${palette.muted};--accent:${palette.accent}}`,
+    `:root{--p:${palette.primary};--ink:${palette.ink};--bg:${palette.surface};--muted:${palette.muted};--accent:${palette.accent};--radius:.5rem;--radius-lg:.75rem;--shadow:0 1px 3px 0 rgb(0 0 0 / .3),0 1px 2px -1px rgb(0 0 0 / .3);--shadow-lg:0 10px 18px rgba(0,0,0,.55)}`,
     `*{box-sizing:border-box}`,
-    `body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;line-height:1.6}`,
-    `main{max-width:64rem;margin:0 auto;padding:4rem 1.5rem}`,
+    // Inter + JetBrains Mono, matching apps/web/src/theme.css's --font-sans/--font-mono
+    // exactly (same fallback chain), loaded from Google Fonts since this static site
+    // ships no local font files of its own.
+    `body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}`,
+    `header{max-width:64rem;margin:0 auto;padding:1.5rem 1.5rem 0;display:flex;align-items:center;gap:.5rem}`,
+    `header a{color:var(--muted);text-decoration:none;font-size:.875rem;font-family:"JetBrains Mono","Fira Code",Consolas,monospace}`,
+    `header a:hover,header a:focus-visible{color:var(--p)}`,
+    `main{max-width:64rem;margin:0 auto;padding:2.5rem 1.5rem 4rem}`,
     `h1{font-size:clamp(2rem,5vw,3rem);margin:0 0 .5rem;letter-spacing:-.02em}`,
-    `.price{font-family:ui-monospace,monospace;color:var(--p);font-size:1.25rem}`,
-    `.frame{border:1px solid color-mix(in srgb,var(--p) 35%,transparent);border-radius:.75rem;padding:1.5rem;margin:2rem 0}`,
+    `.price{font-family:"JetBrains Mono","Fira Code",Consolas,monospace;color:var(--p);font-size:1.25rem}`,
+    `.frame{border:1px solid color-mix(in srgb,var(--p) 35%,transparent);border-radius:var(--radius-lg);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow)}`,
     `ul{margin:0;padding-left:1.25rem}`,
-    `li{font-family:ui-monospace,monospace;font-size:.875rem;color:var(--muted)}`,
-    `a.cta{display:inline-block;margin-top:1rem;padding:.75rem 1.5rem;border-radius:.5rem;background:var(--p);color:#062c36;font-weight:700;text-decoration:none}`,
+    `li{font-family:"JetBrains Mono","Fira Code",Consolas,monospace;font-size:.875rem;color:var(--muted)}`,
+    `a.cta{display:inline-block;margin-top:1rem;padding:.75rem 1.5rem;border-radius:var(--radius);background:var(--p);color:#062c36;font-weight:700;text-decoration:none;box-shadow:var(--shadow-lg)}`,
     `a.cta:focus-visible{outline:3px solid var(--ink);outline-offset:2px}`,
     `footer{color:var(--muted);font-size:.875rem;margin-top:3rem}`,
   ].join("");
 
   const body = [
+    // A minimal brand strip, not a full nav — every page links back to the
+    // hub it was generated by, so the 21 subdomains read as one family
+    // rather than 21 disconnected landing pages. This is the "continuity
+    // across pages" half of the owner's design direction; the favicons
+    // (generateStorefrontFavicon) are the other half.
+    `<header><a href="https://iliad.trustfabric.ai">AXIS' Iliad</a></header>`,
     `<main>`,
     `<h1>${name}</h1>`,
     `<p class="price">${price}</p>`,
@@ -149,7 +241,7 @@ export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
     `</div>`,
     // Gated: state the fact, withhold the buy action, never expose the internal
     // reason. No CTA, because inviting a purchase we cannot fulfil is the lie.
-    isPurchasable(product)
+    purchasable
       ? `<a class="cta" href="https://iliad.trustfabric.ai">Run it on your repository</a>`
       : `<p class="frame">This program is not available for purchase yet. Everything above is already generated and verified; it goes on sale once delivery is proven end to end.</p>`,
     `<footer>Part of AXIS' Iliad. Every artifact is derived from your repository — nothing is templated in.</footer>`,
@@ -163,8 +255,33 @@ export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
     `<meta charset="utf-8">`,
     `<meta name="viewport" content="width=device-width,initial-scale=1">`,
     `<title>${name} — AXIS' Iliad</title>`,
+    `<meta name="description" content="${description}">`,
+    // Gated products (no CTA on the page) are also told not to index — an
+    // indexable page for something that cannot be bought yet is the same
+    // "public claim our own records contradict" class of defect priceLine()
+    // and the gate-note handling above already exist to prevent.
+    `<meta name="robots" content="${purchasable ? "index,follow" : "noindex,follow"}">`,
+    `<meta name="theme-color" content="${palette.surface}">`,
     `<link rel="icon" type="image/svg+xml" href="/${htmlEscape(product.id)}-favicon.svg">`,
-    `<link rel="canonical" href="https://${htmlEscape(product.subdomain)}/">`,
+    `<link rel="canonical" href="${canonical}">`,
+    `<link rel="preconnect" href="https://fonts.googleapis.com">`,
+    `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
+    `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">`,
+    // Open Graph / Twitter Card — no og:image: this repo ships no image
+    // pipeline (no new dependency for one — see CLAUDE.md's "no dependencies
+    // without discussion" — and SVG is unreliable/unsupported as og:image on
+    // the major consumers, Facebook explicitly requires jpg/png/gif). Omitting
+    // the tag is the honest choice; a broken or non-rendering preview image
+    // would be worse than none.
+    `<meta property="og:type" content="website">`,
+    `<meta property="og:site_name" content="AXIS' Iliad">`,
+    `<meta property="og:title" content="${name} — AXIS' Iliad">`,
+    `<meta property="og:description" content="${description}">`,
+    `<meta property="og:url" content="${canonical}">`,
+    `<meta name="twitter:card" content="summary">`,
+    `<meta name="twitter:title" content="${name} — AXIS' Iliad">`,
+    `<meta name="twitter:description" content="${description}">`,
+    `<script type="application/ld+json">${jsonLd}</script>`,
     `<style>${css}</style>`,
     `</head>`,
     `<body>${body}</body>`,
@@ -172,6 +289,29 @@ export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
   ].join("\n");
 
   return { path: `${product.id}/index.html`, content: html, content_type: "text/html" } as GeneratedFile;
+}
+
+/**
+ * sitemap.xml — root-level like robots.txt/llms.txt above, and for the same
+ * reason (_worker.js only rewrites "/", so this resolves identically from
+ * any of the 21 subdomains). robots.txt already REFERENCES this URL
+ * (`Sitemap: https://iliad.trustfabric.ai/sitemap.xml`); until this
+ * function, nothing generated the file it points to — a real gap, not a
+ * hypothetical one, found by checking what actually exists rather than
+ * trusting the earlier receipt that called spoke_05 "complete".
+ */
+export function generateStorefrontSitemap(inputs: StorefrontInput[]): GeneratedFile {
+  const urls = inputs
+    .map(({ product }) => `  <url><loc>https://${htmlEscape(product.subdomain)}/</loc></url>`)
+    .join("\n");
+  const content = [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
+    urls,
+    `</urlset>`,
+    ``,
+  ].join("\n");
+  return { path: "sitemap.xml", content, content_type: "application/xml" } as GeneratedFile;
 }
 
 // ─── ext_02: Cloudflare Agent Readiness — root-level, host-independent ────────

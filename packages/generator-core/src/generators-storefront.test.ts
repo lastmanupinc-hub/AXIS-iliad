@@ -16,6 +16,9 @@ import {
   generateStorefrontFavicon,
   generateStorefrontRobots,
   generateStorefrontLlmsTxt,
+  generateStorefrontSitemap,
+  metaDescription,
+  structuredData,
   priceLine,
   isPurchasable,
   AVERIONICS,
@@ -24,6 +27,7 @@ import {
 import { PRODUCT_REGISTRY } from "./product-registry.js";
 import { GENERATOR_PROGRAMS } from "./program-manifest.js";
 import { analyzeUiSurface } from "./generators-frontend.js";
+import { validateStructuredData, extractJsonLdBlocks } from "./seo-structured-data.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -278,5 +282,221 @@ describe("storefront favicons — individual marks that compose as one brand", (
     const svg = generateStorefrontFavicon(inputFor(products()[0])).content;
     expect(svg).toMatch(/role="img"/);
     expect(svg).toMatch(/aria-label="/);
+  });
+});
+
+// ─── theme/SEO hardening pass — closes gaps found in spoke_05's own "complete" ──
+// receipt: fonts didn't match apps/web's real tokens, and there was no meta
+// description, no structured data, no sitemap.xml despite robots.txt promising
+// one. All four are held to the same "real data only, verified by our own
+// tooling" discipline as everything else in this file.
+
+describe("storefront meta description — real data, not hand-written marketing copy", () => {
+  it("states the real artifact count and program list for every product", () => {
+    for (const p of products()) {
+      const input = inputFor(p);
+      const desc = metaDescription(input);
+      expect(desc).toContain(`${input.artifacts.length}`);
+      for (const prog of p.programs) expect(desc).toContain(prog);
+    }
+  });
+
+  it("states priceLine()'s own price — never a hand-written figure", () => {
+    for (const p of products()) {
+      const desc = metaDescription(inputFor(p));
+      if (isPurchasable(p)) expect(desc).toContain(priceLine(p));
+      else expect(desc).toMatch(/not yet available/i);
+    }
+  });
+
+  it("never leaks a gate_note into the description", () => {
+    const gated = products().filter((p) => p.gate_note);
+    expect(gated.length).toBeGreaterThan(0);
+    for (const p of gated) expect(metaDescription(inputFor(p))).not.toContain(p.gate_note!);
+  });
+});
+
+describe("storefront structured data — validated by our own seo program's validator", () => {
+  it("every one of the 21 real products emits JSON-LD that passes validateStructuredData", () => {
+    for (const p of products()) {
+      const page = generateStorefrontPage(inputFor(p)).content;
+      const result = validateStructuredData(page);
+      expect(result.blocks, `${p.id}: no JSON-LD block found`).toBe(1);
+      expect(result.ok, `${p.id}: ${result.issues.map((i) => i.message).join("; ")}`).toBe(true);
+    }
+  });
+
+  it("declares SoftwareApplication with the product's real name and url", () => {
+    for (const p of products()) {
+      const node = structuredData(inputFor(p));
+      expect(node["@type"]).toBe("SoftwareApplication");
+      expect(node.name).toBe(p.name);
+      expect(node.url).toBe(`https://${p.subdomain}/`);
+    }
+  });
+
+  it("includes real offers.price for a purchasable, priced product — matching priceLine()", () => {
+    const priced = products().find((p) => isPurchasable(p) && typeof p.price_usd === "number");
+    expect(priced).toBeDefined();
+    const node = structuredData(inputFor(priced!)) as { offers?: { price: number; priceCurrency: string } };
+    expect(node.offers?.price).toBe(priced!.price_usd);
+    expect(node.offers?.priceCurrency).toBe("USD");
+  });
+
+  it("prices a free product's offer at 0, not omitted and not fabricated", () => {
+    const free = products().find((p) => p.price_usd === "free" || p.tier_min === "free");
+    expect(free).toBeDefined();
+    const node = structuredData(inputFor(free!)) as { offers?: { price: number } };
+    expect(node.offers?.price).toBe(0);
+  });
+
+  it("NEVER includes offers for a gated (not-yet-purchasable) product — same honesty gate as the visible page", () => {
+    const gated = products().filter((p) => p.gate_note);
+    expect(gated.length).toBeGreaterThan(0);
+    for (const p of gated) {
+      const node = structuredData(inputFor(p));
+      expect(node.offers).toBeUndefined();
+    }
+  });
+
+  it("THE CORE GUARD: a hostile product name cannot break out of the <script> tag", () => {
+    const hostile: StorefrontProduct = {
+      id: "x", name: "</script><script>alert(document.cookie)</script>", subdomain: "x.trustfabric.ai",
+      programs: ["x"], price_usd: 1, billing: "one_time", tier_min: "paid",
+    };
+    const page = generateStorefrontPage({ product: hostile, artifacts: ["a.md"], palette: AVERIONICS }).content;
+    // The literal bytes of a closing-then-reopening script tag must never
+    // appear outside of the ONE legitimate closing tag for the ld+json block.
+    const scriptTagCount = (page.match(/<script/gi) ?? []).length;
+    expect(scriptTagCount).toBe(1); // only the ld+json block — no injected second tag
+    const blocks = extractJsonLdBlocks(page);
+    expect(blocks).toHaveLength(1);
+    // The block still parses as valid JSON and carries the hostile text as
+    // inert DATA (not markup) — proves the escape neutralized it rather than
+    // just deleting/mangling the name.
+    const parsed = JSON.parse(blocks[0]);
+    expect(parsed.name).toContain("script");
+    expect(validateStructuredData(page).ok).toBe(true);
+  });
+});
+
+describe("storefront theme — matches apps/web's real design tokens, not a generic stack", () => {
+  const theme = readFileSync(join(ROOT, "apps/web/src/theme.css"), "utf8");
+
+  it("reads the real font tokens (guards against this whole block passing vacuously)", () => {
+    expect(theme).toContain(String.raw`--font-sans: "Inter"`);
+    expect(theme).toContain(String.raw`--font-mono: "JetBrains Mono"`);
+  });
+
+  it("uses the SAME font families as the app it sells — not a generic system-ui fallback", () => {
+    const page = generateStorefrontPage(inputFor(products()[0])).content;
+    expect(page).toContain(String.raw`"Inter"`);
+    expect(page).toContain(String.raw`"JetBrains Mono"`);
+    expect(page).not.toMatch(/font-family:system-ui/);
+  });
+
+  it("loads the real fonts rather than assuming the visitor's OS has them", () => {
+    const page = generateStorefrontPage(inputFor(products()[0])).content;
+    expect(page).toContain("fonts.googleapis.com");
+    expect(page).toMatch(/family=Inter/);
+    expect(page).toMatch(/family=JetBrains\+Mono/);
+  });
+
+  it("gives cards and the CTA real elevation (shadow tokens), matching the app's shadow scale", () => {
+    const page = generateStorefrontPage(inputFor(products()[0])).content;
+    expect(page).toMatch(/box-shadow:var\(--shadow\)/);
+    expect(page).toMatch(/box-shadow:var\(--shadow-lg\)/);
+  });
+
+  it("links back to the hub on every page — continuity across the 21 subdomains", () => {
+    for (const p of products()) {
+      const page = generateStorefrontPage(inputFor(p)).content;
+      expect(page).toContain(String.raw`<header><a href="https://iliad.trustfabric.ai">`);
+      expect(page).toContain("Iliad</a></header>");
+    }
+  });
+});
+
+describe("storefront <head> — meta description, Open Graph, Twitter Card, robots", () => {
+  it("every field is the SAME real description — no separate, driftable copy per surface", () => {
+    for (const p of products()) {
+      const input = inputFor(p);
+      const page = generateStorefrontPage(input).content;
+      const desc = metaDescription(input);
+      // htmlEscape only changes attribute-hostile characters; none of the real
+      // registry's product names/programs contain any, so a plain toContain
+      // holds for the whole real registry (a hostile-input case is covered
+      // separately by the script-tag escaping test above).
+      expect(page).toContain(`<meta name="description" content="${desc}">`);
+      expect(page).toContain(`<meta property="og:description" content="${desc}">`);
+      expect(page).toContain(`<meta name="twitter:description" content="${desc}">`);
+    }
+  });
+
+  it("indexes a purchasable product and noindexes a gated one — never invites a sale it can't fulfil via search either", () => {
+    const purchasable = products().find((p) => isPurchasable(p));
+    const gated = products().find((p) => !isPurchasable(p));
+    expect(purchasable).toBeDefined();
+    expect(gated).toBeDefined();
+    expect(generateStorefrontPage(inputFor(purchasable!)).content).toContain('<meta name="robots" content="index,follow">');
+    expect(generateStorefrontPage(inputFor(gated!)).content).toContain('<meta name="robots" content="noindex,follow">');
+  });
+
+  it("sets theme-color to the page's own surface colour, not a hardcoded value", () => {
+    const page = generateStorefrontPage(inputFor(products()[0])).content;
+    expect(page).toContain(`<meta name="theme-color" content="${AVERIONICS.surface}">`);
+  });
+
+  it("declares no og:image rather than a broken one — SVG favicons are not valid OG images on the major consumers", () => {
+    const page = generateStorefrontPage(inputFor(products()[0])).content;
+    expect(page).not.toMatch(/og:image/);
+  });
+});
+
+describe("storefront sitemap.xml — closes the robots.txt Sitemap: promise", () => {
+  const inputFor3 = (p: StorefrontProduct) => ({ product: p, artifacts: artifactsFor(p), palette: AVERIONICS });
+
+  it("lists every one of the 21 real product URLs", () => {
+    const sitemap = generateStorefrontSitemap(products().map(inputFor3));
+    expect(sitemap.path).toBe("sitemap.xml");
+    for (const p of products()) {
+      expect(sitemap.content).toContain(`<loc>https://${p.subdomain}/</loc>`);
+    }
+  });
+
+  it("is well-formed XML with the standard sitemap namespace", () => {
+    const sitemap = generateStorefrontSitemap(products().map(inputFor3));
+    expect(sitemap.content).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+    expect(sitemap.content).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
+    expect(sitemap.content).toContain("</urlset>");
+    // Every <url> opened is closed — the simplest well-formedness check that
+    // would actually catch a template mistake (e.g. a dangling <url> tag).
+    const opens = (sitemap.content.match(/<url>/g) ?? []).length;
+    const closes = (sitemap.content.match(/<\/url>/g) ?? []).length;
+    expect(opens).toBe(closes);
+    expect(opens).toBe(products().length);
+  });
+
+  it("matches the URL robots.txt actually references", () => {
+    const robots = generateStorefrontRobots();
+    expect(robots.content).toContain("Sitemap: https://iliad.trustfabric.ai/sitemap.xml");
+    // The sitemap is served at the dist root (same as robots.txt/llms.txt),
+    // which resolves to exactly that URL on iliad.trustfabric.ai.
+    expect(generateStorefrontSitemap(products().map(inputFor3)).path).toBe("sitemap.xml");
+  });
+
+  it("is deterministic — same registry twice, byte-identical file", () => {
+    const a = generateStorefrontSitemap(products().map(inputFor3)).content;
+    const b = generateStorefrontSitemap(products().map(inputFor3)).content;
+    expect(a).toBe(b);
+  });
+
+  it("escapes a hostile subdomain rather than interpolating it raw", () => {
+    const hostile: StorefrontProduct = {
+      id: "x", name: "x", subdomain: '"><script>alert(1)</script>', programs: ["x"],
+      price_usd: 1, billing: "one_time", tier_min: "paid",
+    };
+    const sitemap = generateStorefrontSitemap([{ product: hostile, artifacts: ["a.md"], palette: AVERIONICS }]);
+    expect(sitemap.content).not.toContain("<script>");
   });
 });

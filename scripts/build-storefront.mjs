@@ -25,7 +25,7 @@ const core = await import(dist("index.js"));
 const manifest = await import(dist("program-manifest.js"));
 const registry = await import(dist("product-registry.js"));
 
-const { generateStorefrontPage, generateStorefrontFavicon, generateStorefrontRobots, generateStorefrontLlmsTxt, AVERIONICS } = core;
+const { generateStorefrontPage, generateStorefrontFavicon, generateStorefrontRobots, generateStorefrontLlmsTxt, generateStorefrontSitemap, AVERIONICS } = core;
 const { GENERATOR_PROGRAMS } = manifest;
 const { PRODUCT_REGISTRY } = registry;
 
@@ -72,6 +72,11 @@ const llms = generateStorefrontLlmsTxt(inputs);
 writeFileSync(join(OUT, llms.path), llms.content, "utf8");
 console.log(`  ${"robots.txt".padEnd(20)} Content-Signal directive  ->  ${robots.path}`);
 console.log(`  ${"llms.txt".padEnd(20)} ${inputs.length} products  ->  ${llms.path}`);
+
+// sitemap.xml — closes the dangling Sitemap: reference robots.txt already makes.
+const sitemap = generateStorefrontSitemap(inputs);
+writeFileSync(join(OUT, sitemap.path), sitemap.content, "utf8");
+console.log(`  ${"sitemap.xml".padEnd(20)} ${inputs.length} urls  ->  ${sitemap.path}`);
 
 // ─── host routing ────────────────────────────────────────────────────────────
 // Every product page lives at /<id>/, but each product's SUBDOMAIN must serve

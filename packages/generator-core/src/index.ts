@@ -70,7 +70,15 @@ export {
   // generated from the same registry as the pages, never hand-written.
   generateStorefrontRobots,
   generateStorefrontLlmsTxt,
+  // theme/SEO hardening pass — sitemap.xml closes robots.txt's dangling
+  // Sitemap: reference; metaDescription/structuredData are exported so the
+  // Watch consumer (and tests) can validate the SAME data the page renders,
+  // not a re-derived copy.
+  generateStorefrontSitemap,
+  metaDescription,
+  structuredData,
   priceLine,
+  isPurchasable,
   AVERIONICS,
   type StorefrontProduct,
   type StorefrontInput,
