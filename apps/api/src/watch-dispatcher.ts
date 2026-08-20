@@ -20,6 +20,7 @@ import { processSeoApply, defaultSeoApplyDeps } from "./seo-apply-watcher.js";
 import { processFrontendApply, defaultFrontendApplyDeps } from "./frontend-apply-watcher.js";
 import { processNotebookReindex, defaultNotebookReindexDeps } from "./notebook-reindex-watcher.js";
 import { processObsidianVaultSync, defaultObsidianVaultDeps } from "./obsidian-vault-watcher.js";
+import { processArtifactsApply, defaultArtifactsApplyDeps } from "./artifacts-apply-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -74,6 +75,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const obsidian = await processObsidianVaultSync(payload, defaultObsidianVaultDeps());
   if (obsidian.status !== "not_obsidian_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "obsidian", status: obsidian.status });
+    return;
+  }
+
+  const artifacts = await processArtifactsApply(payload, defaultArtifactsApplyDeps());
+  if (artifacts.status !== "not_artifacts_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "artifacts", status: artifacts.status });
     return;
   }
 

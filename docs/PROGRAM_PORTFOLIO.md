@@ -69,18 +69,26 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 
 ## Portfolio at a glance
 
-> **VERIFIED 2026-08-19 against code, not the ledger.** Percentages below are computed by
+> **VERIFIED 2026-08-20 against code, not the ledger.** Percentages below are computed by
 > `.tmp-grade.mjs` from the real generator manifest, the real product registry, and the real
-> `watch-dispatcher.ts` imports — not from `begin.yaml`'s claims. The audit corrected three
-> things: `mcp` DOES have a watch consumer (via `mcp-hosted.js`; this doc previously said it
-> did not), and `spoke_05` + `app_31` were still marked `open` in the ledger despite having
-> shipped. The ledger was stale in the direction that UNDERSTATES progress.
+> `watch-dispatcher.ts` imports — not from `begin.yaml`'s claims. The 2026-08-19 audit corrected
+> three things: `mcp` DOES have a watch consumer (via `mcp-hosted.js`; this doc previously said
+> it did not), and `spoke_05` + `app_31` were still marked `open` in the ledger despite having
+> shipped. Today's rerun moves three more rows into the 90% block: `notebook` and `obsidian`
+> shipped their Watch->Apply consumers earlier this session (notebook-reindex-watcher.ts,
+> obsidian-vault-watcher.ts) and `artifacts` just shipped its own (app_23,
+> artifacts-apply-watcher.ts — bundle+verify+host, not a PR, since a minified widget bundle
+> isn't source for the customer's own repo). The ledger keeps drifting in the direction that
+> UNDERSTATES progress, not overstates it.
 
 | program | gens | price | verified % | what is missing |
 |---|---:|---:|---:|---|
+| artifacts | 11 | $29 | **90%** | spoke_06 |
 | canvas | 6 | $15 | **90%** | spoke_06 |
 | frontend | 4 | $19 | **90%** | spoke_06 |
 | mcp | 19 | $29 | **90%** | spoke_06 |
+| notebook | 5 | $15 | **90%** | spoke_06 |
+| obsidian | 5 | free | **90%** | spoke_06 |
 | search | 6 | free | **90%** | spoke_06 |
 | seo | 6 | $19 | **90%** | spoke_06 |
 | skills | 6 | $9 | **90%** | spoke_06 |
@@ -90,12 +98,9 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 | superpowers | 8 | $19 | **60%** | hosted apply; watch; spoke_06 |
 | agentic-purchasing | 6 | $99 | **50%** | apply; watch; spoke_06 |
 | algorithmic | 5 | $19 | **50%** | apply; watch; spoke_06 |
-| artifacts | 11 | $29 | **50%** | apply; watch; spoke_06 |
 | brand | 5 | $15 | **50%** | apply; watch; spoke_06 |
 | debug | 4 | $15 | **50%** | apply; watch; spoke_06 |
 | marketing | 5 | $19 | **50%** | apply; watch; spoke_06 |
-| notebook | 5 | $15 | **50%** | apply; watch; spoke_06 |
-| obsidian | 5 | free | **50%** | apply; watch; spoke_06 |
 | optimization | 4 | $29 | **50%** | apply; watch; spoke_06 |
 | pitch | 3 | $19 | **50%** | apply; watch; spoke_06 |
 | remotion | 5 | $29 | **50%** | apply; watch; spoke_06 |
@@ -250,18 +255,34 @@ read disclosures most carefully. Its trajectory is entirely gated on turning
 Blocked on test-mode Stripe/PAI'D credentials, which are **not** in `key.txt` (live keys
 only) — an owner action, and correctly not worked around.
 
-### artifacts — 11 generators · $29 · `app_23` open, **blocked on a design decision** (40%)
+### artifacts — 11 generators · $29 · `app_23` **complete, 90% as of 2026-08-20**
+> **Moved here from "The floor" section below** (still filed there pending a full doc
+> reconciliation pass — this doc's section headings/counts have known pre-existing drift
+> the 2026-08-19/20 verified-table audits above did not attempt to fully resolve). The
+> table above is current; treat it over this heading's placement.
+
 **Does:** generated component, dashboard widget, embed snippet, artifact spec, component
 library, PRD, design doc, tasks breakdown, session context, root index.html, capability map.
-**Three directions:** (1) bundle widgets with esbuild and host at versioned R2 URLs;
-(2) rebuild on push; (3) an embed platform other sites consume.
+**Applies:** `artifacts-bundler.ts` wraps the generated widget component with a real
+`createRoot(...).render(...)` mount call and bundles component+React+ReactDOM into one
+self-contained browser IIFE via esbuild — no CDN dependency, no assumption the host page
+already has React loaded. `verifyWidgetBundle` then actually EXECUTES the bundle in a real
+headless DOM (happy-dom) and checks for thrown errors, `console.error` calls, and a real
+DOM mount — not static analysis of the bundle text. Gated by the SAME deterministic
+`analyzeUiSurface` auditor the frontend program (app_31) already uses before bundling even
+starts: a widget failing the a11y/XSS/any-type scan is withheld, never bundled.
+`artifacts-upload.ts` hosts a verified widget at a real, content-addressed R2 key and mints
+a time-limited presigned embed URL — a genuine, working link today, honestly reported as
+`not_configured` (not fabricated) while R2 credentials remain absent from production.
+**Watches:** `artifacts-apply-watcher.ts`, the 12th `watch-dispatcher` branch; re-bundles
+and re-hosts on push. Hosting a live URL is this program's version of "Apply" — a minified
+React+ReactDOM blob has no business landing as a PR in the customer's own source repo the
+way a component or markdown file does, unlike frontend/seo/obsidian's PR-based Apply.
 **Highest-ROI trajectory:** **embeddable, hosted, versioned artifacts** — the only program
 whose output could live on someone else's page, which makes it a distribution surface.
-**Gaps:** genuinely blocked, not merely unstarted: `generateDashboardWidget` emits JSX
-whenever the target repo uses React, with no bundled React/ReactDOM and no mount point, so
-there is nothing framework-agnostic to bundle yet. Needs an owner decision — ship a React
-runtime, or always emit vanilla-JS widgets. **Standing note: when resumed, bundle the
-*quality* widgets specifically, cross-referenced with the Package Quality Judge work.**
+**Gaps:** storefront; R2 credentials are not yet provisioned in production, so every real
+upload attempt today honestly reports `not_configured` until an owner provisions them —
+tracked as a separate action, not blocking the pipeline itself (fully built and tested).
 
 ### frontend — 4 generators · $19 · `app_31` **80% as of 2026-08-17**
 **Does:** frontend rules, component guidelines, layout patterns, UI audit — *and now real
