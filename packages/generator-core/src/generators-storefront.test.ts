@@ -477,11 +477,15 @@ describe("storefront sitemap.xml — closes the robots.txt Sitemap: promise", ()
     expect(opens).toBe(products().length);
   });
 
-  it("matches the URL robots.txt actually references", () => {
+  it("matches a URL that actually serves this file — not axis-web's unrelated domain", () => {
     const robots = generateStorefrontRobots();
-    expect(robots.content).toContain("Sitemap: https://iliad.trustfabric.ai/sitemap.xml");
-    // The sitemap is served at the dist root (same as robots.txt/llms.txt),
-    // which resolves to exactly that URL on iliad.trustfabric.ai.
+    // Verified live before this test was written: iliad.trustfabric.ai is a
+    // DIFFERENT Cloudflare Pages project (axis-web) that returns 200 with
+    // its own unrelated sitemap — pointing there would silently mislead a
+    // crawler, not 404 loudly. axis-storefront.pages.dev is THIS deploy's
+    // own stable alias and is the one host confirmed to serve this file.
+    expect(robots.content).toContain("Sitemap: https://axis-storefront.pages.dev/sitemap.xml");
+    expect(robots.content).not.toContain("iliad.trustfabric.ai/sitemap.xml");
     expect(generateStorefrontSitemap(products().map(inputFor3)).path).toBe("sitemap.xml");
   });
 

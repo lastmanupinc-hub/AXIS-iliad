@@ -294,11 +294,11 @@ export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
 /**
  * sitemap.xml — root-level like robots.txt/llms.txt above, and for the same
  * reason (_worker.js only rewrites "/", so this resolves identically from
- * any of the 21 subdomains). robots.txt already REFERENCES this URL
- * (`Sitemap: https://iliad.trustfabric.ai/sitemap.xml`); until this
- * function, nothing generated the file it points to — a real gap, not a
- * hypothetical one, found by checking what actually exists rather than
- * trusting the earlier receipt that called spoke_05 "complete".
+ * any of the 21 subdomains). robots.txt already REFERENCES this URL (see
+ * generateStorefrontRobots's Sitemap: line); until this function, nothing
+ * generated the file it points to — a real gap, not a hypothetical one,
+ * found by checking what actually exists rather than trusting the earlier
+ * receipt that called spoke_05 "complete".
  */
 export function generateStorefrontSitemap(inputs: StorefrontInput[]): GeneratedFile {
   const urls = inputs
@@ -328,6 +328,19 @@ export function generateStorefrontSitemap(inputs: StorefrontInput[]): GeneratedF
  * no prior convention for it (grepped repo-wide, zero matches before this),
  * chosen permissive here because the whole point of a storefront selling an
  * agent-discoverability product is to itself be agent-discoverable.
+ *
+ * FIXED 2026-08-20: the Sitemap: line previously pointed at
+ * iliad.trustfabric.ai — a DIFFERENT Cloudflare Pages project (axis-web, the
+ * main app) that has always served its own unrelated sitemap.xml (its own
+ * app routes, not the storefront's 21 products). Verified live before fixing,
+ * not assumed: iliad.trustfabric.ai/sitemap.xml returns 200 with axis-web's
+ * own content, silently masking the fact that no sitemap for the storefront
+ * itself existed anywhere. axis-storefront.pages.dev is THIS deploy's own
+ * stable Cloudflare Pages alias (unlike the per-deploy hashed preview URL,
+ * it always resolves to whichever build is currently live — the same
+ * guarantee robots.txt/sitemap.xml already rely on being host-independent
+ * across all 21 custom subdomains) and is the one host that actually,
+ * verifiably serves this file.
  */
 export function generateStorefrontRobots(): GeneratedFile {
   const content = [
@@ -336,7 +349,7 @@ export function generateStorefrontRobots(): GeneratedFile {
     ``,
     `# Machine-readable product catalog — the same registry every page here renders from.`,
     `# https://llmstxt.org`,
-    `Sitemap: https://iliad.trustfabric.ai/sitemap.xml`,
+    `Sitemap: https://axis-storefront.pages.dev/sitemap.xml`,
     ``,
     `Content-Signal: search=yes, ai-train=yes, ai-input=yes`,
     ``,
