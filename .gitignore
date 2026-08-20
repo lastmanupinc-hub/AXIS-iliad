@@ -16,6 +16,8 @@ cov*.txt
 coverage-*.log
 *-fail.log
 axis-analyze-results.json
+redundancy-sweep-report.json
+redundancy-sweep-output.txt
 
 .mcpregistry_*
 *.env

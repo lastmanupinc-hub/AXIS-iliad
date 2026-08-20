@@ -1487,6 +1487,63 @@ project_begin:
         # once clear) runs `scripts/ship.sh storefront` for real. api-catalog (RFC 9727) decision
         # from the sibling axis-web ticket (ext_01) not addressed here — separate candidate.
 
+      # ── OWNER-DIRECTED, 2026-08-20 ─────────────────────────────────────────
+      - id: "tool_01_redundancy_sweep"
+        description: >
+          Owner-requested general tool: sweep the monorepo for cross-file duplicated code
+          (this repo's own named recurring bug family — "hand-duplicated catalog/pricing drift",
+          "REST/MCP twin-implementation divergence" — but for CODE blocks, not just data claims).
+          Built by dogfooding, per the owner's instruction: run it against axis-iliad itself as
+          part of building it, not after.
+        roi_score: 87
+        roi_reason: >
+          validation_strength 5, production_quality_gain 4, capability_gain 4. Its own first real
+          run surfaced a finding with a PROVEN incident precedent (below), not a theoretical one —
+          scored above the open app_* items on that basis.
+        severity: HIGH
+        source_file: "scripts/redundancy-sweep.mjs"
+        completion_status: in_progress  # 2026-08-20: TOOL BUILT AND VERIFIED, finding OPEN.
+        # scripts/redundancy-sweep.mjs — dependency-free (node: builtins only, matching every
+        # other scripts/ file), seed-and-extend duplicate detection (hash K-line windows, extend
+        # matches to their maximal run by exact text comparison, dedupe overlapping seeds, group
+        # into N-way findings). `pnpm redundancy-sweep` script added to root package.json.
+        # BUILT BY DOGFOODING, LITERALLY — three real bugs in the tool itself were found by
+        # running it against this repo, not by inspection: (1) fileURLToPath needed instead of
+        # manual URL-parsing for ROOT — a bare regex strip left "%20" for the space in "No Fate
+        # Platform", so the very first run found zero files; (2) the original one-hash-per-window
+        # design had no merge step (a comment said "merge overlapping occurrences" but no code did
+        # it) — one real 40-line duplicate produced 20+ near-identical overlapping rows, unusable
+        # output; rewritten to seed-and-extend + dedupe-by-extended-range; (3) `path.join(ROOT, d)`
+        # silently mis-resolved an absolute directory argument instead of using it as-is (path.join
+        # doesn't reset on an absolute later segment the way path.resolve does) — found via a
+        # synthetic sanity check (planted duplicate in a temp dir outside the repo), fixed to
+        # path.resolve. VERIFIED on two synthetic cases after fixes: a planted 7-line duplicate
+        # across two temp files is found exactly (right lines, right files, zero false positive on
+        # a third unrelated function in the same file); a single file with no duplication reports
+        # exactly zero findings.
+        # THE REAL FINDING, run against packages/+apps/ (327 files, 2s wall-clock): 202 duplicate
+        # blocks, 128 cross-file. Top result by a wide margin: packages/iliad-md/src/vendor/ is a
+        # 14-file, ~1000-line hand-vendored copy of packages/repo-parser, context-engine, snapshots,
+        # and cli source (self-documented — "// Vendored from @axis/repo-parser", import paths
+        # rewired), shipped inside the published iliad-md npm CLI, with NO automated re-vendor
+        # script and NO general sync guard. THIS IS NOT HYPOTHETICAL: packages/iliad-md/src/vendor/
+        # snapshots/github.test.ts documents that this exact file already drifted on 2026-07-22,
+        # missing 2 shipped security hardening fixes (non-HTTPS redirect rejection, bearer-token
+        # stripping on cross-host redirect) — a real token-leak exposure in a published artifact,
+        # fixed with ONE regression test for that ONE file. The other 13 vendored files have no
+        # equivalent guard. Secondary finding, lower severity: generators-brand/marketing/obsidian/
+        # superpowers.ts share a ~14-line markdown-scaffolding boilerplate block across 9-13
+        # call sites each — likely a real extract-a-helper opportunity, though the grouping-by-
+        # primary-range output still shows some residual overlap between near-identical findings at
+        # slightly different block boundaries (noted, not chased further — diminishing returns for
+        # a v1 tool; the vendor/ finding is the one with a proven incident behind it).
+        # NOT DONE: no systemic vendor-sync guard built yet (the natural next candidate this
+        # finding points at — e.g. a test asserting every packages/iliad-md/src/vendor/*.ts file's
+        # content matches its cited source, or a `pnpm re-vendor` script) — a real scope decision
+        # (which files, what "matches" means post-import-rewiring) belonging to its own candidate,
+        # not silently folded into this one. Full findings: redundancy-sweep-report.json
+        # (gitignored, regenerate via `pnpm redundancy-sweep --json=redundancy-sweep-report.json`).
+
   highest_roi_definition:
     meaning: >
       The next valid move inside the project boundary that most increases durable
