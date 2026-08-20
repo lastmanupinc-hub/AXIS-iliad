@@ -19,6 +19,7 @@ import { processCanvasDiagramSync, defaultCanvasDiagramSyncDeps } from "./canvas
 import { processSeoApply, defaultSeoApplyDeps } from "./seo-apply-watcher.js";
 import { processFrontendApply, defaultFrontendApplyDeps } from "./frontend-apply-watcher.js";
 import { processNotebookReindex, defaultNotebookReindexDeps } from "./notebook-reindex-watcher.js";
+import { processObsidianVaultSync, defaultObsidianVaultDeps } from "./obsidian-vault-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -67,6 +68,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const notebook = await processNotebookReindex(payload, defaultNotebookReindexDeps());
   if (notebook.status !== "not_notebook_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "notebook", status: notebook.status });
+    return;
+  }
+
+  const obsidian = await processObsidianVaultSync(payload, defaultObsidianVaultDeps());
+  if (obsidian.status !== "not_obsidian_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "obsidian", status: obsidian.status });
     return;
   }
 
