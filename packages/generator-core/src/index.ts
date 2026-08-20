@@ -66,6 +66,10 @@ export { outputsForPrograms, programsForProduct, outputsForProduct } from "./spo
 export {
   generateStorefrontPage,
   generateStorefrontFavicon,
+  // ext_02 — Cloudflare Agent Readiness: root-level robots.txt + llms.txt,
+  // generated from the same registry as the pages, never hand-written.
+  generateStorefrontRobots,
+  generateStorefrontLlmsTxt,
   priceLine,
   AVERIONICS,
   type StorefrontProduct,

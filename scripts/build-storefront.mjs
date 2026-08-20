@@ -25,7 +25,7 @@ const core = await import(dist("index.js"));
 const manifest = await import(dist("program-manifest.js"));
 const registry = await import(dist("product-registry.js"));
 
-const { generateStorefrontPage, generateStorefrontFavicon, AVERIONICS } = core;
+const { generateStorefrontPage, generateStorefrontFavicon, generateStorefrontRobots, generateStorefrontLlmsTxt, AVERIONICS } = core;
 const { GENERATOR_PROGRAMS } = manifest;
 const { PRODUCT_REGISTRY } = registry;
 
@@ -47,8 +47,10 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 let pages = 0;
+const inputs = [];
 for (const product of products) {
   const input = { product, artifacts: artifactsFor(product), palette: AVERIONICS };
+  inputs.push(input);
   const page = generateStorefrontPage(input);
   const icon = generateStorefrontFavicon(input);
 
@@ -60,6 +62,16 @@ for (const product of products) {
   pages++;
   console.log(`  ${product.id.padEnd(20)} ${input.artifacts.length} artifacts  ->  ${page.path}`);
 }
+
+// ─── ext_02: Cloudflare Agent Readiness ─────────────────────────────────────
+// One robots.txt + one llms.txt at the dist root — _worker.js only rewrites
+// "/", so both resolve identically on all 21 subdomains with no routing change.
+const robots = generateStorefrontRobots();
+writeFileSync(join(OUT, robots.path), robots.content, "utf8");
+const llms = generateStorefrontLlmsTxt(inputs);
+writeFileSync(join(OUT, llms.path), llms.content, "utf8");
+console.log(`  ${"robots.txt".padEnd(20)} Content-Signal directive  ->  ${robots.path}`);
+console.log(`  ${"llms.txt".padEnd(20)} ${inputs.length} products  ->  ${llms.path}`);
 
 // ─── host routing ────────────────────────────────────────────────────────────
 // Every product page lives at /<id>/, but each product's SUBDOMAIN must serve

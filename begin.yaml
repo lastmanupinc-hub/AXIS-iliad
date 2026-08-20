@@ -96,7 +96,8 @@ project_begin:
             # outbox exists for this origin (see pointer_back).
           from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
           submitted: "2026-08-10"
-          status: submitted
+          status: in_progress   # TRIAGED 2026-08-19 per triage_policy.on_new_inbox_ticket
+          assigned_candidate_id: ext_01_agent_readiness_axis_web
           severity: normal
           title: "axis-web (iliad.trustfabric.ai / iliad.jonathanarvay.com) is already most of the way to Cloudflare Agent Readiness -- 2 small gaps left"
           request: >
@@ -143,7 +144,8 @@ project_begin:
           from_repo: axis_launch
           from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
           submitted: "2026-08-10"
-          status: submitted
+          status: in_progress   # TRIAGED 2026-08-19 per triage_policy.on_new_inbox_ticket
+          assigned_candidate_id: ext_02_agent_readiness_axis_storefront
           severity: normal
           title: "axis-storefront (21 *.trustfabric.ai product subdomains) has none of the Cloudflare Agent Readiness checklist yet"
           request: >
@@ -1348,6 +1350,104 @@ project_begin:
         # literal count was merged with the no-iteration clause that actually fails. VERIFIED: 84/84 across pg-test-reset + billing +
         # usage-credit-metering + referral-store. NOT DONE, deliberately: no lock_timeout added — it would guard against a cause the
         # measurement disproved, and speculative guards are how the stale "~7.8s under contention" comment misled this in the first place.
+
+      # ── INBOX-DERIVED CANDIDATES, triaged 2026-08-19 ──────────────────────
+      # Source: inter_repo_ticket_system.inbox, filed by axis_launch 2026-08-10,
+      # both severity: normal. Scored by roi_policy.scoring_axes below rather than
+      # accepted at the ticket's own framing. Per triage_policy.on_new_inbox_ticket:
+      # candidate id assigned, ticket status set in_progress with the id recorded
+      # on the ticket (see inter_repo_ticket_system.inbox.tickets above).
+
+      - id: "ext_01_agent_readiness_axis_web"
+        description: >
+          TICKET-AXIS_LAUNCH-agent-readiness-axis-web-gapfill-20260810. axis-web
+          already implements nearly all of Cloudflare's Agent Readiness checklist
+          (llms.txt, sitemap.xml, .well-known/mcp/server-card.json, /for-agents,
+          OAuth discovery). Two concrete gap-fills: (1) apps/web/public/robots.txt
+          has no Content-Signal directive — confirmed zero matches repo-wide; (2)
+          this repo serves /.well-known/skills/index.json but the checklist (and
+          cloudflare/agent-skills-discovery-rfc) expects
+          /.well-known/agent-skills/index.json — add as an alias/redirect, do not
+          move the existing path and break a current consumer. Lower-priority:
+          confirm whether /.well-known/capabilities.json already substitutes for
+          RFC 9727's /.well-known/api-catalog, or record it as a genuine gap.
+          Ships through ci.yml's existing build-and-test gate like everything else
+          in apps/web.
+        roi_score: 66
+        roi_reason: >
+          agent_acquisition_gain 4, conformance_and_protocol_gain 4,
+          self_propagation_strength 3, implementation_cost -1 (small, additive,
+          CI-gated). portfolio_leverage_multiplier 0 — scoped to axis-web alone,
+          not the storefront's 21 subdomains. Real but narrow: closes a published,
+          scored external checklist on the account's most agent-ready surface.
+        severity: LOW
+        source_file: "apps/web/public/robots.txt"
+        completion_status: open
+
+      - id: "ext_02_agent_readiness_axis_storefront"
+        description: >
+          TICKET-AXIS_LAUNCH-agent-readiness-axis-storefront-20260810. Unlike
+          axis-web, axis-storefront (.storefront-dist/, 21 *.trustfabric.ai
+          product subdomains, Cloudflare Pages Advanced Mode with per-Host
+          _worker.js routing) has NONE of the checklist — no robots.txt, no
+          .well-known/ at all, confirmed by inspecting .storefront-dist
+          directly. Because _worker.js only rewrites `/` per Host header, most
+          of these files need to live at the .storefront-dist ROOT so they
+          resolve identically across all 21 subdomains; llms.txt could be one
+          global file generated from PRODUCT_REGISTRY
+          (packages/generator-core/dist/product-registry.js) rather than 21
+          hand-written blurbs, matching this repo's own
+          generate-from-real-structured-data discipline. SEPARATE, HIGHER-VALUE
+          FINDING from the same ticket's recon: this deploy has NO CI/test gate
+          at all — `wrangler pages deploy .storefront-dist` is run manually, and
+          local git HEAD was already at least one commit ahead of what was last
+          actually deployed when the ticket was filed. That is the same failure
+          shape ops_03's 8-day-stale-deploy incident was — worth a minimal
+          build-output check here regardless of the Agent Readiness work.
+        roi_score: 79
+        roi_reason: >
+          agent_acquisition_gain 5 (21 live public pages currently undiscoverable
+          to agents), production_quality_gain 4 (the missing-CI-gate finding is
+          the same class of silent-stale-deploy risk ops_03 fixed for the API/web
+          — this repo's own recurring-bug-family list already names it),
+          conformance_and_protocol_gain 4, self_propagation_strength 3,
+          portfolio_leverage_multiplier 3 (the storefront serves all 21 program
+          landing pages, though not the programs' own functionality),
+          implementation_cost -3 (root-level files across a generated dist plus a
+          real deploy-verification step, not a one-line change). Scored above
+          ext_01 because the missing-CI-gate finding compounds with — but is
+          scored independently of — spoke_05/app_31's already-shipped storefront
+          generator.
+        severity: MEDIUM
+        source_file: "scripts/build-storefront.mjs"
+        completion_status: in_progress  # 2026-08-19: robots.txt (Content-Signal directive) + llms.txt
+        # (one global file, real product data — never hand-written blurbs) generators added to
+        # generators-storefront.ts, exported from generator-core's index.ts, wired into
+        # build-storefront.mjs right after the per-product page loop. Both reuse priceLine()/
+        # isPurchasable() from the SAME file spoke_05's honesty tests already guard, so a gated
+        # product (remotion) is never sold in llms.txt either — verified directly: real build run
+        # (`node scripts/build-storefront.mjs`) shows Remotion as "Not yet available" with its
+        # gate_note text absent, Search/Obsidian as "Free", and Agentic Purchasing correctly
+        # resolving to its actual commerce.trustfabric.ai subdomain (not agentic-purchasing.*).
+        # 11 new tests in generators-storefront.test.ts, all passing (28/28 in that file). tsc
+        # --filter generator-core clean. NOT a new artifact-count entry — like canvas's D2 diagram
+        # generator, these are dist-root files outside generate.ts's counted REGISTRY (confirmed:
+        # zero references to either new export in generate.ts), so TOTAL_GENERATORS/ARTIFACT_COUNT
+        # are unaffected.
+        # THE CI/DEPLOY-GATE HALF: added a `storefront` verb to scripts/ship.sh (build generator-core
+        # -> run build-storefront.mjs -> a real local verify step asserting robots.txt carries
+        # Content-Signal and every one of the 21 registry products has a matching llms.txt entry +
+        # index.html + favicon in the dist -> THEN wrangler deploy) — matching the existing `web`
+        # case's shape and this repo's own garage-doctrine decision (ops_03: no new GitHub Actions
+        # workflows; verification is local). Verify step dry-run passed standalone (21/21).
+        # NOT YET DONE, deliberately: did not execute `ship.sh storefront`'s actual `wrangler pages
+        # deploy` — that publishes to the public https://axis-storefront.pages.dev preview, and
+        # another session is concurrently active in this same repo right now (apps/api, unrelated
+        # work); ran everything build/local-verify-only rather than take an outward-facing action
+        # mid-collision-risk. Acceptance criterion "evidence the deploy step was actually run
+        # against the real Cloudflare Pages project" is UNMET until a human (or a future session,
+        # once clear) runs `scripts/ship.sh storefront` for real. api-catalog (RFC 9727) decision
+        # from the sibling axis-web ticket (ext_01) not addressed here — separate candidate.
 
   highest_roi_definition:
     meaning: >

@@ -173,3 +173,66 @@ export function generateStorefrontPage(input: StorefrontInput): GeneratedFile {
 
   return { path: `${product.id}/index.html`, content: html, content_type: "text/html" } as GeneratedFile;
 }
+
+// ─── ext_02: Cloudflare Agent Readiness — root-level, host-independent ────────
+//
+// _worker.js (built alongside these by scripts/build-storefront.mjs) rewrites
+// ONLY the "/" path per Host header; every other path — these included — falls
+// through to plain Pages asset routing and resolves identically no matter which
+// of the 21 subdomains is hit. So robots.txt and llms.txt are written ONCE, at
+// the dist root, not per product.
+
+/**
+ * robots.txt for every *.trustfabric.ai storefront subdomain. `Content-Signal`
+ * is Cloudflare's directive for AI crawlers/trainers/assistants — this repo has
+ * no prior convention for it (grepped repo-wide, zero matches before this),
+ * chosen permissive here because the whole point of a storefront selling an
+ * agent-discoverability product is to itself be agent-discoverable.
+ */
+export function generateStorefrontRobots(): GeneratedFile {
+  const content = [
+    `User-agent: *`,
+    `Allow: /`,
+    ``,
+    `# Machine-readable product catalog — the same registry every page here renders from.`,
+    `# https://llmstxt.org`,
+    `Sitemap: https://iliad.trustfabric.ai/sitemap.xml`,
+    ``,
+    `Content-Signal: search=yes, ai-train=yes, ai-input=yes`,
+    ``,
+  ].join("\n");
+  return { path: "robots.txt", content, content_type: "text/plain" } as GeneratedFile;
+}
+
+/**
+ * llms.txt for the storefront — one global file (not 21 per-product ones),
+ * since it lives at the dist root and resolves identically on every subdomain
+ * anyway. Reuses priceLine()/isPurchasable() so a gated product (remotion) is
+ * never sold here either, and the artifact count matches each product's own
+ * page because both read the same `artifacts` list.
+ */
+export function generateStorefrontLlmsTxt(inputs: StorefrontInput[]): GeneratedFile {
+  const lines = inputs.map(({ product, artifacts }) => {
+    const count = artifacts.length;
+    const unit = count === 1 ? "artifact" : "artifacts";
+    return `- [${htmlEscape(product.name)}](https://${htmlEscape(product.subdomain)}/) — ${htmlEscape(
+      priceLine(product),
+    )}. ${count} ${unit} from: ${product.programs.map((p) => htmlEscape(p)).join(", ")}.`;
+  });
+
+  const content = [
+    `# AXIS' Iliad — Storefront`,
+    ``,
+    `> ${inputs.length} standalone products, one per generator program, each priced and`,
+    `> described from the same registry its own page renders from — nothing here`,
+    `> is hand-written, so it cannot drift from what the product actually ships.`,
+    ``,
+    `Products:`,
+    ``,
+    ...lines,
+    ``,
+    `Run any of these against your own repository: https://iliad.trustfabric.ai`,
+    ``,
+  ].join("\n");
+  return { path: "llms.txt", content, content_type: "text/markdown" } as GeneratedFile;
+}

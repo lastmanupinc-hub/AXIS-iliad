@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import {
   generateStorefrontPage,
   generateStorefrontFavicon,
+  generateStorefrontRobots,
+  generateStorefrontLlmsTxt,
   priceLine,
   isPurchasable,
   AVERIONICS,
@@ -185,6 +187,71 @@ describe("storefront accessibility — judged by our own frontend auditor", () =
     const page = generateStorefrontPage({ product: hostile, artifacts: ["a.md"], palette: AVERIONICS }).content;
     expect(page).not.toContain("<script>");
     expect(page).toContain("&lt;script&gt;");
+  });
+});
+
+// ─── ext_02: Cloudflare Agent Readiness ─────────────────────────────────────
+describe("storefront robots.txt — root-level, host-independent", () => {
+  it("allows crawling and declares a Content-Signal directive", () => {
+    const robots = generateStorefrontRobots();
+    expect(robots.path).toBe("robots.txt");
+    expect(robots.content).toMatch(/^User-agent: \*/);
+    expect(robots.content).toContain("Allow: /");
+    expect(robots.content).toMatch(/Content-Signal:\s*search=yes,\s*ai-train=yes,\s*ai-input=yes/);
+  });
+
+  it("is deterministic", () => {
+    expect(generateStorefrontRobots().content).toBe(generateStorefrontRobots().content);
+  });
+});
+
+describe("storefront llms.txt — one global file, same registry as the pages", () => {
+  const inputFor2 = (p: StorefrontProduct) => ({ product: p, artifacts: artifactsFor(p), palette: AVERIONICS });
+
+  it("lists every product with its real subdomain URL", () => {
+    const llms = generateStorefrontLlmsTxt(products().map(inputFor2));
+    for (const p of products()) {
+      expect(llms.content).toContain(`https://${p.subdomain}/`);
+      expect(llms.content).toContain(p.name);
+    }
+  });
+
+  it("prices exactly as priceLine() would — never a hand-written figure", () => {
+    const llms = generateStorefrontLlmsTxt(products().map(inputFor2));
+    for (const p of products()) expect(llms.content).toContain(priceLine(p));
+  });
+
+  it("never sells a gated product — no price, no internal gate_note text", () => {
+    const gated = products().filter((p) => p.gate_note);
+    expect(gated.length).toBeGreaterThan(0); // remotion — proves this isn't vacuous
+    const llms = generateStorefrontLlmsTxt(products().map(inputFor2));
+    for (const p of gated) {
+      expect(llms.content).not.toContain(p.gate_note!);
+      expect(llms.content).not.toMatch(/owner-purchased|do not ship|blocked on/i);
+    }
+  });
+
+  it("states an artifact count that matches each product's real artifact list", () => {
+    const llms = generateStorefrontLlmsTxt(products().map(inputFor2));
+    for (const p of products()) {
+      const n = artifactsFor(p).length;
+      expect(llms.content).toContain(`${n} ${n === 1 ? "artifact" : "artifacts"}`);
+    }
+  });
+
+  it("is deterministic — same registry twice, byte-identical file", () => {
+    const a = generateStorefrontLlmsTxt(products().map(inputFor2)).content;
+    const b = generateStorefrontLlmsTxt(products().map(inputFor2)).content;
+    expect(a).toBe(b);
+  });
+
+  it("escapes hostile product text rather than interpolating it raw", () => {
+    const hostile: StorefrontProduct = {
+      id: "x", name: "</script><script>alert(1)</script>", subdomain: "x.trustfabric.ai",
+      programs: ["x"], price_usd: 1, billing: "one_time", tier_min: "paid",
+    };
+    const llms = generateStorefrontLlmsTxt([{ product: hostile, artifacts: ["a.md"], palette: AVERIONICS }]);
+    expect(llms.content).not.toContain("<script>");
   });
 });
 

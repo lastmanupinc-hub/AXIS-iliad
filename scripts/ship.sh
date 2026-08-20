@@ -14,6 +14,7 @@
 # Usage:
 #   scripts/ship.sh api        gate -> push -> watched Render deploy (git-backed)
 #   scripts/ship.sh web        build+prerender+audit -> wrangler pages deploy
+#   scripts/ship.sh storefront build+verify -> wrangler pages deploy (preview project)
 #   scripts/ship.sh probe      run the live-probe battery against production
 #   scripts/ship.sh gate       just the local gates (ci-local.sh if docker is up,
 #                              else the non-container set: frozen-lockfile,
@@ -88,6 +89,38 @@ case "${1:-}" in
     cd "$ROOT"
     npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
     ;;
+  storefront)
+    # ext_02: this deploy previously had NO build-verification step at all —
+    # `wrangler pages deploy .storefront-dist` was run by hand, and local HEAD
+    # could sit ahead of what was actually live with nothing to catch it. This
+    # case is that check: build for real, assert the Agent Readiness files and
+    # every product page landed, THEN deploy — never deploy an unverified dist.
+    cd "$ROOT"
+    pnpm --filter @axis/generator-core build
+    node scripts/build-storefront.mjs
+    node -e '
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const dist = path.join(process.cwd(), ".storefront-dist");
+      const registry = require("./packages/generator-core/dist/product-registry.js").PRODUCT_REGISTRY;
+      const ids = Object.keys(registry);
+      const fail = (msg) => { console.error("[storefront verify] FAIL: " + msg); process.exit(1); };
+      const robots = fs.readFileSync(path.join(dist, "robots.txt"), "utf8");
+      if (!/Content-Signal:/.test(robots)) fail("robots.txt missing Content-Signal directive");
+      const llms = fs.readFileSync(path.join(dist, "llms.txt"), "utf8");
+      for (const id of ids) {
+        const p = registry[id];
+        if (!llms.includes(`https://${p.subdomain}/`)) fail(`llms.txt missing ${id} (${p.subdomain})`);
+        if (!fs.existsSync(path.join(dist, id, "index.html"))) fail(`${id}/index.html missing from dist`);
+        if (!fs.existsSync(path.join(dist, `${id}-favicon.svg`))) fail(`${id}-favicon.svg missing from dist`);
+      }
+      console.log(`[storefront verify] OK — robots.txt, llms.txt, and all ${ids.length} product pages+favicons present`);
+    '
+    export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_ADMIN_API_KEY)"
+    export CLOUDFLARE_ACCOUNT_ID="8f68bfe59d4bb0884986f7abe9832738"
+    npx wrangler@3 pages deploy .storefront-dist --project-name=axis-storefront --commit-dirty=true
+    echo "[storefront] deployed — verify: curl -sS https://axis-storefront.pages.dev/robots.txt"
+    ;;
   probe)
     cd "$ROOT" && node scripts/live-probe.mjs
     ;;
@@ -95,6 +128,6 @@ case "${1:-}" in
     gate
     ;;
   *)
-    echo "usage: scripts/ship.sh {api|web|probe|gate}"; exit 2
+    echo "usage: scripts/ship.sh {api|web|storefront|probe|gate}"; exit 2
     ;;
 esac
