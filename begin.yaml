@@ -87,7 +87,100 @@ project_begin:
       # here with status: submitted gets triaged into the unified
       # candidate queue before the next loop candidate is picked — see
       # triage_policy below.
-      tickets: []
+      tickets:
+        - id: TICKET-AXIS_LAUNCH-agent-readiness-axis-web-gapfill-20260810
+          from_repo: axis_launch   # NOT in known_repos above (only paid/axis_toolbox/axis_foundry
+            # are enumerated there) -- filed by an operator-directed cross-account agent working
+            # from the AXIS Launch / Cloudflare-account side, not one of this protocol's three
+            # sibling autonomous-loop repos. Traceable via from_agent_session below; no mirrored
+            # outbox exists for this origin (see pointer_back).
+          from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
+          submitted: "2026-08-10"
+          status: submitted
+          severity: normal
+          title: "axis-web (iliad.trustfabric.ai / iliad.jonathanarvay.com) is already most of the way to Cloudflare Agent Readiness -- 2 small gaps left"
+          request: >
+            Cloudflare shipped a scored "Agent Readiness" checklist (Agents Week 2026 --
+            blog.cloudflare.com/agent-readiness/); apps/api/src/server.ts already implements
+            almost the entire thing (confirmed by reading server.ts directly, not assumed):
+            GET /llms.txt, GET /sitemap.xml, GET /.well-known/mcp/server-card.json (the whole
+            MCP-server-card checklist item, done), GET /.well-known/skills/index.json,
+            /.well-known/agent.json + several adjacent agent-discovery paths, /for-agents, and
+            OAuth-discovery endpoints. This is genuinely the most agent-ready surface in the
+            account already -- treat this ticket as a gap-fill, not a build-out.
+
+            Two concrete gaps:
+              1. apps/web/public/robots.txt has no Content-Signal directive yet (confirmed via a
+                 direct search across the repo -- zero existing matches for "Content-Signal"
+                 anywhere). Given this product's whole purpose is agent-facing discoverability
+                 (the robots.txt already has a hand-written "Helpful message for agents" block),
+                 a permissive default (ai-train=yes, search=yes, ai-input=yes) seems consistent
+                 with the rest of the file's intent, but that's this repo's own call to confirm,
+                 not mine to assume.
+              2. Path-naming collision: this repo serves /.well-known/skills/index.json, but the
+                 checklist (and cloudflare/agent-skills-discovery-rfc, and AXIS Launch's own
+                 shipped reference implementation) expects /.well-known/agent-skills/index.json.
+                 Recommend adding the canonical path as an alias/redirect to whatever already
+                 serves /.well-known/skills/index.json, rather than moving it outright and
+                 breaking any existing consumer of the current path.
+
+            Lower-priority: no /.well-known/api-catalog (RFC 9727) found by name -- worth a quick
+            check whether /.well-known/capabilities.json already substitutes for it, or whether
+            it's a genuine gap worth closing separately.
+          why: >
+            AXIS Launch (jonathanarvay.com) shipped the same checklist as a reference
+            implementation; axis-web is the natural next target since it's already 90% there and
+            actively CI-gated (ci.yml's build-and-test job blocks deploy on failure -- a real
+            gate, unlike several of the account's other properties). Purely additive, low-risk,
+            not blocking this repo's own roadmap.
+          acceptance_criteria:
+            - "apps/web/public/robots.txt carries a deliberately-chosen Content-Signal directive"
+            - "/.well-known/agent-skills/index.json resolves (via alias or move) without breaking whatever currently consumes /.well-known/skills/index.json"
+            - "A decision is recorded (added, or explicitly noted as already covered) on /.well-known/api-catalog"
+            - "Whatever's added ships through ci.yml's existing build-and-test gate, same as everything else in apps/web and apps/api"
+          pointer_back: "N/A -- no mirrored outbox in this protocol for this ticket's origin (see from_repo note above). Leave the confirmation in this ticket's own status/confirmed/evidence fields; no cross-repo write-back needed."
+        - id: TICKET-AXIS_LAUNCH-agent-readiness-axis-storefront-20260810
+          from_repo: axis_launch
+          from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
+          submitted: "2026-08-10"
+          status: submitted
+          severity: normal
+          title: "axis-storefront (21 *.trustfabric.ai product subdomains) has none of the Cloudflare Agent Readiness checklist yet"
+          request: >
+            Same checklist as the axis-web gap-fill ticket filed alongside this one (see that
+            ticket for the full dimension breakdown and the jonathanarvay.com reference
+            implementation) -- but axis-storefront (scripts/build-storefront.mjs ->
+            .storefront-dist/, deployed as Cloudflare Pages Advanced Mode with per-Host routing
+            via _worker.js) currently has none of it: no robots.txt, no .well-known/ directory
+            at all, confirmed by inspecting .storefront-dist directly.
+
+            Because _worker.js only rewrites `/` per Host header, most Agent Readiness files
+            need to live at the .storefront-dist ROOT so they resolve identically regardless of
+            which of the 21 subdomains is hit -- robots.txt and .well-known/* are effectively
+            global for this deployment, not per-product. llms.txt could go either way (one global
+            file listing all 21 products, or per-product) -- this repo's own call on which fits
+            the architecture better; if global, the build script already reads real product data
+            from packages/generator-core/dist/product-registry.js and could generate llms.txt
+            from that same source rather than hand-writing 21 blurbs (same "generate from real
+            structured data, don't hand-maintain a parallel copy" discipline AXIS Launch used for
+            its own markdown companions).
+
+            Separately, and arguably more important than the Agent Readiness item itself: this
+            ticket's own recon found NO CI/test gate on this artifact at all -- deploy is a
+            manual `wrangler pages deploy .storefront-dist` run locally, and local git HEAD in
+            this repo is currently at least one commit ahead of whatever was last actually
+            deployed. Worth considering a build-output check here (even a minimal one) alongside
+            this work, the same reasoning as this account's axis_build_check.py: catching a
+            broken or stale deploy silently shipping matters more than any single checklist item.
+          why: >
+            Same rollout as the axis-web ticket -- lower priority given the missing CI gate makes
+            this riskier to touch than axis-web, but real value once addressed since this is 21
+            live, public product pages with currently zero agent-facing discoverability.
+          acceptance_criteria:
+            - "robots.txt with a Content-Signal directive is reachable from at least one of the 21 live subdomains after the actual Cloudflare deploy (not just present in .storefront-dist locally)"
+            - "llms.txt is reachable and lists real, current products"
+            - "Some evidence the deploy step was actually run against the real Cloudflare Pages project, not just built locally, given this ticket's recon found no recent confirmed deploy"
+          pointer_back: "N/A -- no mirrored outbox in this protocol for this ticket's origin (see from_repo note above). Leave the confirmation in this ticket's own status/confirmed/evidence fields; no cross-repo write-back needed."
       archived_tickets: []
 
     outbox:
