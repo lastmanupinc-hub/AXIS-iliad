@@ -1563,7 +1563,8 @@ project_begin:
           scored above the open app_* items on that basis.
         severity: HIGH
         source_file: "scripts/redundancy-sweep.mjs"
-        completion_status: in_progress  # 2026-08-20: TOOL BUILT AND VERIFIED, finding OPEN.
+        # 2026-08-20: TOOL BUILT AND VERIFIED (completion_status is set once, below, after the
+        # vendor-sync guard section — this comment block reads chronologically top to bottom).
         # scripts/redundancy-sweep.mjs — dependency-free (node: builtins only, matching every
         # other scripts/ file), seed-and-extend duplicate detection (hash K-line windows, extend
         # matches to their maximal run by exact text comparison, dedupe overlapping seeds, group
@@ -1598,12 +1599,42 @@ project_begin:
         # primary-range output still shows some residual overlap between near-identical findings at
         # slightly different block boundaries (noted, not chased further — diminishing returns for
         # a v1 tool; the vendor/ finding is the one with a proven incident behind it).
-        # NOT DONE: no systemic vendor-sync guard built yet (the natural next candidate this
-        # finding points at — e.g. a test asserting every packages/iliad-md/src/vendor/*.ts file's
-        # content matches its cited source, or a `pnpm re-vendor` script) — a real scope decision
-        # (which files, what "matches" means post-import-rewiring) belonging to its own candidate,
-        # not silently folded into this one. Full findings: redundancy-sweep-report.json
-        # (gitignored, regenerate via `pnpm redundancy-sweep --json=redundancy-sweep-report.json`).
+        # Full findings: redundancy-sweep-report.json (gitignored, regenerate via
+        # `pnpm redundancy-sweep --json=redundancy-sweep-report.json`).
+        #
+        # VENDOR-SYNC GUARD BUILT, 2026-08-20: packages/iliad-md/src/vendor-sync.test.ts. Method:
+        # bag-of-lines containment (strip imports/comments/blanks from both files, then ask what
+        # fraction of the VENDORED file's remaining lines still appear verbatim somewhere in
+        # CURRENT source) — not byte/positional diffing, since import paths are deliberately
+        # rewired per every vendor file's own header comment. Measured all 13 real pairs first
+        # rather than picking a threshold blind: 11 score 98-100%, PASS_THRESHOLD set at 95%.
+        # RED-PROVEN with 5 synthetic tests, including one that caught a real flaw in the metric
+        # itself during scoping: a PURE insertion in source (new line added, nothing existing
+        # changed) leaves 100% of vendor's old lines individually findable, so the ratio does not
+        # drop — documented as a known limitation in the file's own header rather than hidden,
+        # since the guard should not be sold as catching every drift shape.
+        # SCOPING THIS FOUND TWO MORE, CURRENTLY OPEN, REAL DRIFT INSTANCES (beyond the 2 already
+        # known from github.ts/import-resolver.ts's own history) — both scored, both exempted WITH
+        # A REASON (same pattern as count-surface-coverage.test.ts) rather than silently fixed or
+        # silently hidden: (1) cli/scanner.ts — 82.5% contained; apps/cli/src/scanner.ts gained
+        # manifest-file admission by name (package.json, go.mod, Cargo.toml, ...) and an
+        # AUDIT_DOC_RE doc-file filter the vendored copy never received; (2)
+        # repo-parser/domain-extractor.ts — 77.5% contained; the real source was fixed to use
+        # balancedBraceBody()/collectBraceTypes() for Go struct/interface extraction, replacing a
+        # regex the source's OWN comment says "dropped every field after a nested type" — the
+        # vendored copy, shipped in the published iliad-md npm CLI, still runs that broken regex
+        # today. Each exemption asserts its OWN ratio stays BELOW threshold, so if either is ever
+        # actually fixed and the exemption is forgotten, the test fails loud rather than silently
+        # going stale — the same "stale exemption" failure mode ops_01/SPEC-12 already found once
+        # in this repo's own honesty guards. NOT DONE: actually re-vendoring either file — that is
+        # its own scope decision (re-porting real algorithm changes to a published package,
+        # touching apps/cli/src/scanner.ts and packages/repo-parser/src/domain-extractor.ts
+        # accordingly), not folded into the guard that found it. RECOMMEND treating the
+        # domain-extractor.ts gap as the higher-priority of the two — it is a correctness bug in
+        # shipped Go domain-model extraction, not a missing feature.
+        completion_status: complete  # tool built, dogfooded, verified; the two findings it surfaced
+        # are real, open, tracked follow-ups (not required for THIS candidate's own claim, same
+        # discipline as every other guard-vs-fix split this session).
 
   highest_roi_definition:
     meaning: >
