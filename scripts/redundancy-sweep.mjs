@@ -24,10 +24,19 @@
 // Deliberately dependency-free (node: builtins only), matching every other
 // script in this directory — an offline build must not need the npm registry.
 //
-//   node scripts/redundancy-sweep.mjs [--min-lines=8] [--top=25] [--json=out.json] [dir...]
+// LANGUAGE-GENERIC as of 2026-08-20 (dogfooded on axis-iliad TypeScript first,
+// then on AXIS Avatar Foundry — a stdlib-only Python 3.11+ codebase — which is
+// what forced this: the original version hardcoded .ts/.tsx and C-family
+// `//`/`/* */` comments, so pointed at a pure-Python repo it would have found
+// zero files. Comment/string stripping is now a small per-extension PROFILE
+// table (LANG_PROFILES below) instead of one hardcoded JS-shaped rule; unknown
+// extensions fall back to the C-family profile as a reasonable default.
+//
+//   node scripts/redundancy-sweep.mjs [--min-lines=8] [--top=25] [--json=out.json]
+//     [--ext=.ts,.tsx,.py] [--exclude-dir=name1,name2] [dir...]
 //
 // Exit code 0 always (this is a report, not a gate) unless --fail-on-cross-file
-// is passed, for future wiring into scripts/ship.sh gate if it proves its worth.
+// is passed, for future wiring into a repo's own local gate if it proves its worth.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative, extname, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,27 +48,75 @@ import { createHash } from "node:crypto";
 // fileURLToPath usage for the same reason, one Windows-path lesson learned twice).
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const EXCLUDE_DIRS = new Set([
+const DEFAULT_EXCLUDE_DIRS = new Set([
+  // JS/TS-world build & tooling output
   "node_modules", ".git", "dist", "build", "coverage",
   ".storefront-dist", ".ai", ".ai-output", "git-mirrors",
+  // Python-world caches/venvs — harmless to always exclude even in a JS repo,
+  // and required the first time this ran against a real Python codebase.
+  ".venv", "venv", ".venv-smoke", "__pycache__", ".mypy_cache", ".ruff_cache",
+  ".pytest_cache", ".tox", "site-packages", ".data",
 ]);
-const INCLUDE_EXT = new Set([".ts", ".tsx"]);
+
+/**
+ * Per-extension comment/string-stripping profile. `lineComments` are prefixes
+ * that blank the rest of a line; `blockPairs` are [open, close] token pairs
+ * treated like a block comment (Python has no real block-comment syntax, but
+ * triple-quoted strings are used as docstrings so densely — often
+ * near-boilerplate "Args:/Returns:" prose — that leaving them in would drown
+ * real logic duplication in docstring-shape noise; stripping them is a
+ * deliberate simplification, not a claim that no Python string constant could
+ * ever be worth flagging as duplicated).
+ */
+const LANG_PROFILES = {
+  c_family: { lineComments: ["//"], blockPairs: [["/*", "*/"]] },
+  python: { lineComments: ["#"], blockPairs: [['"""', '"""'], ["'''", "'''"]] },
+  hash_only: { lineComments: ["#"], blockPairs: [] },
+};
+const EXT_TO_PROFILE = {
+  ".ts": "c_family", ".tsx": "c_family", ".js": "c_family", ".jsx": "c_family",
+  ".mjs": "c_family", ".cjs": "c_family", ".java": "c_family", ".go": "c_family",
+  ".rs": "c_family", ".c": "c_family", ".cpp": "c_family", ".cc": "c_family",
+  ".h": "c_family", ".hpp": "c_family", ".cs": "c_family", ".swift": "c_family",
+  ".kt": "c_family", ".php": "c_family",
+  ".py": "python", ".pyi": "python",
+  ".rb": "hash_only", ".sh": "hash_only", ".bash": "hash_only", ".yaml": "hash_only", ".yml": "hash_only",
+};
+const DEFAULT_INCLUDE_EXT = new Set([".ts", ".tsx", ".py"]);
+
+function profileFor(ext) {
+  return LANG_PROFILES[EXT_TO_PROFILE[ext] ?? "c_family"];
+}
 
 function parseArgs(argv) {
-  const opts = { minLines: 8, top: 25, json: null, failOnCrossFile: false, includeTests: false, dirs: [] };
+  const opts = {
+    minLines: 8, top: 25, json: null, failOnCrossFile: false, includeTests: false,
+    dirs: [], includeExt: null, excludeDirs: null,
+  };
   for (const a of argv) {
     if (a.startsWith("--min-lines=")) opts.minLines = Number(a.slice(12));
     else if (a.startsWith("--top=")) opts.top = Number(a.slice(6));
     else if (a.startsWith("--json=")) opts.json = a.slice(7);
+    else if (a.startsWith("--ext=")) opts.includeExt = new Set(a.slice(6).split(",").map((s) => s.trim()));
+    else if (a.startsWith("--exclude-dir=")) opts.excludeDirs = a.slice(14).split(",").map((s) => s.trim());
     else if (a === "--fail-on-cross-file") opts.failOnCrossFile = true;
     else if (a === "--include-tests") opts.includeTests = true;
     else opts.dirs.push(a);
   }
   if (opts.dirs.length === 0) opts.dirs = ["packages", "apps"];
+  opts.includeExt ??= DEFAULT_INCLUDE_EXT;
+  opts.excludeDirsSet = new Set([...DEFAULT_EXCLUDE_DIRS, ...(opts.excludeDirs ?? [])]);
   return opts;
 }
 
-function walk(dir, includeTests, out = []) {
+/** Test-file naming conventions across languages — extend as new ones show up. */
+function isTestFile(basename) {
+  return /\.test\.tsx?$/.test(basename) // TS/JS
+    || /^test_.*\.py$/.test(basename) // pytest convention A
+    || /_test\.py$/.test(basename); // pytest convention B
+}
+
+function walk(dir, opts, out = []) {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
@@ -67,14 +124,13 @@ function walk(dir, includeTests, out = []) {
     return out; // dir may not exist (e.g. a filtered workspace) — skip, don't crash the sweep
   }
   for (const entry of entries) {
-    if (EXCLUDE_DIRS.has(entry.name)) continue;
+    if (opts.excludeDirsSet.has(entry.name)) continue;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      walk(full, includeTests, out);
-    } else if (INCLUDE_EXT.has(extname(entry.name))) {
+      walk(full, opts, out);
+    } else if (opts.includeExt.has(extname(entry.name))) {
       if (/\.d\.ts$/.test(entry.name)) continue; // generated type declarations, never source
-      const isTest = /\.test\.tsx?$/.test(entry.name);
-      if (isTest && !includeTests) continue;
+      if (isTestFile(entry.name) && !opts.includeTests) continue;
       out.push(full);
     }
   }
@@ -86,15 +142,47 @@ function isSignificant(line) {
   const t = line.trim();
   if (t.length === 0) return false;
   if (/^[{}()[\];,]+$/.test(t)) return false; // bare punctuation
-  if (t.startsWith("//")) return false;
-  if (t.startsWith("*") || t.startsWith("/*")) return false; // block-comment interior/open
   return true;
 }
 
-function significantLines(content) {
+/**
+ * Strip line comments, block comments/docstrings, and blank/bare-punctuation
+ * lines for ONE file, using the profile for its extension. Multi-line block
+ * constructs (block comments, Python triple-quoted strings) are tracked with
+ * a simple open/close scan — good enough for well-formed source; deliberately
+ * not a real tokenizer/parser (this is a sweep, not a compiler front-end).
+ */
+function significantLines(content, ext) {
+  const profile = profileFor(ext);
   const rawLines = content.split(/\r?\n/);
   const sig = []; // { text, lineNo (1-indexed, original file) }
-  rawLines.forEach((text, i) => {
+  let blockClose = null; // the closing token we're waiting for, or null if not inside a block
+
+  rawLines.forEach((raw, i) => {
+    let text = raw;
+    if (blockClose !== null) {
+      const closeIdx = text.indexOf(blockClose);
+      if (closeIdx === -1) return; // still inside the block; whole line consumed
+      text = text.slice(closeIdx + blockClose.length);
+      blockClose = null;
+    }
+    // A line can open (and possibly also close, same line) a block construct.
+    for (const [open, close] of profile.blockPairs) {
+      const openIdx = text.indexOf(open);
+      if (openIdx === -1) continue;
+      const afterOpen = text.slice(openIdx + open.length);
+      const closeIdx = afterOpen.indexOf(close);
+      if (closeIdx === -1) {
+        text = text.slice(0, openIdx); // opens and doesn't close on this line
+        blockClose = close;
+      } else {
+        text = text.slice(0, openIdx) + afterOpen.slice(closeIdx + close.length); // same-line open+close
+      }
+    }
+    for (const lc of profile.lineComments) {
+      const idx = text.indexOf(lc);
+      if (idx !== -1) text = text.slice(0, idx);
+    }
     if (isSignificant(text)) sig.push({ text: text.trim(), lineNo: i + 1 });
   });
   return sig;
@@ -127,13 +215,13 @@ function main() {
   // instead of using it as-is (caught by dogfooding this against a temp-dir
   // fixture outside the repo — an absolute --dir arg silently became
   // <root>/tmp/... and "found" zero files instead of erroring or working).
-  const files = opts.dirs.flatMap((d) => walk(resolve(ROOT, d), opts.includeTests));
+  const files = opts.dirs.flatMap((d) => walk(resolve(ROOT, d), opts));
   if (files.length === 0) {
-    console.error(`refusing to sweep: no source files found under ${opts.dirs.join(", ")}`);
+    console.error(`refusing to sweep: no source files found under ${opts.dirs.join(", ")} (extensions: ${[...opts.includeExt].join(", ")})`);
     process.exit(1);
   }
 
-  const fileSig = new Map(); // file -> significantLines(content)
+  const fileSig = new Map(); // file -> significantLines(content, ext)
   const byHash = new Map(); // windowHash -> [{file, idx}]
 
   for (const file of files) {
@@ -143,7 +231,7 @@ function main() {
     } catch {
       continue;
     }
-    const sig = significantLines(content);
+    const sig = significantLines(content, extname(file));
     fileSig.set(file, sig);
     if (sig.length < K) continue;
     for (let i = 0; i + K <= sig.length; i++) {

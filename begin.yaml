@@ -1724,6 +1724,36 @@ project_begin:
         completion_status: complete  # tool built, dogfooded, verified, AND both findings it surfaced
         # are real, open, tracked follow-ups (not required for THIS candidate's own claim, same
         # discipline as every other guard-vs-fix split this session).
+        #
+        # GENERALIZED CROSS-REPO 2026-08-20/21, owner-directed: was TS-only (.ts/.tsx, C-family
+        # `//`/`/* */` comments), hardcoded to this repo's own default dirs. Now a per-extension
+        # LANG_PROFILES table (comment/docstring stripping for C-family vs. Python vs. hash-only
+        # languages), --ext=/--exclude-dir= flags, and default exclusions covering .venv/
+        # __pycache__/.mypy_cache/.ruff_cache/.pytest_cache/.tox — none of which existed before a
+        # real Python-only repo (AXIS Avatar Foundry) was the actual dogfooding target. Two more
+        # real bugs found via that dogfooding, same discipline as the first pass: a missing
+        # closing paren caught immediately by `node --check`, and an absolute --dir arg silently
+        # mis-scanning (already-fixed path.resolve bug from the first pass, re-verified against a
+        # genuinely different repo rather than assumed still-correct). Verified via synthetic
+        # Python fixtures (planted duplicate found correctly across two DIFFERENT docstrings,
+        # proving docstring-stripping works and doesn't itself cause false matches; zero false
+        # positives on unique-only code; .venv/__pycache__ confirmed excluded by file count, not
+        # assumed from the exclusion list alone).
+        #
+        # REAL FINDING ACTED ON IN FOUNDRY (separate repo, its own commit 5af72d8 — not this
+        # repo's history): ran against engine/axis_foundry/ (404 files) — 332 duplicate blocks,
+        # 236 cross-file. Top finding, verified and FIXED there: a private dispatch function
+        # (`_extract_geometry_for_format`) byte-identical (md5sum-confirmed) across all 7
+        # non-avatar asset-kind pipelines, extracted into a shared module, 271 existing tests +
+        # 12 new ones green, full local pre-push gate green (ruff/mypy/gov_lint/rust-transfer/422
+        # drift-guards/317 jest), pushed. Cross-validated against a concurrent session's own
+        # pattern-duplication bug sweep in that repo (NaN-swallow defects independently
+        # re-implemented across sibling files) — confirmed genuinely complementary: this tool
+        # catches verbatim copy-paste via exact-text-window matching, theirs catches the same BUG
+        # SHAPE re-implemented with different variable names, which this tool's text-matching
+        # cannot see. Neither subsumes the other. Coordinated live with that session throughout
+        # (SendMessage) to avoid file/ledger collisions in the shared working directory — the
+        # exact risk this repo's own session already hit once with a different peer.
 
   highest_roi_definition:
     meaning: >
