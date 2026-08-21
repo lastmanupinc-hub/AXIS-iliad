@@ -55,27 +55,27 @@ interface VendorPair {
 const VENDOR_PAIRS: VendorPair[] = [
   { vendor: "packages/iliad-md/src/vendor/cli/manifest.ts", source: "apps/cli/src/runner.ts" },
   {
+    // FIXED 2026-08-20: re-vendored with the source-first admission algorithm (manifest-name
+    // admission, doc-audit deferred fill, per-top-level round-robin walk). Was exempt (82.5%
+    // contained); NOT a straight copy — apps/cli/src/scanner.ts dropped the `excludePaths`
+    // option this package's own cli.ts still genuinely depends on (self-poisoning guard against
+    // re-scanning this tool's own prior output), so it was re-added on top of the ported
+    // algorithm rather than silently lost. The 5 lines that make this file NOT 100% (vs.
+    // domain-extractor.ts's 100%) are exactly that deliberate re-addition — see the file's own
+    // header comment.
     vendor: "packages/iliad-md/src/vendor/cli/scanner.ts",
     source: "apps/cli/src/scanner.ts",
-    exempt:
-      "OPEN 2026-08-20 (found by tool_01_redundancy_sweep's scoping pass): apps/cli/src/scanner.ts " +
-      "gained SOURCE_EXTENSIONS-independent manifest-file admission by name (package.json, go.mod, " +
-      "Cargo.toml, ...) and an AUDIT_DOC_RE doc-file filter for the pitch program's claims-audit; " +
-      "the vendored copy still runs the older algorithm without either. Not a silent-pass — this " +
-      "is a real, open gap in the published iliad-md CLI, tracked as its own follow-up re-vendor.",
   },
   { vendor: "packages/iliad-md/src/vendor/context-engine/engine.ts", source: "packages/context-engine/src/engine.ts" },
   { vendor: "packages/iliad-md/src/vendor/context-engine/types.ts", source: "packages/context-engine/src/types.ts" },
   {
+    // FIXED 2026-08-20: re-vendored with balancedBraceBody()/collectBraceTypes() ported from
+    // source, plus the ReDoS-safe per-line parseTSFields. Was exempt (77.5% contained); this
+    // guard's own "exemption stays valid only while it's still actually drifted" test caught
+    // the fix immediately (scored 100%, failed the exempt-branch assertion) — exactly the
+    // mechanism it exists for. See the commit for the full before/after.
     vendor: "packages/iliad-md/src/vendor/repo-parser/domain-extractor.ts",
     source: "packages/repo-parser/src/domain-extractor.ts",
-    exempt:
-      "OPEN 2026-08-20 (found by tool_01_redundancy_sweep's scoping pass): " +
-      "packages/repo-parser/src/domain-extractor.ts was fixed to use balancedBraceBody()/" +
-      "collectBraceTypes() for Go struct/interface field extraction, replacing a regex the " +
-      "source's own comment says 'dropped every field after a nested type'. The vendored copy " +
-      "still runs the old regex — a real correctness bug in the published CLI's Go domain-model " +
-      "extraction, not fixed here, tracked as its own follow-up re-vendor.",
   },
   { vendor: "packages/iliad-md/src/vendor/repo-parser/framework-detector.ts", source: "packages/repo-parser/src/framework-detector.ts" },
   { vendor: "packages/iliad-md/src/vendor/repo-parser/import-resolver.ts", source: "packages/repo-parser/src/import-resolver.ts" },

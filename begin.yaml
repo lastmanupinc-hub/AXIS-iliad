@@ -1400,7 +1400,79 @@ project_begin:
         roi_reason: "revenue_loop_closure 5, production_quality_gain 5, validation_strength 4. The business cannot see its own income; every downstream decision reads a zero that is false."
         severity: HIGH
         source_file: "packages/snapshots/src/growth-store.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-20.
+        # OWNER DECISION (AskUserQuestion): "Full fix: write real receipts" — persist the session id
+        # at grant time, write a real payment_receipts row when PAI'D confirms a subscription payment.
+        #
+        # THE REFRAME THAT MADE THIS SAFE TO BUILD: re-verified PAI'D's /v1/settlements live before
+        # writing any code (still status "queued", updated_at IDENTICAL to created_at 20 days later —
+        # a real, separate concern, tracked as money_03 below). That "queued" status describes PAI'D
+        # paying OUT already-collected funds to the owner's own USDC wallet (payout_method:
+        # usdc_on_chain, payout_destination: a wallet address) — a downstream treasury step. It is NOT
+        # about whether the customer's original subscription payment was captured. That capture is a
+        # separate, ALREADY-CONFIRMED fact — it's the very webhook event that grants paid-tier access
+        # in the first place. A receipt reflecting "a real subscription payment was confirmed" does
+        # not depend on resolving the payout-queued question at all.
+        #
+        # THE JOIN: subscription_purchases (packages/snapshots/src/pg-schema.ts v44 migration),
+        # mirroring credit_pack_purchases's exact shape (pending -> succeeded, keyed by
+        # paid_session_id, idempotent on webhook retry) rather than inventing a new pattern for the
+        # same problem — investigated first (Explore agent) and confirmed the credit-pack path
+        # already solves this exact class of problem, subscriptions just never got the same
+        # treatment. packages/snapshots/src/subscription-purchase-store.ts: recordPendingSubscription
+        # (called from handlePaidSubscribe, MUST await before responding — same reasoning as
+        # credit-pack-handlers.ts's identical await) + markSubscriptionSucceeded (FOR UPDATE +
+        # status-guarded UPDATE, flips pending->succeeded exactly once). Deliberately simpler than
+        # credit-pack's store: no atomic grant-in-the-same-tx, because tier access is already granted
+        # elsewhere in the SAME webhook handler (updateAccountTierIfCurrent) — this table exists
+        # purely to make the settlement joinable and prevent a duplicate receipt, not to gate a
+        # spendable balance. apps/api/src/paid-handlers.ts's handlePaidWebhook writes the receipt via
+        # recordSettledPayment(tool: "subscription", provider: "paid_fc") in a best-effort
+        # try/catch, matching cashier.ts's own recordSettlementBookkeepingBestEffort convention —
+        # bookkeeping must never roll back or block a tier grant that already succeeded.
+        # Deliberately runs independent of `changed` (the tier-change flag): a Starter->Pro upgrade
+        # never trips previousTier!==targetTier (both collapse to "paid") but is real new money with
+        # its own checkout session — gating receipt-writing on `changed` would have silently dropped
+        # exactly that case. No receipt for targetTier==="free": a cancellation is not a new payment.
+        #
+        # RETENTION: subscription_purchases added to deleteAccount's documented RETAINED list
+        # (billing-store.ts) alongside credit_pack_purchases/payment_receipts — it was never added to
+        # the actual DELETE FROM allowlist either (verified by grep, not assumed), so retention is
+        # correct by construction; proved with a dedicated test, not just documented.
+        #
+        # 11 new tests across 4 files (subscription-purchase-store: idempotency + a real CONCURRENT
+        # webhook-delivery race proving exactly one of 3 simultaneous deliveries settles; paid-handlers:
+        # the full real chain from POST /portal/api/subscribe through the webhook to a real
+        # settled_revenue_cents_all_time delta, the Starter->Pro same-tier-new-money case, the
+        # cancellation no-receipt case, the unknown-session graceful-noop case; growth-store: the
+        # admin-facing metric itself, distinguishing a subscription receipt from a metered one;
+        # account-lifecycle: the retention proof). RED-PROVEN: neutered the settlement call, confirmed
+        # exactly the 2 tests asserting a receipt lands failed while the "nothing should change" tests
+        # correctly stayed green either way, restored, confirmed 56/56 green again. tsc clean (both
+        # packages/snapshots and apps/api), eslint clean.
+        #
+        # money_03 (separate, NOT closed by this): the one real production settlement (the owner's own
+        # $29 purchase, 2026-07-31) is still "queued" in PAI'D 20 days later with zero state change.
+        # Either that is PAI'D's terminal state for usdc_on_chain payouts, or a payout is genuinely
+        # stuck — an owner/PAI'D-support question, not something this candidate resolves or should
+        # guess at.
+
+      - id: "money_03_paid_settlement_queued_20d"
+        description: >
+          PAI'D's GET /v1/settlements (Bearer PAID_API_KEY) shows exactly one real settlement — the
+          owner's own $29 starter-plan purchase — with status "queued" since created_at 2026-07-31
+          (payout_method usdc_on_chain, payout_destination a wallet address). Re-verified live
+          2026-08-20 (20 days later): updated_at is IDENTICAL to created_at — zero state change in
+          three weeks. Either "queued" is PAI'D's normal/terminal state for a usdc_on_chain payout
+          (nothing to do), or a real payout to the owner's wallet has been stuck for 20 days (needs
+          PAI'D support). This is NOT ambiguous about whether the CUSTOMER'S payment succeeded — it
+          did, and money_01 (above) now records that correctly regardless of this status. It is
+          ambiguous about whether the OWNER has actually been paid.
+        roi_score: 55
+        roi_reason: "revenue_certainty 3, urgency 3. Not code — the fix is an owner action (ask PAI'D support, or confirm 'queued' is normal), so ROI is capped: no amount of engineering here moves this."
+        severity: MEDIUM
+        source_file: "N/A — PAI'D's own settlement record, not AXIS code"
+        completion_status: open  # OWNER ACTION REQUIRED — not something an agent session can resolve or should guess at. Contact PAI'D support with settlement id stl_4f95f52a-21c9-4af3-8181-93d8e0ac1b58, or confirm "queued" is the expected steady state for usdc_on_chain payouts.
 
       - id: "infra_03_pg_test_reset_sweep_cost"
         description: >
@@ -1626,13 +1698,30 @@ project_begin:
         # today. Each exemption asserts its OWN ratio stays BELOW threshold, so if either is ever
         # actually fixed and the exemption is forgotten, the test fails loud rather than silently
         # going stale — the same "stale exemption" failure mode ops_01/SPEC-12 already found once
-        # in this repo's own honesty guards. NOT DONE: actually re-vendoring either file — that is
-        # its own scope decision (re-porting real algorithm changes to a published package,
-        # touching apps/cli/src/scanner.ts and packages/repo-parser/src/domain-extractor.ts
-        # accordingly), not folded into the guard that found it. RECOMMEND treating the
-        # domain-extractor.ts gap as the higher-priority of the two — it is a correctness bug in
-        # shipped Go domain-model extraction, not a missing feature.
-        completion_status: complete  # tool built, dogfooded, verified; the two findings it surfaced
+        # in this repo's own honesty guards.
+        #
+        # BOTH RE-VENDORED, 2026-08-20, SAME SESSION: domain-extractor.ts now ports
+        # balancedBraceBody()/collectBraceTypes() (fixes the dropped-fields-after-nested-type bug)
+        # AND the ReDoS-safe per-line parseTSFields — a second real fix found while porting, not
+        # scoped originally: the old whole-body regex backtracks quadratically on a missing
+        # terminator, a genuine DoS a crafted .ts file in an analyzed repo could trigger, which
+        # matters specifically because this package's job is parsing arbitrary, potentially
+        # hostile repositories. scanner.ts ports the full source-first admission algorithm
+        # (manifest-name admission, doc-audit deferred fill, per-top-level round-robin walk) —
+        # NOT a straight copy: the real apps/cli/src/scanner.ts dropped `excludePaths` entirely,
+        # but packages/iliad-md/src/cli.ts still calls scanDirectory with it (the app_11/24/31
+        # "exclude the tool's own prior output from its own regeneration input" guard) — re-added
+        # on top of the ported algorithm rather than silently regressed. Both exemptions removed
+        # from vendor-sync.test.ts's registry; the guard's own exempt-branch test caught the
+        # domain-extractor.ts fix immediately (scored 100%, correctly failed the "still drifted"
+        # assertion) — proof the mechanism designed to prevent a stale exemption actually works,
+        # not just an assertion that it would. Post-fix containment, measured independently
+        # outside vitest as a cross-check: domain-extractor.ts 100.0%, scanner.ts 96.4% (the
+        # non-100% is exactly the 5 deliberate excludePaths lines, nothing else). Verified: tsc
+        # --noEmit clean on iliad-md; 58/58 across vendor-sync.test.ts (19), iliad-md's own
+        # cli.test.ts, and repo-parser's own domain-extractor.test.ts (proving the ported logic
+        # wasn't misread from its origin).
+        completion_status: complete  # tool built, dogfooded, verified, AND both findings it surfaced
         # are real, open, tracked follow-ups (not required for THIS candidate's own claim, same
         # discipline as every other guard-vs-fix split this session).
 
