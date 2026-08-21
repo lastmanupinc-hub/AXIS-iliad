@@ -1313,7 +1313,64 @@ project_begin:
         roi_reason: "capability_gain 3; existing rail."
         severity: LOW
         source_file: "packages/generator-core/src/generators-marketing.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-21.
+        # SCOPE, DELIBERATE, PER THE CANDIDATE'S OWN WORDING: "test-send round-trip BEFORE any real
+        # audience" already tells you what v1 is. This repo has zero consent/unsubscribe/audience-list
+        # infrastructure — building a real-audience send path without it would be a compliance defect,
+        # not a feature, so it is explicitly NOT attempted here. What ships: proving the whole pipeline
+        # (generate -> Resend -> real delivery -> funnel tracking) genuinely works, by actually sending
+        # one real email to the ACCOUNT'S OWN address (a safe, consenting recipient by construction) —
+        # never a report, never a dry-run stub, never a fake "would have sent" status.
+        #
+        # generateSequencePack's output is a content BRIEF (bullet outlines of what each email should
+        # say, e.g. "- CTA: Try the quickstart"), not send-ready prose — confirmed by reading it, not
+        # assumed. buildMarketingSequences() (generators-marketing.ts) is a SEPARATE, additive
+        # extraction of the same content as real data (subject/delay_days/body_bullets), deliberately
+        # NOT sharing code with generateSequencePack — same reasoning as app_23's artifacts-bundler.ts
+        # not touching generateDashboardWidget: a core deterministic generator with its own tests
+        # shouldn't have its blast radius widened for an Apply-time concern. Because the two don't
+        # share code they could in principle drift; closed by generators-marketing-sequences.test.ts's
+        # cross-check, which parses the REAL generateSequencePack markdown and asserts every subject/
+        # day-offset/bullet in the structured data actually appears in it — RED-PROVEN (introduced a
+        # deliberate subject-line drift, confirmed the guard test failed, restored, confirmed all 35
+        # pre-existing + new marketing-generator tests green with ZERO changes to generateSequencePack
+        # itself, so its existing test suite is proof of no regression, not just an assumption).
+        #
+        # apps/api/src/marketing-send.ts: sendSequenceStep wraps email.ts's sendTransactionalEmail (the
+        # SAME low-level function the iliad_transactional_email MCP tool already uses — no new
+        # integration) — every test send is subject-prefixed "[TEST] " and body-prefixed with an
+        # explicit "this is a CONTENT BRIEF, not finished copy" notice, so a test-send can never read
+        # as a real campaign in the inbox. apps/api/src/marketing-apply-watcher.ts: processMarketingApply,
+        # the 13th watch-dispatcher branch, mirrors artifacts-apply-watcher.ts's shape (deps-injected,
+        # discriminated status, a real reason on every non-happy path). Sends the Welcome sequence's
+        # first step only (one email per push, not every step of every sequence — proving the pipeline
+        # works doesn't require spamming the inbox). RED-PROVEN core guard: neutered the
+        # send-failure-to-status mapping, confirmed exactly the intended test failed while the rest of
+        # the suite stayed green, restored, confirmed 15/15 green again.
+        #
+        # Funnel tracking: added marketing_sequence_test_sent / marketing_sequence_test_send_failed to
+        # FunnelEventType (funnel-types.ts) — mapped to the existing "engagement" stage (no new stage
+        # needed, so getFunnelMetrics's by_stage accumulator needed no changes, verified by reading it
+        # not assumed). Written via the existing trackEvent() as a best-effort call AFTER the real send
+        # result is already known — a tracking failure can never mask or downgrade the real outcome
+        # (proven by a dedicated test: track() throws, the returned status is still correct).
+        #
+        # NOT DONE, three explicit gaps, not silently narrowed: (1) pg-boss delayed scheduling
+        # (startAfter) — investigated first: the installed pg-boss version supports it natively but
+        # NOTHING in this codebase uses it yet (the only existing pg-boss usage, watch-queue.ts, is
+        # immediate-send-on-event only) — wiring real Day-0/2/5/14/21 cadence delivery is real, new
+        # scheduling infrastructure, deliberately deferred rather than half-built alongside a v1 that's
+        # explicitly test-send-only; (2) LLM-expanded body copy — the send uses the deterministic bullet
+        # outline as-is (clearly labeled a draft), not real drafted prose; matches this program's own
+        # "always available, no LLM required" philosophy for v1, an LLM-optional enhancement layer
+        # (matching frontend/notebook's isLlmConfigured() pattern) is a natural follow-up, not required
+        # by this candidate's own claim; (3) real-audience sending — see the SCOPE note above, blocked
+        # on consent/unsubscribe infrastructure that does not exist in this repo, not attempted.
+        #
+        # 22 new tests across 4 files (structured-sequence cross-check + non-drift proof; send-pipeline
+        # unit tests incl. the [TEST]-prefix guard; apply-watcher incl. the core send-failure guard and
+        # the bookkeeping-never-masks-outcome guard; dispatcher fall-through wiring). tsc clean across
+        # all three touched packages (generator-core, snapshots, apps/api), eslint clean.
 
       - id: "app_43_remotion_rendered_video"
         description: "remotion → rendered video: deliver the mp4 changelog/demo per release via @remotion/renderer in the worker; user needs zero Remotion knowledge. GATED: Remotion company license is an OWNER PURCHASE (the one paid dependency — flagged per standing policy, not silently assumed). docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #19."

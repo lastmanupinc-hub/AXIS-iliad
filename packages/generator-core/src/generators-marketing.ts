@@ -889,3 +889,137 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
     description: "A/B test plans with hypotheses, variants, metrics, and guardrails",
   };
 }
+
+// ─── app_42: structured sequence data for the real send pipeline ──────────
+//
+// generateSequencePack above renders a human-readable content BRIEF (bullet
+// outlines of what each email should say, not drafted prose) — deliberately
+// left untouched here, same reasoning as app_23's artifacts-bundler.ts not
+// touching generateDashboardWidget: it is a core, deterministic generator
+// with its own tests and consumers, and widening its blast radius for an
+// Apply-time concern (sending) is the wrong layer.
+//
+// This is a SEPARATE, additive extraction of the same content as real data
+// (subject/delay/body), for apps/api's marketing send pipeline to consume
+// without re-deriving it from parsed markdown. Because it does not share
+// code with generateSequencePack, the two could in principle drift — closed
+// by generators-marketing-sequences.test.ts's cross-check, which parses the
+// REAL generateSequencePack markdown and asserts every subject line and day
+// offset here actually appears in it. That test fails loudly on drift; nothing
+// here asserts non-drift by construction.
+
+export interface MarketingSequenceStep {
+  /** e.g. "Email 1: Welcome" — matches the ### heading in sequence-pack.md, minus the day suffix. */
+  label: string;
+  delay_days: number;
+  /** Extra heading context beyond "(Day N)", e.g. "After First PR". Rare — most steps have none. */
+  heading_suffix?: string;
+  subject: string;
+  /** Raw bullet lines — a content brief for a human to draft real copy from, not send-ready prose. */
+  body_bullets: string[];
+}
+
+export interface MarketingSequenceDefinition {
+  sequence_name: string;
+  steps: MarketingSequenceStep[];
+}
+
+/** Same data generateSequencePack renders as markdown, structured for the send pipeline. */
+export function buildMarketingSequences(ctx: ContextMap): MarketingSequenceDefinition[] {
+  const id = ctx.project_identity;
+  const topModels = ctx.domain_models.slice(0, 3);
+  const topAbstraction = ctx.ai_context.key_abstractions[0];
+  const conventions = ctx.ai_context.conventions.slice(0, 3);
+
+  const email2Bullets: string[] = [];
+  if (topModels.length > 0) {
+    email2Bullets.push(
+      `Detected domain entities to consider featuring: ${topModels.map((m) => `**${mdText(m.name)}**`).join(", ")}`,
+    );
+    email2Bullets.push("Pick the most user-facing one and show how to create/interact with it end-to-end");
+  } else if (topAbstraction) {
+    email2Bullets.push(`Highlight a detected key abstraction: **${mdText(topAbstraction)}**`);
+  } else {
+    email2Bullets.push("Highlight the primary use case and core value proposition");
+  }
+  email2Bullets.push("Step-by-step walkthrough with code/screenshots");
+  email2Bullets.push("CTA: Try this feature");
+
+  const email3Bullets: string[] = ["Advanced tip or lesser-known feature"];
+  for (const c of conventions) email3Bullets.push(`Pro convention: ${mdText(c)}`);
+  email3Bullets.push("Link to documentation or example repo");
+  email3Bullets.push("CTA: Explore advanced docs");
+
+  return [
+    {
+      sequence_name: "Welcome Sequence (Post-Install)",
+      steps: [
+        {
+          label: "Email 1: Welcome",
+          delay_days: 0,
+          subject: `Welcome to ${mdText(id.name)} — here's your quickstart`,
+          body_bullets: [
+            `Brief welcome and what ${mdText(id.name)} does`,
+            "Link to quickstart guide",
+            "One concrete example they can try in 2 minutes",
+            "CTA: Try the quickstart",
+          ],
+        },
+        {
+          label: "Email 2: Core Feature",
+          delay_days: 2,
+          subject: `Getting started with ${mdText(id.name)}'s core concepts`,
+          body_bullets: email2Bullets,
+        },
+        {
+          label: "Email 3: Power User Tip",
+          delay_days: 5,
+          subject: `Level up your ${mdText(id.name)} usage`,
+          body_bullets: email3Bullets,
+        },
+      ],
+    },
+    {
+      sequence_name: "Re-engagement Sequence (Inactive 14+ days)",
+      steps: [
+        {
+          label: "Email 1: What's New",
+          delay_days: 14,
+          subject: `${mdText(id.name)} updates you may have missed`,
+          body_bullets: [
+            "Summary of recent updates / changelog highlights",
+            "One compelling new feature or improvement",
+            "CTA: Check out what's new",
+          ],
+        },
+        {
+          label: "Email 2: Community Highlight",
+          delay_days: 21,
+          subject: `See what others are building with ${mdText(id.name)}`,
+          body_bullets: [
+            "Community showcase or case study",
+            "User testimonial or success story",
+            "CTA: Join the community",
+          ],
+        },
+      ],
+    },
+    {
+      sequence_name: "Contributor Outreach Sequence",
+      steps: [
+        {
+          label: "Email 1: Thank You",
+          delay_days: 0,
+          heading_suffix: "After First PR",
+          subject: `Thanks for contributing to ${mdText(id.name)}!`,
+          body_bullets: [
+            "Genuine thank you for their contribution",
+            "Explain the impact of their change",
+            "Link to contributor guide for next steps",
+            "CTA: Pick up another issue",
+          ],
+        },
+      ],
+    },
+  ];
+}

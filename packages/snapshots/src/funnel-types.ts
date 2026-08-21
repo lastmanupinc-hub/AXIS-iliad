@@ -65,7 +65,13 @@ export type FunnelEventType =
   | "early_fraud_warning"
   // Account lifecycle (WO-A5): PATCH/DELETE /v1/account audit trail.
   | "account_profile_updated"
-  | "account_deleted";
+  | "account_deleted"
+  // app_42: marketing program connected to a real channel (Resend). Test-send
+  // only — there is no real-audience send path yet (no consent/unsubscribe
+  // infra exists), so this tracks the account proving their sequences are
+  // deliverable, not an actual campaign to their own users.
+  | "marketing_sequence_test_sent"
+  | "marketing_sequence_test_send_failed";
 
 export interface FunnelEvent {
   event_id: string;

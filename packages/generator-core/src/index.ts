@@ -92,6 +92,13 @@ export { generateBrandGuidelines, generateVoiceAndTone, generateContentConstrain
 export { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist, generateAutomationPipeline } from "./generators-superpowers.js";
 export { generateVerifyGate, generateVerifyFull, generatePrePushHook } from "./generators-verify-gate.js";
 export { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook, generateAbTestPlan } from "./generators-marketing.js";
+// app_42 — structured sequence data for the real send pipeline (apps/api's
+// marketing-apply-watcher.ts), additive alongside the markdown generator above.
+export {
+  buildMarketingSequences,
+  type MarketingSequenceStep,
+  type MarketingSequenceDefinition,
+} from "./generators-marketing.js";
 export { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 export { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 // app_35 — the actual vault, generated from the repo's real import graph.
