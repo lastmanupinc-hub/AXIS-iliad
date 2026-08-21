@@ -299,6 +299,16 @@ export {
   listPurchasesByAccount,
 } from "./credit-pack-store.js";
 
+// money_01 — subscription checkouts, tracked so their settlement is joinable
+// and a webhook can write a real payment_receipts row for real subscription money.
+export type { SubscriptionPurchase, SubscriptionPurchaseStatus } from "./subscription-purchase-store.js";
+export {
+  recordPendingSubscription,
+  markSubscriptionSucceeded,
+  getSubscriptionPurchaseBySession,
+  listSubscriptionPurchasesByAccount,
+} from "./subscription-purchase-store.js";
+
 // 24h shared scrape cache (Firecrawl dedup across the network)
 export type { CachedScrape, ScrapeCacheStats } from "./scrape-cache-store.js";
 export {

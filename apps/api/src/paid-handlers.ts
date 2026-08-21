@@ -36,6 +36,9 @@ import {
   trackEvent,
   markPurchaseSucceeded,
   PLAN_CATALOG,
+  recordPendingSubscription,
+  markSubscriptionSucceeded,
+  recordSettledPayment,
 } from "@axis/snapshots";
 
 // All tiers (Starter/Pro/Growth) route through PAI'D. The plan id comes from the
@@ -48,6 +51,17 @@ function resolvePaidPlanId(raw: unknown): CheckoutPlanId {
   if (raw === "suite") return "growth";
   if (raw === "paid") return "starter";
   return DEFAULT_PAID_PLAN_ID;
+}
+
+/**
+ * The AXIS tier a checkout plan id grants. Mirrors tierForPaidEvent's own
+ * checkout.session.completed branch (planId === "growth" -> "suite", else
+ * "paid") — same classification, read at checkout-creation time instead of
+ * from the webhook's metadata, so the pending subscription_purchases row
+ * records the SAME tier the webhook will grant, not a re-derived guess.
+ */
+function planIdToTier(planId: CheckoutPlanId): "paid" | "suite" {
+  return planId === "growth" ? "suite" : "paid";
 }
 
 /** Resolve the authoritative price (minor units) for a plan + cycle. */
@@ -172,6 +186,26 @@ export async function handlePaidSubscribe(
       },
       config,
     );
+
+    // money_01: record PENDING keyed by session id so the webhook can write a
+    // settled-revenue receipt for this checkout exactly once. MUST await
+    // before responding — same reasoning as credit-pack-handlers.ts's
+    // identical await: if we respond (and the buyer pays) before this INSERT
+    // lands, a fast webhook finds no row and the payment settles with no
+    // receipt, permanently, across retries. Tier access itself does not
+    // depend on this row (updateAccountTierIfCurrent grants it independently
+    // in the webhook), so a failure here is a revenue-reporting gap, not a
+    // customer-facing one — still awaited rather than fired-and-forgotten,
+    // because "permanently invisible" is exactly the bug money_01 exists to
+    // close, not one to reintroduce for future subscriptions.
+    await recordPendingSubscription({
+      account_id: account.account_id,
+      target_tier: planIdToTier(planId),
+      plan_id: planId,
+      amount_cents: amountCents,
+      paid_session_id: session.id,
+    });
+
     // H-Phase-A cycle 11: a real, payable checkout_url already exists
     // server-side by this point — a transient failure in this best-effort
     // analytics write must never surface as a customer-facing "checkout
@@ -616,6 +650,54 @@ export async function handlePaidWebhook(
     await updateAccountPaidPlanId(account.account_id, null);
   } else if (marketedPlanId) {
     await updateAccountPaidPlanId(account.account_id, marketedPlanId);
+  }
+
+  // money_01: write the settled-revenue receipt. Deliberately independent of
+  // `changed` for the SAME reason marketedPlanId is above it — a Starter->Pro
+  // upgrade is a real new purchase (different plan, different checkout
+  // session, different price) even though it never trips previousTier !==
+  // targetTier. markSubscriptionSucceeded's own idempotency (keyed on
+  // paid_session_id, flips pending->succeeded exactly once) is what actually
+  // prevents a duplicate receipt on a webhook retry — gating on `changed`
+  // here would be redundant at best and WRONG at worst (it would silently
+  // drop the Starter->Pro case). No receipt for targetTier === "free": a
+  // cancellation is not a new payment.
+  if (targetTier !== "free") {
+    const sessionId =
+      (typeof obj.id === "string" && obj.id) ||
+      (typeof obj.session_id === "string" ? obj.session_id : "");
+    const paymentIntentId = typeof obj.payment_intent === "string" ? obj.payment_intent : undefined;
+    if (sessionId) {
+      try {
+        const settled = await markSubscriptionSucceeded(sessionId, paymentIntentId);
+        if (settled) {
+          await recordSettledPayment({
+            account_id: settled.account_id,
+            tool: "subscription",
+            amount_cents: settled.amount_cents,
+            currency: "USD",
+            provider: "paid_fc",
+            external_receipt: paymentIntentId,
+          });
+        }
+        // settled === null means either an unknown session (an event whose
+        // object shape doesn't carry the checkout session id this handler
+        // persisted at handlePaidSubscribe time — expected for some
+        // subscription.* lifecycle event shapes, not an error) or an
+        // already-settled one (a legitimate webhook retry). Neither is worth
+        // logging as a failure.
+      } catch (err) {
+        // Bookkeeping is best-effort, matching cashier.ts's
+        // recordSettlementBookkeepingBestEffort: tier access already granted
+        // above and must never be rolled back or fail the webhook because a
+        // reporting write had a transient error.
+        log("error", "money_01_settlement_bookkeeping_failed", {
+          event: eventType,
+          account_id: account.account_id,
+          error: (err as Error).message,
+        });
+      }
+    }
   }
 
   sendJSON(res, 200, {

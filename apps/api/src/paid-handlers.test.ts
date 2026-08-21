@@ -1,7 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { resetTestDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance, getAccountPaidPlanId, updateAccountPaidPlanId } from "@axis/snapshots";
+import {
+  resetTestDb,
+  getAccountByEmail,
+  recordPendingPurchase,
+  getPersistenceBalance,
+  getAccountPaidPlanId,
+  updateAccountPaidPlanId,
+  recordPendingSubscription,
+  getSubscriptionPurchaseBySession,
+  getSettledRevenue,
+} from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -755,6 +765,155 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.data.tier_change).toBeUndefined();
     expect((await getAccountByEmail("topup-tier@test.com"))?.tier).toBe("free");
+  });
+});
+
+// ─── money_01: subscription checkouts write a real settled-revenue receipt ──
+//
+// Before this, settled_revenue_cents_all_time (growth-store.ts) summed
+// payment_receipts exclusively, and NOTHING wrote a payment_receipts row for
+// a subscription checkout — the tier grant happened, real money changed
+// hands, and the platform's own revenue report read a false $0 for it. These
+// tests prove the full real chain: /portal/api/subscribe persists a pending
+// row keyed by the PAI'D checkout session id, then the webhook confirming
+// that session settles it exactly once and writes the receipt.
+describe("POST /portal/api/paid/webhook — subscription settlement receipts (money_01)", () => {
+  it("the full real chain: subscribe -> webhook -> a real settled-revenue receipt lands", async () => {
+    const acct = await createAccount("money01-full@test.com");
+
+    // 1. Real /portal/api/subscribe call (mocked PAI'D fetch), exactly like
+    // the "creates a hosted checkout session on happy path" test above.
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: "cs_money01_1", url: "https://pay/cs_money01_1", status: "open" }), { status: 200 }),
+    );
+    const sub = await req("POST", "/portal/api/subscribe", { plan: "monthly", email: "money01-full@test.com" });
+    expect(sub.status).toBe(200);
+    expect(sub.data.session_id).toBe("cs_money01_1");
+
+    // The pending row this whole mechanism depends on really landed, keyed
+    // by the SAME session id PAI'D will echo back in its webhook.
+    const pending = await getSubscriptionPurchaseBySession("cs_money01_1");
+    expect(pending?.status).toBe("pending");
+    expect(pending?.amount_cents).toBe(2900); // Starter monthly
+    expect(pending?.account_id).toBe(acct.account_id);
+
+    const before = await getSettledRevenue();
+
+    // 2. PAI'D confirms the checkout with the SAME session id.
+    const body = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { id: "cs_money01_1", payment_intent: "pi_money01_1", customer_email: "money01-full@test.com", metadata: { tier: "paid", plan_id: "starter" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.tier_change).toBe(true); // the pre-existing behavior — unchanged
+    expect((await getAccountByEmail("money01-full@test.com"))?.tier).toBe("paid");
+
+    // 3. The receipt is real: settled_revenue_cents_all_time actually moved.
+    const after = await getSettledRevenue();
+    expect(after.all_time_cents - before.all_time_cents).toBe(2900);
+    expect(after.by_tool.find((t) => t.tool === "subscription")?.cents).toBeGreaterThanOrEqual(2900);
+
+    const settled = await getSubscriptionPurchaseBySession("cs_money01_1");
+    expect(settled?.status).toBe("succeeded");
+    expect(settled?.paid_payment_intent_id).toBe("pi_money01_1");
+  });
+
+  it("THE CORE GUARD: a webhook retry for the same session never writes a duplicate receipt", async () => {
+    const acct = await createAccount("money01-retry@test.com");
+    await recordPendingSubscription({
+      account_id: acct.account_id as string,
+      target_tier: "paid",
+      plan_id: "starter",
+      amount_cents: 2900,
+      paid_session_id: "cs_money01_retry",
+    });
+    const body = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { id: "cs_money01_retry", customer_email: "money01-retry@test.com", metadata: { tier: "paid" } },
+    });
+    await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    const afterFirst = await getSettledRevenue();
+
+    // Same event, redelivered — PAI'D's at-least-once webhook guarantee.
+    const again = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(again.status).toBe(200);
+    const afterSecond = await getSettledRevenue();
+    expect(afterSecond.all_time_cents).toBe(afterFirst.all_time_cents); // not doubled
+    expect(afterSecond.all_time_count).toBe(afterFirst.all_time_count);
+  });
+
+  it("a same-tier plan upgrade (Starter -> Pro, tier_change:false) still gets its OWN receipt — it's a real, distinct purchase", async () => {
+    const acct = await createAccount("money01-samecoarsetier@test.com");
+    // Starter first.
+    await recordPendingSubscription({
+      account_id: acct.account_id as string, target_tier: "paid", plan_id: "starter",
+      amount_cents: 2900, paid_session_id: "cs_money01_starter",
+    });
+    const starterBody = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { id: "cs_money01_starter", customer_email: "money01-samecoarsetier@test.com", metadata: { tier: "paid", plan_id: "starter" } },
+    });
+    await req("POST", "/portal/api/paid/webhook", starterBody, { "paid-signature": signPaid(starterBody) });
+    const afterStarter = await getSettledRevenue();
+
+    // Upgrade to Pro — a DIFFERENT checkout session, same coarse "paid" tier
+    // (tier_change will read false), but real new money.
+    await recordPendingSubscription({
+      account_id: acct.account_id as string, target_tier: "paid", plan_id: "pro",
+      amount_cents: 9900, paid_session_id: "cs_money01_pro",
+    });
+    const proBody = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { id: "cs_money01_pro", customer_email: "money01-samecoarsetier@test.com", metadata: { tier: "paid", plan_id: "pro" } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", proBody, { "paid-signature": signPaid(proBody) });
+    expect(r.status).toBe(200);
+    expect(r.data.tier_change).toBe(false); // paid -> paid, no tier move
+
+    const afterPro = await getSettledRevenue();
+    expect(afterPro.all_time_cents - afterStarter.all_time_cents).toBe(9900); // the Pro receipt landed anyway
+  });
+
+  it("does NOT write a receipt for a cancellation — no new money changed hands", async () => {
+    const acct = await createAccount("money01-cancel@test.com");
+    await recordPendingSubscription({
+      account_id: acct.account_id as string, target_tier: "paid", plan_id: "starter",
+      amount_cents: 2900, paid_session_id: "cs_money01_cancel_up",
+    });
+    const upBody = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { id: "cs_money01_cancel_up", customer_email: "money01-cancel@test.com", metadata: { tier: "paid" } },
+    });
+    await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
+    const afterUpgrade = await getSettledRevenue();
+
+    const cancelBody = JSON.stringify({
+      type: "subscription.canceled",
+      data: { customer_email: "money01-cancel@test.com", id: "sub_money01_cancel" },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
+    expect(r.status).toBe(200);
+    expect(r.data.tier_change).toBe(true); // paid -> free really happened
+    expect((await getAccountByEmail("money01-cancel@test.com"))?.tier).toBe("free");
+
+    const afterCancel = await getSettledRevenue();
+    expect(afterCancel.all_time_cents).toBe(afterUpgrade.all_time_cents); // no new receipt
+  });
+
+  it("an event whose object carries no matching pending session settles no receipt but still grants tier — the existing, pre-money_01 behavior is unchanged", async () => {
+    await createAccount("money01-unknown-session@test.com");
+    const body = JSON.stringify({
+      type: "subscription.created",
+      data: { customer_email: "money01-unknown-session@test.com", id: "sub_no_pending_row" },
+    });
+    const before = await getSettledRevenue();
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.tier_change).toBe(true);
+    expect((await getAccountByEmail("money01-unknown-session@test.com"))?.tier).toBe("paid");
+    const after = await getSettledRevenue();
+    expect(after.all_time_cents).toBe(before.all_time_cents); // honest: nothing to attribute a receipt to
   });
 });
 

@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, sql } from "@axis/snapshots";
+import { resetTestDb, sql, recordPendingSubscription } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount, handleGetAccount, handlePatchAccount, handleDeleteAccount } from "./billing.js";
@@ -221,5 +221,29 @@ describe("DELETE /v1/account (WO-A5) — retention policy", () => {
     expect(row!.name).not.toBe(name);
     expect(row!.email).not.toBe(email);
     expect(row!.email).toContain("deleted");
+  });
+
+  // money_01: subscription_purchases is a financial/audit table (same class
+  // as credit_pack_purchases/payment_receipts) and was never added to
+  // deleteAccount's DELETE FROM allowlist — this proves that by construction,
+  // not just by reading the doc comment.
+  it("RETAINS subscription_purchases rows on account deletion", async () => {
+    const { account_id, key } = await createTestAccount();
+    await recordPendingSubscription({
+      account_id,
+      target_tier: "paid",
+      plan_id: "starter",
+      amount_cents: 2900,
+      paid_session_id: "cs_retention_test",
+    });
+
+    const del = await req("DELETE", "/v1/account", undefined, key);
+    expect(del.status).toBe(200);
+
+    const rows = await sql.many<{ purchase_id: string }>(
+      "SELECT purchase_id FROM subscription_purchases WHERE account_id = ?",
+      [account_id],
+    );
+    expect(rows.length).toBe(1);
   });
 });

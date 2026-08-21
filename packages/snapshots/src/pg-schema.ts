@@ -815,6 +815,32 @@ CREATE INDEX IF NOT EXISTS idx_repo_subscriptions_account ON repo_subscriptions(
     name: "repo_subscriptions_latest_snapshot",
     sql: `ALTER TABLE repo_subscriptions ADD COLUMN IF NOT EXISTS latest_snapshot_id TEXT;`,
   },
+  {
+    // money_01: subscription checkouts never persisted a joinable reference to
+    // their PAI'D checkout session, so the webhook that grants tier access
+    // could never write a settled-revenue receipt for it — subscription money
+    // was real but invisible in settled_revenue_cents_all_time. Mirrors
+    // credit_pack_purchases's exact shape (pending -> succeeded, keyed by
+    // paid_session_id, idempotent on webhook retry) rather than inventing a
+    // new pattern for the same problem.
+    version: 44,
+    name: "subscription_purchases",
+    sql: `CREATE TABLE IF NOT EXISTS subscription_purchases (
+  purchase_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  target_tier TEXT NOT NULL,
+  plan_id TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  paid_session_id TEXT,
+  paid_payment_intent_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  succeeded_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_subscription_purchases_account ON subscription_purchases(account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_purchases_session ON subscription_purchases(paid_session_id) WHERE paid_session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_subscription_purchases_status ON subscription_purchases(status);`,
+  },
 ];
 
 /**

@@ -167,6 +167,37 @@ describe("getGrowthSnapshot", () => {
     expect(s.revenue.paying_account_count).toBe(1);
   });
 
+  // money_01: subscription checkouts write a real payment_receipts row
+  // (tool: "subscription", tagged separately from any metered tool name) —
+  // this is the ledger's own confirmation that the admin-facing metric this
+  // whole candidate was about has genuinely stopped reading a false $0 for
+  // real subscription money. Direct at this layer (not just via the HTTP
+  // webhook test in paid-handlers.test.ts) so a regression here is caught
+  // even if the webhook wiring changes shape later.
+  it("money_01: a subscription receipt is settled revenue, distinguishable from metered tool revenue", async () => {
+    const acct = await createAccount("Subscriber", "subscriber@x.com", "paid");
+    await recordSettledPayment({
+      account_id: acct.account_id,
+      tool: "analyze_repo", // a metered call from the SAME account, same month
+      amount_cents: 50,
+      currency: "usd",
+      provider: "stripe",
+    });
+    await recordSettledPayment({
+      account_id: acct.account_id,
+      tool: "subscription",
+      amount_cents: 2900,
+      currency: "USD",
+      provider: "paid_fc",
+      external_receipt: "pi_sub_growth_test",
+    });
+
+    const s = await getGrowthSnapshot();
+    expect(s.revenue.settled_revenue_cents_all_time).toBe(2950); // both rows counted
+    expect(s.revenue.revenue_by_tool).toContainEqual({ tool: "subscription", cents: 2900, calls: 1 });
+    expect(s.revenue.revenue_by_tool).toContainEqual({ tool: "analyze_repo", cents: 50, calls: 1 });
+  });
+
   it("excludes settled figures from the trailing-30d window once they age out, but keeps the all-time total", async () => {
     const acct = await createAccount("Old", "old@x.com", "free");
     await recordSettledPayment({

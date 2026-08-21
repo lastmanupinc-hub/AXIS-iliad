@@ -128,8 +128,8 @@ export async function updateAccountProfile(
  * lemon_squeezy_subscriptions, stripe_subscriptions, referral_codes/
  * referral_conversions/referral_credits, account_api_calls,
  * usage_credit_monthly/usage_credit_ledger, credit_pack_purchases,
- * payment_receipts, disputes, compensation_ledger, mcp_usage,
- * idempotency_keys, funnel_events (the pre-existing history, plus this
+ * subscription_purchases, payment_receipts, disputes, compensation_ledger,
+ * mcp_usage, idempotency_keys, funnel_events (the pre-existing history, plus this
  * deletion's own audit entry, written by the caller after this resolves).
  *
  * The `accounts` row itself is NEVER deleted (all of the above RETAINED
