@@ -31,7 +31,7 @@ incorporates all confirmed findings — including one that materially changed
 
 | Property | Agent surface today |
 |---|---|
-| **paid.trustfabric.ai** | **None.** SPA catch-all serves index.html for every path — `/.well-known/mcp.json`, `/llms.txt`, `/agent.json` are all fake 200s returning HTML (worse than 404s: crawlers cache HTML as JSON). Only real file: an allow-all `robots.txt` (no Content-Signal). `api.trustfabric.ai` has no OpenAPI paths and `/health` 404s (known from money_01: "discoverable only by probing"). |
+| **paid.trustfabric.ai** | **Frontend: none.** SPA catch-all serves index.html for every path — `/.well-known/mcp.json`, `/llms.txt`, `/agent.json` are all fake 200s returning HTML (worse than 404s: crawlers cache HTML as JSON; PAI'D confirmed and accepted the fix same day — queued their side). Only real file: an allow-all `robots.txt`. **MCP: EXISTS** — `api.paid.jonathanarvay.com/v1/mcp` verified live by PAI'D 2026-08-22 (JSON-RPC, protocol 2025-06-18, Bearer agent-keys, six tools at HEAD; see the answered ticket in `begin.yaml` outbox for auth details and the three-blessed-tools constraint). |
 | **avatar.jonathanarvay.com** (Foundry) | Unverifiable from this machine (§1.4), but the repo documents a live 14-tool MCP server (`engine/axis_foundry/mcp_server.py:1228-1428`), per-tool x402 USDC pricing (`engine/axis_foundry/portal/x402_gateway.py:212-225`), `server.json` (registry name `com.jonathanarvay/axis-avatar-foundry`, remote `https://api.avatar.jonathanarvay.com/mcp`, **no auth block**), `/.well-known/mcp.json`, and a registry-publication runbook. Best-equipped sibling. |
 | **jonathanarvay.com** (Launch) | Unverifiable from here (§1.4). Per the tickets it filed into our inbox (2026-08-10), it shipped the estate's Cloudflare Agent-Readiness *reference implementation* — likely the most compliant property. |
 | **TrustFabric** | The owner directive names `tf.trustfabric.ai`, which is **NXDOMAIN** (checked 2026-08-22). But `ecosystem.registry.yaml:61-67`'s `trust_fabric` entry lists `tf.jonathanarvay.com` (which **resolves** to Cloudflare IPs — unverifiable further from here per §1.4) and, oddly, `paid.trustfabric.ai` (which also appears under the `paid` entry — a pre-existing registry data quirk the typed module will surface). The blocker is therefore **naming reconciliation + owner definition**, not simply "no DNS" — see §5.1. |
@@ -208,15 +208,24 @@ list ↔ registry rows).
   `estate_foundry_status` (free, mirroring Foundry's own free poll).
   Settlement mechanics in §3.
 
-**2c. PAI'D — agent-as-buyer only, and only what PAI'D blesses.** The MTL
+**2c. PAI'D — agent-as-buyer only, per PAI'D's own recorded decision
+(ANSWERED 2026-08-22, same day — full reply on the outbox ticket).** The MTL
 boundary, precisely: **not gated** — Iliad paying Foundry through PAI'D rails
 (first-party money movement between owner-controlled accounts; the estate
 already does it, and Foundry's gateway already documents settling through
-PAI'D's CDP account, `x402_gateway.py:80-86`). **Gated on counsel** — exposing
-PAI'D *merchant-side* functions (onboarding, payouts, third-party funds) as
-agent-callable tools. The ticket asks PAI'D which functions *they* consider
-exposable; likely-blessable buyer-side set: checkout-session initiation,
-payment status, wallet top-up.
+PAI'D's CDP account, `x402_gateway.py:80-86`). **Gated on counsel** — PAI'D
+*merchant-side* functions, excluded as assumed. Their blessed set:
+- **Listed now (read-only):** `get_quote`, `list_providers`,
+  `get_payment_intent` — the ONLY PAI'D tools estate-facing metadata may
+  carry today.
+- **Conditional:** `execute_payment` — exists and is per-key policy-gated,
+  but their CAND-COH-009 records it currently skips the sanctions/
+  payer-screening chokepoint; the blessing auto-activates when they signal
+  COH-009+COH-013 closed. Recorded as a dated trigger; never listed early.
+- **Struck by founder rule:** wallet top-up (stored value = custody/
+  licensing) and any new checkout-initiation tool. Do not re-propose.
+Their MCP endpoint is real: `api.paid.jonathanarvay.com/v1/mcp` (Bearer
+agent-keys; sandbox keys deny execute_payment, $1 cap, 24h).
 
 **2d. Launch + TrustFabric.** Launch: Layer-1 entry + reciprocal links; no
 callable functions identified (none invented); **executable today** via the
@@ -393,7 +402,7 @@ as untrusted — rather than splicing sibling text bare into `toolOk`.
 | 2 | Margin policy on Foundry proxies (proposal: cost+10%, whole cents) | est_04 pricing |
 | 3 | Count-copy semantics: "N Iliad + M estate" vs. derived non-estate count (full guard consequences in §4.4) | est_02 |
 | 4 | safebrowse.io categorization check for jonathanarvay.com | Crawlability of half the estate |
-| 5 | PAI'D exposable-surface decision (their call; merchant-side = counsel) | est_06 |
+| 5 | ~~PAI'D exposable-surface decision~~ **ANSWERED 2026-08-22** (§2c: three read tools now; execute_payment on their COH-009 trigger; top-up/checkout struck) | ~~est_06~~ resolved |
 | 6 | Which wallet Iliad uses to pay Foundry (custody design proceeds regardless, §3.5) | est_04 execution |
 | 7 | Add `axis_launch` to `known_repos` (formalizing the channel it already uses informally)? | est_07 |
 | 8 | **`ALERT_WEBHOOK_URL`** — deferred for Iliad alone as accepted risk; federation multiplies the blast radius to *paid cross-app calls failing silently*. Re-raised as a federation prerequisite. | est_04+ |
@@ -466,11 +475,12 @@ own outbox per `notify_protocol`, so the providers have a write-back target):
   presigned URLs** (§2b); rate-limit expectations for a single hot Iliad
   credential (noisy-neighbor + 429 mapping); registry publication per their
   runbook; estate cross-link once `axis-estate.json` is live.
-- `TICKET-AXIS_TOOLBOX-agent-surface-20260822` → PAI'D: which functions they
-  consider agent-exposable (merchant-side acknowledged counsel-gated — their
-  call); does `api.paid.jonathanarvay.com/v1/mcp` exist; L3 kit for
-  paid.trustfabric.ai (the SPA currently fakes 200s on every `.well-known`
-  path).
+- `TICKET-AXIS_TOOLBOX-agent-surface-20260822` → PAI'D: **ANSWERED same day,
+  status confirmed** — see §2c for the blessed/conditional/struck sets, the
+  outbox ticket for the full reply, and est_01 for the registry-wide
+  authoring-time liveness check their reply's flag added to our scope (our
+  mcp_url claim being true was luck, not verification). Their discovery kit
+  is queued on their side.
 
 ---
 

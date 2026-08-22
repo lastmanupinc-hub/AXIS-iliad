@@ -509,7 +509,40 @@ project_begin:
           from_repo: axis_toolbox
           from_agent_session: "sonnet5-estate-federation-2026-08-22"
           submitted: "2026-08-22"
-          status: submitted
+          status: confirmed
+          confirmed: "2026-08-22"
+          provider_reply: >
+            SAME-DAY ANSWER (full block in payment processing/begin.yaml under
+            the ticket; summary relayed by their session 2026-08-22). All three
+            acceptance criteria met. (1) EXPOSABLE SURFACE, PAI'D's recorded
+            decision (founder-overridable): BLESSED now, buyer-side read-only —
+            get_quote, list_providers, get_payment_intent. CONDITIONAL, NOT
+            yet: execute_payment — exists, per-key policy-gated, but their
+            CAND-COH-009 records it currently SKIPS the sanctions/
+            payer-screening chokepoint; do NOT list it estate-wide until
+            COH-009+COH-013 close (blessing auto-activates then — record that
+            trigger, do not poll). STRUCK: wallet top-up (stored value =
+            custody/licensing, flag-off per founder rule) and any new
+            checkout-initiation tool. Merchant-side excluded per MTL, as
+            assumed. HARD CONSTRAINT for est_01/est_06 implementers:
+            estate-facing metadata lists ONLY the three blessed read tools
+            until PAI'D signals COH-009 closed.
+            (2) api.paid.jonathanarvay.com/v1/mcp: YES — verified live by
+            PAI'D same day. CNAME to axis-pai-paid-api-main.onrender.com;
+            POST /v1/mcp returns spec-correct JSON-RPC AGENT_UNAUTHENTICATED;
+            GET /v1/agent_discovery serves the discovery doc (protocol
+            2025-06-18, streamable HTTP + legacy SSE). Auth: Bearer agent keys
+            (agk_live_ via operator dashboard; sandbox keys deny
+            execute_payment, $1 cap, 24h). Six tools at HEAD. NOTE: probe from
+            a clean network — this dev machine's safebrowse filter intercepts
+            the custom domain (onrender origin works).
+            (3) Discovery kit ACCEPTED — fake-200s confirmed live by them too;
+            decision recorded (real mcp.json/llms.txt/agent.json, real 404s,
+            Content-Signal, axis-estate.json cross-link when est_01 ships);
+            queued as a small frontend candidate on THEIR side.
+            FLAG BACK AT US, accepted: our registry's mcp_url claim being true
+            was luck, not verification — est_01 now includes an authoring-time
+            liveness check across ALL estate entries' claimed endpoints.
           severity: normal
           title: "Estate federation: PAI'D's agent-exposable surface decision + two discovery facts (does their mcp_url exist; SPA fake-200s on .well-known paths)"
           summary: >
@@ -1917,7 +1950,14 @@ project_begin:
           one initialize sentence. Fix ecosystem.registry.yaml's false header
           (generate it from the module or retire it, updating README.md:19,
           docs/x402/CONTRACT.md:134, docs/x402/STRATEGY.md:167, .cursorrules:107).
-          Free-tool count cascade applies (11-file recipe).
+          Free-tool count cascade applies (11-file recipe). ADDED 2026-08-22
+          (PAI'D's flag on our ticket, accepted): an AUTHORING-TIME liveness
+          check across every estate entry's claimed endpoints — our registry's
+          paid mcp_url being true turned out to be luck, not verification;
+          every claimed URL gets probed (from a clean network — the dev
+          machine's safebrowse filter intercepts jonathanarvay.com hosts) and
+          its check date recorded on the row, before vendoring. Complements
+          §6's RUNTIME probe; distinct concern.
         roi_score: 93
         roi_reason: >
           portfolio_leverage_multiplier 6 (gates every other est_* candidate
@@ -2021,14 +2061,22 @@ project_begin:
 
       - id: "est_06_paid_surface"
         description: >
-          Whatever PAI'D's ticket answer blesses (buyer-side only;
-          merchant-side counsel-gated regardless of their answer) + their L3
-          agent-readiness kit outcomes reflected in the estate registry.
-          GATED (recorded): TICKET-AXIS_TOOLBOX-agent-surface-20260822 status
-          in payment processing/begin.yaml inbox; the registry's paid entry
-          ships status: unverified until answered.
+          UNGATED 2026-08-22 — PAI'D answered same day (full reply on the
+          outbox ticket above; read it before implementing). Concrete scope:
+          registry paid entry lists the verified MCP endpoint
+          (api.paid.jonathanarvay.com/v1/mcp, Bearer agent-keys, protocol
+          2025-06-18) with EXACTLY three blessed read-only tools in
+          estate-facing metadata — get_quote, list_providers,
+          get_payment_intent. execute_payment is CONDITIONALLY blessed:
+          auto-activates when PAI'D signals their COH-009+COH-013 closed
+          (sanctions/payer-screening gap) — record the trigger in the registry
+          row as a dated condition, never list it early, don't poll their
+          repo for it ([[dont-track-paid-repo]]; they will signal). Wallet
+          top-up and checkout-initiation STRUCK by their founder rule — do not
+          re-propose. Their discovery kit is queued on THEIR side; our side
+          only reflects outcomes in the registry when their kit ships.
         roi_score: 72
-        roi_reason: "agent_acquisition 3, conformance 3; entirely shaped by the provider's own decision — deliberately not pre-scored higher than what we control."
+        roi_reason: "agent_acquisition 3, conformance 3; scope now concrete per the provider's own recorded decision."
         severity: MEDIUM
         source_file: "packages/generator-core/src/estate-registry.ts"
         completion_status: open
