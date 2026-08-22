@@ -321,6 +321,12 @@ router.get("/openapi.json", handleOpenApiJson);
 // AI tool discovery standards (llmstxt.org + agentskills.io)
 router.get("/llms.txt", handleLlmsTxt);
 router.get("/.well-known/skills/index.json", handleSkillsIndex);
+// ext_01: cloudflare/agent-skills-discovery-rfc's checklist path is
+// /.well-known/agent-skills/index.json, not the /.well-known/skills/
+// path this repo shipped first. Added as an ALIAS to the same handler —
+// the original path already has real consumers, so it is not moved, only
+// duplicated onto the RFC's expected path.
+router.get("/.well-known/agent-skills/index.json", handleSkillsIndex);
 
 // Plain-text API docs (Stripe-style .md suffix)
 router.get("/v1/docs.md", handleDocsMd);

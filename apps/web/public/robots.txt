@@ -23,3 +23,5 @@ Allow: /v1/
 # Full documentation: https://iliad.trustfabric.ai/for-agents
 
 Sitemap: https://api.iliad.trustfabric.ai/sitemap.xml
+
+Content-Signal: search=yes, ai-train=yes, ai-input=yes

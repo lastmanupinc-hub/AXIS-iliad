@@ -63,6 +63,22 @@ export interface AxisSeoOptions {
   routes: RouteSeo[];
   /** Also write sitemap.xml + robots.txt. Default true. */
   emitSitemap?: boolean;
+  /**
+   * Independent of emitSitemap (ext_01, 2026-08-21). Vite copies `publicDir`
+   * into the output directory BEFORE this plugin's own emitFile() writes land
+   * — confirmed empirically, not assumed (a diagnostic build logged the
+   * bundle's keys at generateBundle time: robots.txt was absent from it, and
+   * the real dist/ output after a full build carried this plugin's minimal
+   * fallback, not a richer hand-authored public/robots.txt). So an
+   * unconditional emitFile("robots.txt") here silently overwrites any
+   * project-specific robots.txt on EVERY build — confirmed live in
+   * production too (iliad.trustfabric.ai/robots.txt served this plugin's
+   * 4-line fallback, never the real one, until this option existed).
+   * Default true for back-compat with any other project consuming this
+   * plugin with no robots.txt of its own; apps/web's own vite.config.ts sets
+   * this false because apps/web/public/robots.txt is the real one.
+   */
+  emitRobotsTxt?: boolean;
 }
 
 const SEO_MARK = "<!--axis-seo-->";
@@ -98,7 +114,7 @@ function renderHead(route: RouteSeo, opts: AxisSeoOptions): string {
 }
 
 export function axisSeo(opts: AxisSeoOptions): Plugin {
-  const { emitSitemap = true } = opts;
+  const { emitSitemap = true, emitRobotsTxt = true } = opts;
 
   return {
     name: "axis-seo",
@@ -148,11 +164,13 @@ export function axisSeo(opts: AxisSeoOptions): Plugin {
           fileName: "sitemap.xml",
           source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
         });
-        this.emitFile({
-          type: "asset",
-          fileName: "robots.txt",
-          source: `User-agent: *\nAllow: /\n\nSitemap: ${new URL("/sitemap.xml", opts.config.siteUrl).toString()}\n`,
-        });
+        if (emitRobotsTxt) {
+          this.emitFile({
+            type: "asset",
+            fileName: "robots.txt",
+            source: `User-agent: *\nAllow: /\n\nSitemap: ${new URL("/sitemap.xml", opts.config.siteUrl).toString()}\n`,
+          });
+        }
       }
     },
   };

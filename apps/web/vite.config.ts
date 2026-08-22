@@ -11,6 +11,15 @@ export default defineConfig({
     // description, canonical, OG tags, and JSON-LD entity graph — plus
     // sitemap.xml and robots.txt. See apps/web/seo.routes.ts.
     axisSeo({
+      // ext_01, 2026-08-21: apps/web/public/robots.txt is the real, richer,
+      // hand-authored file (agent-specific crawl directives, x402 pricing,
+      // /for-agents link) — the plugin's own emitFile("robots.txt") would
+      // otherwise silently overwrite it on every build (confirmed live: this
+      // WAS happening — iliad.trustfabric.ai/robots.txt served the plugin's
+      // 4-line fallback, never the real file, until this line existed).
+      // sitemap.xml has no such conflict (no public/sitemap.xml exists) and
+      // stays plugin-emitted.
+      emitRobotsTxt: false,
       // The current plugin API takes the entity graph via `config`, not loose
       // fields — the old {siteUrl, siteName, defaultImage} shape was written
       // against the sibling repo's stale dist/ and never built against src/.

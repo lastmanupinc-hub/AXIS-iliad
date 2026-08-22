@@ -98,6 +98,7 @@ beforeAll(async () => {
   const router = new Router();
   router.get("/llms.txt", handleLlmsTxt);
   router.get("/.well-known/skills/index.json", handleSkillsIndex);
+  router.get("/.well-known/agent-skills/index.json", handleSkillsIndex);
   router.get("/v1/docs.md", handleDocsMd);
   router.get("/.well-known/axis.json", handleWellKnown);
   router.get("/for-agents", handleForAgents);
@@ -321,6 +322,24 @@ describe("GET /.well-known/skills/index.json", () => {
     const skills = data.skills as Array<{ name: string; tags: string[] }>;
     const analyze = skills.find(s => s.name === "axis-analyze");
     expect(Array.isArray(analyze?.tags)).toBe(true);
+  });
+});
+
+// ─── GET /.well-known/agent-skills/index.json (ext_01) ──────────
+//
+// cloudflare/agent-skills-discovery-rfc's checklist path is
+// /.well-known/agent-skills/index.json, not /.well-known/skills/ — this
+// repo shipped the latter first and had zero presence at the RFC's actual
+// path. Added as an ALIAS (same handler), not a move: the original path
+// already has real consumers (e.g. llms.txt itself links to it — see the
+// "/.well-known/skills/index.json" assertions elsewhere in this file).
+describe("GET /.well-known/agent-skills/index.json — RFC path alias (ext_01)", () => {
+  it("returns 200 with the same content as the original path — one handler, two paths", async () => {
+    const original = await req("/.well-known/skills/index.json");
+    const alias = await req("/.well-known/agent-skills/index.json");
+    expect(alias.status).toBe(200);
+    expect(alias.status).toBe(original.status);
+    expect(alias.body).toBe(original.body);
   });
 });
 
