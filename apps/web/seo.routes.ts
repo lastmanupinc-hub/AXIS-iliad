@@ -30,7 +30,7 @@ export const seoRoutes: RouteSeo[] = [
     product: "iliad",
     title: "Documentation — Iliad",
     description:
-      "How to run Iliad against a codebase, what each of the 147 generators produces, and how to wire the output into your agent workflow.",
+      "How to run Iliad against a codebase, what each of the 149 generators produces, and how to wire the output into your agent workflow.",
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "Docs", url: "/docs" },
@@ -40,7 +40,7 @@ export const seoRoutes: RouteSeo[] = [
     path: "/programs",
     kind: "collection",
     product: "iliad",
-    title: "Programs — 21 generator programs, 147 artifacts",
+    title: "Programs — 21 generator programs, 149 artifacts",
     description:
       "Every Iliad program: artifacts, brand, SEO, marketing, skills, search, superpowers, agentic purchasing, and more — with the files each one generates.",
     breadcrumbs: [
