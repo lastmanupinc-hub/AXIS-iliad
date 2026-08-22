@@ -2418,7 +2418,23 @@ project_begin:
         roi_reason: "agent_acquisition 3, conformance 3; scope now concrete per the provider's own recorded decision."
         severity: MEDIUM
         source_file: "packages/generator-core/src/estate-registry.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-22.
+        # Found, while starting this candidate, that its own concrete scope ("registry paid
+        # entry lists the verified MCP endpoint... with EXACTLY three blessed read-only tools")
+        # was ALREADY fully delivered by est_01, same day: ESTATE_REGISTRY.paid already had the
+        # verified endpoint, bearer auth, and exactly {get_quote, list_providers,
+        # get_payment_intent} (execute_payment correctly absent, corrected via the abd6ed8
+        # cross-session fix already incorporated). The one real gap: "protocol 2025-06-18" was
+        # never recorded anywhere in the schema. Closed it rather than declare the candidate
+        # satisfied without checking: added EstateMcp.protocol_version (optional — "omitted, not
+        # guessed" for any entry nobody has verified, matching this file's existing honesty
+        # discipline), set to "2025-06-18" for paid (the one sibling this fact was actually
+        # confirmed for). Two new regression tests pin both halves of this candidate's own
+        # acceptance bar directly (protocol_version, and the exact three-tool set — never
+        # execute_payment/wallet-top-up/checkout-initiation). Verified: 337/337 across
+        # estate-registry.test.ts, well-known-handlers.test.ts, mcp-server.test.ts,
+        # mcp-estate-flag.test.ts. tsc clean; generator-core dist rebuilt before cross-package
+        # validation (est_01's own process lesson, applied this time without re-learning it).
 
       - id: "est_07_launch_reciprocal_links"
         description: >

@@ -59,6 +59,8 @@ export interface EstateMcp {
   auth: EstateMcpAuth;
   /** The sibling's MCP registry `name` (e.g. its own server.json `name` field), when published. */
   registry_name?: string;
+  /** est_06: the MCP spec revision the sibling's endpoint verified against (e.g. "2025-06-18"), when confirmed — omitted, not guessed, when no one has checked. */
+  protocol_version?: string;
 }
 
 export type EstatePaymentRail = "x402-evm" | "mppx" | "paid-wallet";
@@ -140,6 +142,7 @@ export const ESTATE_REGISTRY: Record<string, EstateEntry> = {
       url: "https://api.paid.jonathanarvay.com/v1/mcp",
       transport: "streamable-http", // + legacy SSE, per their same-day verification
       auth: "bearer", // agent keys (agk_live_…); sandbox keys deny execute_payment, $1 cap, 24h
+      protocol_version: "2025-06-18", // verified live by PAI'D themselves, same day (est_06)
     },
     // Three tools blessed READ-ONLY by PAI'D's own recorded decision,
     // answered same-day 2026-08-22 (begin.yaml

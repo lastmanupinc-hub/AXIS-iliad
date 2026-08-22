@@ -82,6 +82,17 @@ describe("getEstateEntry", () => {
   });
 });
 
+describe("est_06 — PAI'D surface, verified fields", () => {
+  it("PAI'D's MCP endpoint carries the protocol version PAI'D themselves verified live (2025-06-18)", () => {
+    expect(ESTATE_REGISTRY.paid.mcp?.protocol_version).toBe("2025-06-18");
+  });
+
+  it("PAI'D exposes exactly the three blessed read-only tools — never execute_payment, wallet top-up, or checkout-initiation", () => {
+    const names = (ESTATE_REGISTRY.paid.tools ?? []).map((t) => t.name).sort();
+    expect(names).toEqual(["get_payment_intent", "get_quote", "list_providers"].sort());
+  });
+});
+
 describe("sibling_process ↔ ESTATE_REGISTRY guard", () => {
   // Collapses what would otherwise be independent, driftable sibling-ownership
   // claims (RESELL_CAPABILITIES.sibling_process in this same package, plus the
