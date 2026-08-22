@@ -32,11 +32,11 @@ claims:
     verified_at: "2026-07-12"
 
   - id: mcp_tool_count
-    text: "37 MCP tools"
-    value: 37
+    text: "38 MCP tools"
+    value: 38
     source: "apps/api/src/counts.ts MCP_TOOL_COUNT"
     status: verified
-    verified_at: "2026-07-16"
+    verified_at: "2026-08-22"
 
   - id: persistence
     text: "Neon Postgres persistence"

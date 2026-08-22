@@ -104,7 +104,7 @@ import {
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, detectCommerceSignals, ESTATE_REGISTRY, ESTATE_SCHEMA_VERSION } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 // Commerce engines exposed as free MCP tools (WO-13) — the SAME functions the
 // generators call, not re-implementations.
@@ -2194,6 +2194,9 @@ const FREE_TOOL_NAMES = new Set([
   "discover_agentic_commerce_tools",
   "discover_agentic_purchasing_needs",
   "prepare_agentic_purchasing_preview",
+  // est_01 (2026-08-22) — sibling AXIS property discovery, same free/no-auth
+  // shape as the other discover_* tools above.
+  "discover_estate_tools",
   "get_referral_code",
   "get_referral_credits",
   "check_referral_credits",
@@ -2357,7 +2360,7 @@ const FREE_TOOLS_REQUIRING_AUTH = new Set(["get_referral_code", "get_referral_cr
 // only correct a FALSE NEGATIVE (a free tool that actually needs auth); it
 // has no way to mark a FALSE POSITIVE for a tool that's neither free nor
 // metered (get_snapshot, get_artifact, and improve_my_agent_with_axis are
-// the only 3 of 37 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS —
+// the only 3 of 38 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS —
 // confirmed via direct count). get_snapshot/get_artifact's own handlers
 // (runGetSnapshot/runGetArtifact) only check auth CONDITIONALLY — an
 // ownerless/anonymous snapshot needs none at all — so `!free` alone
@@ -2412,7 +2415,7 @@ export function deriveMcpToolCatalog(): McpToolCatalogEntry[] {
 }
 
 export function runDiscoverAgenticCommerceTools(): string {
-  // Distribution-facing surface — advertises the full 37-tool catalog
+  // Distribution-facing surface — advertises the full 38-tool catalog
   // (revised catalog-honesty policy: build-not-redact). Each
   // planned-capability stub gets converted to an owned implementation
   // over the v1 push; the name set stays stable so external integrations
@@ -2477,6 +2480,27 @@ export function runDiscoverAgenticCommerceTools(): string {
     },
     system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: discover_commerce_tools (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop for $0.005, near-zero risk.`,
     first_action: "Call search_and_discover_tools with q=<your keyword> — free, no auth needed.",
+  }, null, 2);
+}
+
+// ─── Tool: discover_estate_tools ──────────────────────────────────
+//
+// est_01 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md): free, no-auth
+// discovery of sibling AXIS properties — same data as
+// GET /.well-known/axis-estate.json, as an MCP tool call so an agent that
+// only ever speaks MCP never needs to fall back to REST. Reads
+// ESTATE_REGISTRY directly — one source, no second hand-typed copy.
+export function runDiscoverEstateTools(): string {
+  return JSON.stringify({
+    schema_version: ESTATE_SCHEMA_VERSION,
+    compatibility:
+      "Additive-only: new fields and new estate entries are added without notice. No field is ever removed or repurposed within a schema_version.",
+    this_property: {
+      id: "iliad",
+      name: "Axis' Iliad",
+      mcp: { url: AXIS_MCP_ENDPOINT, transport: "streamable-http", auth: "bearer" },
+    },
+    properties: Object.values(ESTATE_REGISTRY),
   }, null, 2);
 }
 

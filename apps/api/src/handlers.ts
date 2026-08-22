@@ -51,7 +51,7 @@ import {
 import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord, TierLimits } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY, ESTATE_REGISTRY, ESTATE_SCHEMA_VERSION } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
@@ -2768,6 +2768,10 @@ export function handleWellKnown(
     skills: "GET /.well-known/skills/index.json  -  agent skills index following the agentskills.io standard",
     capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce/CE3.0/SCA-exemption keywords indexed).",
     openapi_json: "GET /openapi.json  -  OpenAPI 3.1 spec alias",
+    // est_01 (2026-08-22): sibling AXIS properties (PAI'D, AXIS Foundry, AXIS
+    // Launch, TrustFabric), agent-discoverable but excluded from Iliad's own
+    // human-facing webapp pages — docs/ESTATE_FEDERATION_STRATEGY.md.
+    estate: "GET /.well-known/axis-estate.json  -  sibling AXIS properties (payments, 3D generation, and more), each with its own MCP endpoint and pricing. Same data via the discover_estate_tools MCP tool (free, no auth).",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
       purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence requirements + SCA exemption paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
@@ -2785,6 +2789,45 @@ export function handleWellKnown(
       openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
       examples: "https://github.com/lastmanupinc-hub/axis-iliad-examples  -  before/after examples of AXIS artifact-coverage runs (coverage score measures AXIS artifact presence, 0-100). Coverage is not a code-readiness or production-readiness claim; see the code_readiness block for the content-based verdict.",
     },
+  });
+  return Promise.resolve();
+}
+
+// ─── GET /.well-known/axis-estate.json  -  estate discovery manifest ──
+//
+// est_01 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md): the canonical,
+// versioned manifest every sibling AXIS property (and every agent) reads to
+// learn who else is in the estate. `properties` is ESTATE_REGISTRY verbatim
+// — one typed source, no second hand-maintained copy (the failure mode
+// ecosystem.registry.yaml's own now-corrected header used to falsely claim
+// it had already solved). `this_property` is Iliad's own self-descriptor,
+// assembled from the same constants every other discovery surface in this
+// file already uses — NOT an ESTATE_REGISTRY row, because every row in that
+// table is, by construction, `webapp_surface: "agent-only"`, which would be
+// a false claim about Iliad's own (very much human-facing) webapp. It's
+// included so a sibling reading this ONE document gets everything needed to
+// link back, without a second fetch against axis.json.
+export function handleEstateManifest(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  // Cache-Control per STRATEGY.md Layer 1 ("Cache-Control guidance for
+  // crawlers") — this document changes at most a few times a month, not
+  // per-request; a short max-age still bounds staleness for a crawler that
+  // ignores it and hits this path directly.
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  sendJSON(res, 200, {
+    schema_version: ESTATE_SCHEMA_VERSION,
+    compatibility:
+      "Additive-only: new fields and new estate entries are added without notice. No field is ever removed or repurposed within a schema_version — a breaking change bumps schema_version instead.",
+    this_property: {
+      id: "iliad",
+      name: "Axis' Iliad",
+      domains: ["iliad.trustfabric.ai", "iliad.jonathanarvay.com"],
+      api_base: AXIS_API_BASE,
+      mcp: { url: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", auth: "bearer" },
+    },
+    properties: Object.values(ESTATE_REGISTRY),
   });
   return Promise.resolve();
 }
@@ -3058,6 +3101,8 @@ export function handleCapabilities(
     examples_repo: "https://github.com/lastmanupinc-hub/axis-iliad-examples",
     for_agents: "https://axis-api-6c7z.onrender.com/for-agents",
     openapi: "https://axis-api-6c7z.onrender.com/v1/docs",
+    // est_01: sibling AXIS properties, agent-discoverable through this same connection.
+    estate: "https://axis-api-6c7z.onrender.com/.well-known/axis-estate.json",
   });
   return Promise.resolve();
 }
@@ -3088,6 +3133,13 @@ Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 - Endpoint: POST /mcp
 - ${MCP_TOOL_COUNT} tools: ${MCP_TOOLS.map(t => t.name).join(", ")}
 - No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
+
+## Estate
+
+Sibling AXIS properties (payments, 3D generation, and more), agent-callable through their own MCP endpoints:
+
+- GET /.well-known/axis-estate.json  -  versioned manifest of every sibling property, its MCP endpoint, and its tool prices
+- discover_estate_tools  -  same data as an MCP tool call (free, no auth)
 
 ## Programs (${PROGRAM_COUNT} total)
 
@@ -3755,6 +3807,8 @@ export function handleForAgents(
       openapi: `${AXIS_API_BASE}/v1/docs`,
       registry: `${AXIS_API_BASE}/v1/mcp/server.json`,
       install: `${AXIS_API_BASE}/v1/install`,
+      // est_01: sibling AXIS properties, agent-callable through their own MCP endpoints.
+      estate: `${AXIS_API_BASE}/.well-known/axis-estate.json`,
     },
     integration_examples: {
       claude_desktop: {

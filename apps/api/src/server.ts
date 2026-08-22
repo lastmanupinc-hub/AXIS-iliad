@@ -36,6 +36,7 @@ import {
   handleFirecrawlCrawl,
   handlePreparePurchasing,
   handleWellKnown,
+  handleEstateManifest,
   handleX402WellKnown,
   handleCapabilities,
   handleLlmsTxt,
@@ -247,6 +248,9 @@ router.post("/v1/research/crawl", handleFirecrawlCrawl);
 // Agent discovery manifest
 router.get("/.well-known/axis.json", handleWellKnown);
 router.get("/.well-known/capabilities.json", handleCapabilities);
+// est_01: sibling AXIS properties (PAI'D, Foundry, Launch, TrustFabric) —
+// docs/ESTATE_FEDERATION_STRATEGY.md.
+router.get("/.well-known/axis-estate.json", handleEstateManifest);
 router.get("/.well-known/mcp.json", handleMcpServerJson);
 router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/glama.json", handleGlamaJson);

@@ -22,7 +22,7 @@ import { useTabList } from "../useTabList.ts";
 // Merges the old InstallPage (per-platform install configs) and ToolsIndexPage
 // (a hand-maintained catalog mapping 9 click-console entries to MCP tool
 // names, 6 of them permanently "coming soon") into one page whose every list
-// is fetched live: the manifest (GET /v1/mcp/server.json), the full 37-tool
+// is fetched live: the manifest (GET /v1/mcp/server.json), the full 38-tool
 // registry (POST /mcp {method:"tools/list"} — see api.ts's listMcpTools for
 // why this beats the two other MCP-ish endpoints for this job), per-program
 // capability search (GET /v1/mcp/tools?q=&program=), per-platform install

@@ -104,7 +104,6 @@ ci = "github_actions"
 # docker-ci-run3.txt
 # docker-compose.yml
 # e2e_full_human_ai_x402.mjs
-# ecosystem.registry.yaml
 # ... and 450 more files
 
 # === Key Entry Points ===

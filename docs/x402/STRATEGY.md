@@ -164,7 +164,9 @@ become optional — an upsell for credits/plans — instead of a prerequisite.
   tools present real, fulfillable payment requirements to MCP clients instead of
   tool-errors inside HTTP 200.
 - List on x402 ecosystem indexes; track the Cloudflare Monetization Gateway waitlist;
-  update `ecosystem.registry.yaml` (Iliad: "wired" → genuinely interoperable).
+  update CONTRACT.md's Implementations table (Iliad: "Wired (reference)" → genuinely
+  interoperable) — the cross-project ecosystem registry this line used to point at was
+  retired 2026-08-22 in favor of `packages/generator-core/src/estate-registry.ts`.
 - Evaluate the experimental `upto` scheme for `iliad_web_research_crawl` — it is the
   spec-native answer to the known flat-preview-vs-per-page-billing mismatch.
 

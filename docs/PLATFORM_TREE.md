@@ -153,7 +153,7 @@ envelope naming the missing env var and are **not billed**; REST surfaces return
 | OAuth login | 7 | none→session | `gated(owner)` |
 | OAuth 2.0 AS | 4 | protocol | `gated(owner)` — without `JWT_*` keys the server falls back to an **ephemeral keypair and every issued token dies on restart** |
 
-## MCP server — 37 tools · `shipped`
+## MCP server — 38 tools · `shipped`
 
 Protocol `2025-03-26`, Streamable HTTP. Live-probed 2026-07-27: `tools/list` returns a 108 KB catalog.
 **20 metered, 17 free**, exhaustive at compile time (`mcp-runtime.ts:192-213`).

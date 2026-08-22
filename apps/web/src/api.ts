@@ -1098,8 +1098,8 @@ export async function getErrorCodes(): Promise<ErrorCodeCatalogResponse> {
 // ─── Full MCP tool catalog (WO-P8) ───────────────────────────────
 // The live per-tool registry — name, description, JSON-Schema args, output
 // schema, annotations, and examples. Distinct from `searchMcpTools` above
-// (which answers a different question: capability search across the 20
-// *programs*, not the 37 individual MCP tools) and from `getMcpManifest`'s
+// (which answers a different question: capability search across the 21
+// *programs*, not the 38 individual MCP tools) and from `getMcpManifest`'s
 // `tools[]` (deliberately name+description only — the external
 // mcp-publisher registry format; see mcp-server.test.ts "each tool entry has
 // name and description only"). Sourced from `POST /mcp {method:"tools/list"}`

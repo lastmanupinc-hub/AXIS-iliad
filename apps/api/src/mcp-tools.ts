@@ -544,7 +544,7 @@ export const MCP_TOOLS = [
       {
         name: "Discover all commerce tools",
         input: {},
-        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":37}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":38}}',
       },
     ],
   },
@@ -667,6 +667,35 @@ export const MCP_TOOLS = [
         name: "Check readiness with known score",
         input: { task_description: "dispute handling", current_readiness: 45 },
         output: '{"matched_capabilities":[...],"readiness":{"current_score":45,"interpretation":"minimal-coverage"}}',
+      },
+    ],
+  },
+  {
+    // est_01 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md): sibling AXIS
+    // properties (PAI'D, AXIS Foundry, AXIS Launch, TrustFabric) — each with
+    // its own MCP endpoint and pricing, callable directly by an agent that
+    // discovers them here. Free, no-auth, deterministic — reads the same
+    // ESTATE_REGISTRY as GET /.well-known/axis-estate.json.
+    name: "discover_estate_tools",
+    description:
+      "List sibling AXIS properties (payments via PAI'D, 3D avatar generation via AXIS Foundry, and more) — each entry gives its own MCP endpoint, auth mode, and vendored tool prices, so you can call them directly. Free, no auth, no side effects. Same data as GET /.well-known/axis-estate.json. Use this when the task needs a capability Iliad itself does not own (e.g. payment execution, 3D asset generation).",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: {
+      type: "object",
+      properties: {
+        schema_version: { type: "string" },
+        compatibility: { type: "string" },
+        this_property: { type: "object", description: "Iliad's own id/name/mcp — so a caller can link back without a second fetch." },
+        properties: { type: "array", items: { type: "object" }, description: "One entry per sibling AXIS property." },
+      },
+      required: ["schema_version", "properties"],
+    },
+    annotations: toolAnnotations("Discover Estate Tools", true, true),
+    examples: [
+      {
+        name: "List the estate",
+        input: {},
+        output: '{"schema_version":"1.0","properties":[{"id":"foundry","name":"AXIS Foundry","mcp":{"url":"https://api.avatar.jonathanarvay.com/mcp","transport":"streamable-http","auth":"none"},"tools":[{"name":"axis_validate","summary":"Validate an avatar mesh against 38 rules.","price_usd":0.25}]}]}',
       },
     ],
   },

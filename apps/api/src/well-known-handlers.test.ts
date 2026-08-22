@@ -37,7 +37,9 @@ import {
   handleOAuthProtectedResource,
   handlePricingLanding,
   handleX402WellKnown,
+  handleEstateManifest,
 } from "./handlers.js";
+import { ESTATE_REGISTRY } from "@axis/generator-core";
 
 // apps/api/src -> repo root
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -96,6 +98,7 @@ beforeAll(async () => {
   router.get("/pricing", handlePricingLanding);
   router.get("/.well-known/x402", handleX402WellKnown);
   router.get("/.well-known/x402.json", handleX402WellKnown);
+  router.get("/.well-known/axis-estate.json", handleEstateManifest);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -938,5 +941,65 @@ describe("GET /agents.json", () => {
   it("serves the same agent manifest (name + mcp_endpoint)", async () => {
     expect(json.name).toBe("Axis' Iliad");
     expect(json.mcp_endpoint).toBe("/mcp");
+  });
+});
+
+// ─── GET /.well-known/axis-estate.json (est_01) ────────────────────
+
+describe("GET /.well-known/axis-estate.json", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let body: string;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/.well-known/axis-estate.json");
+    status = r.status;
+    headers = r.headers;
+    body = r.body;
+    json = JSON.parse(r.body);
+  });
+
+  it("returns 200 as application/json", async () => {
+    expect(status).toBe(200);
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("carries a public, bounded Cache-Control", async () => {
+    const cc = String(headers["cache-control"]);
+    expect(cc).toContain("public");
+    expect(cc).toMatch(/max-age=\d+/);
+  });
+
+  it("carries a non-empty schema_version and an additive-only compatibility statement", async () => {
+    expect(typeof json.schema_version).toBe("string");
+    expect((json.schema_version as string).length).toBeGreaterThan(0);
+    expect(String(json.compatibility)).toMatch(/additive/i);
+  });
+
+  it("this_property describes Iliad itself, not a sibling", async () => {
+    const self = json.this_property as Record<string, unknown>;
+    expect(self.id).toBe("iliad");
+    expect(self.name).toBe("Axis' Iliad");
+  });
+
+  it("properties is exactly ESTATE_REGISTRY, serialized — one source, no second copy", async () => {
+    expect(json.properties).toEqual(JSON.parse(JSON.stringify(Object.values(ESTATE_REGISTRY))));
+  });
+
+  it("no served property claims Iliad's own row (webapp_surface: agent-only would be false for Iliad)", async () => {
+    const properties = json.properties as Array<Record<string, unknown>>;
+    expect(properties.some((p) => p.id === "iliad")).toBe(false);
+  });
+
+  it("every served property is webapp_surface: agent-only", async () => {
+    const properties = json.properties as Array<Record<string, unknown>>;
+    expect(properties.length).toBeGreaterThan(0);
+    for (const p of properties) expect(p.webapp_surface).toBe("agent-only");
+  });
+
+  it("is byte-identical across two independent requests — deterministic, no timestamps", async () => {
+    const r2 = await req("/.well-known/axis-estate.json");
+    expect(r2.body).toBe(body);
   });
 });

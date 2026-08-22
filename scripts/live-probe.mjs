@@ -10,7 +10,7 @@
 
 const API_BASE = "https://api.iliad.trustfabric.ai";
 const WEB_BASE = "https://iliad.trustfabric.ai";
-const EXPECTED_MCP_TOOL_COUNT = 37; // keep in sync with apps/api/src/counts.ts MCP_TOOL_COUNT
+const EXPECTED_MCP_TOOL_COUNT = 38; // keep in sync with apps/api/src/counts.ts MCP_TOOL_COUNT
 const TIMEOUT_MS = 10_000;
 
 const results = [];

@@ -16,7 +16,7 @@
 
 ## AXIS Ecosystem
 
-Iliad is the **x402 showcase** in the Trust Fabric stack. Full registry: [`ecosystem.registry.yaml`](ecosystem.registry.yaml).
+Iliad is the **x402 showcase** in the Trust Fabric stack. Full registry: [`packages/generator-core/src/estate-registry.ts`](packages/generator-core/src/estate-registry.ts), served live at [`GET /.well-known/axis-estate.json`](https://api.iliad.trustfabric.ai/.well-known/axis-estate.json) (superseding `ecosystem.registry.yaml`, retired 2026-08-22 — see [`docs/ESTATE_FEDERATION_STRATEGY.md`](docs/ESTATE_FEDERATION_STRATEGY.md)).
 
 | Project | Role | x402 |
 |---------|------|------|
@@ -122,7 +122,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 }
 ```
 
-**Free MCP tools** (no auth needed): `list_programs`, `search_and_discover_tools`, `discover_commerce_tools`, `discover_agentic_purchasing_needs`, `prepare_agentic_purchasing_preview`, `ping_payment` (exercises the real x402 payment loop at $0), plus the deterministic commerce decision engines: `sca_exemption_decision`, `grade_compliance`, `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness` (evidence-capture readiness — not a dispute-win prediction). `get_referral_code`, `get_referral_credits`, and `iliad_network_tokenization` are also free (no charge) but, unlike the tools above, **do require auth**.
+**Free MCP tools** (no auth needed): `list_programs`, `search_and_discover_tools`, `discover_commerce_tools`, `discover_agentic_purchasing_needs`, `prepare_agentic_purchasing_preview`, `discover_estate_tools` (sibling AXIS properties — payments, 3D generation, and more), plus the deterministic commerce decision engines: `sca_exemption_decision`, `grade_compliance`, `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness` (evidence-capture readiness — not a dispute-win prediction). `get_referral_code`, `get_referral_credits`, and `iliad_network_tokenization` are also free (no charge) but, unlike the tools above, **do require auth**. `ping_payment` is not free — it costs $0.005 and exercises the real x402 payment loop, the cheapest paid call in the catalog.
 
 ---
 

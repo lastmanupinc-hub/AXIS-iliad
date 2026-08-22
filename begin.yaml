@@ -96,8 +96,18 @@ project_begin:
             # outbox exists for this origin (see pointer_back).
           from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
           submitted: "2026-08-10"
-          status: in_progress   # TRIAGED 2026-08-19 per triage_policy.on_new_inbox_ticket
+          status: confirmed   # CONFIRMED 2026-08-22 -- ext_01 shipped, verified, committed (4d907f9), pushed (both remotes)
+          confirmed: "2026-08-22"
           assigned_candidate_id: ext_01_agent_readiness_axis_web
+          evidence: >
+            axis-iliad @ 4d907f9 (pushed to github.com/lastmanupinc-hub/AXIS-iliad and the local
+            mirror, both verified independently after a hung push landed only the GitHub leg
+            first). Both gap-fills shipped: robots.txt Content-Signal directive (and the bigger
+            bug found alongside it -- the real robots.txt was never actually served in
+            production; fixed), and /.well-known/agent-skills/index.json as an alias onto the
+            existing skills handler. 116/116 tests green (7 new), tsc clean on apps/web +
+            apps/api. api-catalog (RFC 9727) recorded as a genuine, separate gap per this
+            ticket's own "confirm... or record" instruction -- not attempted.
           severity: normal
           title: "axis-web (iliad.trustfabric.ai / iliad.jonathanarvay.com) is already most of the way to Cloudflare Agent Readiness -- 2 small gaps left"
           request: >
@@ -1985,7 +1995,129 @@ project_begin:
           to one source), blocker_removal 5. STRATEGY.md §Layer 1.
         severity: HIGH
         source_file: "packages/generator-core/src/estate-registry.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-22.
+        # packages/generator-core/src/estate-registry.ts: typed ESTATE_REGISTRY (Record<string,
+        # EstateEntry>, mirroring product-registry.ts's exact discipline) with 4 rows — paid,
+        # foundry, launch, trust_fabric. DELIBERATELY EXCLUDES an Iliad self-row: the schema's
+        # `webapp_surface: "agent-only"` is a literal, true fact about every SIBLING and would be
+        # FALSE about Iliad's own (very much human-facing) webapp — caught before writing data,
+        # not after. Reciprocal-linking siblings instead read a `this_property` block assembled
+        # in the handler/tool from existing constants, not a registry row.
+        #
+        # DATA PROVENANCE, verified not invented: Foundry's 14 tools + real prices vendored
+        # DIRECTLY from engine/axis_foundry/portal/x402_gateway.py's X402_TOOL_PRICES/
+        # X402_FREE_TOOLS and mcp_server.py's tool descriptions, read from the sibling repo on
+        # this machine (2026-08-22) — not paraphrased from the strategy doc. PAI'D's row from
+        # their own same-day answered ticket (begin.yaml outbox). Launch's row from its own live
+        # .well-known/axis-launch.json, read from its sibling repo. trust_fabric is a deliberate
+        # planned-status stub per STRATEGY.md §5.1 (naming reconciliation is an open owner
+        # decision) — both candidate domains recorded, neither asserted canonical. Corrected one
+        # real ecosystem.registry.yaml staleness found along the way: Iliad's own
+        # jonathanarvay.com domain is `iliad.jonathanarvay.com`, not the registry's stale
+        # `axis-iliad.jonathanarvay.com` (spoke_05's own 2026-08-17 verified Cloudflare
+        # custom-domain listing is the more recent, more authoritative source).
+        #
+        # LIVENESS CHECK (the authoring-time probe this candidate's own 2026-08-22 addendum
+        # asked for): attempted directly against api.avatar.jonathanarvay.com and
+        # iliad.jonathanarvay.com from this session's own network — both returned a TLS
+        # handshake failure (WRONG_VERSION_NUMBER), independently REPRODUCING
+        # STRATEGY.md §1.4's safebrowse.io finding rather than assuming it. Foundry and Launch
+        # rows are therefore honestly marked `status: "unverified"` / `health.last_status:
+        # "unverified"` (content real, network confirmation not obtainable from here) — PAI'D's
+        # row is `"live"` because THEY verified it live, same day, from their own side.
+        #
+        # SURFACES: GET /.well-known/axis-estate.json (handlers.ts, registered beside
+        # handleCapabilities) serves {schema_version, compatibility, this_property, properties}
+        # — Cache-Control: public, max-age=3600. New FREE no-auth MCP tool
+        # discover_estate_tools (mcp-tools.ts definition, mcp-tool-impls.ts's
+        # runDiscoverEstateTools(), dispatched in mcp-server.ts, added to FREE_TOOL_NAMES so
+        # FREE_MCP_TOOL_COUNT derives it with zero manual count-tracking). Estate pointers folded
+        # into handleWellKnown (axis.json), handleCapabilities, handleLlmsTxt, and handleForAgents
+        # — one line each, matching each function's own existing cross-reference convention. One
+        # sentence added to the MCP `initialize` instructions.
+        #
+        # ecosystem.registry.yaml RETIRED (not regenerated): its header's "Consumed by Iliad
+        # discover_commerce_tools…" claim was independently reconfirmed false (read by no code,
+        # verified by grep) before deleting. All 4 named references fixed — README.md,
+        # docs/x402/CONTRACT.md, docs/x402/STRATEGY.md (redirected to CONTRACT.md's own
+        # Implementations table, since the retired file's role there was tracking Iliad's OWN
+        # x402 status, not sibling data), .cursorrules (a generated file-listing line, removed
+        # for consistency though it would have self-corrected on next regeneration anyway).
+        # `.ai/*` generated snapshot references left untouched on purpose — hand-editing
+        # generated output would itself be a new drift source; they self-correct on next `axis
+        # analyze .` run, out of this candidate's scope.
+        #
+        # sibling_process ↔ registry GUARD: RESELL_CAPABILITIES and its ResellCapability/
+        # ResellProvider types exported from generators-artifacts.ts (were module-private,
+        # blocking any cross-file guard from existing at all) specifically so
+        # estate-registry.test.ts could assert image_generation's sibling_process.name
+        # ("AXIS Foundry") resolves to a real ESTATE_REGISTRY row — collapsing what would
+        # otherwise be two independently-driftable sibling-ownership claims into one guarded
+        # derivation, per STRATEGY.md's Layer 1 section.
+        #
+        # MCP_TOOL_COUNT cascade 37→38, the "11-file recipe" this candidate's own description
+        # named, done by distinguishing LIVE claims from HISTORICAL "H-Phase-A cycle N" bug
+        # narration throughout (many "37" hits in comments describe a specific past cycle's
+        # bug and were deliberately left alone — changing them would misrepresent history, not
+        # fix a claim). Real edits: counts.ts, config.ts, live-probe.mjs, LAUNCH_CLAIMS.yaml,
+        # docs/PROGRAM_PORTFOLIO.md, docs/PLATFORM_TREE.md, ForAgentsPage.tsx's guarded tool
+        # `<ul>`, plus every LIVE (non-historical) test assertion and comment across
+        # mcp-server.test.ts, mcp-commerce-tools.test.ts, prepare-purchasing.test.ts,
+        # mcp-tool-impls.ts, mcp-tools.ts's own example output string, api.ts, McpPage.tsx.
+        #
+        # THREE PRE-EXISTING, UNRELATED GAPS FOUND AND FIXED WHILE VALIDATING (not this
+        # candidate's own claim, but directly blocking a clean gate so fixed on the spot,
+        # same discipline as ext_01/spoke_05 finding bigger bugs than their stated scope):
+        # (1) packages/generator-core/package.json's description still said "147 generators"
+        # — f22cd0e's 147→149 count-cascade fix (same day, one commit earlier) missed this one
+        # file; count-surface-coverage.test.ts's own corpus had it, nothing had fixed it yet.
+        # (2) root server.json's MCP registry manifest (a separate, statically-hand-maintained
+        # _meta block distinct from the dynamic getMcpServerMeta() function) still hardcoded
+        # "tools": 37 and a free_tools array — while editing it in, found it ALSO still listed
+        # `ping_payment` as free, though mcp-tool-impls.ts's own comment records it was priced
+        # ($0.005) on 2026-07-28. Fixed both. (3) README.md's free-MCP-tools prose carried the
+        # identical stale ping_payment-is-free claim ("$0"); corrected to state its real price.
+        #
+        # PROCESS LESSON, recorded because it cost real time: apps/api resolves
+        # `@axis/generator-core` via its package.json `exports` -> `dist/index.js` (a BUILT
+        # artifact), not source — `tsc --noEmit` (typecheck) does not regenerate `dist/`, so
+        # the first full apps/api test pass against a brand-new generator-core export failed
+        # with runtime "Cannot convert undefined or null to object" (ESTATE_REGISTRY resolving
+        # to undefined against a stale dist) despite estate-registry.test.ts's OWN 15/15 green
+        # (it imports the same-package source directly, bypassing package resolution entirely —
+        # a green in-package test suite does not prove the package's PUBLISHED surface works).
+        # Fixed by actually running `tsc` (the real build script, not --noEmit) in
+        # packages/generator-core before the cross-package tests; apps/cli's self-contained
+        # bundle build (84 modules, verified) confirms the zero-runtime-dep constraint still
+        # holds with the new export.
+        #
+        # CROSS-SESSION COLLISION, disclosed rather than silently absorbed: a concurrent peer
+        # session (axis-toolbox-f9) sharing this working tree committed abd6ed8 mid-session;
+        # because we share one git index, MY staged `git rm ecosystem.registry.yaml` rode into
+        # THEIR commit (they verified nothing on main read the file, so nothing broke; the 4
+        # dangling references were fixed in THIS commit as already planned). Separately, their
+        # abd6ed8 carried a real, same-day PAI'D correction — execute_payment's blessing does
+        # NOT auto-activate on COH-009+COH-013 closing (closure only makes it eligible; a
+        # second, explicit PAI'D founder sign-off is the actual activation signal, tightening
+        # not loosening the original reply) — verified directly against their diff (not their
+        # summary) before updating estate-registry.ts's paid entry to match, so the corrected
+        # two-signal language shipped in the registry's first version rather than needing a
+        # follow-up patch.
+        #
+        # VERIFIED: 572/572 across estate-registry.test.ts (15, incl. the sibling_process
+        # guard), well-known-handlers.test.ts, mcp-server.test.ts, mcp-commerce-tools.test.ts,
+        # prepare-purchasing.test.ts, count-honesty.test.ts, counts-consistency.test.ts,
+        # count-surface-coverage.test.ts, launch-claims.test.ts, strategic-docs-honesty.test.ts,
+        # agent-discovery.test.ts. tsc clean on generator-core, apps/api, apps/web. CLI
+        # self-contained bundle builds clean (84 modules).
+        #
+        # NOT DONE, deliberately, and not this candidate's own claim: est_02's doctrine rewrite
+        # (counts.ts:19-24, the sibling_owned JSDoc, image_generation's summary,
+        # mcp-server.ts's sibling-delegation note all still state the PRE-inversion rule —
+        # est_02's explicit job); the §3.2 CI price-sync guard against a Foundry-published
+        # manifest (est_04, needs Foundry to publish one first); actually deploying this build
+        # (scripts/ship.sh api) — left for the session's own commit/push/watch step, matching
+        # garage doctrine.
 
       - id: "est_02_estate_flag_webapp_exclusion_doctrine"
         description: >

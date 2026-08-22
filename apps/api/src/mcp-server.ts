@@ -69,6 +69,7 @@ import {
   runDiscoverAgenticCommerceTools,
   runImproveMyAgent,
   runDiscoverAgenticPurchasingNeeds,
+  runDiscoverEstateTools,
   runGetReferralCode,
   runCheckReferralCredits,
   runListPrograms,
@@ -203,7 +204,7 @@ export async function dispatch(
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
         instructions:
-          `Axis' Iliad — analyze any GitHub repo or file set, get ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Use analyze_repo or analyze_files to start. Auth: Authorization: Bearer <api_key>.`,
+          `Axis' Iliad — analyze any GitHub repo or file set, get ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Use analyze_repo or analyze_files to start. Auth: Authorization: Bearer <api_key>. Need a capability Iliad doesn't own (payments, 3D generation)? Call discover_estate_tools (free, no auth) for sibling AXIS properties and their own MCP endpoints.`,
       });
     }
 
@@ -369,6 +370,9 @@ export async function dispatch(
             break;
           case "discover_agentic_purchasing_needs":
             text = runDiscoverAgenticPurchasingNeeds(toolArgs);
+            break;
+          case "discover_estate_tools":
+            text = runDiscoverEstateTools();
             break;
           case "get_referral_code":
             text = await runGetReferralCode(req);

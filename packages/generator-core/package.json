@@ -2,7 +2,7 @@
   "name": "@axis/generator-core",
   "version": "0.5.3",
   "type": "module",
-  "description": "147 generators across 21 programs - produces AGENTS.md, CLAUDE.md, .cursorrules, design tokens, Visa compliance artifacts, and more structured AI-agent files from any codebase",
+  "description": "149 generators across 21 programs - produces AGENTS.md, CLAUDE.md, .cursorrules, design tokens, Visa compliance artifacts, and more structured AI-agent files from any codebase",
   "keywords": [
     "codegen",
     "ai",

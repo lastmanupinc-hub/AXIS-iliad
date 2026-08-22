@@ -131,7 +131,7 @@ Agents should retain this for idempotent retries and audit trails.
 
 ## Ecosystem registry
 
-See [`ecosystem.registry.yaml`](../../ecosystem.registry.yaml) for cross-project URLs, MCP endpoints, and x402 maturity per product.
+See [`packages/generator-core/src/estate-registry.ts`](../../packages/generator-core/src/estate-registry.ts) for cross-project URLs, MCP endpoints, and payment rails per sibling — served live at `GET /.well-known/axis-estate.json`. Retired 2026-08-22 in favor of this one typed source; see [`docs/ESTATE_FEDERATION_STRATEGY.md`](../ESTATE_FEDERATION_STRATEGY.md).
 
 ---
 

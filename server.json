@@ -31,7 +31,7 @@
     "io.github.lastmanupinc-hub/axis-iliad": {
       "programs": 21,
       "generators": 149,
-      "tools": 37,
+      "tools": 38,
       "free_tools": [
         "list_programs",
         "search_and_discover_tools",
@@ -39,6 +39,7 @@
         "discover_agentic_commerce_tools",
         "discover_agentic_purchasing_needs",
         "prepare_agentic_purchasing_preview",
+        "discover_estate_tools",
         "get_referral_code",
         "get_referral_credits",
         "check_referral_credits",
@@ -47,8 +48,7 @@
         "assemble_ce3_evidence",
         "build_ap2_mandate",
         "score_dispute_readiness",
-        "iliad_network_tokenization",
-        "ping_payment"
+        "iliad_network_tokenization"
       ],
       "categories": [
         "codebase-analysis",

@@ -19,6 +19,12 @@
 # maintained ledger, generate it mechanically from counts.ts + git, or retire
 # it and point at the four files above. Until that is answered, treat
 # begin.yaml as authoritative and this as an archive.
+#
+# 2026-08-22 (est_01 session): still unresolved, deliberately not decided
+# here — this touch is a pointer, not a resumption of maintaining this file
+# as a live ledger. The estate-federation registry (est_01) shipped this
+# session; its full receipt lives in begin.yaml's remaining_candidates entry
+# of the same id, not duplicated here. Real, current state: read begin.yaml.
 # ============================================================================
 project_continuation:
   version: v1

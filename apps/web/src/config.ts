@@ -70,7 +70,7 @@ export const ARTIFACT_COUNT = 149; // +2 redundancy-sweep.mjs + redundancy-sweep
 export const FREE_FILE_COUNT = 16;
 
 /** Public MCP tools (= MCP_TOOL_COUNT). */
-export const TOOL_COUNT = 37;
+export const TOOL_COUNT = 38;
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
 export const ENDPOINT_COUNT = 168;

@@ -1367,14 +1367,14 @@ export function generateIndexHtml(ctx: ContextMap, _profile: RepoProfile, _files
 // analyzed repo already depends on, so consumers see "you use OpenAI
 // + Stripe + Resend — here's what AXIS-owned equivalents look like."
 
-interface ResellProvider {
+export interface ResellProvider {
   /** Official product name shown to humans. */
   name: string;
   /** Public URL agents can resolve to the homepage. */
   url: string;
 }
 
-interface ResellCapability {
+export interface ResellCapability {
   /** Slug used as the YAML key and as part of the AXIS-branded MCP tool name. */
   id: string;
   /** Human-readable capability name. */
@@ -1434,7 +1434,12 @@ interface ResellCapability {
   };
 }
 
-const RESELL_CAPABILITIES: ResellCapability[] = [
+// Exported (2026-08-22, est_01) so estate-registry.test.ts can guard every
+// `sibling_process` entry against a real ESTATE_REGISTRY row — without this,
+// sibling ownership could drift between this array and the estate registry
+// with nothing to catch it, the same hand-duplicated-catalog shape this
+// repo keeps rediscovering elsewhere.
+export const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "web_research",
     name: "Web scrape (single URL → clean markdown)",
