@@ -174,17 +174,33 @@ function normalizeToolName(toolName: string): string {
 // ─── Sibling-process delegation note ────────────────────────────
 //
 // Image generation (and broader visual asset creation) is deliberately
-// NOT exposed via Iliad. The capability is owned at the AXIS platform
-// level by the AXIS Foundry sibling process — an AI-native 3D resources
-// foundry (avatars + props + vehicles + environments + VFX + weapons/armor
-// + character accessories + 2D images). Foundry has its own MCP surface,
-// its own CanonicalAssetContract provenance system, its own pricing, and
-// its own 12.4k-test regression suite. Agents that need visual generation
-// should call Foundry directly (https://github.com/lastmanupinc-hub/AXIS-Foundry),
-// not look for an iliad_image_generation tool that won't exist.
+// NOT exposed as an Iliad-OWNED capability. The capability is owned at the
+// AXIS platform level by the AXIS Foundry sibling process — an AI-native 3D
+// resources foundry (avatars + props + vehicles + environments + VFX +
+// weapons/armor + character accessories + 2D images). Foundry has its own
+// MCP surface, its own CanonicalAssetContract provenance system, its own
+// pricing, and its own 12.4k-test regression suite. Today, agents that need
+// visual generation should call Foundry directly
+// (https://github.com/lastmanupinc-hub/AXIS-Foundry) — there is still no
+// iliad_image_generation tool, and there never will be one under that name
+// claiming Iliad ownership of the capability.
 //
-// This pattern (sibling delegation) is also how the broader AXIS platform
-// composes: each process stays focused, each ships independently.
+// REVISED 2026-08-22 (est_02, docs/ESTATE_FEDERATION_STRATEGY.md): the OLD
+// version of this note stated, as an absolute, that Iliad never mints a
+// tool for a sibling-owned capability. That is no longer the platform-wide
+// rule. Owner directive: sibling AXIS properties become callable through
+// the Iliad MCP as ESTATE-FLAGGED proxy tools (McpToolCatalogEntry.estate)
+// — a relay Iliad hosts and stays honest about, not a claim of owning the
+// capability. discover_estate_tools (free, no auth) already lists every
+// sibling and its own direct MCP endpoint; a future Foundry proxy for
+// generation work (est_04/05's estate_foundry_generate, tracked separately
+// from this image_generation delegation) would ship under an "estate_"
+// name with the estate flag set, never as a bare "iliad_image_generation"
+// tool pretending to be Iliad-owned. Zero estate-flagged tools exist today.
+//
+// This pattern (sibling delegation, now with an estate-proxy exception) is
+// also how the broader AXIS platform composes: each process stays focused,
+// each ships independently.
 //
 // ─── Catalog-honesty endgame ─────────────────────────────────────
 //

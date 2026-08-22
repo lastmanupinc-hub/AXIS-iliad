@@ -275,7 +275,12 @@ function ToolRegistry({ onOpenConsole }: { onOpenConsole?: (page: PageId) => voi
     setLoading(true);
     setError(null);
     return listMcpTools()
-      .then(setTools)
+      // est_02: this page is the one human surface that reads the live
+      // tools/list response directly (every other human surface derives
+      // from the server-side McpToolCatalogEntry.estate field instead) —
+      // filter off the same _meta.estate marker here, before anything else
+      // (search, expand) ever sees the full set.
+      .then((all) => setTools(all.filter((t) => !t._meta?.estate)))
       .catch((err) => setError(toAsyncError(err, "Failed to load the tool registry")))
       .finally(() => setLoading(false));
   }, []);

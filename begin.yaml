@@ -2139,7 +2139,97 @@ project_begin:
           production_quality_gain 4. STRATEGY.md §4 + §1.2.4.
         severity: HIGH
         source_file: "apps/api/src/mcp-tool-impls.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-22.
+        # OWNER-OVERRIDABLE CALL MADE ON §5.3's OPEN DECISION (recorded in
+        # STRATEGY.md §5 row 3 too): "derived non-estate count", not "N Iliad +
+        # M estate". Reasoning, not a coin flip: showing an estate NUMBER on the
+        # human webapp — even without naming which sibling — would itself be
+        # estate information on the exact surface the owner directive says stays
+        # excluded ("excluded from the Iliad webapp's human-facing pages").
+        # Corroborated by STRATEGY.md's own §4.4 text, written before this
+        # decision was finalized here: "count-honesty.test.ts:130-135 (ForAgentsPage
+        # completeness — becomes non-estate-derived)" already assumed this answer
+        # for one guard. Zero real estate tools exist yet, so non-estate-count ===
+        # MCP_TOOL_COUNT === 38 today — nothing PUBLICLY rendered changes value
+        # until est_03/04 ship a real one; this candidate is the mechanism plus
+        # the formula, proven correct with a synthetic tool since no live one
+        # exists to prove it against.
+        #
+        # MECHANISM: McpToolCatalogEntry gained `estate: boolean`
+        # (mcp-tool-impls.ts) — deriveMcpToolCatalog() now also takes an OPTIONAL
+        # `tools` param (default MCP_TOOLS, 100% backward compatible with every
+        # existing zero-arg call site) purely so tests can prove the derivation
+        # against a synthetic array without needing a real estate tool to exist.
+        # `estate` derives from `_meta?.estate === true` on the raw MCP_TOOLS
+        # definition — nothing sets it yet; mcp-tools.ts documents the convention
+        # for est_03/04's first real users. The `_meta` marker rides `tools/list`
+        # VERBATIM (mcp-server.ts returns `{tools: MCP_TOOLS}` with zero
+        # reshaping, confirmed by reading it, not assumed) so McpPage.tsx — the
+        # one human surface that fetches live and bypasses
+        # deriveMcpToolCatalog() entirely — can filter off the identical marker
+        # client-side (apps/web/src/api.ts's McpToolDefinition gained the
+        # matching `_meta?: {estate?: boolean}` field).
+        #
+        # SIX DERIVED SURFACES (STRATEGY.md §4.1), verified individually rather
+        # than assumed: handleWellKnown/handleCapabilities/handleSkillsIndex/
+        # handleDocsMd/handleForAgents (the JSON API) are ALL agent-facing and
+        # needed ZERO code changes — they already derive from
+        # deriveMcpToolCatalog() uniformly and correctly continue including
+        # estate tools regardless of the flag (only the human webapp excludes).
+        # The two surfaces that DO exclude: ForAgentsPage.tsx's hand-typed `<ul>`
+        # (a documenting comment added; nothing to remove yet) and McpPage.tsx's
+        # live registry (filters at fetch time, before search/expand ever see
+        # the full set).
+        #
+        # DISCOVER_ESTATE_TOOLS ITSELF STAYS estate:false, DELIBERATELY: it is
+        # Iliad's OWN discovery capability ABOUT the estate (self-hosted logic,
+        # zero external calls, vendored data), not a relay INTO one — the same
+        # distinction as list_programs being about Iliad's own programs. It was
+        # already shipped visible on ForAgentsPage.tsx in est_01 and verified by
+        # a passing CI guard; retroactively hiding it now would have been a
+        # regression against already-shipped, already-verified work, not a fix.
+        # A dedicated test pins this exact fact (mcp-estate-flag.test.ts).
+        #
+        # DOCTRINE REWRITE, all four surfaces STRATEGY.md §1.2.4 named, rewritten
+        # to invert the old absolute ("Iliad never mints a tool for a
+        # sibling-owned capability") into the corrected rule ("Iliad may mint an
+        # ESTATE-FLAGGED PROXY — a relay, kept visibly marked, never a claim of
+        # owning the capability") WITHOUT falsifying the surviving specific facts
+        # (image_generation still has zero Iliad-hosted tool of ANY kind today;
+        # any future Foundry proxy would ship under an "estate_" name, never as a
+        # bare "iliad_image_generation" tool): apps/api/src/counts.ts (the
+        # catalog-honesty doctrine paragraph), apps/api/src/mcp-server.ts (the
+        # Sibling-process delegation note), packages/generator-core/src/
+        # generators-artifacts.ts (the `sibling_owned` JSDoc AND the
+        # image_generation entry's own rationale/summary text). Checked first
+        # that no test asserts on the old exact wording (grepped both packages'
+        # test suites) before rewriting, so nothing broke silently.
+        #
+        # ALL FOUR §4.4 GUARDS updated, confirmed none arrived as surprise red
+        # CI: counts-consistency.test.ts:22-24 (MCP_TOOL_COUNT===MCP_TOOLS.length)
+        # — deliberately UNCHANGED, with a new comment explaining why (it checks
+        # the RAW total, correctly unaffected by the estate split); count-honesty
+        # .test.ts's toolClaims sweep (:59-62), ForAgentsPage completeness
+        # (:130-135, now excludes estate tools from the "must be named"
+        # requirement), and the web TOOL_COUNT pin (:263-264) all switched to a
+        # shared `nonEstateToolCount()` helper instead of raw MCP_TOOL_COUNT.
+        #
+        # VERIFIED: 599/599 across mcp-estate-flag.test.ts (7 new — synthetic
+        # derivation proof, the real catalog's zero-estate-tools invariant,
+        # discover_estate_tools's own estate:false pin), McpPage.test.tsx (2 new
+        # — excludes a synthetic estate-flagged tool from list+count, confirms a
+        # non-estate tool with/without `_meta` still renders), plus
+        # count-honesty/counts-consistency/well-known-handlers/mcp-server/
+        # mcp-commerce-tools/prepare-purchasing/agent-discovery/
+        # count-surface-coverage/launch-claims/strategic-docs-honesty/
+        # estate-registry re-run clean. tsc clean on apps/api + apps/web. CLI
+        # self-contained bundle unchanged at 84 modules (generators-artifacts.ts
+        # prose-only changes don't touch the zero-dep bundle graph).
+        #
+        # NOT DONE, deliberately, not this candidate's own claim: est_03's
+        # PLANNED_CAPABILITIES estate stubs (the first real `_meta.estate: true`
+        # user) and est_04's Foundry proxies — this candidate builds the
+        # mechanism both depend on, sets zero tools live on it.
 
       - id: "est_03_planned_capability_estate_stubs"
         description: >

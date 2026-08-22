@@ -189,6 +189,15 @@ export function ForAgentsPage() {
       </div>
 
       <div className="card">
+        {/*
+          est_02 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md §4): TOOL_COUNT
+          is now the derived NON-ESTATE count (apps/web/src/config.ts), and this
+          list must name every non-estate tool but NEVER an estate-flagged one
+          (count-honesty.test.ts's ForAgentsPage guard checks exactly that, both
+          directions). Zero estate tools exist today — when est_03/04 ship the
+          first one, it does NOT get added here; it stays agent-only, discoverable
+          via discover_estate_tools / GET /.well-known/axis-estate.json instead.
+        */}
         <h2>Your {TOOL_COUNT} MCP Tools (all available at /mcp)</h2>
         <ul>
           <li>analyze_repo, analyze_files</li>

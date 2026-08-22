@@ -48,6 +48,20 @@ function toolAnnotations(title: string, readOnly: boolean, idempotent: boolean, 
   };
 }
 
+// est_02 (2026-08-22): a tool that relays to a sibling AXIS property (PAI'D,
+// Foundry, Launch, TrustFabric) — as opposed to an Iliad-owned capability —
+// carries `_meta: { estate: true }` directly on its MCP_TOOLS definition
+// below, alongside `annotations`. `tools/list` returns MCP_TOOLS verbatim
+// (mcp-server.ts), so this rides the wire exactly as-is to every MCP
+// client, including McpPage.tsx's live tools/list fetch — the one human
+// surface that bypasses deriveMcpToolCatalog()'s McpToolCatalogEntry.estate
+// derivation entirely and must filter off this same marker instead
+// (docs/ESTATE_FEDERATION_STRATEGY.md §4). Every REST discovery surface
+// (axis.json, capabilities.json, llms.txt, /for-agents JSON) is agent-facing
+// and includes estate tools regardless of the flag; only the human webapp
+// excludes them. No tool below sets this yet — est_03's PLANNED_CAPABILITIES
+// estate stubs and est_04's Foundry proxies are the first real users.
+
 const ARTIFACT_ENTRY_SCHEMA = {
   type: "object",
   properties: {

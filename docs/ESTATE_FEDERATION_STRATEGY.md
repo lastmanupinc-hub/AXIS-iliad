@@ -416,7 +416,7 @@ as untrusted — rather than splicing sibling text bare into `toolOk`.
 |---|---|---|
 | 1 | **TrustFabric naming + definition**: directive says tf.trustfabric.ai (NXDOMAIN); registry says tf.jonathanarvay.com (resolves) + paid.trustfabric.ai (also under `paid` — data quirk). Which is canonical, and what is the property? | est_08 |
 | 2 | Margin policy on Foundry proxies (proposal: cost+10%, whole cents) | est_04 pricing |
-| 3 | Count-copy semantics: "N Iliad + M estate" vs. derived non-estate count (full guard consequences in §4.4) | est_02 |
+| 3 | ~~Count-copy semantics~~ **DECIDED 2026-08-22, in est_02 itself** (owner-overridable): derived non-estate count, not "N Iliad + M estate" — the human webapp's TOOL_COUNT excludes estate tools entirely rather than disclosing a count of them, since surfacing ANY estate number on the excluded surface is in tension with "excluded from the webapp" (§Interpretation). All four §4.4 guards updated to match. | ~~est_02~~ resolved |
 | 4 | safebrowse.io categorization check for jonathanarvay.com | Crawlability of half the estate |
 | 5 | ~~PAI'D exposable-surface decision~~ **ANSWERED 2026-08-22** (§2c: three read tools now; execute_payment on their COH-009 trigger; top-up/checkout struck) | ~~est_06~~ resolved |
 | 6 | Which wallet Iliad uses to pay Foundry (custody design proceeds regardless, §3.5) | est_04 execution |

@@ -283,6 +283,44 @@ describe("McpPage — tool registry (acceptance: tool count/list come from the A
 
     expect(screen.queryByText(/Try .* in the browser/)).toBeNull();
   });
+
+  // est_02 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md §4): this page is
+  // the one human surface that reads the live tools/list response directly,
+  // bypassing the server-side McpToolCatalogEntry.estate derivation every
+  // other human/agent surface uses — so it must filter off the same
+  // `_meta.estate` marker itself. No live tool sets this flag yet; this test
+  // proves the mechanism with a synthetic fixture tool.
+  it("excludes an estate-flagged tool (_meta.estate) from the list and the count", async () => {
+    const ESTATE_TOOL = {
+      name: "estate_foundry_generate",
+      description: "A synthetic estate-flagged tool for this test only.",
+      inputSchema: { type: "object", properties: {} },
+      annotations: { title: "Estate Foundry Generate", readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+      _meta: { estate: true },
+    };
+    stubFetch([...DEFAULT_HANDLERS.filter(([m]) => m !== "/mcp"), ["/mcp", toolsListResponse([...TOOLS, ESTATE_TOOL])]]);
+    render(<McpPage onNavigate={noop} />);
+
+    await waitFor(() => expect(screen.getByText("3 tools")).toBeTruthy());
+    expect(screen.queryByText("estate_foundry_generate")).toBeNull();
+    // The three real, non-estate fixture tools still render normally.
+    expect(screen.getByText("list_programs")).toBeTruthy();
+    expect(screen.getByText("get_snapshot")).toBeTruthy();
+    expect(screen.getByText("iliad_web_research")).toBeTruthy();
+  });
+
+  it("a non-estate tool (no _meta, or _meta.estate: false) still renders normally", async () => {
+    // Guards the other direction: adding the _meta.estate filter must not
+    // accidentally hide tools that were never estate-flagged in the first
+    // place, whether they carry no _meta at all (the real MCP_TOOLS shape
+    // today) or an explicit `estate: false`.
+    const EXPLICIT_NON_ESTATE = { ...TOOLS[0], name: "explicit_non_estate_tool", _meta: { estate: false } };
+    stubFetch([...DEFAULT_HANDLERS.filter(([m]) => m !== "/mcp"), ["/mcp", toolsListResponse([...TOOLS, EXPLICIT_NON_ESTATE])]]);
+    render(<McpPage onNavigate={noop} />);
+
+    await waitFor(() => expect(screen.getByText("4 tools")).toBeTruthy());
+    expect(screen.getByText("explicit_non_estate_tool")).toBeTruthy();
+  });
 });
 
 describe("McpPage — program & generator capability search", () => {

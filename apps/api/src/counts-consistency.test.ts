@@ -20,6 +20,11 @@ describe("counts.ts consistency", () => {
   });
 
   it("MCP_TOOL_COUNT equals the live MCP_TOOLS array length", () => {
+    // est_02: deliberately unchanged by the estate split — MCP_TOOL_COUNT is
+    // "how many tools total" (agent-facing catalog honesty is build-not-redact
+    // regardless of estate status), not "how many Iliad-owned tools". The
+    // NON-estate count (what the human webapp's TOOL_COUNT shows) is a
+    // separate, derived value — see count-honesty.test.ts's nonEstateToolCount().
     expect(MCP_TOOL_COUNT).toBe(MCP_TOOLS.length);
   });
 

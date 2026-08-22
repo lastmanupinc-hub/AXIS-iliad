@@ -1142,6 +1142,14 @@ export interface McpToolDefinition {
   outputSchema?: Record<string, unknown>;
   annotations?: McpToolAnnotations;
   examples?: McpToolExample[];
+  /**
+   * est_02: present with `estate: true` only on a tool that relays to a
+   * sibling AXIS property. Rides the raw `tools/list` response verbatim —
+   * McpPage.tsx is the one human surface that reads this directly (every
+   * other human surface derives from the server-side McpToolCatalogEntry.estate
+   * field instead). No live tool sets this yet.
+   */
+  _meta?: { estate?: boolean };
 }
 
 let mcpRpcId = 0;

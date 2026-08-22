@@ -55,11 +55,23 @@ function docs(): Array<{ name: string; text: string }> {
   return out;
 }
 
+// est_02 (2026-08-22): the derived non-estate count — what apps/web/src/config.ts's
+// TOOL_COUNT (and every web-copy "{TOOL_COUNT} MCP Tools" rendering of it) is
+// SUPPOSED to equal now that estate-flagged tools exist as a concept, per
+// docs/ESTATE_FEDERATION_STRATEGY.md §4.4/§5.3's "derived non-estate count"
+// resolution. Zero MCP_TOOLS entries carry `_meta.estate` yet, so this equals
+// MCP_TOOL_COUNT today — the guards below are correct now AND once a real
+// estate tool exists, not just now.
+function nonEstateToolCount(): number {
+  return deriveMcpToolCatalog().filter((t) => !t.estate).length;
+}
+
 describe("count honesty — docs/UI match the code (A4)", () => {
-  it("every advertised MCP/public tool count equals MCP_TOOL_COUNT", () => {
+  it("every advertised MCP/public tool count equals the non-estate tool count (what web copy actually renders)", () => {
+    const expected = nonEstateToolCount();
     const bad: string[] = [];
     for (const { name, text } of docs()) {
-      for (const n of toolClaims(visible(text))) if (n !== MCP_TOOL_COUNT) bad.push(`${name}: ${n} (expected ${MCP_TOOL_COUNT})`);
+      for (const n of toolClaims(visible(text))) if (n !== expected) bad.push(`${name}: ${n} (expected ${expected})`);
     }
     expect(bad).toEqual([]);
   });
@@ -127,10 +139,14 @@ describe("count honesty — docs/UI match the code (A4)", () => {
     expect(missing, `README.md's free-tools line is missing: ${missing.join(", ")}`).toEqual([]);
   });
 
-  it("ForAgentsPage.tsx's tool list names every one of the real MCP tools", () => {
+  it("ForAgentsPage.tsx's tool list names every one of the real NON-ESTATE MCP tools", () => {
+    // est_02: this page is the human webapp's tool list — the owner directive
+    // excludes estate tools from it specifically, so completeness is judged
+    // against the non-estate subset, not the full catalog. An estate tool
+    // being ABSENT here is correct, not a gap.
     const page = docs().find((d) => d.name === "apps/web/src/pages/ForAgentsPage.tsx")!.text;
-    const all = deriveMcpToolCatalog();
-    const missing = all.filter((t) => !page.includes(t.name)).map((t) => t.name);
+    const nonEstate = deriveMcpToolCatalog().filter((t) => !t.estate);
+    const missing = nonEstate.filter((t) => !page.includes(t.name)).map((t) => t.name);
     expect(missing, `ForAgentsPage.tsx's tool list is missing: ${missing.join(", ")}`).toEqual([]);
   });
 });
@@ -260,8 +276,8 @@ describe("web config.ts is the single source and matches the code (WO-F5)", () =
     expect(webConfigConst("ARTIFACT_COUNT")).toBe(TOTAL_GENERATORS);
   });
 
-  it("web TOOL_COUNT equals MCP_TOOL_COUNT", () => {
-    expect(webConfigConst("TOOL_COUNT")).toBe(MCP_TOOL_COUNT);
+  it("web TOOL_COUNT equals the non-estate tool count (est_02 — derived-non-estate-count semantics, STRATEGY.md §5.3)", () => {
+    expect(webConfigConst("TOOL_COUNT")).toBe(nonEstateToolCount());
   });
 
   it("web ENDPOINT_COUNT equals ENDPOINT_COUNT", () => {

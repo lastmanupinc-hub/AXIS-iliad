@@ -1391,8 +1391,19 @@ export interface ResellCapability {
    *   - `owned`          — AXIS-owned implementation shipped inside Iliad.
    *   - `sibling_owned`  — AXIS platform owns it, but in a sibling process
    *                        (e.g. AXIS Foundry for 3D / image generation). Iliad
-   *                        does NOT expose an MCP tool for it; agents are
+   *                        does NOT expose an OWNED MCP tool for it; agents are
    *                        directed to the sibling process via `sibling_process`.
+   *                        REVISED 2026-08-22 (est_02): this is a resell/
+   *                        third-party-provider status, distinct from the
+   *                        estate-federation mechanism (packages/generator-core/
+   *                        src/estate-registry.ts, apps/api/src/mcp-tool-impls.ts's
+   *                        McpToolCatalogEntry.estate) — Iliad MAY mint an
+   *                        estate-FLAGGED proxy tool for a sibling AXIS
+   *                        property (a relay, kept visibly marked, never a
+   *                        claim of owning the capability). `sibling_owned`
+   *                        itself is unaffected: it still means no Iliad-
+   *                        OWNED tool for this capability today. See
+   *                        docs/ESTATE_FEDERATION_STRATEGY.md.
    */
   status: "live_proxy" | "planned_proxy" | "planned_owned" | "owned" | "sibling_owned";
   /**
@@ -1605,14 +1616,18 @@ export const RESELL_CAPABILITIES: ResellCapability[] = [
       rationale:
         "Generative visual assets are owned by AXIS Foundry — an AI-native 3D resources foundry " +
         "(avatars, props, vehicles, environments, VFX, weapons/armor) with its own canonical contract " +
-        "system, 17-stage production pipeline, and marketplace integration. Iliad intentionally does " +
-        "NOT mint an iliad_image_generation tool because the platform-level capability is delivered by " +
-        "the Foundry sibling process — agents that need visual generation should call Foundry directly.",
+        "system, 17-stage production pipeline, and marketplace integration. Iliad does NOT mint an " +
+        "iliad_image_generation tool claiming to OWN this capability — that fact is unchanged. What " +
+        "changed 2026-08-22 (est_02): Iliad MAY mint an estate-flagged PROXY tool that relays to " +
+        "Foundry (est_04/05's estate_foundry_generate, under an \"estate_\" name with the estate flag " +
+        "set, never presented as Iliad-owned) — today, zero such proxies exist; call Foundry directly, " +
+        "or discover it via the free discover_estate_tools MCP tool.",
     },
     summary:
       "Generative visual asset creation. Owned at the platform level by AXIS Foundry (3D-first: " +
       "avatars + props + vehicles + environments + VFX + weapons/armor; 2D images follow). Not " +
-      "exposed via Iliad MCP — call Foundry directly.",
+      "exposed as an Iliad-OWNED MCP tool — call Foundry directly, or discover it via Iliad's free " +
+      "discover_estate_tools tool (an estate-flagged Foundry proxy is possible future work, not owned capability).",
     providers: [
       { name: "AXIS Foundry (sibling process)", url: "https://github.com/lastmanupinc-hub/AXIS-Foundry" },
       { name: "Replicate (external fallback)", url: "https://replicate.com" },

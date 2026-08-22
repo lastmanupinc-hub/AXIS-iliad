@@ -17,11 +17,25 @@
  * else — including the MCP transport surface and the portal bridge — counts.
  *
  * Catalog honesty under the revised policy is build-not-redact: every
- * tool we advertise in tools/list also appears in MCP_TOOL_COUNT. The
- * count drops when a capability is delegated to a sibling AXIS process
- * (e.g. image_generation → AXIS Foundry) — Iliad does not mint a tool
- * for capabilities it doesn't own. It stays flat when a planned-stub is
- * promoted to an owned implementation.
+ * tool we advertise in tools/list also appears in MCP_TOOL_COUNT. It stays
+ * flat when a planned-stub is promoted to an owned implementation.
+ *
+ * ESTATE DOCTRINE (revised 2026-08-22, est_02 — see
+ * docs/ESTATE_FEDERATION_STRATEGY.md): this comment used to say, as an
+ * absolute rule, "the count drops when a capability is delegated to a
+ * sibling AXIS process — Iliad does not mint a tool for capabilities it
+ * doesn't own." That is no longer universally true. Owner directive:
+ * sibling AXIS properties (PAI'D, Foundry, Launch, TrustFabric) become
+ * callable through the Iliad MCP as ESTATE-FLAGGED proxy tools
+ * (McpToolCatalogEntry.estate, apps/api/src/mcp-tool-impls.ts) — Iliad
+ * mints the tool, but it stays visibly marked as a relay to a sibling
+ * rather than a claim of owned capability, and it counts toward
+ * MCP_TOOL_COUNT like any other real tool (catalog honesty applies
+ * regardless of who ultimately serves the call). image_generation → AXIS
+ * Foundry is STILL true as a concrete example today (zero estate-flagged
+ * tools exist yet — est_02 wires the mechanism; est_03/04/05 build the
+ * first stubs and proxies), but is no longer stated as a platform-wide
+ * absolute.
  */
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 

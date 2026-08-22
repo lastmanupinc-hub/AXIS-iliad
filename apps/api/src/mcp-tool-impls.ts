@@ -2376,6 +2376,28 @@ export interface McpToolCatalogEntry {
   description: string;
   auth_required: boolean;
   pricing: string;
+  /**
+   * est_02 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md §4): true only for
+   * a tool that relays to a sibling AXIS property (PAI'D, Foundry, Launch,
+   * TrustFabric) rather than an Iliad-owned capability. Set on the raw
+   * MCP_TOOLS definition via `_meta: { estate: true }` (rides the `tools/list`
+   * wire response verbatim so McpPage.tsx — which bypasses this derived
+   * catalog entirely — can filter client-side off the same marker). Every
+   * OTHER surface (axis.json, capabilities.json, llms.txt, /for-agents JSON,
+   * MCP initialize) is agent-facing and includes estate tools regardless of
+   * this flag; only the human webapp (ForAgentsPage.tsx's hand-typed list,
+   * McpPage.tsx's live registry) excludes them. Zero MCP_TOOLS entries carry
+   * `_meta.estate` today — this is the mechanism est_03's stubs and est_04's
+   * Foundry proxies wire into, not a flag anything currently sets.
+   */
+  estate: boolean;
+}
+
+/** Minimal shape deriveMcpToolCatalog() needs from a tool entry — matches MCP_TOOLS's inferred element type. */
+interface McpToolLike {
+  name: string;
+  description: string;
+  _meta?: { estate?: boolean };
 }
 
 // H-Phase-A cycle 8: GET /for-agents (handlers.ts's handleForAgents) hand-
@@ -2389,8 +2411,12 @@ export interface McpToolCatalogEntry {
 // handleForAgents can derive its OWN full-catalog entries from the same
 // real source instead of re-declaring them, without disturbing this
 // function's own richer, deterministic full response shape.
-export function deriveMcpToolCatalog(): McpToolCatalogEntry[] {
-  return MCP_TOOLS.map(t => {
+//
+// `tools` defaults to the real MCP_TOOLS and is only ever overridden in
+// tests (est_02) — production call sites all use the zero-arg form, so this
+// stays fully backward compatible.
+export function deriveMcpToolCatalog(tools: readonly McpToolLike[] = MCP_TOOLS): McpToolCatalogEntry[] {
+  return tools.map(t => {
     const free = FREE_TOOL_NAMES.has(t.name);
     // Real per-tool price for tools METERED_MCP_TOOLS confirms are actually
     // charged at runtime — NOT just "has a PRICING_TIERS row" (that object also
@@ -2410,6 +2436,7 @@ export function deriveMcpToolCatalog(): McpToolCatalogEntry[] {
         : tier
           ? `$${(tier.standard_cents / 100).toFixed(2)}/call`
           : "included in plan",
+      estate: t._meta?.estate === true,
     };
   });
 }
