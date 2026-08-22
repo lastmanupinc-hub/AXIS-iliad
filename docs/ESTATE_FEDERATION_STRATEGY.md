@@ -376,6 +376,19 @@ as untrusted — rather than splicing sibling text bare into `toolOk`.
 1. `estate: boolean` on `McpToolCatalogEntry` (`mcp-tool-impls.ts:2371-2376`)
    + an `_meta` estate marker on the tool definitions (riding `tools/list` to
    `McpPage.tsx`, which bypasses the catalog).
+   The flag gates **six** surfaces from that one place (confirmed by a
+   follow-up repo-wide sweep): `handleWellKnown:2781`,
+   `handleCapabilities:3055`, `handleSkillsIndex:3348` (the
+   `/.well-known/{skills,agent-skills}/index.json` axis-mcp skill — full
+   derived catalog), `handleDocsMd:3432` (`/v1/docs.md` — every tool name,
+   derived), `handleForAgents:3617+3776`, and the count-honesty tests
+   policing README + ForAgentsPage. All agent-facing among them inherit
+   estate entries with **zero manual edits**. Exactly two surfaces bypass
+   the catalog and need their own handling: `llms.txt` (`handlers.ts:3089`
+   reads `MCP_TOOLS` directly — agent-facing, so estate tools flow there
+   anyway; no exclusion needed, just know the mechanism differs) and
+   `McpPage.tsx:277` (live `tools/list` → the `_meta` marker + client
+   filter above).
 2. Human surfaces filter; agent surfaces keep everything.
 3. Guards pin the split **both directions** (present in agent surfaces,
    absent from human surfaces) — derived from the flag, never a hand-list.
