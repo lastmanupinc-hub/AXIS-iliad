@@ -154,8 +154,20 @@ project_begin:
           from_repo: axis_launch
           from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
           submitted: "2026-08-10"
-          status: in_progress   # TRIAGED 2026-08-19 per triage_policy.on_new_inbox_ticket
+          status: confirmed   # CONFIRMED 2026-08-22 -- ext_02 fully shipped: real wrangler deploy executed and verified
+          confirmed: "2026-08-22"
           assigned_candidate_id: ext_02_agent_readiness_axis_storefront
+          evidence: >
+            axis-iliad @ 31bfe68 (pushed + deployed). Real `scripts/ship.sh storefront` run: 21
+            pages + 21 favicons built fresh, local verify passed (robots.txt Content-Signal + all
+            21 llms.txt/index.html/favicon entries present), real `wrangler pages deploy` (46
+            files), confirmed live via direct curl of
+            https://axis-storefront.pages.dev/robots.txt (real content read back, not just the
+            deploy command's exit code). Still the PREVIEW project, not the 21
+            *.trustfabric.ai subdomains -- DNS cutover for those remains owner-gated
+            (browser-only Cloudflare step, unchanged from spoke_05's original finding). The
+            missing-CI-gate finding (this ticket's separate, higher-value recon result) was
+            already closed 2026-08-19 by adding the `storefront` verb to scripts/ship.sh itself.
           severity: normal
           title: "axis-storefront (21 *.trustfabric.ai product subdomains) has none of the Cloudflare Agent Readiness checklist yet"
           request: >
@@ -1788,7 +1800,7 @@ project_begin:
           generator.
         severity: MEDIUM
         source_file: "scripts/build-storefront.mjs"
-        completion_status: in_progress  # 2026-08-19: robots.txt (Content-Signal directive) + llms.txt
+        completion_status: complete  # 2026-08-19: robots.txt (Content-Signal directive) + llms.txt
         # (one global file, real product data — never hand-written blurbs) generators added to
         # generators-storefront.ts, exported from generator-core's index.ts, wired into
         # build-storefront.mjs right after the per-product page loop. Both reuse priceLine()/
@@ -1816,6 +1828,19 @@ project_begin:
         # against the real Cloudflare Pages project" is UNMET until a human (or a future session,
         # once clear) runs `scripts/ship.sh storefront` for real. api-catalog (RFC 9727) decision
         # from the sibling axis-web ticket (ext_01) not addressed here — separate candidate.
+        #
+        # FINISHED 2026-08-22: ran `scripts/ship.sh storefront` for real, no collision risk left
+        # (the concurrent session, axis-toolbox-f9, confirmed it's staying out of apps/web/
+        # storefront entirely). Real build (21 pages + 21 favicons, generator-core rebuilt fresh),
+        # real local verify (robots.txt Content-Signal + all 21 llms.txt/index.html/favicon entries
+        # present), real `wrangler pages deploy` — 46 files (2 new + 44 already-cached from the
+        # 2026-08-19 dry-run), deployment complete. Acceptance criterion now MET, verified two ways:
+        # the CLI's own success output (deployment URL + alias), and a direct
+        # `curl https://axis-storefront.pages.dev/robots.txt` reading back real, live content
+        # (not just trusting the deploy command's exit code). Still on the PREVIEW project
+        # (axis-storefront.pages.dev), not the 21 live *.trustfabric.ai subdomains — DNS cutover
+        # for those remains owner-gated (browser-only Cloudflare step), unchanged from spoke_05's
+        # original finding.
 
       # ── OWNER-DIRECTED, 2026-08-20 ─────────────────────────────────────────
       - id: "tool_01_redundancy_sweep"
