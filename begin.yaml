@@ -484,6 +484,44 @@ project_begin:
           blocks: "Live payment fulfilment. If any of the four was a completed checkout, money was taken and no tier granted."
           owner_action_required: "Set PAID_WEBHOOK_SIGNING_KEY in Render (srv-d7c2hi28qa3s738ouftg) once PAI'D supplies the value — cannot be invented locally, it must match what they sign with."
           filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
+        - id: TICKET-AXIS_TOOLBOX-estate-federation-20260822
+          to_repo: axis_foundry
+          from_repo: axis_toolbox
+          from_agent_session: "sonnet5-estate-federation-2026-08-22"
+          submitted: "2026-08-22"
+          status: submitted
+          severity: normal
+          title: "Estate federation: Iliad proxying Foundry's MCP tools — idempotent submission first, price manifest, s2s auth, constrained URL inputs, registry publication, cross-link"
+          summary: >
+            Asked Foundry to bless Iliad-charges-and-calls proxying of their 12 paid
+            MCP tools (settling Iliad->Foundry via PAI'D). Priority ask: idempotent
+            submission + job-lookup-by-client-reference for the generate pair — their
+            gateway has zero dedup today, so a retried ambiguous submission is a second
+            GPU job and second USDC settlement; est_05 Wave 3 does not ship until this
+            exists. Also: machine-readable price manifest (cross-repo price-drift
+            guard), server-to-server auth + rate-limit expectations, estate-R2-only
+            constraint on any URL-input feature (SSRF), MCP registry publication per
+            their runbook, axis-estate.json cross-link.
+          blocks: "est_04 (auth answer), est_05 Wave 3 (idempotency), the §3.2 price-sync guard (manifest)."
+          filed_at: "AXIS Avatar Foundry/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
+        - id: TICKET-AXIS_TOOLBOX-agent-surface-20260822
+          to_repo: paid
+          from_repo: axis_toolbox
+          from_agent_session: "sonnet5-estate-federation-2026-08-22"
+          submitted: "2026-08-22"
+          status: submitted
+          severity: normal
+          title: "Estate federation: PAI'D's agent-exposable surface decision + two discovery facts (does their mcp_url exist; SPA fake-200s on .well-known paths)"
+          summary: >
+            Asked PAI'D which buyer-side functions (possibly none) they bless as
+            agent-callable — merchant-side explicitly acknowledged as counsel-gated and
+            excluded regardless of their answer; whether
+            api.paid.jonathanarvay.com/v1/mcp (claimed by ecosystem.registry.yaml:41,
+            never verified) exists; and an agent-readiness kit for
+            paid.trustfabric.ai, whose SPA catch-all serves fake 200 HTML on every
+            .well-known path (verified live 2026-08-22 — worse than 404s for crawlers).
+          blocks: "est_06 entirely; the estate registry's paid entry ships status: unverified until answered."
+          filed_at: "payment processing/begin.yaml#project_begin.inter_repo_ticket_system.inbox.tickets"
       archived_tickets: []
 
     triage_policy:
@@ -1610,7 +1648,48 @@ project_begin:
           scored external checklist on the account's most agent-ready surface.
         severity: LOW
         source_file: "apps/web/public/robots.txt"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-21.
+        # FOUND A BIGGER BUG THAN THE STATED SCOPE WHILE FIXING GAP-FILL (1): apps/web/public/robots.txt
+        # (the rich, hand-authored file — agent-specific crawl directives, x402 pricing, /for-agents
+        # link) had NEVER actually been served in production. apps/web/src/plugins/axis-seo/vitePlugin.ts
+        # (a vendored build-time SEO plugin) unconditionally emitFile()'d its OWN hardcoded 4-line
+        # robots.txt on every build, and Vite copies `publicDir` into the output directory BEFORE this
+        # plugin's emitted assets are written — confirmed empirically (a diagnostic build logged
+        # Object.keys(bundle) at generateBundle time: robots.txt was absent from it) and confirmed LIVE
+        # (curl https://iliad.trustfabric.ai/robots.txt returned the plugin's minimal fallback, not the
+        # real file) BEFORE touching any code, not assumed from reading source alone. Fixed with a new,
+        # independent `emitRobotsTxt` option (default true, for back-compat with any other consumer of
+        # this vendored plugin) — apps/web/vite.config.ts sets it false since its own public/robots.txt
+        # is the real one; sitemap.xml is unaffected (no public/sitemap.xml exists, no conflict there).
+        # RED-PROVEN: reverted the vite.config.ts flag, ran the real end-to-end build test, watched it
+        # fail with the EXACT diff (plugin's 4-line fallback vs the real 26-line file), restored, ran
+        # green again. Verified at two levels: unit tests calling generateBundle directly with a mocked
+        # Rollup `this`, AND a real `vite build()` of apps/web's actual vite.config.ts with the real
+        # dist/robots.txt read back and compared byte-for-byte against public/robots.txt.
+        #
+        # Gap-fill (1) itself: added `Content-Signal: search=yes, ai-train=yes, ai-input=yes` to the
+        # now-actually-served apps/web/public/robots.txt, matching the identical directive already
+        # shipped for the storefront's robots.txt (generateStorefrontRobots, spoke_05b) — one convention
+        # across both surfaces, not two hand-typed copies that could drift.
+        #
+        # Gap-fill (2): /.well-known/agent-skills/index.json added as a second route to the SAME
+        # handleSkillsIndex handler already serving /.well-known/skills/index.json (apps/api/src/
+        # server.ts) — an alias, not a move, since the original path has real existing consumers
+        # (llms.txt itself links to it). Test asserts both paths return byte-identical status+body from
+        # one handler, not two copies that could drift apart.
+        #
+        # Lower-priority item, investigated and RECORDED AS A GENUINE GAP, not silently claimed closed:
+        # /.well-known/capabilities.json (handleCapabilities) is a single semantic-capability manifest
+        # describing THIS service's OWN tools/features — a different document shape from RFC 9727's
+        # /.well-known/api-catalog, which is a Linkset (RFC 9264)-based enumeration of the APIs available
+        # at a host, each tagged rel="service-desc". These answer different questions ("what can this
+        # one capability set do" vs. "what APIs exist here") and one does not substitute for the other.
+        # Building a real RFC 9727-compliant api-catalog endpoint is a genuine, separate, nontrivial
+        # feature (not a quick alias like gap-fill 2) — not attempted here, consistent with the
+        # candidate's own "lower-priority" framing and its explicit "confirm... or record" instruction.
+        #
+        # 7 new tests (vitePlugin.test.ts: 5 unit + 1 real end-to-end build check; agent-discovery.test.ts:
+        # 1 alias-equivalence check). tsc clean (apps/web + apps/api), eslint clean.
 
       - id: "ext_02_agent_readiness_axis_storefront"
         description: >
@@ -1811,6 +1890,181 @@ project_begin:
         # cannot see. Neither subsumes the other. Coordinated live with that session throughout
         # (SendMessage) to avoid file/ledger collisions in the shared working directory — the
         # exact risk this repo's own session already hit once with a different peer.
+
+      # ── ESTATE FEDERATION CANDIDATES, owner-directed 2026-08-22 ─────────
+      # Source: owner directive ("all estate applications accessible through the
+      # Iliad MCP, excluded from the Iliad webapp, fully usable and crawlable by
+      # AI agents"). Strategy of record: docs/ESTATE_FEDERATION_STRATEGY.md —
+      # written and ADVERSARIALLY VERIFIED same day (3-lens workflow; citation
+      # audit + estate-law consistency + completeness critic; all confirmed
+      # findings incorporated). Read it before executing any est_* candidate;
+      # candidate descriptions below are pointers, not the spec.
+      # Tickets TICKET-AXIS_TOOLBOX-estate-federation-20260822 (Foundry) and
+      # TICKET-AXIS_TOOLBOX-agent-surface-20260822 (PAI'D) are FILED (see
+      # outbox above) — do not re-file.
+
+      - id: "est_01_estate_registry_and_discovery"
+        description: >
+          Estate registry as one typed source of truth:
+          packages/generator-core/src/estate-registry.ts (beside
+          product-registry.ts — NOT apps/api, the RESELL_CAPABILITIES
+          sibling_process entries live upstream in generator-core and must be
+          guard-tested against it). Schema incl. schema_version, vendored
+          per-tool price snapshots + tools_source sync metadata, health slot.
+          Served at /.well-known/axis-estate.json (versioned, additive-only,
+          cached); new FREE no-auth MCP tool discover_estate_tools; estate
+          blocks folded into axis.json/llms.txt/for-agents/capabilities.json +
+          one initialize sentence. Fix ecosystem.registry.yaml's false header
+          (generate it from the module or retire it, updating README.md:19,
+          docs/x402/CONTRACT.md:134, docs/x402/STRATEGY.md:167, .cursorrules:107).
+          Free-tool count cascade applies (11-file recipe).
+        roi_score: 93
+        roi_reason: >
+          portfolio_leverage_multiplier 6 (gates every other est_* candidate
+          AND every future property — one registry row each),
+          agent_acquisition_gain 5, canonical_coherence_gain 5 (kills a
+          documented false claim + collapses four sibling-ownership surfaces
+          to one source), blocker_removal 5. STRATEGY.md §Layer 1.
+        severity: HIGH
+        source_file: "packages/generator-core/src/estate-registry.ts"
+        completion_status: open
+
+      - id: "est_02_estate_flag_webapp_exclusion_doctrine"
+        description: >
+          estate flag on McpToolCatalogEntry + _meta marker riding tools/list;
+          human surfaces (McpPage, ForAgentsPage) filter, agent surfaces keep;
+          guards pin the split BOTH directions. ALL FOUR count guards named in
+          STRATEGY.md §4.4 (counts-consistency:22-24, count-honesty:130-135,
+          :263-264 TOOL_COUNT pin, :59-62 toolClaims sweep) — none may arrive
+          as surprise red CI. PLUS the doctrine rewrite: counts.ts:19-24, the
+          sibling_owned JSDoc, the image_generation entry summary, and
+          mcp-server.ts:175-183 all currently state Iliad never mints tools
+          for sibling-owned capabilities — this directive inverts that; all
+          four surfaces get rewritten or they become stale-comment drift.
+          Count-copy semantics decision is the owner's (§5.3).
+        roi_score: 88
+        roi_reason: >
+          blocker_removal 5 (gates est_03; the exclusion IS the owner's
+          explicit ask), canonical_coherence_gain 5 (doctrine surfaces),
+          production_quality_gain 4. STRATEGY.md §4 + §1.2.4.
+        severity: HIGH
+        source_file: "apps/api/src/mcp-tool-impls.ts"
+        completion_status: open
+
+      - id: "est_03_planned_capability_estate_stubs"
+        description: >
+          Repopulate the empty PLANNED_CAPABILITIES machinery
+          (mcp-tools.ts:27-32, dispatcher default-case envelope at
+          mcp-server.ts:445-453) with estate stubs whose envelopes carry each
+          sibling's DIRECT MCP endpoint + pricing — honest machine-actionable
+          redirects before any proxy ships. Stubs are MCP_TOOLS members: full
+          count cascade applies. DEPENDS ON est_02 — without the exclusion
+          flag, count-honesty:130-135 forces every stub name onto the human
+          ForAgentsPage, the exact page the owner excluded them from.
+        roi_score: 84
+        roi_reason: >
+          agent_acquisition_gain 4, implementation_cost -1 (machinery already
+          typed+wired, zero new dispatch logic), immediate value while
+          est_04/05 wait on the Foundry ticket. STRATEGY.md §2a.
+        severity: MEDIUM
+        source_file: "apps/api/src/mcp-tools.ts"
+        completion_status: open
+
+      - id: "est_04_foundry_wave1_proxies"
+        description: >
+          Foundry Wave-1 synchronous proxies (axis_validate, axis_inspect,
+          roblox_compliance_check, axis_compare, axis_manifest_verify;
+          $0.10-0.25 base + owner margin §5.2) on the iliad_transactional_email
+          template: authorize -> external call w/ AbortController -> capture on
+          success, NEVER combined metering (mcp-runtime.ts:367-373). Ships WITH
+          (not after): credential custody §3.5 (per-call ceiling, daily spend
+          cap, rotation path, _estate_unavailable low-balance envelope,
+          apex-domain guard on registry endpoints), health probe + circuit
+          breaker §6, relay integrity §3.6 (_estate_relay wrapper), estate
+          proxies excluded from decideInbandGate §3.4, and the §3.2 price-sync
+          guard once Foundry's manifest exists. GATED (recorded per
+          blocked_candidate_law): Foundry ticket answer on s2s auth + blessing
+          — check: TICKET-AXIS_TOOLBOX-estate-federation-20260822 status in
+          their begin.yaml inbox; unblocks when status leaves submitted with
+          the auth acceptance criterion answered.
+        roi_score: 86
+        roi_reason: >
+          capability_gain 5 (first real cross-app callable), revenue_loop 4,
+          validation_strength 4 (custody + health + price guards land here).
+          STRATEGY.md §2b Wave 1, §3.4-3.6, §6.
+        severity: HIGH
+        source_file: "apps/api/src/mcp-tool-impls.ts"
+        completion_status: open
+
+      - id: "est_05_foundry_wave2_wave3"
+        description: >
+          Wave 2 (mesh-transform proxies; multi-MB inputs via the
+          iliad_object_storage R2 presigned-URL handoff — Foundry-side URL
+          inputs must be constrained to estate storage hosts, asked in the
+          ticket with the SSRF rationale) + Wave 3 (estate_foundry_generate w/
+          polygon-tier dynamic pricing via authorizeMcpToolCreditsForAmount +
+          free estate_foundry_status). Wave 3 HARD-GATED on Foundry shipping
+          idempotent submission + job-lookup-by-client-reference (§3.3 — their
+          gateway has zero dedup today; a retried ambiguous submission is a
+          second GPU job + second USDC settlement). Capture-on-submission;
+          terminal-failure compensation is NEW wiring (async status transition
+          -> owed entry; the compensator exists but nothing triggers it from a
+          later request today), plan-credit-only caveat stated. Depends est_04.
+        roi_score: 78
+        roi_reason: >
+          revenue_loop_closure 5 (the $5-6 generate pair is the estate's
+          highest-price agent product), validation_strength 4. Gated twice
+          (est_04 + idempotency), scored below its gates on purpose.
+        severity: MEDIUM
+        source_file: "apps/api/src/mcp-tool-impls.ts"
+        completion_status: open
+
+      - id: "est_06_paid_surface"
+        description: >
+          Whatever PAI'D's ticket answer blesses (buyer-side only;
+          merchant-side counsel-gated regardless of their answer) + their L3
+          agent-readiness kit outcomes reflected in the estate registry.
+          GATED (recorded): TICKET-AXIS_TOOLBOX-agent-surface-20260822 status
+          in payment processing/begin.yaml inbox; the registry's paid entry
+          ships status: unverified until answered.
+        roi_score: 72
+        roi_reason: "agent_acquisition 3, conformance 3; entirely shaped by the provider's own decision — deliberately not pre-scored higher than what we control."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/estate-registry.ts"
+        completion_status: open
+
+      - id: "est_07_launch_reciprocal_links"
+        description: >
+          Launch (jonathanarvay.com) reciprocal estate links in its
+          already-shipped discovery files. EXECUTABLE TODAY — not owner-gated:
+          the channel exists informally (axis_launch filed tickets into this
+          repo's inbox 2026-08-10 despite absence from known_repos; peer
+          sessions are reachable). The one open item is §5.7's architectural
+          decision: add axis_launch to known_repos (formalizing the lane) or
+          keep the informal channel — a decision block, not a blocker.
+        roi_score: 70
+        roi_reason: "self_propagation 3, conformance 3, implementation_cost -1 (their surfaces exist; ours links them)."
+        severity: LOW
+        source_file: "docs/ESTATE_FEDERATION_STRATEGY.md"
+        completion_status: open
+
+      - id: "est_08_trustfabric_standup"
+        description: >
+          TrustFabric federation. BLOCKED, recorded per blocked_candidate_law
+          with the exact checks: owner directive names tf.trustfabric.ai —
+          NXDOMAIN 2026-08-22; ecosystem.registry.yaml:61-67 instead lists
+          tf.jonathanarvay.com (RESOLVES to Cloudflare IPs; unverifiable
+          further from the dev machine — safebrowse.io filter intercepts all
+          jonathanarvay.com hosts) AND paid.trustfabric.ai (which also appears
+          under the paid entry — pre-existing registry data quirk). UNBLOCKS
+          when the owner reconciles the naming (§5.1) and defines the
+          property. Until then the registry carries a planned-status stub row
+          only.
+        roi_score: 60
+        roi_reason: "optionality 3; unshippable until §5.1 — scored last on purpose, kept visible rather than dropped."
+        severity: LOW
+        source_file: "packages/generator-core/src/estate-registry.ts"
+        completion_status: open
 
   highest_roi_definition:
     meaning: >
