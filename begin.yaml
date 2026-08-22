@@ -511,6 +511,24 @@ project_begin:
           submitted: "2026-08-22"
           status: confirmed
           confirmed: "2026-08-22"
+          provider_correction: >
+            CORRECTION from PAI'D, same day (2026-08-22), tightening not
+            loosening: the original reply said execute_payment's blessing
+            "auto-activates" when COH-009+COH-013 close. WRONG BASIS — closing
+            those candidates removes the TECHNICAL objection (the screening
+            chokepoint gap) but does not authorize a money-moving tool to
+            become agent-callable; that is a human authorization decision, and
+            an agent-to-agent ticket answer is not a valid basis for it.
+            Corrected rule, recorded in PAI'D's begin.yaml: closure makes
+            execute_payment ELIGIBLE for consideration; activation requires
+            PAI'D's founder to sign off explicitly as its own decision. We
+            will receive TWO signals: (1) candidates closed = eligible, still
+            NOT listed; (2) an explicit founder-sign-off confirmation = may
+            list. Estate metadata stays at the three read-only tools until
+            signal (2). Everything else in the original reply stands
+            unchanged. Credit: the hold-and-verify stance came from the
+            payment-processing-da session's user — adopted estate-wide here
+            too: never activate a money-path capability on a peer's say-so.
           provider_reply: >
             SAME-DAY ANSWER (full block in payment processing/begin.yaml under
             the ticket; summary relayed by their session 2026-08-22). All three
@@ -2067,11 +2085,12 @@ project_begin:
           (api.paid.jonathanarvay.com/v1/mcp, Bearer agent-keys, protocol
           2025-06-18) with EXACTLY three blessed read-only tools in
           estate-facing metadata — get_quote, list_providers,
-          get_payment_intent. execute_payment is CONDITIONALLY blessed:
-          auto-activates when PAI'D signals their COH-009+COH-013 closed
-          (sanctions/payer-screening gap) — record the trigger in the registry
-          row as a dated condition, never list it early, don't poll their
-          repo for it ([[dont-track-paid-repo]]; they will signal). Wallet
+          get_payment_intent. execute_payment is CONDITIONALLY blessed —
+          CORRECTED TRIGGER (see provider_correction on the outbox ticket):
+          COH-009+COH-013 closing makes it ELIGIBLE only; listing requires a
+          SECOND, explicit founder-sign-off confirmation from PAI'D. Two
+          signals will arrive; act only on the second. Never list early,
+          don't poll their repo ([[dont-track-paid-repo]]). Wallet
           top-up and checkout-initiation STRUCK by their founder rule — do not
           re-propose. Their discovery kit is queued on THEIR side; our side
           only reflects outcomes in the registry when their kit ships.

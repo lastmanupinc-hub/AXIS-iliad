@@ -220,8 +220,11 @@ PAI'D's CDP account, `x402_gateway.py:80-86`). **Gated on counsel** — PAI'D
   carry today.
 - **Conditional:** `execute_payment` — exists and is per-key policy-gated,
   but their CAND-COH-009 records it currently skips the sanctions/
-  payer-screening chokepoint; the blessing auto-activates when they signal
-  COH-009+COH-013 closed. Recorded as a dated trigger; never listed early.
+  payer-screening chokepoint. **Corrected trigger (PAI'D, same day):**
+  COH-009+COH-013 closing makes it *eligible*, nothing more — activation of a
+  money-moving tool is a human authorization decision, so listing waits for a
+  second, explicit founder-sign-off confirmation from PAI'D. Two signals will
+  arrive; estate metadata moves only on the second. Never listed early.
 - **Struck by founder rule:** wallet top-up (stored value = custody/
   licensing) and any new checkout-initiation tool. Do not re-propose.
 Their MCP endpoint is real: `api.paid.jonathanarvay.com/v1/mcp` (Bearer
