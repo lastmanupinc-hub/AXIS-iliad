@@ -2248,7 +2248,80 @@ project_begin:
           est_04/05 wait on the Foundry ticket. STRATEGY.md §2a.
         severity: MEDIUM
         source_file: "apps/api/src/mcp-tools.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-22.
+        # 5 Foundry Wave-1 stubs populate PLANNED_CAPABILITIES (was empty since the
+        # machinery first shipped): axis_validate, axis_inspect, axis_compare,
+        # axis_manifest_verify, roblox_compliance_check — matching STRATEGY.md §2b's
+        # own Wave-1 list exactly, kept as Foundry's OWN tool names (a pass-through
+        # relay to a cheap, synchronous, read-only call IS that call one hop later;
+        # only Wave 3's compound estate_foundry_generate earns a distinct name — see
+        # mcp-server.ts's sibling-delegation note, corrected in this same session
+        # after I caught my own est_02 doctrine comment overclaiming a universal
+        # "estate_" prefix that Wave 1/2 never actually use).
+        #
+        # ONE SOURCE, NOT A THIRD COPY: every stub's name/summary/price is COMPUTED
+        # from ESTATE_REGISTRY.foundry.tools (est_01's vendored snapshot of
+        # Foundry's own x402_gateway.py), via a foundryStub() helper — never
+        # hand-retyped. Input schemas ARE hand-typed, because ESTATE_REGISTRY
+        # deliberately doesn't carry them (out of its own lean scope) — but read
+        # directly from Foundry's mcp_server.py ToolDef/ToolParam definitions on
+        # this machine, 2026-08-22, not guessed. A new drift guard
+        # (mcp-estate-flag.test.ts) pins stub name/summary/price/provider-URL
+        # against ESTATE_REGISTRY.foundry.tools directly, so the two can't
+        # silently diverge the way this repo's named recurring bug family
+        # (hand-duplicated catalog drift) always predicts they eventually would.
+        #
+        # AUTH/PRICING HONESTY FINDING, corrected before shipping, not after: read
+        # mcp-server.ts's actual dispatcher code (not assumed) and confirmed the
+        # `default:` case calls runPlannedCapability() for ANY PLANNED_CAPABILITY_NAMES
+        # match with ZERO auth check, for every entry, present or future — meaning
+        # the pre-existing generic template's `auth_required: true` default (from
+        # not being in FREE_TOOL_NAMES) would have been a FALSE catalog claim for
+        # every stub. Fixed generally, not just for these 5: FREE_TOOL_NAMES now
+        # spreads in ALL of PLANNED_CAPABILITY_NAMES, future-proofing every planned
+        # capability's catalog entry against this same gap rather than hand-listing
+        # 5 names that would need remembering again for est_04+'s own stubs (if any).
+        #
+        # ENVELOPE HONESTY: recommended_provider gained an optional `pricing` field
+        # (the candidate's own "envelopes carry ... pricing" ask) and
+        # runPlannedCapability()'s capability_map_reference is now conditional —
+        # an estate stub points at GET /.well-known/axis-estate.json (the real
+        # source for sibling-AXIS-property capabilities), never at
+        # .ai/capability-map.yaml (RESELL_CAPABILITIES' third-party-resell catalog,
+        # architecturally the wrong pointer for a sibling-owned capability, per
+        # STRATEGY.md's own Layer 1 distinction).
+        #
+        # COUNT CASCADE 38→43 (5 new MCP_TOOLS members), same "distinguish live
+        # claims from H-Phase-A cycle-N historical narration" discipline as
+        # est_01's cascade. First real proof of est_02's non-estate-derived split:
+        # apps/web/src/config.ts's TOOL_COUNT correctly stayed AT 38 (all 5 new
+        # tools are estate:true, excluded by construction) while every RAW-total
+        # surface (MCP_TOOL_COUNT, tools/list, server.json, discover_commerce_tools)
+        # moved to 43 — the mechanism est_02 built working exactly as designed the
+        # first time it had a real tool to prove itself against. Also added the
+        # "guards pin the split BOTH directions" guard STRATEGY.md §4 called for
+        # and est_02 had only half-built (missing-from-human-page was guarded;
+        # wrongly-present-on-human-page was not) — now actionable with 5 real
+        # estate tools to test against, where before it would have been vacuous.
+        #
+        # VERIFIED: 609/609 across mcp-estate-flag.test.ts (+13 new: the estate-flag
+        # derivation suite's own "zero estate tools" test deliberately updated to
+        # its designed trip-wire moment, real-catalog identity check, full
+        # ESTATE_REGISTRY drift guard), mcp-server.test.ts (+3 new: real tools/call
+        # dispatch proof for axis_validate incl. capability_id/pricing/
+        # capability_map_reference, all 5 stub names dispatch correctly),
+        # count-honesty.test.ts (+1 new: the reverse-direction ForAgentsPage guard),
+        # plus counts-consistency/well-known-handlers/mcp-commerce-tools/
+        # prepare-purchasing/agent-discovery/count-surface-coverage/launch-claims/
+        # strategic-docs-honesty/McpPage/estate-registry re-run clean. tsc clean on
+        # apps/api + apps/web. CLI bundle unchanged (84 modules — this candidate
+        # never touches generator-core).
+        #
+        # NOT DONE, deliberately, not this candidate's own claim: real Foundry
+        # proxying (est_04 — these stay honest redirects, never execute a real
+        # call); Wave 2/3 stubs (mesh-transform tools, the generate pair) —
+        # STRATEGY.md scopes est_03 to Wave 1 only, matching this candidate's own
+        # "immediate value while est_04/05 wait on the Foundry ticket" ROI reason.
 
       - id: "est_04_foundry_wave1_proxies"
         description: >

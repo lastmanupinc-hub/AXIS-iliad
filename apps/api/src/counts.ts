@@ -32,16 +32,19 @@
  * rather than a claim of owned capability, and it counts toward
  * MCP_TOOL_COUNT like any other real tool (catalog honesty applies
  * regardless of who ultimately serves the call). image_generation → AXIS
- * Foundry is STILL true as a concrete example today (zero estate-flagged
- * tools exist yet — est_02 wires the mechanism; est_03/04/05 build the
- * first stubs and proxies), but is no longer stated as a platform-wide
- * absolute.
+ * Foundry (via the sibling_owned status, not an estate proxy) is still true
+ * as a concrete example of a capability with NO Iliad-hosted tool of any
+ * kind. est_03 (2026-08-22) shipped the first 5 real estate-flagged
+ * entries — Foundry Wave-1 PLANNED_CAPABILITIES stubs (mcp-tools.ts) —
+ * proving the mechanism est_02 wired; MCP_TOOL_COUNT counts them, and the
+ * human-webapp-facing derived non-estate count (apps/web/src/config.ts's
+ * TOOL_COUNT — see count-honesty.test.ts's nonEstateToolCount()) does not.
  */
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
-export const MCP_TOOL_COUNT = 38;
+export const MCP_TOOL_COUNT = 43;
 export const ENDPOINT_COUNT = 168;
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */

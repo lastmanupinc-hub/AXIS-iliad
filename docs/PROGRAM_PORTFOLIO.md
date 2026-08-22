@@ -13,7 +13,7 @@ runtime and must be diffed against `counts.ts` rather than trusted for reading c
 its own generated page at the root. Pages are derived from `PRODUCT_REGISTRY` joined to the real
 generator manifest, so a page cannot drift from the program it sells.
 
-**Portfolio totals (measured):** 21 programs · 149 generators · 38 MCP tools ·
+**Portfolio totals (measured):** 21 programs · 149 generators · 43 MCP tools ·
 168 endpoints · 2 free programs (search, obsidian) · 19 paid.
 
 ---

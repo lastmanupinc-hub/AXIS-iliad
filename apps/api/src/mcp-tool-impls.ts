@@ -145,7 +145,7 @@ import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { parseAgentBudget, resolveAgentMode, build402NegotiationBody, PRICING_TIERS, getPricingTier, priceForMode, formatCents, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { captureIntent } from "./intent.js";
-import { MCP_TOOLS, getMcpToolBazaarInfo, type PlannedCapability } from "./mcp-tools.js";
+import { MCP_TOOLS, getMcpToolBazaarInfo, PLANNED_CAPABILITY_NAMES, type PlannedCapability } from "./mcp-tools.js";
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchBackend, webResearchNotConfigured, isWebResearchNotConfigured } from "./web-research.js";
 import { sovereignScrape, sovereignCrawl } from "./web-research-sovereign.js";
@@ -164,17 +164,28 @@ import {
 /**
  * Structured "not yet live" response for a planned capability. The shape is
  * stable so agents can branch on `_planned === true` without parsing free text.
+ *
+ * est_03 (2026-08-22): an ESTATE capability (capability.estate) is not "on
+ * the AXIS roadmap" toward an owned reimplementation — it is planned as a
+ * proxy relay, and its capability-map reference is the estate discovery
+ * surface (RESELL_CAPABILITIES / .ai/capability-map.yaml is the wrong
+ * pointer for a sibling-AXIS-property capability, see mcp-tools.ts's
+ * PlannedCapability.capability_id doc).
  */
 export function runPlannedCapability(capability: PlannedCapability): string {
   return JSON.stringify({
     _planned: true,
     capability_id: capability.capability_id,
     status: capability.status,
-    message: `${capability.title} is on the AXIS roadmap. Until the AXIS-owned version ships, call the recommended provider directly.`,
+    message: capability.estate
+      ? `${capability.title} is planned as an estate-flagged proxy through Iliad. Until it ships, call ${capability.recommended_provider.name} directly.`
+      : `${capability.title} is on the AXIS roadmap. Until the AXIS-owned version ships, call the recommended provider directly.`,
     recommended_provider: capability.recommended_provider,
     expected_inputs: capability.required_inputs,
     expected_output_shape: capability.output_properties,
-    capability_map_reference: ".ai/capability-map.yaml",
+    capability_map_reference: capability.estate
+      ? "GET /.well-known/axis-estate.json (or the discover_estate_tools MCP tool)"
+      : ".ai/capability-map.yaml",
     tool_name: capability.name,
   }, null, 2);
 }
@@ -2213,6 +2224,15 @@ const FREE_TOOL_NAMES = new Set([
   // half a cent (2026-07-28) — see PRICING_TIERS.ping_payment. Still reachable
   // anonymously, still the cheapest thing we sell by two orders of magnitude,
   // but no longer free.
+  //
+  // est_03 (2026-08-22): every PLANNED_CAPABILITIES name too, spread in
+  // rather than hand-listed — mcp-server.ts's dispatcher default: case calls
+  // runPlannedCapability() unconditionally for ANY of them, with zero auth
+  // check (verified by reading the dispatch code, not assumed), so
+  // auth_required: true in the derived catalog would be a false claim for
+  // every one, present or future. Genuinely free (no charge either — the
+  // stub envelope never calls authorize/captureMcpToolCredits).
+  ...PLANNED_CAPABILITY_NAMES,
 ]);
 
 // H-Phase-A cycle 6: handlers.ts's GET /for-agents shareable_manifest/
@@ -2360,7 +2380,7 @@ const FREE_TOOLS_REQUIRING_AUTH = new Set(["get_referral_code", "get_referral_cr
 // only correct a FALSE NEGATIVE (a free tool that actually needs auth); it
 // has no way to mark a FALSE POSITIVE for a tool that's neither free nor
 // metered (get_snapshot, get_artifact, and improve_my_agent_with_axis are
-// the only 3 of 38 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS —
+// the only 3 of 43 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS —
 // confirmed via direct count). get_snapshot/get_artifact's own handlers
 // (runGetSnapshot/runGetArtifact) only check auth CONDITIONALLY — an
 // ownerless/anonymous snapshot needs none at all — so `!free` alone
@@ -2442,7 +2462,7 @@ export function deriveMcpToolCatalog(tools: readonly McpToolLike[] = MCP_TOOLS):
 }
 
 export function runDiscoverAgenticCommerceTools(): string {
-  // Distribution-facing surface — advertises the full 38-tool catalog
+  // Distribution-facing surface — advertises the full 43-tool catalog
   // (revised catalog-honesty policy: build-not-redact). Each
   // planned-capability stub gets converted to an owned implementation
   // over the v1 push; the name set stays stable so external integrations

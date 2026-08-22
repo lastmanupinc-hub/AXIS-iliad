@@ -5,8 +5,7 @@
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 
 // A planned-but-unshipped capability: advertised in tools/list with a structured
-// `_planned: true` envelope until its AXIS-owned implementation lands. The array is
-// currently empty (every advertised tool is real) but the typed machinery is kept — the
+// `_planned: true` envelope until its AXIS-owned implementation lands. The
 // dispatcher (mcp-server.ts) and the MCP_TOOLS spread below both derive from it.
 export interface PlannedCapability {
   /** Tool name as registered in MCP_TOOLS. */
@@ -23,13 +22,142 @@ export interface PlannedCapability {
   required_inputs: string[];
   /** Concrete outputSchema properties (used when the tool is live; documented now). */
   output_properties: Record<string, { type: string; description: string }>;
-  /** Recommended third-party provider an agent should call right now. */
-  recommended_provider: { name: string; url: string };
-  /** Capability-map id this stub maps to. */
+  /** Recommended provider an agent should call right now instead. */
+  recommended_provider: {
+    name: string;
+    url: string;
+    /** est_03: what calling the provider directly costs, when known — "envelopes carry pricing" (STRATEGY.md §2a). Omitted when the recommended provider is a generic third-party fallback with no fixed price. */
+    pricing?: string;
+  };
+  /**
+   * Capability-map id this stub maps to. For a non-estate capability, this is
+   * a real RESELL_CAPABILITIES.id (generators-artifacts.ts), resolvable in
+   * .ai/capability-map.yaml — runPlannedCapability()'s default
+   * capability_map_reference. An estate capability (below) is a DIFFERENT
+   * concern (sibling-AXIS-property ownership, not third-party resell
+   * replication, STRATEGY.md §Layer 1) with no RESELL_CAPABILITIES entry to
+   * point at; its id is a self-describing `estate_<sibling>_<tool>` slug
+   * instead, and runPlannedCapability() points capability_map_reference at
+   * the real estate discovery surface for it, never the resell catalog.
+   */
   capability_id: string;
+  /**
+   * est_03 (2026-08-22): true for a capability whose "AXIS-owned implementation"
+   * is actually an estate-flagged PROXY to a sibling AXIS property, not an
+   * owned reimplementation. Threads through to `_meta: { estate: true }` on
+   * the spread MCP_TOOLS entry below (est_02's mechanism) — the human webapp
+   * excludes it, agent-facing surfaces keep it, exactly like a real estate
+   * tool. Also swaps runPlannedCapability()'s capability_map_reference from
+   * the generic resell-tool catalog to the real estate discovery surface.
+   */
+  estate?: boolean;
 }
 
-export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [];
+// est_03 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md §2a): Wave 1 Foundry
+// stubs — honest, machine-actionable redirects to Foundry's own MCP endpoint,
+// before any Iliad-hosted proxy exists (est_04). Every name/summary/price is
+// READ from ESTATE_REGISTRY.foundry.tools (packages/generator-core/src/
+// estate-registry.ts, itself vendored directly from Foundry's own
+// x402_gateway.py) — one source, not a third hand-typed copy. Input schemas
+// are read directly from Foundry's mcp_server.py ToolDef/ToolParam
+// definitions (its own repo, this machine, 2026-08-22) — real parameters, not
+// guessed. Kept as Foundry's OWN tool names (not "estate_"-prefixed): a
+// pass-through relay to a synchronous, cheap, read-only tool IS that call one
+// hop later — see mcp-server.ts's sibling-delegation note for the naming
+// rule and why Wave 3's compound estate_foundry_generate differs.
+//
+// output_properties intentionally stay coarse (one field capturing what each
+// tool's own description already promises) rather than guessing exact
+// response field names no source here confirms — runPlannedCapability's own
+// envelope field is literally named `expected_output_shape`, signalling a
+// preview, not a binding contract.
+const FOUNDRY_MCP_URL = "https://api.avatar.jonathanarvay.com/mcp";
+const FOUNDRY_PROVIDER_NAME = "AXIS Foundry";
+
+function foundryStub(opts: {
+  name: string;
+  title: string;
+  summary: string;
+  price_usd: number;
+  input_properties: PlannedCapability["input_properties"];
+  required_inputs: string[];
+  output_summary: string;
+}): PlannedCapability {
+  return {
+    name: opts.name,
+    title: opts.title,
+    summary: opts.summary,
+    status: "planned_proxy",
+    input_properties: opts.input_properties,
+    required_inputs: opts.required_inputs,
+    output_properties: { result: { type: "object", description: opts.output_summary } },
+    recommended_provider: { name: FOUNDRY_PROVIDER_NAME, url: FOUNDRY_MCP_URL, pricing: `$${opts.price_usd.toFixed(2)}` },
+    capability_id: `estate_foundry_${opts.name}`,
+    estate: true,
+  };
+}
+
+const MESH_FILE_PATH_PROPERTY = { file_path: { type: "string", description: "Path to mesh file (.glb, .obj, .stl, etc.)" } };
+const PLATFORM_ENUM = ["unity", "unreal", "godot", "roblox", "axis_engine"];
+
+export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
+  foundryStub({
+    name: "axis_validate",
+    title: "Validate Mesh (Foundry, planned proxy)",
+    summary: "Validate an avatar mesh against 38 rules; returns pass/warn/fail counts.",
+    price_usd: 0.25,
+    input_properties: {
+      ...MESH_FILE_PATH_PROPERTY,
+      platform: { type: "string", description: "Target platform for platform-specific validation", enum: PLATFORM_ENUM },
+      profile: { type: "string", description: "Validation strictness profile", enum: ["default", "strict", "lenient"] },
+    },
+    required_inputs: ["file_path"],
+    output_summary: "Pass/warn/fail counts and detailed per-rule results.",
+  }),
+  foundryStub({
+    name: "axis_inspect",
+    title: "Inspect Mesh (Foundry, planned proxy)",
+    summary: "Inspect an avatar's contract state and provenance chain.",
+    price_usd: 0.10,
+    input_properties: MESH_FILE_PATH_PROPERTY,
+    required_inputs: ["file_path"],
+    output_summary: "Stage, bone/vertex counts, provenance step count, chain_valid + any broken links. No quality grade — use axis_validate for that.",
+  }),
+  foundryStub({
+    name: "axis_compare",
+    title: "Compare Two Meshes (Foundry, planned proxy)",
+    summary: "Compare two avatar contracts; returns similarity score and section-level diffs.",
+    price_usd: 0.10,
+    input_properties: {
+      file_a: { type: "string", description: "Path to first mesh file" },
+      file_b: { type: "string", description: "Path to second mesh file" },
+      sections: { type: "array", description: "Limit comparison to specific contract sections" },
+    },
+    required_inputs: ["file_a", "file_b"],
+    output_summary: "Similarity score and section-level diffs.",
+  }),
+  foundryStub({
+    name: "axis_manifest_verify",
+    title: "Verify Export Manifest (Foundry, planned proxy)",
+    summary: "Verify an export manifest's integrity and optionally check content hash.",
+    price_usd: 0.10,
+    input_properties: {
+      manifest: { type: "object", description: "Export manifest JSON object" },
+      expected_hash: { type: "string", description: "Expected content hash for verification" },
+    },
+    required_inputs: ["manifest"],
+    output_summary: "Manifest integrity result, and a hash match result when expected_hash is provided.",
+  }),
+  foundryStub({
+    name: "roblox_compliance_check",
+    title: "Roblox R15 Compliance Check (Foundry, planned proxy)",
+    summary: "Run Roblox R15 compliance checks against a mesh.",
+    price_usd: 0.25,
+    input_properties: MESH_FILE_PATH_PROPERTY,
+    required_inputs: ["file_path"],
+    output_summary: "Roblox R15 compliance results from Foundry's canonical pipeline outputs.",
+  }),
+];
 export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map((c) => c.name));
 
 // H-Phase-A cycle 7: destructiveHint was hardcoded false for every tool —
@@ -558,7 +686,7 @@ export const MCP_TOOLS = [
       {
         name: "Discover all commerce tools",
         input: {},
-        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":38}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":43}}',
       },
     ],
   },
@@ -1499,17 +1627,22 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (0 tools) ─────────────────────────
+  // ─── Planned-capability stubs (5 tools, est_03) ──────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
-  // AXIS-owned implementation ships.
+  // AXIS-owned implementation ships. est_03 (2026-08-22): an ESTATE
+  // stub (c.estate) additionally carries `_meta: { estate: true }`,
+  // riding tools/list verbatim (est_02's mechanism) so the human
+  // webapp excludes it while every agent-facing surface keeps it.
   ...PLANNED_CAPABILITIES.map((c) => ({
     name: c.name,
     description:
-      `${c.summary} Status: **${c.status}** — AXIS-owned implementation on the roadmap (see .ai/capability-map.yaml). ` +
+      `${c.summary} Status: **${c.status}** — ${c.estate
+        ? "an estate-flagged proxy is planned (see discover_estate_tools for the sibling's own direct endpoint and price today)."
+        : "AXIS-owned implementation on the roadmap (see .ai/capability-map.yaml)."} ` +
       `Calls return a planned-capability envelope pointing at ${c.recommended_provider.name} (${c.recommended_provider.url}) as the recommended interim provider. ` +
-      `When the AXIS-owned version ships, the dispatch handler swaps in without changing this schema.`,
+      `When the ${c.estate ? "estate proxy" : "AXIS-owned version"} ships, the dispatch handler swaps in without changing this schema.`,
     inputSchema: {
       type: "object" as const,
       required: c.required_inputs,
@@ -1519,10 +1652,10 @@ export const MCP_TOOLS = [
       type: "object" as const,
       properties: {
         _planned: { type: "boolean", description: "Always true while this tool is in development." },
-        capability_id: { type: "string", description: "Capability slug matching capability-map.yaml." },
+        capability_id: { type: "string", description: "Capability slug — matches capability-map.yaml for a non-estate entry, or a self-describing estate_<sibling>_<tool> slug for an estate entry." },
         status: { type: "string", description: "planned_proxy or planned_owned." },
         message: { type: "string", description: "Human-readable status note." },
-        recommended_provider: { type: "object", description: "Third-party provider to call directly today." },
+        recommended_provider: { type: "object", description: "Provider to call directly today, including its price when known." },
         // Once the AXIS-owned implementation lands, these fields take over:
         ...c.output_properties,
       },
@@ -1536,6 +1669,7 @@ export const MCP_TOOLS = [
         output: `{"_planned":true,"capability_id":"${c.capability_id}","status":"${c.status}","recommended_provider":${JSON.stringify(c.recommended_provider)}}`,
       },
     ],
+    ...(c.estate ? { _meta: { estate: true } } : {}),
   })),
   {
     name: "iliad_hygiene",

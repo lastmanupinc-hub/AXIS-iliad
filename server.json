@@ -31,7 +31,7 @@
     "io.github.lastmanupinc-hub/axis-iliad": {
       "programs": 21,
       "generators": 149,
-      "tools": 38,
+      "tools": 43,
       "free_tools": [
         "list_programs",
         "search_and_discover_tools",
@@ -40,6 +40,11 @@
         "discover_agentic_purchasing_needs",
         "prepare_agentic_purchasing_preview",
         "discover_estate_tools",
+        "axis_validate",
+        "axis_inspect",
+        "axis_compare",
+        "axis_manifest_verify",
+        "roblox_compliance_check",
         "get_referral_code",
         "get_referral_credits",
         "check_referral_credits",

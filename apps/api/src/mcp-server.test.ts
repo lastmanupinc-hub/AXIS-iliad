@@ -319,13 +319,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns the full 38-tool catalog (build-not-redact catalog honesty)", async () => {
+  it("returns the full 43-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
-    expect(tools.length).toBe(38);
+    expect(tools.length).toBe(43);
     expect(tools.length).toBe(MCP_TOOLS.length);
     // No marketing payload injected into the result
     expect(result.incentives).toBeUndefined();
@@ -1698,9 +1698,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 38-tool catalog (build-not-redact)", async () => {
+  it("tools array exposes the full 43-tool catalog (build-not-redact)", async () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(38);
+    expect(tools).toHaveLength(43);
     expect(tools).toHaveLength(MCP_TOOLS.length);
     const allNames = new Set(MCP_TOOLS.map(t => t.name));
     for (const t of tools) {
@@ -1775,11 +1775,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 38 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+  it("body contains 43 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(38);
+    expect(tools).toHaveLength(43);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1815,7 +1815,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
     // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
-    expect(parsed.tools.length).toBe(38);
+    expect(parsed.tools.length).toBe(43);
   });
 
   it("includes free_tools array", async () => {
@@ -1860,7 +1860,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(38);
+    expect(parsed.shareable_manifest.tools).toBe(43);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe(API_VERSION);
   });
@@ -3360,5 +3360,68 @@ describe("POST /mcp — tools/call discover_estate_tools", () => {
     expect(usage?.tool).toBe("discover_estate_tools");
     // A free tool never reports credits spent against it.
     expect(usage?.credits_remaining === null || typeof usage?.credits_remaining === "number").toBe(true);
+  });
+});
+
+// ─── POST /mcp — tools/call on an est_03 Foundry Wave-1 stub ────────
+
+describe("POST /mcp — tools/call axis_validate (est_03 planned-capability estate stub)", () => {
+  it("returns the _planned envelope, not an Unknown-tool error, with no auth", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 910,
+      method: "tools/call",
+      params: { name: "axis_validate", arguments: { file_path: "avatars/hero.glb" } },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as {
+      _planned: boolean;
+      capability_id: string;
+      status: string;
+      recommended_provider: { name: string; url: string; pricing?: string };
+      capability_map_reference: string;
+      tool_name: string;
+    };
+    expect(parsed._planned).toBe(true);
+    expect(parsed.tool_name).toBe("axis_validate");
+    expect(parsed.capability_id).toBe("estate_foundry_axis_validate");
+    expect(parsed.status).toBe("planned_proxy");
+    // The real Foundry endpoint and real price — not a placeholder.
+    expect(parsed.recommended_provider.name).toBe("AXIS Foundry");
+    expect(parsed.recommended_provider.url).toBe("https://api.avatar.jonathanarvay.com/mcp");
+    expect(parsed.recommended_provider.pricing).toBe("$0.25");
+    // Estate capability-map reference, not the generic resell-tool catalog.
+    expect(parsed.capability_map_reference).toContain("axis-estate.json");
+  });
+
+  it("is free — appears in FREE_TOOL_NAMES-derived catalog with no charge", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 911,
+      method: "tools/call",
+      params: { name: "axis_validate", arguments: { file_path: "avatars/hero.glb" } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const usage = result._usage as Record<string, unknown> | undefined;
+    expect(usage?.tool).toBe("axis_validate");
+  });
+
+  it("all 5 Wave-1 stub names dispatch to the planned envelope, not Unknown tool", async () => {
+    for (const name of ["axis_validate", "axis_inspect", "axis_compare", "axis_manifest_verify", "roblox_compliance_check"]) {
+      const args = name === "axis_compare"
+        ? { file_a: "a.glb", file_b: "b.glb" }
+        : name === "axis_manifest_verify"
+          ? { manifest: {} }
+          : { file_path: "avatars/hero.glb" };
+      const r = await post("/mcp", { jsonrpc: "2.0", id: 912, method: "tools/call", params: { name, arguments: args } });
+      const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+      const content = result.content as Array<{ type: string; text: string }>;
+      const parsed = JSON.parse(content[0].text) as { _planned: boolean; tool_name: string };
+      expect(parsed._planned, name).toBe(true);
+      expect(parsed.tool_name, name).toBe(name);
+    }
   });
 });

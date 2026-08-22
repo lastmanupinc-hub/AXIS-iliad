@@ -149,6 +149,13 @@ describe("count honesty — docs/UI match the code (A4)", () => {
     const missing = nonEstate.filter((t) => !page.includes(t.name)).map((t) => t.name);
     expect(missing, `ForAgentsPage.tsx's tool list is missing: ${missing.join(", ")}`).toEqual([]);
   });
+
+  it("ForAgentsPage.tsx's tool list names NO estate-flagged tool — the split pinned in the other direction (STRATEGY.md §4: 'both directions')", () => {
+    const page = docs().find((d) => d.name === "apps/web/src/pages/ForAgentsPage.tsx")!.text;
+    const estateTools = deriveMcpToolCatalog().filter((t) => t.estate);
+    const leaked = estateTools.filter((t) => page.includes(t.name)).map((t) => t.name);
+    expect(leaked, `ForAgentsPage.tsx's tool list wrongly names estate tool(s): ${leaked.join(", ")}`).toEqual([]);
+  });
 });
 
 // H-Phase-A cycle 13: server.json (repo root) is the LIVE MCP registry publish

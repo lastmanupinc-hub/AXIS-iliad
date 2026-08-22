@@ -192,11 +192,16 @@ function normalizeToolName(toolName: string): string {
 // the Iliad MCP as ESTATE-FLAGGED proxy tools (McpToolCatalogEntry.estate)
 // — a relay Iliad hosts and stays honest about, not a claim of owning the
 // capability. discover_estate_tools (free, no auth) already lists every
-// sibling and its own direct MCP endpoint; a future Foundry proxy for
-// generation work (est_04/05's estate_foundry_generate, tracked separately
-// from this image_generation delegation) would ship under an "estate_"
-// name with the estate flag set, never as a bare "iliad_image_generation"
-// tool pretending to be Iliad-owned. Zero estate-flagged tools exist today.
+// sibling and its own direct MCP endpoint. The FLAG, not the name, is what
+// keeps a proxy visibly marked — a simple pass-through relay (est_03/04's
+// Wave 1/2 stubs: axis_validate, axis_inspect, and the rest) keeps
+// Foundry's OWN tool name verbatim, since it IS that call, one hop later;
+// only a genuinely NEW, Iliad-wrapped product (est_04/05's
+// estate_foundry_generate, which adds its own pricing tier on top of
+// Foundry's) gets an "estate_"-prefixed name distinct from anything Foundry
+// itself calls it. Neither shape is ever a bare "iliad_image_generation"
+// tool pretending to be Iliad-owned — that specific name stays permanently
+// unminted regardless of which shape a Foundry proxy eventually takes.
 //
 // This pattern (sibling delegation, now with an estate-proxy exception) is
 // also how the broader AXIS platform composes: each process stays focused,
