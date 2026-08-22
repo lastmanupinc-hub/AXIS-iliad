@@ -93,6 +93,24 @@ describe("est_06 — PAI'D surface, verified fields", () => {
   });
 });
 
+describe("est_07 — Launch surface, corrected fields", () => {
+  it("no longer claims Launch has zero callable functions — links its real RFC 9727 catalog instead", () => {
+    expect(ESTATE_REGISTRY.launch.discovery.api_catalog).toBe("https://jonathanarvay.com/.well-known/api-catalog");
+  });
+
+  it("still carries no mcp block for Launch — its real surface is plain REST, not MCP tools", () => {
+    expect(ESTATE_REGISTRY.launch.mcp).toBeUndefined();
+  });
+
+  it("axis_launch known_repos entry links back to this same estate registry (verified reciprocity)", () => {
+    // Not independently network-checkable from this test (same §1.4 interception every other
+    // launch/foundry live check hits) — this pins the STATIC fact this repo's own side controls:
+    // ESTATE_REGISTRY.launch.discovery.well_known points at the file that, per a direct read of
+    // Launch's own repo on this machine (2026-08-22), now points straight back here.
+    expect(ESTATE_REGISTRY.launch.discovery.well_known).toBe("https://jonathanarvay.com/.well-known/axis-launch.json");
+  });
+});
+
 describe("sibling_process ↔ ESTATE_REGISTRY guard", () => {
   // Collapses what would otherwise be independent, driftable sibling-ownership
   // claims (RESELL_CAPABILITIES.sibling_process in this same package, plus the

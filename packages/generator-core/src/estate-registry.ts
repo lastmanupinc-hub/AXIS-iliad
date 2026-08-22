@@ -91,6 +91,15 @@ export interface EstateDiscovery {
   llms_txt?: string;
   well_known?: string;
   for_agents?: string;
+  /**
+   * est_07: an RFC 9727 Linkset (/.well-known/api-catalog) enumerating the
+   * sibling's real REST endpoints, when it publishes one. Preferred over
+   * hand-listing individual endpoints in this registry — the same
+   * link-don't-copy reasoning as `tools_source` on EstateEntry: a canonical
+   * catalog URL avoids drift with zero sync guard needed, since there is
+   * nothing here to go stale.
+   */
+  api_catalog?: string;
 }
 
 export interface EstateHealth {
@@ -262,14 +271,26 @@ export const ESTATE_REGISTRY: Record<string, EstateEntry> = {
     // directly from the sibling repo's own axis-launch.json on this
     // machine, but not independently reachable over the network from here.
     status: "unverified",
-    // No MCP, no callable functions — STRATEGY.md §2d: "no callable
-    // functions identified (none invented)". Launch is a discovery/SEO/
-    // acquisition platform, not a tool provider, so `mcp`/`payment`/`tools`
-    // are all correctly absent rather than empty placeholders.
+    // CORRECTED 2026-08-22 (est_07): this row originally said "no callable
+    // functions identified" (STRATEGY.md §2d, written before checking
+    // Launch's own repo). Launch corrected it via the peer channel and it
+    // was independently reread directly from their real
+    // .well-known/api-catalog (RFC 9727 Linkset) on this machine, not taken
+    // on their word alone: 6 real REST endpoints — GET
+    // /api/agent/catalog (no auth), POST /api/submissions (no auth,
+    // admin-reviewed), POST /api/checkout (no auth; an HONEST 503
+    // "payments not configured" until PAI'D sandbox secrets land, tracked
+    // Launch-side as H-02a — degrades gracefully, not broken), POST
+    // /api/paid-interest, POST /api/takedown, GET /api/health. No MCP
+    // server, still correctly absent (these are plain REST, not MCP
+    // tools) — `mcp`/`payment`/`tools` stay absent; `discovery.api_catalog`
+    // below points at the real catalog instead of hand-listing these here
+    // a second time (link, don't copy — same reasoning as tools_source).
     capabilities_summary:
-      "Discovery, SEO, and acquisition platform for AI-generated apps. Shipped the estate's Cloudflare Agent-Readiness reference implementation (llms.txt, .well-known/*, agent-skills discovery) — the property this repo's own ext_01/ext_02 candidates were scored against.",
+      "Discovery, SEO, and acquisition platform for AI-generated apps, with a real callable REST surface (listing catalog, submissions, PAID-backed checkout, takedown requests) — see discovery.api_catalog for the canonical endpoint list. Shipped the estate's Cloudflare Agent-Readiness reference implementation (llms.txt, .well-known/*, agent-skills discovery) — the property this repo's own ext_01/ext_02 candidates were scored against.",
     discovery: {
       well_known: "https://jonathanarvay.com/.well-known/axis-launch.json",
+      api_catalog: "https://jonathanarvay.com/.well-known/api-catalog",
     },
     webapp_surface: "agent-only",
     health: {

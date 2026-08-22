@@ -61,6 +61,12 @@ project_begin:
       paid:         "payment processing"    # payments-orchestration layer
       axis_toolbox: "AXIS Toolbox"          # this repo (Iliad / axis-odyssey)
       axis_foundry: "AXIS Avatar Foundry"   # = AXIS Foundry
+      axis_launch:  "AXIS Launch"           # discovery/SEO/acquisition platform — added 2026-08-22 (est_07):
+        # formalizes a channel already proven working identically to the three above (axis_launch
+        # filed TICKET-AXIS_LAUNCH-agent-readiness-* into this repo's inbox 2026-08-10 despite being
+        # absent from this map, and its peer session is reachable the same way). STRATEGY.md §5.7's
+        # decision, resolved: keeping it "informal" bought nothing — the mechanics were already
+        # identical, this just names them.
 
     ticket_schema:
       # Copy this block, fill it in, append it under inbox.tickets in the
@@ -89,11 +95,11 @@ project_begin:
       # triage_policy below.
       tickets:
         - id: TICKET-AXIS_LAUNCH-agent-readiness-axis-web-gapfill-20260810
-          from_repo: axis_launch   # NOT in known_repos above (only paid/axis_toolbox/axis_foundry
-            # are enumerated there) -- filed by an operator-directed cross-account agent working
-            # from the AXIS Launch / Cloudflare-account side, not one of this protocol's three
-            # sibling autonomous-loop repos. Traceable via from_agent_session below; no mirrored
-            # outbox exists for this origin (see pointer_back).
+          from_repo: axis_launch   # was NOT in known_repos when filed 2026-08-10 (only paid/
+            # axis_toolbox/axis_foundry were enumerated then) -- filed by an operator-directed
+            # cross-account agent working from the AXIS Launch / Cloudflare-account side. ADDED to
+            # known_repos 2026-08-22 (est_07), formalizing exactly this channel. Traceable via
+            # from_agent_session below; no mirrored outbox exists for this origin (see pointer_back).
           from_agent_session: "claude-code-cloudflare-agent-readiness-2026-08-10"
           submitted: "2026-08-10"
           status: confirmed   # CONFIRMED 2026-08-22 -- ext_01 shipped, verified, committed (4d907f9), pushed (both remotes)
@@ -2449,7 +2455,35 @@ project_begin:
         roi_reason: "self_propagation 3, conformance 3, implementation_cost -1 (their surfaces exist; ours links them)."
         severity: LOW
         source_file: "docs/ESTATE_FEDERATION_STRATEGY.md"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-22.
+        # RECIPROCITY, both directions, verified not assumed: Launch's own repo (read directly on
+        # this machine) now has axis-launch.json.estate_registry pointing at
+        # https://api.iliad.trustfabric.ai/.well-known/axis-estate.json (their commit 1064e132,
+        # via the peer channel) — that's their side. Iliad's side already existed from est_01:
+        # ESTATE_REGISTRY.launch.discovery.well_known points at their axis-launch.json. Both
+        # confirmed present, not just claimed.
+        #
+        # REAL CORRECTION MADE, not just relayed: est_01/STRATEGY.md §2d had said "no callable
+        # functions identified (none invented)" for Launch. That was wrong, and Launch caught it —
+        # but rather than take their word, reread their real .well-known/api-catalog (RFC 9727
+        # Linkset) directly from their repo on this machine: 6 real REST endpoints (listing
+        # catalog, submissions, PAID-backed checkout — an honest 503 until PAID sandbox secrets
+        # land, paid-interest, takedown, health). Fixed in ESTATE_REGISTRY.launch (capabilities_summary
+        # + a new discovery.api_catalog field pointing at their real Linkset, per their own
+        # suggestion — link, don't hand-list a second copy, same reasoning as tools_source) and in
+        # STRATEGY.md §2d. `mcp` correctly stays absent — Launch has no MCP server, this is plain
+        # REST.
+        #
+        # §5.7 DECISION MADE: added axis_launch to inter_repo_ticket_system.known_repos. Not a
+        # coin flip — the channel was ALREADY working identically to the other three (Launch had
+        # already filed two real tickets through it before this repo even had a name for the
+        # lane), so formalizing cost nothing and closes a real "why does this work but isn't
+        # documented" gap. STRATEGY.md §5 row 7 marked resolved.
+        #
+        # VERIFIED: 145/145 across estate-registry.test.ts (+3 new: the corrected api_catalog
+        # link, mcp correctly still absent, reciprocal well_known pin), well-known-handlers.test.ts,
+        # mcp-estate-flag.test.ts. tsc clean; generator-core dist rebuilt before cross-package
+        # validation.
 
       - id: "est_08_trustfabric_standup"
         description: >

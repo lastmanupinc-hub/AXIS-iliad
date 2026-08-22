@@ -230,10 +230,19 @@ PAI'D's CDP account, `x402_gateway.py:80-86`). **Gated on counsel** — PAI'D
 Their MCP endpoint is real: `api.paid.jonathanarvay.com/v1/mcp` (Bearer
 agent-keys; sandbox keys deny execute_payment, $1 cap, 24h).
 
-**2d. Launch + TrustFabric.** Launch: Layer-1 entry + reciprocal links; no
-callable functions identified (none invented); **executable today** via the
-informal peer channel — the real open decision is whether to add
-`axis_launch` to `known_repos` (§5.7), not an owner gate. TrustFabric:
+**2d. Launch + TrustFabric.** Launch: Layer-1 entry + reciprocal links.
+**CORRECTED 2026-08-22 (est_07):** this section originally said "no
+callable functions identified (none invented)", written before checking
+Launch's own repo. Launch corrected it via the peer channel and it was
+independently reread from their real `.well-known/api-catalog` (RFC 9727
+Linkset) directly, not taken on their word: 6 real REST endpoints (listing
+catalog, submissions, PAID-backed checkout — an honest 503 until PAID
+sandbox secrets land, tracked Launch-side as H-02a — paid-interest,
+takedown, health). No MCP server (still true; these are plain REST). The
+estate registry links Launch's `api_catalog` rather than hand-listing these
+a second time — link, don't copy. `axis_launch` was **added to
+`known_repos`** (§5.7, resolved) — this channel was already working
+identically to the other three; formalizing it cost nothing. TrustFabric:
 `planned`, blocked on §5.1's naming reconciliation + definition — blocker
 recorded with the exact checks run (tf.trustfabric.ai NXDOMAIN;
 tf.jonathanarvay.com resolves but is filter-blocked from this machine) per
@@ -420,7 +429,7 @@ as untrusted — rather than splicing sibling text bare into `toolOk`.
 | 4 | safebrowse.io categorization check for jonathanarvay.com | Crawlability of half the estate |
 | 5 | ~~PAI'D exposable-surface decision~~ **ANSWERED 2026-08-22** (§2c: three read tools now; execute_payment on their COH-009 trigger; top-up/checkout struck) | ~~est_06~~ resolved |
 | 6 | Which wallet Iliad uses to pay Foundry (custody design proceeds regardless, §3.5) | est_04 execution |
-| 7 | Add `axis_launch` to `known_repos` (formalizing the channel it already uses informally)? | est_07 |
+| 7 | ~~Add `axis_launch` to `known_repos`~~ **DECIDED 2026-08-22, in est_07 itself** (owner-overridable): yes — the channel was already working identically to the other three (Launch had already filed real tickets via it), formalizing cost nothing. | ~~est_07~~ resolved |
 | 8 | **`ALERT_WEBHOOK_URL`** — deferred for Iliad alone as accepted risk; federation multiplies the blast radius to *paid cross-app calls failing silently*. Re-raised as a federation prerequisite. | est_04+ |
 
 Standing laws honored: sibling repos change only via inter-repo tickets;
