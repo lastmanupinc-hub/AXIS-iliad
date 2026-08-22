@@ -13,6 +13,7 @@ import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, genera
 import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
 import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist, generateAutomationPipeline } from "./generators-superpowers.js";
 import { generateVerifyGate, generateVerifyFull, generatePrePushHook } from "./generators-verify-gate.js";
+import { generateRedundancySweepScript, generateRedundancySweepPlaybook } from "./generators-redundancy-sweep.js";
 import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook, generateAbTestPlan } from "./generators-marketing.js";
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
@@ -168,6 +169,8 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "verify.sh": (ctx, profile, files) => generateVerifyGate(ctx, profile, files),
   "verify-full.sh": (ctx, profile, files) => generateVerifyFull(ctx, profile, files),
   ".githooks/pre-push": (ctx, profile, files) => generatePrePushHook(ctx, profile, files),
+  "redundancy-sweep.mjs": (ctx, profile, files) => generateRedundancySweepScript(ctx, profile, files),
+  "redundancy-sweep-playbook.md": (ctx, profile, files) => generateRedundancySweepPlaybook(ctx, profile, files),
   "component-library.json": (ctx, _p, files) => generateComponentLibrary(ctx, files),
   "storyboard.md": (ctx, _p, files) => generateStoryboard(ctx, files),
   "brand-board.md": (ctx, _p, files) => generateBrandBoard(ctx, files),

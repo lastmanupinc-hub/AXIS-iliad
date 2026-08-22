@@ -56,7 +56,7 @@ curl https://axis-api-6c7z.onrender.com/v1/projects/PROJECT_ID/export \
 
 ## What you get
 
-One scan → 147 artifacts across 21 programs, ready in seconds:
+One scan → 149 artifacts across 21 programs, ready in seconds:
 
 | What you need | Program | Key outputs |
 |---------------|---------|-------------|
@@ -131,7 +131,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 | Tier | Price | Programs |
 |------|-------|----------|
 | **Free** | $0 | Search, Skills, Debug |
-| **Pro** | $0.50 / run | All 21 programs, 147 artifacts |
+| **Pro** | $0.50 / run | All 21 programs, 149 artifacts |
 | **Lite mode** | $0.15–$0.25 / run | Top-gap summary, reduced output |
 
 Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` + `X-Agent-Mode: lite` on any paid call.
@@ -191,7 +191,7 @@ axis-iliad/
 │   ├── snapshots/    → Snapshot intake, Postgres (Neon) persistence, billing, funnel
 │   ├── repo-parser/  → Language detection (60+), framework detection (10), import graph
 │   ├── context-engine/ → Context map builder, repo profile, route/architecture analysis
-│   └── generator-core/ → 147 generators across 21 programs
+│   └── generator-core/ → 149 generators across 21 programs
 └── vitest.config.ts  → Shared test config
 ```
 

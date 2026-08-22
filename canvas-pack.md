@@ -32,7 +32,7 @@
 │  │  #58a6ff  ██ │  │  sm   ▪     │  │              │  │  [Al][P]            │  │
 │  │  #d29922  ██ │  │  xs   ·     │  │  Green  ●    │  │                     │  │
 │  │  #3fb950  ██ │  │              │  │  Pass        │  │                     │  │
-│  │  #f85149  ██ │  │  JetBrains  │  │              │  │                     │  │
+│  │  #f85147  ██ │  │  JetBrains  │  │              │  │                     │  │
 │  │              │  │  Mono (code) │  │  Red    ●    │  │                     │  │
 │  │              │  │              │  │  Fail        │  │                     │  │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘  │
@@ -42,7 +42,7 @@
 │  │  (cols 1-6)                  │  │  (cols 7-12)                         │   │
 │  │                              │  │                                      │   │
 │  │  Upload → Parse → Context    │  │  ┌────┐ ┌────┐ ┌────┐ ┌──────┐     │   │
-│  │    → Generate → 147 Artifacts │  │  │ 20 │ │ 143 │ │3906│ │99.99%│     │   │
+│  │    → Generate → 149 Artifacts │  │  │ 20 │ │ 143 │ │3906│ │99.99%│     │   │
 │  │                              │  │  │prog│ │ gen│ │test│ │ cov  │     │   │
 │  └──────────────────────────────┘  │  └────┘ └────┘ └────┘ └──────┘     │   │
 │                                     └──────────────────────────────────────┘   │
@@ -86,7 +86,7 @@
   --ax-orange-muted: rgba(210, 153, 34, 0.15);
   --ax-green: #3fb950;
   --ax-green-muted: rgba(63, 185, 80, 0.15);
-  --ax-red: #f85149;
+  --ax-red: #f85147;
   --ax-red-muted: rgba(248, 81, 73, 0.15);
 
   /* Typography */
@@ -152,7 +152,7 @@
 | ████████ | #58a6ff | Cyan |
 | ████████ | #d29922 | Orange |
 | ████████ | #3fb950 | Success |
-| ████████ | #f85149 | Danger |
+| ████████ | #f85147 | Danger |
 
 ### Typography Scale (Cols 4-6, Row 2)
 Display the font scale from 4xl to xs using the actual system font. Include mono sample in JetBrains Mono showing: `const axis = analyze(repo);`
@@ -181,7 +181,7 @@ Corner badge on each: generator count.
 ### Pipeline Flow (Cols 1-6, Row 3)
 Horizontal flow: 5 connected nodes with arrows:
 ```
-[Upload] → [repo-parser] → [context-engine] → [generator-core] → [147 Artifacts]
+[Upload] → [repo-parser] → [context-engine] → [generator-core] → [149 Artifacts]
 ```
 Each node: surface-colored pill with cyan border. Arrow: cyan line with arrowhead. Below the arrow between generator-core and Artifacts: "deterministic" label in xs text.
 

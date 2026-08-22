@@ -1,7 +1,7 @@
 # Axis' Iliad — Board & Investor Pitch
 
 > **The AI-Powered Developer Intelligence Platform**
-> 21 programs. 147 generators. One snapshot. Every output a developer needs — before they write a single line of code.
+> 21 programs. 149 generators. One snapshot. Every output a developer needs — before they write a single line of code.
 
 ---
 
@@ -337,7 +337,7 @@ These programs are permanently free. They solve universal developer problems and
 │                                                         │
 │  ┌─────────┐    ┌──────────────┐    ┌───────────────┐  │
 │  │  Upload  │───▶│  Snapshot     │───▶│  21 Programs  │  │
-│  │  Repo    │    │  Engine       │    │ 147 Generators│  │
+│  │  Repo    │    │  Engine       │    │ 149 Generators│  │
 │  └─────────┘    └──────────────┘    └───────┬───────┘  │
 │                                             │           │
 │  ┌─────────┐    ┌──────────────┐    ┌───────▼───────┐  │
@@ -361,7 +361,7 @@ These programs are permanently free. They solve universal developer problems and
 | Metric | Value |
 |--------|-------|
 | Total Programs | 21 |
-| Total Generators | 147 |
+| Total Generators | 149 |
 | API Endpoints | 150 |
 | Test Count | 4,900+ |
 | Test Files | 205 |
@@ -499,5 +499,5 @@ Every AI coding tool writes code. None of them understand the project first. AXI
 
 ---
 
-*Prepared April 2026 · Axis' Iliad v0.5.3 · 147 generators across 21 programs*
+*Prepared April 2026 · Axis' Iliad v0.5.3 · 149 generators across 21 programs*
 *Contact: No Fate Platform · [github.com/lastmanupinc-hub/axis-iliad](https://github.com/lastmanupinc-hub/axis-iliad)*

@@ -62,6 +62,8 @@ export const GENERATOR_PROGRAMS: Record<string, string> = {
   "verify.sh": "superpowers",
   "verify-full.sh": "superpowers",
   ".githooks/pre-push": "superpowers",
+  "redundancy-sweep.mjs": "superpowers",
+  "redundancy-sweep-playbook.md": "superpowers",
   "campaign-brief.md": "marketing",
   "funnel-map.md": "marketing",
   "sequence-pack.md": "marketing",

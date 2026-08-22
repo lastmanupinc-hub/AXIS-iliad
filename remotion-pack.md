@@ -4,7 +4,7 @@
 
 | Property | Value |
 |----------|-------|
-| Title | "Axis' Iliad: From Upload to 147 Artifacts" |
+| Title | "Axis' Iliad: From Upload to 149 Artifacts" |
 | Duration | 60 seconds |
 | Resolution | 1920 × 1080 (16:9) |
 | FPS | 30 |
@@ -28,7 +28,7 @@
 <Scene1_Problem>
   <SplitScreen left={<EditorPanel />} right={<AIPanel suggestions={generic} />} />
   <TextOverlay text="Your AI assistant doesn't know your codebase." />
-  <PulseEffect color="#f85149" targets={wrongSuggestions} />
+  <PulseEffect color="#f85147" targets={wrongSuggestions} />
 </Scene1_Problem>
 ```
 

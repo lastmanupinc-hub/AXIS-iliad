@@ -91,6 +91,7 @@ export { generateDesignTokens, generateThemeCss, generateThemeGuidelines, genera
 export { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
 export { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist, generateAutomationPipeline } from "./generators-superpowers.js";
 export { generateVerifyGate, generateVerifyFull, generatePrePushHook } from "./generators-verify-gate.js";
+export { generateRedundancySweepScript, generateRedundancySweepPlaybook } from "./generators-redundancy-sweep.js";
 export { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook, generateAbTestPlan } from "./generators-marketing.js";
 // app_42 — structured sequence data for the real send pipeline (apps/api's
 // marketing-apply-watcher.ts), additive alongside the markdown generator above.

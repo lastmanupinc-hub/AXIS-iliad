@@ -11,8 +11,8 @@
 
 claims:
   - id: artifact_count
-    text: "147 artifacts per analysis"
-    value: 147
+    text: "149 artifacts per analysis"
+    value: 149
     source: "apps/api/src/counts.ts ARTIFACT_COUNT (derived from the generator REGISTRY)"
     status: verified
     verified_at: "2026-07-14"

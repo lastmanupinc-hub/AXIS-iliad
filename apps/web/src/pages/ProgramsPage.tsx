@@ -124,7 +124,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "AI refactoring checklists, test generation rules & workflow registry",
     keywords: ["AI refactoring checklist", "test generation rules", "automation pipeline generator", "workflow registry AI", "developer superpowers AI"],
-    outputs: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml", "verify.sh", "verify-full.sh", ".githooks/pre-push"],
+    outputs: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml", "verify.sh", "verify-full.sh", ".githooks/pre-push", "redundancy-sweep.mjs", "redundancy-sweep-playbook.md"],
     cta: "Unlock your superpowers",
   },
   {

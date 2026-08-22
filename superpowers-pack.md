@@ -9,7 +9,7 @@
 | 1 | YAML Constitutional Governance | ★★★★★ | ★★★★★ | Architecture |
 | 2 | Deterministic Multi-Format Generation | ★★★★★ | ★★★★☆ | Core Engine |
 | 3 | Self-Auditing Quality Loop | ★★★★★ | ★★★★★ | Governance |
-| 4 | 147 Generators Across 21 Programs | ★★★★☆ | ★★★★★ | Breadth |
+| 4 | 149 Generators Across 21 Programs | ★★★★☆ | ★★★★★ | Breadth |
 | 5 | Zero External HTTP Dependencies | ★★★★★ | ★★★★☆ | Security |
 | 6 | AI Agent Context Generation | ★★★★☆ | ★★★★★ | Interop |
 | 7 | 60+ Language Detection | ★★★☆☆ | ★★★★☆ | Detection |
@@ -44,7 +44,7 @@ This isn't configuration. It's legislation. The YAML files don't describe what t
 ### 2. Deterministic Multi-Format Generation
 **Rarity**: ★★★★★ (Most generators use randomness, timestamps, or non-deterministic ordering)
 
-147 generators produce byte-identical output for the same input. Verified by 6 dedicated determinism tests. Output formats span: Markdown, JSON, YAML, TypeScript, JavaScript, CSS.
+149 generators produce byte-identical output for the same input. Verified by 6 dedicated determinism tests. Output formats span: Markdown, JSON, YAML, TypeScript, JavaScript, CSS.
 
 **Why it matters**: Determinism enables CI validation. If a generator changes output without input changing, it's a regression — caught automatically.
 
@@ -67,10 +67,10 @@ The system grades itself on every capability (A/B/F), identifies the weakest poi
 
 ---
 
-### 4. 147 Generators Across 21 Programs
+### 4. 149 Generators Across 21 Programs
 **Rarity**: ★★★★☆ (Most tools generate 1-5 artifact types. 80 is an order of magnitude more.)
 
-From a single snapshot (ZIP, GitHub URL, or local dir), the system generates 147 distinct artifacts spanning:
+From a single snapshot (ZIP, GitHub URL, or local dir), the system generates 149 distinct artifacts spanning:
 - Developer context (AGENTS.md, CLAUDE.md, .cursorrules)
 - Architecture analysis (context maps, dependency hotspots)
 - Debug intelligence (playbooks, tracing rules)
