@@ -1431,6 +1431,37 @@ project_begin:
         # PRE-EXISTING gap the recon surfaced that subscribeRepo has NO public REST endpoint (true for
         # every watcher product, not just debug — filed as its own observation, not smuggled in here).
 
+      - id: "infra_04_scheduled_jobs_substrate"
+        description: >
+          The Watch substrate's missing half: SCHEDULED work. watch-queue.ts is
+          immediate-send-on-event only, and that gap has now forced three
+          separate candidates to defer their W stages — app_42 (cadence
+          delivery, the first recorded deferral), app_32 (Sentry backfill
+          polling), and app_33, where "scheduled pulls" IS the spec's W, not
+          garnish. Three convergent deferrals = the substrate has earned its
+          own build, as its own candidate (the app_42 precedent: never
+          ride-along). CAPABILITY ALREADY INSTALLED: pg-boss 12.26.4 ships
+          schedule(name, cron, data)/unschedule/getSchedules natively —
+          verified against the installed package's own .d.ts, not docs.
+          DESIGN (tick-fanout, not per-account schedules): ONE pg-boss cron
+          schedule fires a tick; ONE tick worker enumerates subscriptions for
+          the declared POLL_PRODUCTS set and enqueues ORDINARY watch jobs
+          (event_type "scheduled_pull") — the entire existing dispatcher chain
+          is reused for free, and adding a product to scheduled polling is one
+          constant entry. Needs listSubscriptionsForProduct in
+          repo-subscriptions.ts (by-product enumeration doesn't exist yet).
+        roi_score: 80
+        roi_reason: >
+          blocker_removal 5 (unblocks app_33's W outright + the recorded
+          deferrals in app_42 and app_32), portfolio_leverage_multiplier 3
+          (every future poll-driven product rides it), capability_gain 4,
+          implementation_cost -1 (pg-boss already ships the primitive).
+          Scored above app_33 deliberately — the substrate outscores what it
+          gates (the spoke_00/app_01 sequencing precedent).
+        severity: HIGH
+        source_file: "packages/snapshots/src/watch-queue.ts"
+        completion_status: in_progress  # CLAIMED 2026-08-23 by the same session that shipped app_32.
+
       - id: "app_33_optimization_live_meter"
         description: "optimization → live meter: pull real provider usage (plain REST to OpenAI/Anthropic usage endpoints), attribute spend to prompts/routes from call sites, alert on regression; verify by invoice reconciliation. Needs provider-key connect flow. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #9."
         roi_score: 76
