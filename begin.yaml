@@ -2648,6 +2648,93 @@ project_begin:
         source_file: "packages/generator-core/src/estate-registry.ts"
         completion_status: open
 
+      - id: "mcp_01_registry_description_hardening"
+        description: >
+          User-directed (not queue-selected): harden->polish->dev->harden->polish
+          on every MCP_TOOLS description, informed by REAL production call-count
+          data rather than assumption.
+        roi_score: 62
+        roi_reason: "agent_acquisition 5, revenue_loop_closure 5 (two tools' own copy misdescribed their real billing gate/price), validation_strength 4 (every price cross-checked against PRICING_TIERS, not eyeballed); implementation_cost -2 (text-only, single file)."
+        severity: MEDIUM
+        source_file: "apps/api/src/mcp-tools.ts"
+        completion_status: complete  # SHIPPED 2026-08-23.
+        # HARDEN (1st, research): pulled REAL production apps/api mcp_usage data via
+        # GET /v1/admin/mcp-usage?window_days=365 (live admin key resolved from Render's
+        # OWN env-vars API, key.txt's local copy was stale — not guessed, not skipped).
+        # 493 total calls/47 accounts/365d, but only 18 of 43 registered tools have EVER
+        # been called — the rest of the "493" is a security scanner probing ~60 nonexistent
+        # `__verifymcp_auth_probe_*__` tool names, not real traffic. Read all 43 tool
+        # definitions in full (superset of the requested 20-high/10-low split, since only
+        # 18 real tools exist above zero) and cross-checked EVERY stated price against
+        # packages/mpp/src/index.ts's PRICING_TIERS (ground truth) rather than trusting the
+        # prose — 21/21 metered tools matched except one.
+        #
+        # 4 real defects found + fixed, each verified against the actual dispatcher code
+        # and existing tests, not assumed:
+        #  - ping_payment (16 calls, a top performer): description + its own 2nd example +
+        #    outputSchema all claimed "$0 — zero risk". PRICING_TIERS.ping_payment has been
+        #    standard_cents:1/lite_cents:1 since 2026-07-28 (real handler confirmed at
+        #    mcp-tool-impls.ts:4171; mcp-server.test.ts's OWN settlement test already
+        #    asserted settled_cents=1/price_usd="0.01"; x402-onboarding-cta.test.ts's
+        #    independent CTA copy already said "$0.01" too) — only the raw MCP_TOOLS
+        #    description was the stale outlier. Fixed description, fixed the 2nd example's
+        #    output, added the missing price_usd field to outputSchema.
+        #  - closer / deploy (0 calls each): said "Requires a paid plan or entitlement.
+        #    Pricing: $0.50 standard, $0.25 lite" — read identically to every real
+        #    pay-per-call tool. Verified in mcp-tool-impls.ts (runCloser/runDeploy): these
+        #    are the ONLY 2 of 21 metered tools with NO buildMcpPaymentRequiredError/MPP
+        #    fallback for a free-tier account — a flat throw, no per-call unlock exists
+        #    (unlike analyze_files/analyze_repo/prepare_agentic_purchasing, all of which DO
+        #    let a free account pay $0.50 via MPP credential; confirmed by reading their
+        #    tier==="free" branches too, so this isn't assumed to generalize). Rewrote both
+        #    to state the real access model plainly instead of implying a price unlocks it.
+        #  - improve_my_agent_with_axis (0 calls): stated no price at all — ambiguous
+        #    (free, or a documentation gap?). Confirmed via mcp-tool-impls.ts's own comment
+        #    (H-Phase-A cycle 10: a dead PRICING_TIERS row for this tool was deleted outright
+        #    because no handler ever reads it) that it's genuinely free/unmetered by design.
+        #    Description now says so explicitly, matching deriveMcpToolCatalog's existing
+        #    "included in plan" honesty instead of reading like an oversight.
+        #
+        # POLISH: 7 discoverability additions to the zero-call iliad_* owned-infra cluster,
+        # applying the "Use X instead/together" cross-reference pattern already proven
+        # common to the top-18 (list_programs/search_and_discover_tools/get_snapshot/
+        # get_artifact/analyze_repo/iliad_web_research all have it; most iliad_* owned-infra
+        # tools didn't). Added real, code-verified pairings only, declined to force one where
+        # none is natural (e.g. iliad_code_sandbox is network-isolated — NetworkMode=none —
+        # so no signed-URL pairing is actually reachable from inside it; left alone):
+        # iliad_web_research + iliad_web_research_crawl -> iliad_web_search (index what you
+        # scrape); iliad_vector_database <-> iliad_embeddings (bidirectional, embeddings->
+        # vector_database already existed, added the missing reverse pointer);
+        # iliad_object_storage -> iliad_document_parsing/iliad_speech_to_text (a signed GET
+        # URL minted there is a valid document_url/audio_url — verified both accept an https
+        # URL fetch, not assumed); iliad_document_parsing -> iliad_object_storage +
+        # iliad_embeddings/iliad_vector_database (RAG chain); iliad_text_to_speech <->
+        # iliad_speech_to_text (mutual). Declined to touch assemble_representment or
+        # iliad_network_tokenization despite 0 calls each — both already honestly documented,
+        # zero calls fully explained by narrow real preconditions (a live webhook-ingested
+        # Stripe dispute; 2 of 4 operations deliberately disabled for a real unfixed ownership
+        # gap) rather than a description defect. Declined to touch the 5 Foundry stubs or
+        # discover_estate_tools — shipped this same week (est_02/est_03), zero calls is
+        # expected from age alone, not a signal.
+        #
+        # HARDEN (2nd, re-verify): tsc --noEmit clean. Grepped the FULL repo (not just
+        # apps/api) for every string I changed before AND after editing, to find every test
+        # that could pin old text — found x402-onboarding-cta.test.ts pins "$0" on a
+        # DIFFERENT, already-correct, hand-written CTA string (not sourced from MCP_TOOLS),
+        # confirmed unaffected rather than assumed. Ran every test file in the repo that
+        # actually references the 11 touched tools (mcp-server, mcp-tools, agent-discovery,
+        # network-token, mcp-commerce-tools, prepare-purchasing, closer-deploy-metering,
+        # well-known-handlers, count-honesty, mcp-estate-flag) against the real local test
+        # Postgres (axis-test-pg:5433, DATABASE_URL set explicitly — the first run without it
+        # gave 8 false failures, all resetTestDb() env-guard errors, correctly not conflated
+        # with a real regression): 604/604 passed, 0 failures.
+        #
+        # POLISH (2nd): re-read every one of the 11 changed descriptions fresh off disk
+        # end-to-end after editing (not from memory) for wording quality; full diff reviewed
+        # as one block before commit. NOT DONE: did not touch any of the 32 tools whose
+        # description was already accurate and already followed the top-performer pattern —
+        # this cycle fixes real, evidenced gaps, not a stylistic rewrite of working copy.
+
   highest_roi_definition:
     meaning: >
       The next valid move inside the project boundary that most increases durable

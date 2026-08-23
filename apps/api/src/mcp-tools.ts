@@ -528,7 +528,7 @@ export const MCP_TOOLS = [
   {
     name: "closer",
     description:
-      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell. Requires a paid plan or entitlement. Pricing: $0.50 standard, $0.25 lite budget mode.",
+      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell. Requires Authorization: Bearer <api_key> on an ALREADY-PAID Starter/Pro/Growth (or suite) account. Unlike most metered AXIS tools, a free-tier account cannot unlock this per call with an MPP payment credential — there is no pay-per-call path here, only 'upgrade at iliad.trustfabric.ai/billing'. Once unlocked, billed $0.50 standard, $0.25 lite budget mode per call from the account's plan credits.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],
@@ -587,7 +587,7 @@ export const MCP_TOOLS = [
   {
     name: "deploy",
     description:
-      "Generate a zero-pipeline-minutes deploy bundle: stack-aware Dockerfile, .dockerignore, dev compose, render.yaml (Render existing-image), wrangler.pages.toml + wrangler.containers.toml + worker.ts (Cloudflare), bash/PowerShell push scripts, and a qualification report. The project builds locally in VSCode, pushes images to GHCR or via wrangler, and Render/Cloudflare just pulls — no GitHub Actions minutes, no Render build pipeline minutes, no CF build minutes. Requires a paid plan or entitlement. Pricing: $0.50 standard, $0.25 lite budget mode.",
+      "Generate a zero-pipeline-minutes deploy bundle: stack-aware Dockerfile, .dockerignore, dev compose, render.yaml (Render existing-image), wrangler.pages.toml + wrangler.containers.toml + worker.ts (Cloudflare), bash/PowerShell push scripts, and a qualification report. The project builds locally in VSCode, pushes images to GHCR or via wrangler, and Render/Cloudflare just pulls — no GitHub Actions minutes, no Render build pipeline minutes, no CF build minutes. Requires Authorization: Bearer <api_key> on an ALREADY-PAID Starter/Pro/Growth (or suite) account. Unlike most metered AXIS tools, a free-tier account cannot unlock this per call with an MPP payment credential — there is no pay-per-call path here, only 'upgrade at iliad.trustfabric.ai/billing'. Once unlocked, billed $0.50 standard, $0.25 lite budget mode per call from the account's plan credits.",
     inputSchema: {
       type: "object",
       properties: {
@@ -693,7 +693,7 @@ export const MCP_TOOLS = [
   {
     name: "ping_payment",
     description:
-      "Exercise the real x402 payment-flow loop at $0 — zero risk, no auth required. Call it once with no payment credential to receive a 402-style payment_required challenge (the exact same shape every real paid tool returns); retry the same tools/call carrying a payment credential in Authorization (with your API key moved to X-Axis-Key) to get a success envelope. Learn the vocabulary here before paying real money for prepare_agentic_purchasing or analyze_repo. No side effects on any other tool, no real payment rail is ever touched.",
+      "Exercise the real x402 payment-flow loop at a nominal $0.01 — the cheapest metered call on this server, priced just above $0 so the probe can't be run up for free without limit. Call it once with no payment credential (no auth required) to receive a 402-style payment_required challenge (the exact same shape every real paid tool returns, and requesting it is itself free); retry the same tools/call carrying a payment credential in Authorization (with your API key moved to X-Axis-Key) to settle at $0.01 and get a success envelope. Learn the vocabulary here before paying real money for prepare_agentic_purchasing or analyze_repo. No side effects on any other tool, no real payment rail is ever touched.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -704,7 +704,8 @@ export const MCP_TOOLS = [
         _payment_required: { type: "boolean" },
         tool: { type: "string" },
         ok: { type: "boolean" },
-        settled_cents: { type: "number" },
+        settled_cents: { type: "number", description: "Amount actually settled on a successful retry, in cents (1 = $0.01). Always 0 on the initial challenge (amount_cents), which is a separate field." },
+        price_usd: { type: "string", description: "settled_cents formatted as a dollar string — success responses only." },
         message: { type: "string" },
       },
     },
@@ -716,16 +717,16 @@ export const MCP_TOOLS = [
         output: '{"error":"Payment Required","message":"This is a free payment-flow probe. Fulfil the x402 challenge and retry the same tools/call with the payment credential.","price":"0.00","currency":"USD","_payment_required":true,"tool":"ping_payment","amount_cents":0,"retry":{"method":"tools/call","name":"ping_payment","headers_hint":["Authorization: <payment credential> — replaces the Bearer API key for this one retry","X-Axis-Key: <api_key> — your normal API key moves here on the retry"]}}',
       },
       {
-        name: "Retry with a payment credential in Authorization — succeeds at $0",
+        name: "Retry with a payment credential in Authorization — succeeds at $0.01",
         input: {},
-        output: '{"ok":true,"tool":"ping_payment","settled_cents":0,"message":"Payment flow exercised successfully. You now know how to pay for any metered AXIS tool.","next":"Call prepare_agentic_purchasing or analyze_repo — same 402 vocabulary applies at real prices."}',
+        output: '{"ok":true,"tool":"ping_payment","settled_cents":1,"price_usd":"0.01","message":"Payment flow exercised successfully. You now know how to pay for any metered AXIS tool.","next":"Call prepare_agentic_purchasing or analyze_repo — same 402 vocabulary applies at real prices."}',
       },
     ],
   },
   {
     name: "improve_my_agent_with_axis",
     description:
-      "Analyze an agent codebase and return a prioritized AXIS hardening plan. Requires Authorization: Bearer <api_key>; this creates a snapshot and may return auth, quota, file-limit, or validation errors. Example: pass your agent source files to see missing AGENTS.md, CLAUDE.md, and MCP config gaps. Use this when you want recommendations and missing-context detection. Use analyze_files instead when you want the full artifact bundle directly.",
+      "Analyze an agent codebase and return a prioritized AXIS hardening plan. Requires Authorization: Bearer <api_key> but has no usage charge on any tier — free and unmetered, unlike most AXIS tools. This creates a snapshot and may return auth, quota, file-limit, or validation errors. Example: pass your agent source files to see missing AGENTS.md, CLAUDE.md, and MCP config gaps. Use this when you want recommendations and missing-context detection. Use analyze_files instead when you want the full artifact bundle directly (paid: $0.50 standard, $0.15 lite).",
     inputSchema: {
       type: "object",
       required: ["project_name", "files"],
@@ -906,7 +907,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research",
     description:
-      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of scraping, and is not billed. Use iliad_web_research_crawl for crawling multiple pages or link following.",
+      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of scraping, and is not billed. Use iliad_web_research_crawl for crawling multiple pages or link following. To make a scraped page searchable later, index it with iliad_web_search.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -950,7 +951,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research_crawl",
     description:
-      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.01/page beyond your account's shared 100-page/month free pool (standard and lite) — a crawl fully covered by the free pool costs $0.00; a fully-paid 100-page crawl costs up to $1.00. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of crawling, and is not billed. Use iliad_web_research for single-page scrapes.",
+      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.01/page beyond your account's shared 100-page/month free pool (standard and lite) — a crawl fully covered by the free pool costs $0.00; a fully-paid 100-page crawl costs up to $1.00. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of crawling, and is not billed. Use iliad_web_research for single-page scrapes. To make crawled pages searchable later, index them with iliad_web_search.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -1012,7 +1013,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets); not billed when not configured. Pricing: $0.01 standard, free in lite mode. TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets); not billed when not configured. Pricing: $0.01 standard, free in lite mode. TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces). A signed GET URL minted here can be passed directly as iliad_document_parsing's document_url or iliad_speech_to_text's audio_url.",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
@@ -1057,7 +1058,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_vector_database",
     description:
-      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via Postgres. Requires Authorization: Bearer <api_key>. Pricing: $0.01 standard, free in lite mode. Best for RAG retrievers, deduplication, and similarity search. Engineer mode (X-Agent-Mode: engineer — Managed Memory, $0.05): query runs a pgvector/HNSW ANN candidate pool with optional recency-decay reranking (recency_half_life_days — managed forgetting), RRF hybrid fusion (sparse_ids), and metadata filter; upsert applies intra-batch semantic-dedup (dedup_threshold).",
+      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via Postgres. Requires Authorization: Bearer <api_key>. Pricing: $0.01 standard, free in lite mode. Best for RAG retrievers, deduplication, and similarity search. Use iliad_embeddings to turn text into the vectors this tool stores and queries. Engineer mode (X-Agent-Mode: engineer — Managed Memory, $0.05): query runs a pgvector/HNSW ANN candidate pool with optional recency-decay reranking (recency_half_life_days — managed forgetting), RRF hybrid fusion (sparse_ids), and metadata filter; upsert applies intra-batch semantic-dedup (dedup_threshold).",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -1341,7 +1342,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_document_parsing",
     description:
-      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Pricing: $0.02 standard, $0.01 lite. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64, capped at 10 MiB — smaller than the 50 MiB document cap; an OCR failure or oversized image returns a descriptive `reason` that may not match the standard-mode enum) — typed data, not just markdown. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Pricing: $0.02 standard, $0.01 lite. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64, capped at 10 MiB — smaller than the 50 MiB document cap; an OCR failure or oversized image returns a descriptive `reason` that may not match the standard-mode enum) — typed data, not just markdown. document_url accepts a signed GET URL minted by iliad_object_storage; chain the extracted markdown into iliad_embeddings + iliad_vector_database to build a RAG index. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1465,7 +1466,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_text_to_speech",
     description:
-      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference runs in-process — no upstream provider call — but this AXIS tool call is still billed: $0.02 standard, $0.01 lite. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}` and is not billed. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): requires `brand_text` (a brand / voice-and-tone artifact — the call throws without it in engineer mode) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference runs in-process — no upstream provider call — but this AXIS tool call is still billed: $0.02 standard, $0.01 lite. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}` and is not billed. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): requires `brand_text` (a brand / voice-and-tone artifact — the call throws without it in engineer mode) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Use iliad_speech_to_text to transcribe audio back to text. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["text"],
@@ -1526,7 +1527,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_speech_to_text",
     description:
-      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. Pricing: $0.03 standard, $0.01 lite. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}` and is not billed. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. Pricing: $0.03 standard, $0.01 lite. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}` and is not billed. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Use iliad_text_to_speech to synthesize speech from text. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
