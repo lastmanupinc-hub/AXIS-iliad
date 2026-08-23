@@ -2623,7 +2623,14 @@ project_begin:
           under the paid entry — pre-existing registry data quirk). UNBLOCKS
           when the owner reconciles the naming (§5.1) and defines the
           property. Until then the registry carries a planned-status stub row
-          only.
+          only. LEAD 2026-08-23 (unconfirmed, via a payment-processing peer's
+          question, not their answer): their commit 05e531d5 ("AI-search
+          discoverability standard across PAID/Trust Fabric/docs") ships a
+          "Trust Fabric" FRONTEND inside the payment-processing repo —
+          TrustFabric's site may be a PAI'D-repo frontend, which would also
+          explain the both-entries quirk above. Asked which domain that
+          frontend serves; whoever picks this up should chase that answer
+          first.
         roi_score: 60
         roi_reason: "optionality 3; unshippable until §5.1 — scored last on purpose, kept visible rather than dropped."
         severity: LOW
