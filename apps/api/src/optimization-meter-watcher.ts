@@ -172,14 +172,24 @@ export function detectLlmCallSites(files: FileEntry[], routes: Array<{ path: str
   return sites;
 }
 
-/** Best-effort model-name normalization so a call site's literal matches a pricing-table row. */
+/**
+ * Best-effort model-name normalization so a call site's literal (or a
+ * provider's raw usage-API model string) resolves to a pricing-table row.
+ * Exact match first; substring containment falls back to the LONGEST/most-
+ * specific row name, since a shorter name can be a substring of a more
+ * specific one (rowKey "gpt-4o" is a substring of input "gpt-4o-mini" —
+ * checking rows in table order would wrongly match the base model first).
+ */
 function priceRowForModel(model: string | null): (typeof LLM_MODEL_PRICING)[number] | undefined {
   if (!model) return undefined;
   const normalized = model.toLowerCase();
-  return LLM_MODEL_PRICING.find((row) => {
-    const rowKey = row.name.toLowerCase().replace(/\s+/g, "-");
-    return normalized.includes(rowKey) || rowKey.includes(normalized) || row.name.toLowerCase() === normalized;
-  });
+  const keyed = LLM_MODEL_PRICING.map((row) => ({ row, rowKey: row.name.toLowerCase().replace(/\s+/g, "-") }));
+  const exact = keyed.find((k) => k.rowKey === normalized);
+  if (exact) return exact.row;
+  const candidates = keyed.filter((k) => normalized.includes(k.rowKey) || k.rowKey.includes(normalized));
+  if (candidates.length === 0) return undefined;
+  candidates.sort((a, b) => b.rowKey.length - a.rowKey.length);
+  return candidates[0].row;
 }
 
 // ─── Attribution + reconciliation ────────────────────────────────
@@ -218,9 +228,18 @@ export function attributeUsage(reports: ProviderUsageReport[], callSites: LlmCal
   for (const report of reports) {
     for (const m of report.models) {
       realTotal += m.cost_usd;
-      const sitesForModel = callSites.filter(
-        (s) => s.provider === report.provider && priceRowForModel(s.model)?.name === m.model,
-      );
+      // Both sides resolve through the SAME fuzzy matcher — comparing a
+      // normalized call-site model against the report's RAW provider string
+      // directly would almost never match (providers report their own model
+      // ids, not this table's display names). A report model that resolves
+      // to NO known pricing row is excluded outright rather than compared:
+      // two different unknowns (an unrecognized report model, a call site
+      // with no discernible model literal) must never correlate via
+      // undefined === undefined.
+      const reportRowName = priceRowForModel(m.model)?.name;
+      const sitesForModel = reportRowName
+        ? callSites.filter((s) => s.provider === report.provider && priceRowForModel(s.model)?.name === reportRowName)
+        : [];
       if (sitesForModel.length === 0) {
         unattributed.push(m);
         continue;

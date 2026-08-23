@@ -1535,14 +1535,30 @@ project_begin:
         # the watcher imports the SAME pricing table generateCostEstimate uses — one catalog, not a
         # second hand-copy (the exact drift family the redundancy-sweep tool's own findings, and this
         # session's harden-polish history, keep surfacing).
-        # VERIFIED: 50/50 across 4 new/touched test files (watcher: 23 — canonical cases, red-proven
+        # SELF-CAUGHT BUG, fixed before shipping (not surfaced by any test until added deliberately):
+        # priceRowForModel() compared a normalized call-site model against the RAW provider usage-API
+        # model string directly — providers report their OWN model ids (e.g. OpenAI's line_item), which
+        # essentially never equal LLM_MODEL_PRICING's display names ("GPT-4o"), so real attribution would
+        # have silently landed everything in "unattributed" in production. Compounding it: substring
+        # containment checked pricing rows in TABLE ORDER, so a "gpt-4o-mini" call site could match the
+        # shorter "GPT-4o" row first (a real misattribution, not just a missed one) since it was checked
+        # before "GPT-4o-mini". Fixed by running BOTH sides through the same matcher (exact match first,
+        # then longest/most-specific substring match) and refusing to correlate when the report's model
+        # doesn't resolve to any known row at all — an unresolved report model and a call site with no
+        # model literal must never correlate via undefined === undefined. Caught on a deliberate
+        # end-to-end re-read after the tests were already green, because passing tests only prove the
+        # fixtures I happened to write; both new tests encode a scenario the ORIGINAL code would have
+        # gotten wrong (gpt-4o-mini misattributed to GPT-4o's row; two different unknowns falsely
+        # matching) and now pass against the fix.
+        # VERIFIED: 52/52 across 4 new/touched test files (watcher: 25 — canonical cases, red-proven
         # call-site detection incl. never-invents-a-site-without-an-import, red-proven reconciliation
-        # incl. the zero-call-site unattributed case, the app_11/24/35/32 self-poisoning guard for BOTH
-        # the snapshot input and the regression comparison, 6 regression-alert cases incl.
-        # zero-prior-total-is-not-an-infinite-jump; store: 6 — real-PG round-trip + metadata-never-
-        # carries-the-key + newest-VALID-credential-PER-PROVIDER; dispatcher: 15 (whole file) — branch-13
-        # fallthrough both directions; poll-tick: 6 (whole file) — POLL_PRODUCTS pinned-set guard updated
-        # per its own documented next-step). tsc clean on snapshots + generator-core + api.
+        # incl. the zero-call-site unattributed case + the two model-matcher bugs above, the
+        # app_11/24/35/32 self-poisoning guard for BOTH the snapshot input and the regression comparison,
+        # 6 regression-alert cases incl. zero-prior-total-is-not-an-infinite-jump; store: 6 — real-PG
+        # round-trip + metadata-never-carries-the-key + newest-VALID-credential-PER-PROVIDER; dispatcher:
+        # 15 (whole file) — branch-13 fallthrough both directions; poll-tick: 6 (whole file) —
+        # POLL_PRODUCTS pinned-set guard updated per its own documented next-step). tsc clean on
+        # snapshots + generator-core + api.
         # CASCADE: ENDPOINT_COUNT 172->175 (+3 connect, no webhook — poll-driven, not push) across
         # counts.ts, web config.ts, and 8 doc surfaces; openapi.ts paths+schema added; count-honesty +
         # count-surface-coverage + counts-consistency + openapi-router-bijection guards all re-verified
@@ -1554,6 +1570,13 @@ project_begin:
         # failing on baseline main before this candidate touched anything, confirmed by reproducing the
         # failure on a git-stashed pre-app_33 tree. Closed rather than stepped around, same discipline
         # the bijection guard itself was fixed under during app_32.
+        # SHIPPED: commit ce14568, ref-only fast-forward (main was e2423c3, still an ancestor — no
+        # rebase/merge needed), pushed to origin+mirror, both remote legs independently verified via
+        # git ls-remote against local main. Render auto-deployed dep-da5fejpt0dsc73ccdv6g from ce14568,
+        # watched via Render's OWN /deploys API (never gh) build_in_progress -> update_in_progress ->
+        # live in ~3.5min. Live-probed post-deploy: GET / reports endpoints:175 (matches the cascade);
+        # GET /v1/docs lists both new provider-key paths; POST /v1/account/provider-key with no auth
+        # returns 401 AUTH_REQUIRED (fail-closed confirmed live, not just in tests).
         # NOT DONE, deliberately, each its own scope: the web SettingsPage connect UI (REST is the
         # complete tested path — the sentry/app_32, spoke_06/app_34 precedent); an MCP twin for the
         # connect flow; and a statistical anomaly model for regression detection (a plain

@@ -236,6 +236,36 @@ describe("attributeUsage — the V gate, red-proven", () => {
     expect(result.reconciled).toBe(true);
   });
 
+  it("never misattributes a more-specific model's call site to a shorter model's price row (gpt-4o-mini vs GPT-4o)", () => {
+    const miniSite: LlmCallSite = { file: "src/mini.ts", line: 1, provider: "openai", model: "gpt-4o-mini", route: null };
+    const miniReport = usageReport({
+      models: [{ model: "GPT-4o-mini", cost_usd: 3, input_tokens: 0, output_tokens: 0 }],
+      total_cost_usd: 3,
+    });
+    // BOTH the base and the -mini call site are present — the base model's
+    // own report row must not steal the mini site (and vice versa).
+    const result = attributeUsage([usageReport(), miniReport], [site, miniSite]);
+    expect(result.attributed).toHaveLength(2);
+    const gptRow = result.attributed.find((a) => a.file === "src/chat.ts");
+    const miniRow = result.attributed.find((a) => a.file === "src/mini.ts");
+    expect(gptRow?.model).toBe("GPT-4o");
+    expect(miniRow?.model).toBe("GPT-4o-mini");
+    expect(result.reconciled).toBe(true);
+  });
+
+  it("never correlates a report model AXIS doesn't recognize with a call site that has no model literal (two different unknowns must not match each other)", () => {
+    const unknownReport = usageReport({
+      models: [{ model: "some-future-model-not-in-our-table", cost_usd: 7, input_tokens: 0, output_tokens: 0 }],
+      total_cost_usd: 7,
+    });
+    const siteWithNoModelLiteral: LlmCallSite = { file: "src/unknown.ts", line: 1, provider: "openai", model: null, route: null };
+    const result = attributeUsage([unknownReport], [siteWithNoModelLiteral]);
+    expect(result.attributed).toHaveLength(0);
+    expect(result.unattributed).toHaveLength(1);
+    expect(result.total_unattributed_usd).toBe(7);
+    expect(result.reconciled).toBe(true);
+  });
+
   it("reports a model with real spend and zero call sites as unattributed, never dropped", () => {
     const result = attributeUsage([usageReport()], []);
     expect(result.attributed).toHaveLength(0);
