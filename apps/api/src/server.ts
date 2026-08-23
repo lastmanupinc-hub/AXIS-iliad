@@ -129,6 +129,7 @@ import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } 
 import { handleGitHubWebhook } from "./github-webhook.js";
 import { handleSentryWebhook } from "./sentry-webhook.js";
 import { handleSaveSentryConnection, handleListSentryConnections, handleDeleteSentryConnection } from "./sentry.js";
+import { handleSaveProviderCredential, handleListProviderCredentials, handleDeleteProviderCredential } from "./provider-key.js";
 import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
@@ -551,6 +552,10 @@ router.delete("/v1/account/github-token/:token_id", handleDeleteGitHubToken);
 router.post("/v1/account/sentry-token", handleSaveSentryConnection);
 router.get("/v1/account/sentry-token", handleListSentryConnections);
 router.delete("/v1/account/sentry-token/:token_id", handleDeleteSentryConnection);
+// app_33: LLM provider-key connect flow (optimization → live cost meter)
+router.post("/v1/account/provider-key", handleSaveProviderCredential);
+router.get("/v1/account/provider-key", handleListProviderCredentials);
+router.delete("/v1/account/provider-key/:credential_id", handleDeleteProviderCredential);
 
 // Billing
 router.get("/v1/billing/history", handleBillingHistory);

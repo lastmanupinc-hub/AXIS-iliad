@@ -178,6 +178,7 @@ export async function deleteAccount(account_id: string): Promise<{ deleted: bool
     await client.query(pgPlaceholders("DELETE FROM webhooks WHERE account_id = ?"), [account_id]);
     await client.query(pgPlaceholders("DELETE FROM github_tokens WHERE account_id = ?"), [account_id]);
     await client.query(pgPlaceholders("DELETE FROM sentry_tokens WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM provider_credentials WHERE account_id = ?"), [account_id]);
     await client.query(pgPlaceholders("DELETE FROM seats WHERE account_id = ?"), [account_id]);
     await client.query(pgPlaceholders("DELETE FROM program_entitlements WHERE account_id = ?"), [account_id]);
     await client.query(pgPlaceholders("DELETE FROM account_free_scrape_pool WHERE account_id = ?"), [account_id]);

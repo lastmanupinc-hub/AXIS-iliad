@@ -167,6 +167,19 @@ export {
   markSentryConnectionInvalid,
 } from "./sentry-token-store.js";
 
+// Provider Credential Management (app_33 — optimization live meter; generalized,
+// see pg-schema.ts v46 for why this isn't a third bespoke token-store mirror)
+export type { LlmProvider, ProviderCredential, ProviderCredentialSecrets } from "./provider-credential-store.js";
+export {
+  saveProviderCredential,
+  getProviderCredentials,
+  getProviderCredentialDecrypted,
+  getProviderCredentialsForRepo,
+  deleteProviderCredential,
+  markProviderCredentialUsed,
+  markProviderCredentialInvalid,
+} from "./provider-credential-store.js";
+
 // Tier Audit
 export type { TierChange, ProrationResult } from "./tier-audit.js";
 export {

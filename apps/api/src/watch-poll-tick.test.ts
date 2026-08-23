@@ -108,12 +108,13 @@ describe("runPollTick", () => {
   });
 });
 
-describe("POLL_PRODUCTS — the deliberate empty set", () => {
-  it("is empty until a poll-driven watcher actually ships (app_33 adds the first entry)", () => {
-    // This test EXISTS to be deleted-or-updated by app_33: when "optimization"
-    // lands here, its watcher branch must exist in watch-dispatcher.ts, or
-    // every tick puts a no-op through the unhandled-fallthrough log for every
-    // subscriber. Guarding the empty set makes adding an entry a conscious act.
-    expect(POLL_PRODUCTS).toEqual([]);
+describe("POLL_PRODUCTS", () => {
+  it("carries exactly the poll-driven products with a real dispatcher branch (app_33: optimization)", () => {
+    // Updated by app_33: "optimization" has a real watcher branch in
+    // watch-dispatcher.ts (processOptimizationMeter) — a poll tick for it is
+    // real work, not a no-op through the unhandled-fallthrough log. Guarding
+    // the exact set makes adding a future entry a conscious act, same as the
+    // empty set was before this one shipped.
+    expect(POLL_PRODUCTS).toEqual(["optimization"]);
   });
 });

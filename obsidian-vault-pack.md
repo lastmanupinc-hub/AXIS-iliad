@@ -97,7 +97,7 @@ AXIS-Iliad-Vault/
 
 ## Infrastructure
 - [[Database Schema]] — Neon Postgres, 49 tables
-- [[API Surface]] — 172 REST endpoints
+- [[API Surface]] — 175 REST endpoints
 - [[Frontend Dashboard]] — React 19 + Vite 6 SPA
 
 ## Packages

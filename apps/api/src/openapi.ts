@@ -1690,6 +1690,46 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
+      // ── LLM provider-key connect flow (app_33: optimization → live cost meter) ──
+      "/v1/account/provider-key": {
+        post: {
+          summary: "Save an LLM provider API key (openai | anthropic) for a watched repo",
+          operationId: "saveProviderCredential",
+          tags: ["Optimization"],
+          security: [{ apiKey: [] }],
+          requestBody: jsonBody(ref("SaveProviderCredentialRequest")),
+          responses: {
+            201: { description: "Credential saved" },
+            400: { description: "Invalid credential fields" },
+            401: { description: "Authentication required" },
+          },
+        },
+        get: {
+          summary: "List stored provider credentials (masked)",
+          operationId: "listProviderCredentials",
+          tags: ["Optimization"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Credential listing" },
+            401: { description: "Authentication required" },
+          },
+        },
+      },
+      "/v1/account/provider-key/{credential_id}": {
+        delete: {
+          summary: "Delete a stored provider credential",
+          operationId: "deleteProviderCredential",
+          tags: ["Optimization"],
+          security: [{ apiKey: [] }],
+          parameters: [pathParam("credential_id", "Provider credential identifier")],
+          responses: {
+            200: { description: "Credential deleted" },
+            401: { description: "Authentication required" },
+            404: { description: "Credential not found" },
+          },
+        },
+      },
+
       // ── Billing History ──
       "/v1/billing/history": {
         get: {
@@ -2354,6 +2394,17 @@ export function buildOpenApiSpec(): OpenApiSpec {
             repo_full_name: { type: "string", description: "owner/repo — the watched repository this Sentry project's incidents belong to" },
             webhook_secret: { type: "string", description: "Optional: your Sentry integration's webhook signing secret. Without it, incidents cannot trigger POST /v1/sentry/webhook (fail closed) — the token stays usable for outbound reads only" },
             label: { type: "string", description: "Optional label for the connection" },
+          },
+        },
+        SaveProviderCredentialRequest: {
+          type: "object",
+          required: ["provider", "key", "repo_full_name"],
+          properties: {
+            provider: { type: "string", enum: ["openai", "anthropic"], description: "Which LLM provider this key belongs to" },
+            key: { type: "string", description: "A usage/cost-read-capable API key for the given provider — used for plain-REST usage pulls, never echoed back" },
+            repo_full_name: { type: "string", description: "owner/repo — the watched repository this key's real usage will be reconciled against" },
+            label: { type: "string", description: "Optional label for the credential" },
+            metadata: { type: "object", description: "Optional provider-specific extra fields (e.g. an OpenAI organization id)" },
           },
         },
         BillingHistoryResponse: {

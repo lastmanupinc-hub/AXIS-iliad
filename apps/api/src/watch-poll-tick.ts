@@ -7,14 +7,14 @@
 // timer — the entire existing dispatcher chain (12 branches) is reused with
 // zero changes, and per-account schedule management never exists.
 //
-// POLL_PRODUCTS is deliberately EMPTY at infra_04's landing: the substrate
-// ships proven (tests drive the fanout via injected product lists), and the
-// first real entry belongs to the candidate whose watcher actually consumes
-// scheduled pulls (app_33 adds "optimization" when its watcher exists).
-// Shipping a fanout to products with no consumer would put a no-op job
-// through the dispatcher's unhandled-fallthrough log every tick for every
-// subscriber — noise masquerading as progress. While the set is empty,
-// startPollScheduler() logs and declines to register the cron at all.
+// POLL_PRODUCTS shipped EMPTY at infra_04's landing (substrate proven via
+// injected product lists in tests, no live consumer yet). app_33 is that
+// first consumer: optimization-meter-watcher.ts's W stage is "scheduled
+// pulls" per the strategy doc's own words, so "optimization" is the first
+// real entry — a poll tick fans out to every optimization subscription,
+// each landing on watch-dispatcher's branch 13 exactly like a push-triggered
+// job would. While the set was empty, startPollScheduler() logged and
+// declined to register the cron at all; it now runs for real.
 
 import {
   listSubscriptionsForProduct,
@@ -30,7 +30,7 @@ import { log } from "./logger.js";
  * an entry here is the ONLY change a new poll-driven product needs on the
  * substrate side (its watcher branch handles the rest).
  */
-export const POLL_PRODUCTS: readonly string[] = [];
+export const POLL_PRODUCTS: readonly string[] = ["optimization"];
 
 export const DEFAULT_POLL_CRON = "*/15 * * * *";
 

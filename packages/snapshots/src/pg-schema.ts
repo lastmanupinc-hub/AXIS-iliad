@@ -876,6 +876,47 @@ CREATE INDEX IF NOT EXISTS idx_subscription_purchases_status ON subscription_pur
 CREATE INDEX IF NOT EXISTS idx_sentry_tokens_account ON sentry_tokens(account_id);
 CREATE INDEX IF NOT EXISTS idx_sentry_tokens_project ON sentry_tokens(project_slug);`,
   },
+  {
+    // app_33: the optimization program's provider-key connect flow ("plain
+    // REST to OpenAI/Anthropic usage endpoints — user connects provider admin
+    // keys", APPLICATION_BUILD_STRATEGY.md #9). GENERALIZED rather than a
+    // third bespoke mirror of github_tokens/sentry_tokens' shape — this
+    // candidate needs TWO providers (OpenAI, Anthropic) with different extra
+    // fields (an OpenAI org id; Anthropic needs none today), and a third
+    // hand-copied encryption table is exactly the hand-duplicated-catalog
+    // drift family this repo's own tooling (tool_01_redundancy_sweep) exists
+    // to catch — caught here at design time instead. `provider` discriminates
+    // the row; `metadata` (TEXT JSON, matching this schema's existing
+    // metadata-column convention — see funnel_events/webhooks/api_keys) holds
+    // whatever a given provider needs beyond the shared columns, so a THIRD
+    // provider is a data value, not a migration. Same AES-256-GCM scheme via
+    // the same AXIS_TOKEN_KEY as the two mirrors it declines to become a
+    // third of — the encryption code is proven, only the table shape changes.
+    // DELIBERATE NON-ACTION, recorded rather than silent: github_tokens and
+    // sentry_tokens are NOT retroactively migrated onto this shape. Both are
+    // shipped and live; a data migration with a dual-read fallback window is
+    // real, separate, riskier scope with its own blast radius — not something
+    // to fold into a candidate that doesn't need it. Revisit only if a fourth
+    // provider-credential need actually arrives.
+    version: 46,
+    name: "provider_credentials",
+    sql: `CREATE TABLE IF NOT EXISTS provider_credentials (
+  credential_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  provider TEXT NOT NULL,
+  label TEXT NOT NULL DEFAULT 'default',
+  key_prefix TEXT NOT NULL,
+  encrypted_key TEXT NOT NULL,
+  repo_full_name TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  valid INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_provider_credentials_account ON provider_credentials(account_id);
+CREATE INDEX IF NOT EXISTS idx_provider_credentials_account_provider ON provider_credentials(account_id, provider);
+CREATE INDEX IF NOT EXISTS idx_provider_credentials_repo ON provider_credentials(repo_full_name);`,
+  },
 ];
 
 /**

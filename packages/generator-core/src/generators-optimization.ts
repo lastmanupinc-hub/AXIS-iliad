@@ -7,6 +7,22 @@ import { findConfigs, findEntryPoints, renderExcerpts, extractExports, fileTree 
 // construction). mdText/mdInline/mdCode/mdCellCode per sink context.
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
+/**
+ * Approximate $/1M tokens as of 2025. Exported (not inlined in
+ * generateCostEstimate) so app_33's live-meter watcher
+ * (apps/api/src/optimization-meter-watcher.ts) prices real detected call
+ * sites from the SAME table this file's own static estimate uses — a second,
+ * hand-copied price list is exactly the hand-duplicated-catalog drift family
+ * this repo's own tooling exists to catch.
+ */
+export const LLM_MODEL_PRICING = [
+  { name: "GPT-4o", input_per_1m: 2.50, output_per_1m: 10.00 },
+  { name: "GPT-4o-mini", input_per_1m: 0.15, output_per_1m: 0.60 },
+  { name: "Claude Sonnet 4", input_per_1m: 3.00, output_per_1m: 15.00 },
+  { name: "Claude Haiku 3.5", input_per_1m: 0.80, output_per_1m: 4.00 },
+  { name: "Gemini 2.5 Pro", input_per_1m: 1.25, output_per_1m: 10.00 },
+] as const;
+
 // ─── .ai/optimization-rules.md ──────────────────────────────────
 
 export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -555,14 +571,7 @@ export function generateCostEstimate(ctx: ContextMap, profile: RepoProfile, file
     };
   }).filter(l => l.loc > 0);
 
-  // Cost models (approximate $/1M tokens as of 2025)
-  const models = [
-    { name: "GPT-4o", input_per_1m: 2.50, output_per_1m: 10.00 },
-    { name: "GPT-4o-mini", input_per_1m: 0.15, output_per_1m: 0.60 },
-    { name: "Claude Sonnet 4", input_per_1m: 3.00, output_per_1m: 15.00 },
-    { name: "Claude Haiku 3.5", input_per_1m: 0.80, output_per_1m: 4.00 },
-    { name: "Gemini 2.5 Pro", input_per_1m: 1.25, output_per_1m: 10.00 },
-  ];
+  const models = LLM_MODEL_PRICING;
 
   // Estimate costs per operation type
   const operations = [

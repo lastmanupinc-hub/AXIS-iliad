@@ -23,6 +23,7 @@ import { processObsidianVaultSync, defaultObsidianVaultDeps } from "./obsidian-v
 import { processArtifactsApply, defaultArtifactsApplyDeps } from "./artifacts-apply-watcher.js";
 import { processMarketingApply, defaultMarketingApplyDeps } from "./marketing-apply-watcher.js";
 import { processDebugPostmortem, defaultDebugPostmortemDeps } from "./debug-postmortem-watcher.js";
+import { processOptimizationMeter, defaultOptimizationMeterDeps } from "./optimization-meter-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -95,6 +96,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const debug = await processDebugPostmortem(payload, defaultDebugPostmortemDeps());
   if (debug.status !== "not_debug_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "debug", status: debug.status });
+    return;
+  }
+
+  const optimization = await processOptimizationMeter(payload, defaultOptimizationMeterDeps());
+  if (optimization.status !== "not_optimization_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "optimization", status: optimization.status });
     return;
   }
 

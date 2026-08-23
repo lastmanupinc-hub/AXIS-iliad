@@ -1496,13 +1496,69 @@ project_begin:
         roi_reason: "capability_gain 4 — an estimate is a guess, a meter is a subscription."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-optimization.ts"
-        completion_status: in_progress  # CLAIMED 2026-08-23, same session as app_32/infra_04. Spec's
-        # exact V is "reconciliation — attributed total matches provider invoice within tolerance", not
-        # just usage-pull; W is "scheduled pulls + regression alerts" — the FIRST real consumer of
-        # infra_04's POLL_PRODUCTS, proving the substrate rather than just shipping alongside it.
-        # Design question before code: this is the THIRD mirror of the AES token-store pattern
-        # (github_tokens, sentry_tokens, now provider keys) — generalizing now, before a fourth
-        # forces it, or shipping a third copy deliberately. Scoping first.
+        completion_status: complete  # SHIPPED 2026-08-23, same session as app_32/infra_04.
+        # DESIGN DECISION (scoped before code): the AES token-store pattern was about to get its THIRD
+        # bespoke mirror (github_tokens, sentry_tokens, now provider keys) — generalized instead.
+        # provider_credentials (pg-schema.ts v46) discriminates on `provider` ("openai" | "anthropic")
+        # with a `metadata` JSON column absorbing whatever a future provider needs beyond the shared
+        # columns (an OpenAI org id, say) — a THIRD provider is a data value here, not a migration.
+        # github_tokens/sentry_tokens deliberately NOT retrofitted onto it (their own shapes — repo
+        # mapping, webhook secrets — are load-bearing, not just "one more provider"); recorded as
+        # out-of-scope in the migration's own comment, not silently declined.
+        # DELIVERED: (1) Connect flow — provider-key.ts, 3 REST endpoints (/v1/account/provider-key
+        # save/list/delete), same validation ladder as sentry.ts/billing.ts, generalized over `provider`.
+        # (2) A — optimization-meter-watcher.ts: detectLlmCallSites() statically finds OpenAI/Anthropic
+        # SDK call sites by import-presence + call-shape (never invents a call site in a file with no
+        # SDK import), joined to ctx.routes by source_file. realFetchOpenAIUsage/realFetchAnthropicUsage
+        # pull REAL per-model spend via plain REST (Costs/cost_report endpoints) — response shapes are
+        # best-available, NOT verified against a live account (no provider key in this environment);
+        # parses defensively, documented inline, flagged here rather than glossed over. (3) V — the
+        # spec's exact words, "reconciliation: attributed total matches provider invoice within
+        # tolerance": attributeUsage() splits each model's REAL total EVENLY across its detected call
+        # sites (stated as an even split in the rendered report — never claimed as per-request precision
+        # no provider actually reports), and reconciliation asserts attributed+unattributed sums back to
+        # the real total within a cent — a genuine, failable invariant (a mispriced model, a
+        # double-counted site, float drift all fail it), not an unverifiable prediction of call
+        # frequency. A model with real spend and ZERO detected call sites is named UNATTRIBUTED, never
+        # dropped or fabricated onto a site (the app_32 grounding lesson, same discipline). Reconciliation
+        # failure BLOCKS the PR outright. (4) W — "scheduled pulls + regression alerts", both halves:
+        # "optimization" is POLL_PRODUCTS' first real entry (infra_04's substrate proven, not just
+        # shipped alongside), landing on dispatcher branch 13 exactly like a push job would; regression
+        # alerts are a genuine period-over-period comparison against THIS repo's own last report
+        # (extractPreviousTotal reads the prior PR's rendered total back out for comparison ONLY — never
+        # re-fed into the snapshot/attribution input, the app_11/24/35/32 self-poisoning lesson applied
+        # again) — no new alerting infrastructure built (alerting.ts is the SERVER's own 5xx monitor, a
+        # different tenant, not a per-account delivery mechanism); a >25% jump renders a banner in the
+        # report AND retitles the PR itself, since the PR already IS this substrate's only notification
+        # channel. Regression never blocks the PR — spend rising isn't a data-integrity problem the V
+        # gate is about. LLM_MODEL_PRICING extracted to a real export in generators-optimization.ts so
+        # the watcher imports the SAME pricing table generateCostEstimate uses — one catalog, not a
+        # second hand-copy (the exact drift family the redundancy-sweep tool's own findings, and this
+        # session's harden-polish history, keep surfacing).
+        # VERIFIED: 50/50 across 4 new/touched test files (watcher: 23 — canonical cases, red-proven
+        # call-site detection incl. never-invents-a-site-without-an-import, red-proven reconciliation
+        # incl. the zero-call-site unattributed case, the app_11/24/35/32 self-poisoning guard for BOTH
+        # the snapshot input and the regression comparison, 6 regression-alert cases incl.
+        # zero-prior-total-is-not-an-infinite-jump; store: 6 — real-PG round-trip + metadata-never-
+        # carries-the-key + newest-VALID-credential-PER-PROVIDER; dispatcher: 15 (whole file) — branch-13
+        # fallthrough both directions; poll-tick: 6 (whole file) — POLL_PRODUCTS pinned-set guard updated
+        # per its own documented next-step). tsc clean on snapshots + generator-core + api.
+        # CASCADE: ENDPOINT_COUNT 172->175 (+3 connect, no webhook — poll-driven, not push) across
+        # counts.ts, web config.ts, and 8 doc surfaces; openapi.ts paths+schema added; count-honesty +
+        # count-surface-coverage + counts-consistency + openapi-router-bijection guards all re-verified
+        # green with the new total.
+        # FOUND AND FIXED IN PASSING, not this candidate's own scope: openapi.test.ts's OWN
+        # "/.well-known paths" allowlist (a SEPARATE hardcoded set from openapi.ts's actual paths) had
+        # never been updated for the two gaps app_32 already fixed at the openapi.ts level
+        # (/.well-known/axis-estate.json, /.well-known/agent-skills/index.json) — the test was silently
+        # failing on baseline main before this candidate touched anything, confirmed by reproducing the
+        # failure on a git-stashed pre-app_33 tree. Closed rather than stepped around, same discipline
+        # the bijection guard itself was fixed under during app_32.
+        # NOT DONE, deliberately, each its own scope: the web SettingsPage connect UI (REST is the
+        # complete tested path — the sentry/app_32, spoke_06/app_34 precedent); an MCP twin for the
+        # connect flow; and a statistical anomaly model for regression detection (a plain
+        # period-over-period threshold is the honest, buildable version — a real trend model needs a
+        # longer history than one prior report gives it).
 
       - id: "app_34_notebook_living_kb"
         description: "notebook → living knowledge base: answer questions with citations into CURRENT code (existing iliad_embeddings + vector DB); every citation must resolve to a real file:line; re-embed changed files on merge. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #16."
