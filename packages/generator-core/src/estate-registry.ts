@@ -128,7 +128,20 @@ export interface EstateEntry {
   tools_source?: EstateToolsSource;
   capabilities_summary: string;
   discovery: EstateDiscovery;
-  /** Every row in this table is, by construction, excluded from Iliad's human-facing webapp — see the file header. */
+  /**
+   * NOT a claim about this property's OWN website (Launch, for one, is very
+   * much human-facing on jonathanarvay.com — see its capabilities_summary
+   * two lines above this field on every served row). Describes how ILIAD's
+   * OWN webapp (iliad.trustfabric.ai) treats this entry: "agent-only" means
+   * excluded from Iliad's human-facing pages, kept fully visible on every
+   * agent-facing Iliad surface. Every row in this table carries this value,
+   * by construction — see the file header. Ambiguous enough that it has
+   * already been misread twice in one afternoon by careful readers on both
+   * sides of this exact registry (est_01's own commit message included) —
+   * the runtime manifest's `field_docs` block (buildEstateManifest below)
+   * restates this same clarification for consumers who only ever see the
+   * served JSON, never this source file.
+   */
   webapp_surface: "agent-only";
   health?: EstateHealth;
 }
@@ -326,4 +339,67 @@ export const ESTATE_IDS = Object.keys(ESTATE_REGISTRY);
 
 export function getEstateEntry(id: string): EstateEntry | undefined {
   return ESTATE_REGISTRY[id];
+}
+
+/** Iliad's own self-descriptor — NOT an ESTATE_REGISTRY row (see the file header on why: `webapp_surface: "agent-only"` would be false about Iliad's own, very much human-facing, webapp). Included in the served manifest so a reciprocal-linking sibling gets everything it needs from one document. */
+export interface EstateManifestSelf {
+  id: "iliad";
+  name: string;
+  domains: readonly string[];
+  api_base: string;
+  mcp: { url: string; transport: string; auth: EstateMcpAuth };
+}
+
+export interface EstateManifest {
+  schema_version: string;
+  compatibility: string;
+  /**
+   * Field-level clarifications for consumers who only ever see this served
+   * JSON, never estate-registry.ts's own source comments — the same
+   * "additive, never remove/repurpose a field" compatibility rule applies
+   * here too. Added 2026-08-22 after `webapp_surface` was independently
+   * misread twice in one afternoon (a sibling's own team reviewing their
+   * row, and this file's own first commit message) — a correctly-populated
+   * field that invites the wrong reading is still a defect for a manifest
+   * whose entire audience is readers who were never going to open the
+   * TypeScript source.
+   */
+  field_docs: { webapp_surface: string };
+  this_property: EstateManifestSelf;
+  properties: readonly EstateEntry[];
+}
+
+/**
+ * Builds the estate manifest — the SAME object for both
+ * GET /.well-known/axis-estate.json (apps/api/src/handlers.ts) and the
+ * discover_estate_tools MCP tool (apps/api/src/mcp-tool-impls.ts). Those two
+ * surfaces used to hand-build this shape independently (est_01) — exactly
+ * the hand-duplicated-catalog pattern this repo's own redundancy-sweep tool
+ * (tool_01) exists to catch elsewhere; consolidated here once the third
+ * shared field (field_docs) made the duplication concrete rather than
+ * theoretical.
+ */
+export function buildEstateManifest(): EstateManifest {
+  return {
+    schema_version: ESTATE_SCHEMA_VERSION,
+    compatibility:
+      "Additive-only: new fields and new estate entries are added without notice. No field is ever removed or repurposed within a schema_version — a breaking change bumps schema_version instead.",
+    field_docs: {
+      webapp_surface:
+        "Describes how ILIAD's OWN webapp (iliad.trustfabric.ai) treats this entry, NOT a claim about the property's own website — 'agent-only' means excluded from Iliad's human-facing pages, kept fully visible on every agent-facing Iliad surface (including this manifest). A property with webapp_surface:\"agent-only\" here may itself be a fully human-facing website (see its own capabilities_summary).",
+    },
+    // Matches the raw Render host every other self-description in apps/api
+    // uses (handlers.ts's AXIS_API_BASE, mcp-tool-impls.ts's
+    // AXIS_MCP_ENDPOINT — both "https://axis-api-6c7z.onrender.com") rather
+    // than the custom domain this manifest happens to be reachable at —
+    // consistent with the pre-existing codebase convention, not a new one.
+    this_property: {
+      id: "iliad",
+      name: "Axis' Iliad",
+      domains: ["iliad.trustfabric.ai", "iliad.jonathanarvay.com"],
+      api_base: "https://axis-api-6c7z.onrender.com",
+      mcp: { url: "https://axis-api-6c7z.onrender.com/mcp", transport: "streamable-http", auth: "bearer" },
+    },
+    properties: Object.values(ESTATE_REGISTRY),
+  };
 }

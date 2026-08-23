@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ESTATE_REGISTRY, ESTATE_IDS, ESTATE_SCHEMA_VERSION, getEstateEntry, type EstateEntry } from "./estate-registry.js";
+import { ESTATE_REGISTRY, ESTATE_IDS, ESTATE_SCHEMA_VERSION, getEstateEntry, buildEstateManifest, type EstateEntry } from "./estate-registry.js";
 import { RESELL_CAPABILITIES } from "./generators-artifacts.js";
 
 const entries = (): EstateEntry[] => Object.values(ESTATE_REGISTRY);
@@ -133,5 +133,39 @@ describe("sibling_process ↔ ESTATE_REGISTRY guard", () => {
   it("image_generation's sibling_process names AXIS Foundry, matching ESTATE_REGISTRY.foundry", () => {
     const imageGen = RESELL_CAPABILITIES.find((c) => c.id === "image_generation");
     expect(imageGen?.sibling_process?.name).toBe(ESTATE_REGISTRY.foundry.name);
+  });
+});
+
+describe("buildEstateManifest — the one shared source for both served surfaces", () => {
+  // Consolidates handlers.ts's handleEstateManifest and mcp-tool-impls.ts's
+  // runDiscoverEstateTools, which independently hand-built this shape until
+  // a third shared field (field_docs) made the drift concrete: the MCP
+  // version had already dropped this_property.domains/api_base that the
+  // REST version carried.
+  it("carries field_docs.webapp_surface clarifying it describes Iliad's treatment, not the property's own site", () => {
+    const manifest = buildEstateManifest();
+    expect(manifest.field_docs.webapp_surface).toMatch(/Iliad/);
+    expect(manifest.field_docs.webapp_surface.toLowerCase()).toContain("not a claim about the property's own website");
+  });
+
+  it("this_property is Iliad's own row, never one of the ESTATE_REGISTRY siblings", () => {
+    const manifest = buildEstateManifest();
+    expect(manifest.this_property.id).toBe("iliad");
+    expect(manifest.properties.some((p) => p.id === "iliad")).toBe(false);
+  });
+
+  it("this_property carries domains and api_base, not just id/name/mcp", () => {
+    const manifest = buildEstateManifest();
+    expect(manifest.this_property.domains.length).toBeGreaterThan(0);
+    expect(manifest.this_property.api_base.length).toBeGreaterThan(0);
+  });
+
+  it("properties is exactly ESTATE_REGISTRY's values — the same reference data both surfaces serve", () => {
+    const manifest = buildEstateManifest();
+    expect(manifest.properties).toEqual(Object.values(ESTATE_REGISTRY));
+  });
+
+  it("is deterministic — two calls produce deep-equal output (no clocks, no randomness)", () => {
+    expect(buildEstateManifest()).toEqual(buildEstateManifest());
   });
 });

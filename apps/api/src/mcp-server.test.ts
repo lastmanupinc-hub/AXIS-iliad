@@ -3348,6 +3348,20 @@ describe("POST /mcp — tools/call discover_estate_tools", () => {
     for (const p of parsed.properties) expect(p.webapp_surface).toBe("agent-only");
   });
 
+  it("matches GET /.well-known/axis-estate.json's shape exactly, including field_docs — one shared buildEstateManifest(), not two hand-typed copies", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 913,
+      method: "tools/call",
+      params: { name: "discover_estate_tools", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as { field_docs?: Record<string, string> };
+    expect(parsed.field_docs?.webapp_surface).toBeDefined();
+    expect(parsed.field_docs!.webapp_surface).toMatch(/Iliad/);
+  });
+
   it("is free — no _usage charge object claims a spend", async () => {
     const r = await post("/mcp", {
       jsonrpc: "2.0",

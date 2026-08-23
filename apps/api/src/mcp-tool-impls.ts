@@ -104,7 +104,7 @@ import {
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, detectCommerceSignals, ESTATE_REGISTRY, ESTATE_SCHEMA_VERSION } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, detectCommerceSignals, buildEstateManifest } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 // Commerce engines exposed as free MCP tools (WO-13) — the SAME functions the
 // generators call, not re-implementations.
@@ -2535,20 +2535,15 @@ export function runDiscoverAgenticCommerceTools(): string {
 // est_01 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md): free, no-auth
 // discovery of sibling AXIS properties — same data as
 // GET /.well-known/axis-estate.json, as an MCP tool call so an agent that
-// only ever speaks MCP never needs to fall back to REST. Reads
-// ESTATE_REGISTRY directly — one source, no second hand-typed copy.
+// only ever speaks MCP never needs to fall back to REST. Body is
+// buildEstateManifest() (generator-core) verbatim — the SAME function
+// handleEstateManifest (handlers.ts) calls, consolidated 2026-08-22 after
+// the two independently hand-built copies of this shape (this repo's own
+// named hand-duplicated-catalog pattern — this file's own version had
+// already drifted from handlers.ts's, omitting this_property.domains/
+// api_base) were about to grow a THIRD shared field (field_docs).
 export function runDiscoverEstateTools(): string {
-  return JSON.stringify({
-    schema_version: ESTATE_SCHEMA_VERSION,
-    compatibility:
-      "Additive-only: new fields and new estate entries are added without notice. No field is ever removed or repurposed within a schema_version.",
-    this_property: {
-      id: "iliad",
-      name: "Axis' Iliad",
-      mcp: { url: AXIS_MCP_ENDPOINT, transport: "streamable-http", auth: "bearer" },
-    },
-    properties: Object.values(ESTATE_REGISTRY),
-  }, null, 2);
+  return JSON.stringify(buildEstateManifest(), null, 2);
 }
 
 // ─── Tool: improve_my_agent_with_axis ────────────────────────────

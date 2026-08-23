@@ -2149,6 +2149,27 @@ project_begin:
         # manifest (est_04, needs Foundry to publish one first); actually deploying this build
         # (scripts/ship.sh api) — left for the session's own commit/push/watch step, matching
         # garage doctrine.
+        #
+        # ADDENDUM 2026-08-22 (peer-flagged, axis-toolbox-f9, same day): `webapp_surface:
+        # "agent-only"` was independently misread TWICE in one afternoon — Launch's own team,
+        # reviewing their row, and this candidate's OWN commit message ("would be FALSE about
+        # Iliad's own... webapp" parses as a claim about the LISTED property's own site, not
+        # Iliad's treatment of it). Verified live before acting: curl'd the real served JSON —
+        # Launch's row shows "webapp_surface":"agent-only" with zero inline context sitting right
+        # next to a "Discovery, SEO, and acquisition platform" summary, an all-but-guaranteed
+        # misread for any consumer (human or agent) who never opens this TypeScript source. Fixed
+        # additively (the manifest's own compat rule): new `field_docs` block inside the served
+        # JSON clarifying the field describes ILIAD's webapp treatment, not the property's own
+        # site. While fixing it, found and closed a real duplication this repo's own culture
+        # names as a recurring bug family: handlers.ts's handleEstateManifest and
+        # mcp-tool-impls.ts's runDiscoverEstateTools had independently hand-built this identical
+        # shape since est_01 — and had ALREADY drifted (the MCP version silently dropped
+        # this_property.domains/api_base that the REST version carried). Consolidated into one
+        # buildEstateManifest() (estate-registry.ts), both surfaces now call it — cannot drift
+        # again by construction. 12 new tests (estate-registry.test.ts's own unit suite for the
+        # function, plus regression pins in well-known-handlers.test.ts and mcp-server.test.ts).
+        # tsc clean; generator-core dist rebuilt; CLI bundle unaffected (84 modules). Deployed and
+        # live-verified same as every other candidate this session.
 
       - id: "est_02_estate_flag_webapp_exclusion_doctrine"
         description: >

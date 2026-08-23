@@ -1002,4 +1002,22 @@ describe("GET /.well-known/axis-estate.json", () => {
     const r2 = await req("/.well-known/axis-estate.json");
     expect(r2.body).toBe(body);
   });
+
+  // Added after webapp_surface was independently misread twice in one afternoon
+  // (a sibling's own team, and this repo's own est_01 commit message) — a
+  // correctly-populated field that invites the wrong reading is still a defect
+  // for a manifest whose entire audience never opens the TypeScript source.
+  it("carries field_docs clarifying webapp_surface describes ILIAD's treatment, not the property's own site", async () => {
+    const docs = json.field_docs as Record<string, string> | undefined;
+    expect(docs?.webapp_surface).toBeDefined();
+    expect(docs!.webapp_surface).toMatch(/Iliad/);
+    expect(docs!.webapp_surface.toLowerCase()).not.toMatch(/\bthe property'?s own website is agent-only\b/);
+  });
+
+  it("this_property includes Iliad's own domains and api_base, not just id/name/mcp", async () => {
+    const self = json.this_property as Record<string, unknown>;
+    expect(Array.isArray(self.domains)).toBe(true);
+    expect((self.domains as string[]).length).toBeGreaterThan(0);
+    expect(typeof self.api_base).toBe("string");
+  });
 });

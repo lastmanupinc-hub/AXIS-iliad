@@ -51,7 +51,7 @@ import {
 import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord, TierLimits } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY, ESTATE_REGISTRY, ESTATE_SCHEMA_VERSION } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY, buildEstateManifest } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
@@ -2797,16 +2797,11 @@ export function handleWellKnown(
 //
 // est_01 (2026-08-22, docs/ESTATE_FEDERATION_STRATEGY.md): the canonical,
 // versioned manifest every sibling AXIS property (and every agent) reads to
-// learn who else is in the estate. `properties` is ESTATE_REGISTRY verbatim
-// — one typed source, no second hand-maintained copy (the failure mode
-// ecosystem.registry.yaml's own now-corrected header used to falsely claim
-// it had already solved). `this_property` is Iliad's own self-descriptor,
-// assembled from the same constants every other discovery surface in this
-// file already uses — NOT an ESTATE_REGISTRY row, because every row in that
-// table is, by construction, `webapp_surface: "agent-only"`, which would be
-// a false claim about Iliad's own (very much human-facing) webapp. It's
-// included so a sibling reading this ONE document gets everything needed to
-// link back, without a second fetch against axis.json.
+// learn who else is in the estate. Body is buildEstateManifest()
+// (generator-core) verbatim — the SAME function discover_estate_tools
+// (mcp-tool-impls.ts) calls, consolidated 2026-08-22 after the two
+// independently hand-built copies of this shape (this repo's own named
+// hand-duplicated-catalog pattern) were about to grow a THIRD shared field.
 export function handleEstateManifest(
   _req: IncomingMessage,
   res: ServerResponse,
@@ -2816,19 +2811,7 @@ export function handleEstateManifest(
   // per-request; a short max-age still bounds staleness for a crawler that
   // ignores it and hits this path directly.
   res.setHeader("Cache-Control", "public, max-age=3600");
-  sendJSON(res, 200, {
-    schema_version: ESTATE_SCHEMA_VERSION,
-    compatibility:
-      "Additive-only: new fields and new estate entries are added without notice. No field is ever removed or repurposed within a schema_version — a breaking change bumps schema_version instead.",
-    this_property: {
-      id: "iliad",
-      name: "Axis' Iliad",
-      domains: ["iliad.trustfabric.ai", "iliad.jonathanarvay.com"],
-      api_base: AXIS_API_BASE,
-      mcp: { url: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", auth: "bearer" },
-    },
-    properties: Object.values(ESTATE_REGISTRY),
-  });
+  sendJSON(res, 200, buildEstateManifest());
   return Promise.resolve();
 }
 
