@@ -2630,7 +2630,12 @@ project_begin:
           TrustFabric's site may be a PAI'D-repo frontend, which would also
           explain the both-entries quirk above. Asked which domain that
           frontend serves; whoever picks this up should chase that answer
-          first.
+          first. HARDER FACTS same day (from the PAI'D peer, their own
+          knowledge, independent of the commit): cmd/trust-fabric-api has NO
+          live Render instance, and api.trustfabric.ai resolves to the PAID
+          API — so TrustFabric's API side is unstood-up and its hostname is
+          borrowed. The FRONTEND's serving domain remains the open question;
+          only 05e531d5's author can answer it.
         roi_score: 60
         roi_reason: "optionality 3; unshippable until §5.1 — scored last on purpose, kept visible rather than dropped."
         severity: LOW
