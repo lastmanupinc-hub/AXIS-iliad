@@ -557,6 +557,7 @@ project_begin:
             unchanged. Credit: the hold-and-verify stance came from the
             payment-processing-da session's user — adopted estate-wide here
             too: never activate a money-path capability on a peer's say-so.
+          signal_1_received: "2026-08-23 — PAI'D confirmed COH-009+COH-013 on origin/main (dcc5d91b, verified their side via merge-base --is-ancestor). Per the corrected two-signal rule: execute_payment is now ELIGIBLE, still NOT listed. Their message correctly framed itself as a plain technical fact and named that signal two (explicit founder sign-off) does not come from an agent. Estate metadata stays at the three read-only tools until signal two arrives as its own message."
           provider_reply: >
             SAME-DAY ANSWER (full block in payment processing/begin.yaml under
             the ticket; summary relayed by their session 2026-08-22). All three
@@ -1460,7 +1461,34 @@ project_begin:
           gates (the spoke_00/app_01 sequencing precedent).
         severity: HIGH
         source_file: "packages/snapshots/src/watch-queue.ts"
-        completion_status: in_progress  # CLAIMED 2026-08-23 by the same session that shipped app_32.
+        completion_status: complete  # SCOPED 2026-08-23, same session, same day as claimed.
+        # DELIVERED: watch-queue.ts gains the scheduling half — schedulePollTick(cron) (pg-boss
+        # schedule() upsert, so every server start refreshes the cron and a change takes effect on
+        # deploy) + registerPollTickWorker (competing-consumer on the tick queue: across N instances
+        # one tick fires ONCE, whichever instance wins runs the fanout — the multi-instance semantics
+        # come free from the same property the watch queue already relies on).
+        # listSubscriptionsForProduct added to repo-subscriptions.ts (by-product enumeration existed
+        # nowhere; push flows never needed it because a webhook knows its repo).
+        # apps/api/src/watch-poll-tick.ts: runPollTick fans one ORDINARY watch job per subscription
+        # per tick (event_type "scheduled_pull", empty ref -> default-branch fallback, the
+        # sentry-webhook convention) — the whole 12-branch dispatcher chain reused with zero changes.
+        # Per-product isolation: one product's enumeration/enqueue failure is reported in
+        # failed_products and never starves the others.
+        # DELIBERATE EMPTY SET: POLL_PRODUCTS ships EMPTY and startPollScheduler() self-disables
+        # (logged) while it is — no poll-driven watcher exists yet, and fanning jobs into the
+        # dispatcher's unhandled-fallthrough log every 15 minutes for every subscriber would be noise
+        # masquerading as progress. A dedicated test PINS the empty set with its own comment telling
+        # app_33 exactly what adding the first entry requires — making it a conscious act, not a
+        # config flip. AXIS_WATCH_POLL_CRON declared in ENV_SPEC (default */15, inert while the set
+        # is empty).
+        # VERIFIED: 6/6 fanout tests (payload shape dispatcher-compatible, multi-product fanout,
+        # per-product failure isolation both directions, empty-set inertness) + counts-consistency
+        # green (incl. the every-process.env-key-declared guard) + tsc clean on snapshots and api.
+        # No count cascade: no new endpoint, no new generator, no new MCP tool.
+        # UNBLOCKS: app_33's W outright (add "optimization" to POLL_PRODUCTS + its watcher branch);
+        # app_42's deferred cadence delivery; app_32's deferred Sentry backfill. Each remains its own
+        # candidate-scoped decision — the substrate makes them one-constant cheap, it does not decide
+        # them.
 
       - id: "app_33_optimization_live_meter"
         description: "optimization → live meter: pull real provider usage (plain REST to OpenAI/Anthropic usage endpoints), attribute spend to prompts/routes from call sites, alert on regression; verify by invoice reconciliation. Needs provider-key connect flow. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #9."

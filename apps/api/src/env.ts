@@ -81,6 +81,8 @@ export const ENV_SPEC: EnvSpec[] = [
   // against each connection's OWN stored secret (sentry_tokens table), since
   // every user's Sentry integration signs with its own — there is no global one.
   { key: "SENTRY_API_BASE_URL", required: false, type: "string", default: "https://sentry.io/api/0", description: "Base URL for outbound Sentry REST reads (issue + latest event hydration). Override for self-hosted Sentry. When unreachable, the debug watcher returns sentry_fetch_failed and opens no PR — never a fabricated incident." },
+  // Scheduled Watch substrate (infra_04)
+  { key: "AXIS_WATCH_POLL_CRON", required: false, type: "string", default: "*/15 * * * *", description: "Cron for the poll tick that fans out scheduled_pull watch jobs for poll-driven products. Only consulted while POLL_PRODUCTS (watch-poll-tick.ts) is non-empty; with the set empty the scheduler self-disables and this value is inert." },
   // Embeddings (iliad_embeddings — AXIS-owned in-process backend via node-llama-cpp
   // by default, same sovereign pattern as iliad_llm_inference. The OpenAI proxy is
   // OPTIONAL, behind AXIS_EMBEDDING_BACKEND=openai.)

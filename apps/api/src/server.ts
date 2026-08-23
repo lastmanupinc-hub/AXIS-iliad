@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
 import { startAlerting } from "./alerting.js";
 import { startWatchDispatcher } from "./watch-dispatcher.js";
+import { startPollScheduler } from "./watch-poll-tick.js";
 import { log } from "./logger.js";
 import {
   handleCreateSnapshot,
@@ -635,4 +636,12 @@ startAlerting();
 /* v8 ignore next 3 */
 startWatchDispatcher().catch((err) => {
   log("error", "watch-dispatcher.start_failed", { error: err instanceof Error ? err.message : String(err) });
+});
+
+// Scheduled half of the Watch substrate (infra_04): one cron tick fanning
+// out ordinary watch jobs for poll-driven products. Self-disabling while
+// POLL_PRODUCTS is empty; same caught-not-awaited standard as above.
+/* v8 ignore next 3 */
+startPollScheduler().catch((err) => {
+  log("error", "watch-poll-tick.start_failed", { error: err instanceof Error ? err.message : String(err) });
 });

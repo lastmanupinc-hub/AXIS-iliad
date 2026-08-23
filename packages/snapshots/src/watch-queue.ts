@@ -88,11 +88,71 @@ export async function registerWatchWorker(handler: WatchJobHandler): Promise<str
   });
 }
 
+// ─── Scheduled work (infra_04) ──────────────────────────────────
+//
+// The substrate's second half: pg-boss 12.x ships schedule(name, cron, data)
+// natively — verified against the installed package's .d.ts — and nothing
+// used it until now (a gap that forced three candidates to defer their W
+// stages: app_42's cadence, app_32's backfill, app_33's usage pulls).
+//
+// Design is TICK-FANOUT, not per-account schedules: exactly ONE cron
+// schedule fires a tick job; the tick's worker (apps/api's watch-poll-tick)
+// enumerates subscriptions for poll-driven products and enqueues ORDINARY
+// watch jobs — so scheduled work reuses the entire existing dispatcher chain
+// and per-account schedule management never exists. pg-boss's schedule() is
+// an upsert by name, so calling this at every server start is idempotent and
+// a cron change takes effect on deploy.
+
+const TICK_QUEUE_NAME = "watch-poll-tick";
+
+let tickQueueEnsured = false;
+
+async function ensureTickQueue(b: PgBoss): Promise<void> {
+  if (tickQueueEnsured) return;
+  await b.createQueue(TICK_QUEUE_NAME).catch(() => {
+    /* already exists — same posture as ensureQueue above */
+  });
+  tickQueueEnsured = true;
+}
+
+/**
+ * Register (upsert) the single poll tick. Call once at server startup with
+ * the deployment's cron; safe to call repeatedly.
+ */
+export async function schedulePollTick(cron: string): Promise<void> {
+  const b = await getBoss();
+  await ensureTickQueue(b);
+  await b.schedule(TICK_QUEUE_NAME, cron, {});
+}
+
+export type PollTickHandler = () => Promise<void>;
+
+/**
+ * Register the worker that runs on each tick. One registration per process,
+ * same competing-consumer reasoning as registerWatchWorker: a second
+ * subscription on the same queue would race for ticks, not duplicate them —
+ * which is exactly what we want across multiple instances (one tick fires
+ * once, whichever instance wins runs the fanout).
+ */
+export async function registerPollTickWorker(handler: PollTickHandler): Promise<string> {
+  const b = await getBoss();
+  await ensureTickQueue(b);
+  return b.work(TICK_QUEUE_NAME, async (jobs) => {
+    // Batch semantics don't matter for a tick (its payload is empty and the
+    // handler enumerates fresh state), but a failure in one tick must not
+    // fail batch-mates — mirror registerWatchWorker's per-job loop.
+    for (let i = 0; i < jobs.length; i++) {
+      await handler();
+    }
+  });
+}
+
 /** Test-only: stop the queue and clear the singleton so a fresh DATABASE_URL takes effect. */
 export async function stopWatchQueue(): Promise<void> {
   if (boss) {
     await boss.stop({ graceful: false, timeout: 1000 });
     boss = undefined;
     queueEnsured = false;
+    tickQueueEnsured = false;
   }
 }

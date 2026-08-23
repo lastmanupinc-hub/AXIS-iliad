@@ -66,6 +66,19 @@ export async function listSubscriptionsForAccount(account_id: string): Promise<R
   );
 }
 
+/**
+ * Every subscription to one product, across all accounts — the tick-fanout
+ * enumeration behind scheduled polling (infra_04): the cron tick asks "who is
+ * subscribed to a poll-driven product?" and enqueues one ordinary watch job
+ * per row. Push-triggered flows never need this (the webhook knows its repo).
+ */
+export async function listSubscriptionsForProduct(product_id: string): Promise<RepoSubscription[]> {
+  return sql.many<RepoSubscription>(
+    `SELECT account_id, product_id, repo_full_name, created_at, latest_snapshot_id FROM repo_subscriptions WHERE product_id = ? ORDER BY created_at ASC`,
+    [product_id],
+  );
+}
+
 /** One subscription, if it exists — the lookup the hosted MCP endpoint (app_20) uses to resolve a caller's account+repo to its latest synced snapshot. */
 export async function getRepoSubscription(account_id: string, product_id: string, repo_full_name: string): Promise<RepoSubscription | undefined> {
   return sql.one<RepoSubscription>(
