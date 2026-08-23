@@ -1256,7 +1256,74 @@ project_begin:
         roi_reason: "unblocks every future candidate's verification loop; owner-raised; 51-121x measured, not estimated."
         severity: HIGH
         source_file: "packages/snapshots/src/pg-test.ts"
-        completion_status: in_progress  # LEVER 1 DONE 2026-08-04 (revised after CI caught two bugs — see the FOUR-DESIGN note at the end of this comment), levers 2-5 still open. resetTestDb now (a) probes in ONE roundtrip for tables holding rows AND sequences with last_value IS NOT NULL, then (b) clears via DELETE with FK triggers suspended (sql.tx + SET LOCAL session_replication_role=replica) rather than TRUNCATE, then (c) ALTER SEQUENCE ... RESTART for every advanced sequence. MEASURED A/B on identical files: production-startup+rate-limiter 649.6s -> 35.6s wall (test time 630.4s -> 5.3s, 119x); packages/snapshots 45 files/751 tests 1945s -> 129s wall (test time 1851s -> 82s, 22x) — and that 1945s baseline was ALREADY the dirty-only-TRUNCATE version, so vs the original blanket sweep it is ~44x. Zero regressions (751/751, 62/62). THREE traps found by measuring, all handled + guarded by pg-test-reset.test.ts: (1) RESTART IDENTITY resets sequences even on EMPTY tables, so an insert-then-delete leaves rows=0 with last_value advanced — a row-only probe skips it and generated ids silently shift (proven: disabling the sequence branch fails with expected '4' to be '1'); (2) session_replication_role is per-CONNECTION and the data layer is pooled, so the DELETEs could land on a different connection with FK checks still live — sql.tx pins one connection and SET LOCAL reverts on COMMIT *or* ROLLBACK, guarded by a test asserting a real 23503 still fires after a reset; (3) non-superuser test roles cannot set that parameter, so it falls back to TRUNCATE on SQLSTATE 42501 ONLY — any other error surfaces instead of being masked. Escape hatch AXIS_TEST_RESET_FULL=1 restores the blanket sweep. LESSON: the fixture first used analytics_events, which apps/api/src/analytics.ts creates LAZILY — it does not exist in a snapshots-only run; a fixture guarding the reset must depend only on core pg-schema.ts tables (now uses code_symbols). NOTE: the escape-hatch test needs a 60s timeout because the OLD path is that slow under contention. FOUR DESIGNS, measured on packages/snapshots (45 files/752 tests) after CI failed the first attempt: (a) cached probe 129s but WRONG — a cached probe never learns about tables created LAZILY after the first reset (apps/api/src/analytics.ts does CREATE TABLE IF NOT EXISTS analytics_events on first use), so their rows leak between tests forever; (b) re-read the catalog every reset 230s — correct but the added latency pushed billing-edge-cases.test.ts's 200-row bulk-insert tests past their timeout; (c) one server-side DO block doing probe+clear+sequences 256s — correct, one roundtrip, but SLOWER because it re-plans 49 dynamic EXECUTE format(...) statements per reset where the static UNION ALL is planned once; (d) SHIPPED: cached static probe that also reports the current table count, rebuilt when the count changes (catches ADDS) or when the probe throws 42P01 undefined_table (catches DROPS) — 199s, 752/752. Correctness costs ~70s vs the buggy-fast (a), still ~29x better than the original blanket sweep. SEPARATE REAL PRODUCT BUG this exposed (not caused): billing-store.ts getRecentActivity ordered funnel_events by created_at DESC with NO tiebreaker, so two events written in the same millisecond had UNDEFINED order; it only ever passed because TRUNCATE handed each test a fresh heap whose physical order matched insertion order, and DELETE (which leaves dead tuples) broke the tie the other way. funnel_events.seq exists precisely as that tiebreaker — pg-schema.ts says so in a comment, and funnel-store.ts already uses `ORDER BY created_at DESC, seq DESC` in three places; this one query had drifted. Fixed to match. CI CONFIRMED GREEN 2026-08-04 (run 30934009293, all jobs success) — and CI's own build-and-test job dropped 10m46s -> 7m29s (~30%), so this is not only a local-dev win. CAVEAT ON THE NUMBERS: repeated runs of the same package on this Windows machine ranged 129-256s, so treat the order of magnitude (~29x) as solid and any precise multiple as noisy. LESSON WORTH KEEPING: fewer network roundtrips LOST to a warm query plan — the one-roundtrip server-side DO block was the slowest correct option because dynamic EXECUTE re-plans per statement. Measure; do not reason about which is faster. LEVER 2 DONE 2026-08-04: the four honesty guards each carried their OWN copy of the count extractors (visible/programClaims/generatorClaims/toolClaims/endpointClaims) over their OWN corpus, and two copies were materially weaker than count-honesty's. Now one shared apps/api/src/count-extractors.ts; the CORPORA stay separate per SPEC-12's deliberate scoping (only the extraction logic is shared). The real deliverable is apps/api/src/count-surface-coverage.test.ts, which closes the completeness hole no individual guard could: it walks the repo, finds every file making a global count claim, and fails unless that file is in some guard's corpus or in an UNGUARDED list WITH A REASON. Red-then-green proven (a new file claiming "999 artifacts across 42 programs" fails with an actionable message). WHAT IT FOUND IMMEDIATELY — four hand-maintained root packs guarded by NOTHING and stale since 2026-06-30: canvas-pack.md and remotion-pack.md "102 Artifacts" (real 147), superpowers-pack.md "102 Generators Across 18 Programs" (real 143/20) + "143 endpoints" (real 166), obsidian-vault-pack.md "75+ REST endpoints" (real 166) AND a stale "SQLite WAL, 5 tables" data-layer claim (real Neon Postgres, 49 tables). All corrected; canvas/remotion added to the launch corpus. OWNER DECISION OPEN: obsidian-vault-pack.md and superpowers-pack.md still assert "81/82 at Grade A" — the unverifiable capability_inventory self-audit SPEC-12 already stripped from the launch corpus. Deleting it from marketing prose is a content call, so both are exempted with that reason recorded rather than silently rewritten; resolve the claim, then move them into corpus() and drop the exemptions. HONEST SCOPE NOTE: lever 2 barely dents the 7855 test COUNT (52 -> 50 tests across these files). Its value is correctness — one place to add a surface — not volume. The count is dominated by the 33 *-branches* coverage-chasers (lever 5), which are fast and therefore not worth touching for speed.
+        completion_status: in_progress  # LEVER 1 DONE 2026-08-04 (revised after CI caught two bugs — see the FOUR-DESIGN note at the end of this comment), lever 5 still open (4 resolved as unnecessary, 3 done — see the end of this comment for both). resetTestDb now (a) probes in ONE roundtrip for tables holding rows AND sequences with last_value IS NOT NULL, then (b) clears via DELETE with FK triggers suspended (sql.tx + SET LOCAL session_replication_role=replica) rather than TRUNCATE, then (c) ALTER SEQUENCE ... RESTART for every advanced sequence. MEASURED A/B on identical files: production-startup+rate-limiter 649.6s -> 35.6s wall (test time 630.4s -> 5.3s, 119x); packages/snapshots 45 files/751 tests 1945s -> 129s wall (test time 1851s -> 82s, 22x) — and that 1945s baseline was ALREADY the dirty-only-TRUNCATE version, so vs the original blanket sweep it is ~44x. Zero regressions (751/751, 62/62). THREE traps found by measuring, all handled + guarded by pg-test-reset.test.ts: (1) RESTART IDENTITY resets sequences even on EMPTY tables, so an insert-then-delete leaves rows=0 with last_value advanced — a row-only probe skips it and generated ids silently shift (proven: disabling the sequence branch fails with expected '4' to be '1'); (2) session_replication_role is per-CONNECTION and the data layer is pooled, so the DELETEs could land on a different connection with FK checks still live — sql.tx pins one connection and SET LOCAL reverts on COMMIT *or* ROLLBACK, guarded by a test asserting a real 23503 still fires after a reset; (3) non-superuser test roles cannot set that parameter, so it falls back to TRUNCATE on SQLSTATE 42501 ONLY — any other error surfaces instead of being masked. Escape hatch AXIS_TEST_RESET_FULL=1 restores the blanket sweep. LESSON: the fixture first used analytics_events, which apps/api/src/analytics.ts creates LAZILY — it does not exist in a snapshots-only run; a fixture guarding the reset must depend only on core pg-schema.ts tables (now uses code_symbols). NOTE: the escape-hatch test needs a 60s timeout because the OLD path is that slow under contention. FOUR DESIGNS, measured on packages/snapshots (45 files/752 tests) after CI failed the first attempt: (a) cached probe 129s but WRONG — a cached probe never learns about tables created LAZILY after the first reset (apps/api/src/analytics.ts does CREATE TABLE IF NOT EXISTS analytics_events on first use), so their rows leak between tests forever; (b) re-read the catalog every reset 230s — correct but the added latency pushed billing-edge-cases.test.ts's 200-row bulk-insert tests past their timeout; (c) one server-side DO block doing probe+clear+sequences 256s — correct, one roundtrip, but SLOWER because it re-plans 49 dynamic EXECUTE format(...) statements per reset where the static UNION ALL is planned once; (d) SHIPPED: cached static probe that also reports the current table count, rebuilt when the count changes (catches ADDS) or when the probe throws 42P01 undefined_table (catches DROPS) — 199s, 752/752. Correctness costs ~70s vs the buggy-fast (a), still ~29x better than the original blanket sweep. SEPARATE REAL PRODUCT BUG this exposed (not caused): billing-store.ts getRecentActivity ordered funnel_events by created_at DESC with NO tiebreaker, so two events written in the same millisecond had UNDEFINED order; it only ever passed because TRUNCATE handed each test a fresh heap whose physical order matched insertion order, and DELETE (which leaves dead tuples) broke the tie the other way. funnel_events.seq exists precisely as that tiebreaker — pg-schema.ts says so in a comment, and funnel-store.ts already uses `ORDER BY created_at DESC, seq DESC` in three places; this one query had drifted. Fixed to match. CI CONFIRMED GREEN 2026-08-04 (run 30934009293, all jobs success) — and CI's own build-and-test job dropped 10m46s -> 7m29s (~30%), so this is not only a local-dev win. CAVEAT ON THE NUMBERS: repeated runs of the same package on this Windows machine ranged 129-256s, so treat the order of magnitude (~29x) as solid and any precise multiple as noisy. LESSON WORTH KEEPING: fewer network roundtrips LOST to a warm query plan — the one-roundtrip server-side DO block was the slowest correct option because dynamic EXECUTE re-plans per statement. Measure; do not reason about which is faster. LEVER 2 DONE 2026-08-04: the four honesty guards each carried their OWN copy of the count extractors (visible/programClaims/generatorClaims/toolClaims/endpointClaims) over their OWN corpus, and two copies were materially weaker than count-honesty's. Now one shared apps/api/src/count-extractors.ts; the CORPORA stay separate per SPEC-12's deliberate scoping (only the extraction logic is shared). The real deliverable is apps/api/src/count-surface-coverage.test.ts, which closes the completeness hole no individual guard could: it walks the repo, finds every file making a global count claim, and fails unless that file is in some guard's corpus or in an UNGUARDED list WITH A REASON. Red-then-green proven (a new file claiming "999 artifacts across 42 programs" fails with an actionable message). WHAT IT FOUND IMMEDIATELY — four hand-maintained root packs guarded by NOTHING and stale since 2026-06-30: canvas-pack.md and remotion-pack.md "102 Artifacts" (real 147), superpowers-pack.md "102 Generators Across 18 Programs" (real 143/20) + "143 endpoints" (real 166), obsidian-vault-pack.md "75+ REST endpoints" (real 166) AND a stale "SQLite WAL, 5 tables" data-layer claim (real Neon Postgres, 49 tables). All corrected; canvas/remotion added to the launch corpus. OWNER DECISION OPEN: obsidian-vault-pack.md and superpowers-pack.md still assert "81/82 at Grade A" — the unverifiable capability_inventory self-audit SPEC-12 already stripped from the launch corpus. Deleting it from marketing prose is a content call, so both are exempted with that reason recorded rather than silently rewritten; resolve the claim, then move them into corpus() and drop the exemptions. HONEST SCOPE NOTE: lever 2 barely dents the 7855 test COUNT (52 -> 50 tests across these files). Its value is correctness — one place to add a surface — not volume. The count is dominated by the 33 *-branches* coverage-chasers (lever 5), which are fast and therefore not worth touching for speed.
+        #
+        # LEVER 4 RESOLVED AS UNNECESSARY 2026-08-23: the filer's own note said "likely
+        # unnecessary once (1) lands" — confirmed. Per-worker test databases only matter if
+        # MULTIPLE workers touch Postgres concurrently; the db project (below) stays
+        # deliberately serialized (fileParallelism:false, one worker) specifically because
+        # the shared-DB truncate/reset semantics require it, so there is only ever one
+        # worker touching the database regardless of lever 4. Nothing to build; recorded so
+        # this doesn't sit as a stale open question forever.
+        #
+        # LEVER 3 DONE 2026-08-23 (vitest.config.ts, full reasoning + MEASURED numbers live
+        # in that file's own header comment, not duplicated here). Split the single project
+        # into three: "db" (apps/api + packages/snapshots + 1 named exception file — every
+        # file confirmed via grep for a REAL resetTestDb() call, not assumed from package
+        # names; a handful of generator-core fixtures embed the STRING "db.query()" as fake
+        # source content fed to the analyzer under test and would have been false positives),
+        # "integration" (3 apps/cli files that spawn real Docker builds / real git+npm child
+        # processes), "pure" (everything else — ~334 of ~466 files, genuinely parallel now
+        # instead of forced to 1-at-a-time). Explicit allowlists on all three sides rather
+        # than a broad glob-with-exclude, specifically so a forgotten new file defaults to
+        # NEITHER project (loud, wrong test count) instead of silently landing in the
+        # parallel lane and reintroducing flakiness — apps/api/src/vitest-project-coverage.test.ts
+        # re-derives the ground truth by walking the filesystem + re-grepping for
+        # resetTestDb() on every run, so the classification can't silently drift the way
+        # lever 2's four scattered count guards did.
+        #
+        # TWO REAL PROBLEMS FOUND BY MEASURING, both fixed before shipping: (a) uncapped
+        # parallelism (vitest's own CPU-count default, 7 workers on this 8-core machine)
+        # failed 7/225 apps/web files with "Timeout waiting for worker to respond" — a
+        # worker never even started. Every one passed cleanly (70/70) re-run in isolation
+        # seconds later — worker-pool contention, not a defect in the split — but still a
+        # real reliability cost, so "pure" is capped at maxWorkers:4 (still a 4x floor over
+        # the old 1-at-a-time baseline, with headroom on a shared machine). (b) the 3
+        # apps/cli integration tests, run alongside 3 other concurrent "pure" workers,
+        # produced non-flaky-looking failures (two real 60-120s Docker-build timeouts, one
+        # genuine "build_failed" instead of "tagged") that also vanished (8/8 passed) the
+        # moment those same files ran without that concurrent load — carved into their own
+        # serialized "integration" project rather than left to compete for the machine.
+        #
+        # FULL SUITE, both projects combined, MEASURED 2026-08-23 on this machine under
+        # real concurrent load from a peer session (the same contention this candidate's own
+        # lever-1 evidence already documented — "two consecutive full runs failed DIFFERENT
+        # file sets... zero failing on CI"): 467 files / 8343 tests, 3307s (~55 min) wall
+        # clock, 0 worker-pool timeouts (the maxWorkers cap + integration split held). Down
+        # from the candidate's own original 240 min baseline (~4.4x) even under heavy
+        # contention this run happened to hit — CAVEAT ON THE NUMBER, same as lever 1's own
+        # caveat: this machine's absolute wall-clock is noisy session-to-session depending on
+        # what else is running; the order of magnitude is the trustworthy part, not this one
+        # figure. 7 test failures remained, all independently re-run in isolation and
+        # resolved to exactly two real categories, neither caused by this lever: (1) 3
+        # apps/api "db"-project timeouts (30-45s) — passed 36/36 re-run isolated, the exact
+        # pre-existing "shared DB, false failures, passes isolated" signature this
+        # candidate's own lever-1 evidence already named, not a regression from serialization
+        # (which this lever never touched for the db project). (2) 4 packages/generator-core
+        # count-drift failures (147 vs real 149; 8 vs real 10; 32/34 vs real 34/36) —
+        # DETERMINISTIC, same result on every run, git-blame-confirmed pre-existing: the
+        # failing test (generate-programs.test.ts) was last touched 2026-08-15, the registry
+        # it asserts against (generate.ts) grew 2026-08-22 via tool_01 (redundancy-sweep,
+        # 147->149). Filed separately as gen_01_stale_generator_count_tests rather than
+        # fixed inline — out of this lever's scope (a test-discovery/scheduling change, not a
+        # count-correctness change) and the real current numbers across every call site need
+        # their own verification pass, the same discipline every prior count-cascade bump in
+        # this file already required.
+        #
+        # VERIFIED: tsc clean. vitest-project-coverage.test.ts's own 3 checks pass (0
+        # uncovered, 0 double-covered, 0 misclassified). Every anomaly above independently
+        # re-run in isolation before being written down as "contention, not a bug" rather
+        # than asserted from a single noisy run.
 
       - id: "app_30_seo_applies"
         description: "seo → applies what it recommends: write meta tags + JSON-LD (schema-dts, Apache-2.0) as a PR; submit sitemap; pull Search Console deltas via googleapis (Apache-2.0). Needs a user GSC connect flow — build it, don't fake data. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #7."
@@ -2825,6 +2892,34 @@ project_begin:
         # as one block before commit. NOT DONE: did not touch any of the 32 tools whose
         # description was already accurate and already followed the top-performer pattern —
         # this cycle fixes real, evidenced gaps, not a stylistic rewrite of working copy.
+
+      - id: "gen_01_stale_generator_count_tests"
+        description: >
+          Discovered while verifying infra_01 lever 3 (vitest project split), NOT caused by
+          it — 4 tests in packages/generator-core currently fail deterministically against
+          the real, committed registry: generate-programs.test.ts and generate.test.ts both
+          assert "147 registered generators" (real count is 149); generators-agentic-
+          purchasing-develop.test.ts asserts superpowers owns 8 outputs (real 10) and the
+          dev-essentials bundle has 32 outputs (real 34). Git-blame confirmed pre-existing,
+          not a regression from anything this session touched: the failing test file
+          (generate-programs.test.ts) was last edited 2026-08-15; the registry it asserts
+          against (generate.ts) grew 147->149 on 2026-08-22 via tool_01 (redundancy-sweep
+          productization). Reproduced twice, deterministic both times (not flaky — unlike
+          every OTHER anomaly infra_01 lever 3 hit today, none of these 4 changed when
+          re-run in isolation). If CI runs this file on this branch, CI is very likely
+          currently red because of this — worth an owner check, not just a local note.
+          FIX SHAPE (not yet investigated, do this first before editing numbers): find every
+          hardcoded count these 4 tests assert (147, 8, 32, and whatever "36" the commerce-
+          registry test's brand-marketing bundle currently needs) and confirm the REAL
+          current value at each site the way every prior count-cascade bump in this file
+          required — do not just bump the 4 numbers to whatever today's run reported without
+          checking each one traces to the SAME root cause (tool_01) and not two independent
+          drifts.
+        roi_score: 58
+        roi_reason: "production_quality_gain 4 (currently-broken assertions in committed main-line code, likely a red CI right now), validation_strength 3; implementation_cost -2 (small, contained, but needs the same per-site verification discipline as every past count bump, not a blind number swap)."
+        severity: MEDIUM
+        source_file: "packages/generator-core/src/generate-programs.test.ts"
+        completion_status: open
 
   highest_roi_definition:
     meaning: >
