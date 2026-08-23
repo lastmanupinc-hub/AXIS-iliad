@@ -126,6 +126,8 @@ import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthSta
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
+import { handleSentryWebhook } from "./sentry-webhook.js";
+import { handleSaveSentryConnection, handleListSentryConnections, handleDeleteSentryConnection } from "./sentry.js";
 import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
@@ -237,6 +239,8 @@ router.post("/v1/github/analyze", handleGitHubAnalyze);
 
 // GitHub App webhook (push / pull_request / installation events)
 router.post("/v1/github/webhook", handleGitHubWebhook);
+// app_32: the debug program's W trigger — incidents in, watch jobs out
+router.post("/v1/sentry/webhook", handleSentryWebhook);
 
 // E5 Living Architecture: push-triggered architecture-drift PR mode
 router.post("/v1/github/architecture-drift", handleArchitectureDriftWebhook);
@@ -542,6 +546,10 @@ router.post("/v1/account/programs", handleUpdatePrograms);
 router.post("/v1/account/github-token", handleSaveGitHubToken);
 router.get("/v1/account/github-token", handleListGitHubTokens);
 router.delete("/v1/account/github-token/:token_id", handleDeleteGitHubToken);
+// app_32: Sentry connect flow (debug → wired to real incidents)
+router.post("/v1/account/sentry-token", handleSaveSentryConnection);
+router.get("/v1/account/sentry-token", handleListSentryConnections);
+router.delete("/v1/account/sentry-token/:token_id", handleDeleteSentryConnection);
 
 // Billing
 router.get("/v1/billing/history", handleBillingHistory);

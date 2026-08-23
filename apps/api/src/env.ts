@@ -76,6 +76,11 @@ export const ENV_SPEC: EnvSpec[] = [
   // GitHub App webhook (push / pull_request → background snapshot)
   { key: "GITHUB_WEBHOOK_SECRET", required: false, type: "string", description: "Shared secret from the GitHub App settings. Verifies X-Hub-Signature-256 on POST /v1/github/webhook. If unset, the endpoint returns 503 so the App retries until ops finishes the deploy." },
   { key: "GITHUB_TOKEN", required: false, type: "string", description: "Personal-access token fallback used when fetching tarballs for webhook-triggered snapshots and the /v1/github/analyze handler when no per-account token is stored." },
+  // Sentry incident ingestion (app_32 — debug wired to real incidents). No
+  // SENTRY_WEBHOOK_SECRET exists deliberately: webhook signatures verify
+  // against each connection's OWN stored secret (sentry_tokens table), since
+  // every user's Sentry integration signs with its own — there is no global one.
+  { key: "SENTRY_API_BASE_URL", required: false, type: "string", default: "https://sentry.io/api/0", description: "Base URL for outbound Sentry REST reads (issue + latest event hydration). Override for self-hosted Sentry. When unreachable, the debug watcher returns sentry_fetch_failed and opens no PR — never a fabricated incident." },
   // Embeddings (iliad_embeddings — AXIS-owned in-process backend via node-llama-cpp
   // by default, same sovereign pattern as iliad_llm_inference. The OpenAI proxy is
   // OPTIONAL, behind AXIS_EMBEDDING_BACKEND=openai.)

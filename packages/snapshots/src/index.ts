@@ -155,6 +155,18 @@ export {
   markTokenValidated,
 } from "./github-token-store.js";
 
+// Sentry Connection Management (app_32 — debug wired to real incidents)
+export type { SentryConnection, SentryConnectionSecrets } from "./sentry-token-store.js";
+export {
+  saveSentryConnection,
+  getSentryConnections,
+  getSentryConnectionDecrypted,
+  getSentryConnectionsForProject,
+  deleteSentryConnection,
+  markSentryConnectionUsed,
+  markSentryConnectionInvalid,
+} from "./sentry-token-store.js";
+
 // Tier Audit
 export type { TierChange, ProrationResult } from "./tier-audit.js";
 export {

@@ -14,7 +14,7 @@ its own generated page at the root. Pages are derived from `PRODUCT_REGISTRY` jo
 generator manifest, so a page cannot drift from the program it sells.
 
 **Portfolio totals (measured):** 21 programs · 149 generators · 43 MCP tools ·
-168 endpoints · 2 free programs (search, obsidian) · 19 paid.
+172 endpoints · 2 free programs (search, obsidian) · 19 paid.
 
 ---
 
@@ -99,13 +99,13 @@ apply that never reaches a hosted surface, by deliberate owner decision.
 | agentic-purchasing | 6 | $99 | **50%** | apply; watch; spoke_06 |
 | algorithmic | 5 | $19 | **50%** | apply; watch; spoke_06 |
 | brand | 5 | $15 | **50%** | apply; watch; spoke_06 |
-| debug | 4 | $15 | **50%** | apply; watch; spoke_06 |
+| debug | 4 | $15 | **90%** | spoke_06 |
 | marketing | 5 | $19 | **50%** | apply; watch; spoke_06 |
 | optimization | 4 | $29 | **50%** | apply; watch; spoke_06 |
 | pitch | 3 | $19 | **50%** | apply; watch; spoke_06 |
 | remotion | 5 | $29 | **50%** | apply; watch; spoke_06 |
 
-**13 of 21** have their "become an application" candidate complete. **10** remain open.
+**14 of 21** have their "become an application" candidate complete. **9** remain open.
 
 ---
 
@@ -306,14 +306,19 @@ apply stage needs an LLM configured, and degrades to `all_withheld` (no PR) with
 where skills/theme/canvas/seo need only `GITHUB_TOKEN`. Not yet built: the custom ESLint
 plugin that would enforce the same rules on the user's *own* components on every PR.
 
-### debug — 4 generators · $15 · `app_32` open (40%)
-**Does:** debug playbook, incident template, tracing rules, root-cause checklist.
-**Three directions:** (1) ingest the user's real Sentry stream (plain REST, deliberately no
-SDK); (2) draft postmortems grounded in real events; (3) feed fixes back as PRs.
-**Highest-ROI trajectory:** **postmortems written from real incidents**, not templates —
-the gap between "here's an incident template" and "here's what actually broke last Tuesday
-and why" is the entire value.
-**Gaps:** requires the user to connect a Sentry token — a per-customer integration step.
+### debug — 4 generators · $15 · `app_32` complete (90%)
+**Does:** debug playbook, incident template, tracing rules, root-cause checklist — and, as
+of 2026-08-22, **postmortem drafts from real Sentry incidents**, not templates.
+**Applies:** a real incident (POST /v1/sentry/webhook, per-connection signature
+verification) produces a grounded draft landing as a PR at `postmortems/sentry-<id>.md`.
+**Verifies:** every cited stack frame must resolve to exactly one real file at a real line
+in the current snapshot — unresolvable frames are named as dropped, and zero grounded
+frames means no PR at all.
+**Watches:** `debug-postmortem-watcher.ts` (dispatcher branch 12), triggered by the
+incident webhook — the spec's own W, not a poller.
+**Gaps:** user connects a Sentry token via `/v1/account/sentry-token` (built — REST only;
+web UI is a follow-up); scheduled backfill polling deliberately deferred (would be this
+codebase's first scheduling infrastructure); storefront (spoke_06).
 
 ### optimization — 4 generators · $29 · `app_33` open (40%)
 **Does:** optimization rules, prompt diff report, cost estimate, token budget plan.

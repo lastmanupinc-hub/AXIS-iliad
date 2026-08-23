@@ -45,7 +45,7 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
 export const MCP_TOOL_COUNT = 43;
-export const ENDPOINT_COUNT = 168;
+export const ENDPOINT_COUNT = 172; // +4 app_32: sentry-token save/list/delete + POST /v1/sentry/webhook
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */
 export const API_VERSION = "0.5.3";

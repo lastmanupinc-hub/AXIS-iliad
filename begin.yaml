@@ -1382,11 +1382,54 @@ project_begin:
         roi_reason: "production_quality 4; integration-gated."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generators-debug.ts"
-        completion_status: in_progress  # CLAIMED 2026-08-22 by sonnet5-estate-federation session (the
-        # one that ran today's federation push) — highest open non-gated candidate now that the est
-        # queue is down to externals (est_04/05 await Foundry's ticket answer, est_08 the owner's tf
-        # naming). Claim committed+pushed immediately so concurrent sessions' fresh ledger reads see
-        # it — the coordination-state lesson from today's PAI'D stale-read incident, applied proactively.
+        completion_status: complete  # SCOPED 2026-08-22, same session that claimed it. The A, V, and W
+        # halves ALL shipped — unlike app_30 there is no owner gate here (a Sentry connection is a
+        # user-supplied token: no OAuth app, no owner property).
+        # DELIVERED: (1) Connect flow — sentry_tokens (migration v45, mirrors github_tokens' exact
+        # AES-256-GCM/AXIS_TOKEN_KEY/prefix/valid shape) + 3 REST endpoints (/v1/account/sentry-token
+        # save/list/delete, billing.ts's validation ladder copied) + org/project/repo mapping stored at
+        # connect time because a Sentry webhook names only the PROJECT, never the repo. Deletion
+        # cascade added to billing-store. (2) W = the INCIDENT WEBHOOK, exactly as the spec's own words
+        # say ("W: incident webhook" — NOT #9's "scheduled pulls"): POST /v1/sentry/webhook with
+        # MULTI-TENANT per-connection signature verification (parse-then-verify-per-candidate, uniform
+        # 401 so project existence never leaks; a connection without a stored secret can never trigger
+        # — fail closed), enqueueing watch jobs with a new OPTIONAL WatchJobPayload.sentry_issue_id
+        # (additive; no existing watcher reads it). (3) A+V = debug-postmortem-watcher.ts, branch 12 of
+        # the dispatcher: hydrates the thin webhook ref via PLAIN REST to Sentry (fetch+AbortController,
+        # deliberately no SDK per the strategy doc's dependency table), drafts the postmortem from REAL
+        # event facts, and the V gate — the spec's "every playbook step references a real symbol/log
+        # line in the current repo" — is groundFrames(): every cited stack frame must resolve to
+        # exactly ONE real file at a real line in the current snapshot; webpack:///app: prefixes
+        # normalized; node_modules and AMBIGUOUS suffix matches dropped (right file at the wrong line
+        # is still wrong, two candidate files is a guess wearing a citation); dropped frames are NAMED
+        # as dropped in the draft, and ZERO grounded frames means NO PR at all. PR lands at
+        # postmortems/sentry-<id>.md via the shared PR-writer, content-hashed branch, prior drafts
+        # excluded from their own regeneration input (the app_11/24/35 lesson, proven by a dedicated
+        # poisoned-draft test). Sentry strings are UNTRUSTED (titles carry user request data) and are
+        # sanitized with the md-sanitize contract before landing in markdown an agent may obey.
+        # VERIFIED: 48/48 across 4 test files (watcher: canonical cases + red-proven grounding —
+        # fabricated file, real-file-wrong-line, ambiguous-match, node_modules all dropped; webhook:
+        # per-candidate verification incl. the two-secrets test proving only the SIGNING connection
+        # triggers, uniform-401 oracle test, stored-token-is-not-consent subscription gate, fail-open
+        # enqueue; store: real-PG encryption round-trip + metadata-never-carries-ciphertext + secretless
+        # rows excluded from webhook candidacy; dispatcher: branch-12 fallthrough both directions).
+        # tsc clean on snapshots + api. CASCADE: ENDPOINT_COUNT 168->172 (+3 connect +1 webhook) across
+        # counts.ts, web config.ts, and 8 doc surfaces; openapi.ts paths+schema added
+        # (counts-consistency + openapi-router-bijection guards run — the bijection run also caught TWO
+        # PRE-EXISTING gaps that were NOT this candidate's: est_01's /.well-known/axis-estate.json and
+        # ext_01's /.well-known/agent-skills/index.json both shipped routes with no OpenAPI entry;
+        # fixed here rather than stepped over). env.ts: SENTRY_API_BASE_URL (self-hosted Sentry
+        # override; no SENTRY_WEBHOOK_SECRET global by design — per-connection secrets). NO new
+        # registry generator: the draft is watcher output landing as a PR, so TOTAL_GENERATORS stays
+        # untouched and the artifact cascade is moot — decided early, exactly the cheap path the recon
+        # recommended.
+        # NOT DONE, deliberately, each its own scope: a scheduled Sentry POLLER (nothing in this
+        # codebase schedules jobs; watch-queue is immediate-send only; app_42 already declined building
+        # the first scheduling substrate as ride-along work — same call here, the spec's W is the
+        # webhook and the webhook is built); the web SettingsPage connect UI (REST is the complete
+        # tested path — the spoke_06/app_34 precedent); an MCP twin for the connect flow; and the
+        # PRE-EXISTING gap the recon surfaced that subscribeRepo has NO public REST endpoint (true for
+        # every watcher product, not just debug — filed as its own observation, not smuggled in here).
 
       - id: "app_33_optimization_live_meter"
         description: "optimization → live meter: pull real provider usage (plain REST to OpenAI/Anthropic usage endpoints), attribute spend to prompts/routes from call sites, alert on regression; verify by invoice reconciliation. Needs provider-key connect flow. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #9."

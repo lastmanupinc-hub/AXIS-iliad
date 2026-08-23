@@ -11,6 +11,7 @@ const processNotebookReindex = vi.fn();
 const processObsidianVaultSync = vi.fn();
 const processArtifactsApply = vi.fn();
 const processMarketingApply = vi.fn();
+const processDebugPostmortem = vi.fn();
 
 vi.mock("./skills-refresh-watcher.js", () => ({
   processSkillsRefresh: (...args: unknown[]) => processSkillsRefresh(...args),
@@ -55,6 +56,10 @@ vi.mock("./artifacts-apply-watcher.js", () => ({
 vi.mock("./marketing-apply-watcher.js", () => ({
   processMarketingApply: (...args: unknown[]) => processMarketingApply(...args),
   defaultMarketingApplyDeps: () => "marketing-deps",
+}));
+vi.mock("./debug-postmortem-watcher.js", () => ({
+  processDebugPostmortem: (...args: unknown[]) => processDebugPostmortem(...args),
+  defaultDebugPostmortemDeps: () => "debug-deps",
 }));
 vi.mock("@axis/snapshots", () => ({
   registerWatchWorker: vi.fn(async (handler: unknown) => {
@@ -230,6 +235,25 @@ describe("watch-dispatcher", () => {
     const dispatch = await loadDispatchWatchJob();
     await dispatch({ ...payload, product_id: "marketing" });
     expect(processMarketingApply).toHaveBeenCalledWith({ ...payload, product_id: "marketing" }, "marketing-deps");
+    expect(processDebugPostmortem).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the debug-postmortem processor when every earlier handler declines the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
+    processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
+    processSeoApply.mockResolvedValue({ status: "not_seo_product" });
+    processFrontendApply.mockResolvedValue({ status: "not_frontend_product" });
+    processNotebookReindex.mockResolvedValue({ status: "not_notebook_product" });
+    processObsidianVaultSync.mockResolvedValue({ status: "not_obsidian_product" });
+    processArtifactsApply.mockResolvedValue({ status: "not_artifacts_product" });
+    processMarketingApply.mockResolvedValue({ status: "not_marketing_product" });
+    processDebugPostmortem.mockResolvedValue({ status: "pr_opened" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "debug" });
+    expect(processDebugPostmortem).toHaveBeenCalledWith({ ...payload, product_id: "debug" }, "debug-deps");
   });
 
   it("does not throw when no processor claims the product_id (an unhandled product is a log line, not a crash)", async () => {
@@ -244,6 +268,7 @@ describe("watch-dispatcher", () => {
     processObsidianVaultSync.mockResolvedValue({ status: "not_obsidian_product" });
     processArtifactsApply.mockResolvedValue({ status: "not_artifacts_product" });
     processMarketingApply.mockResolvedValue({ status: "not_marketing_product" });
+    processDebugPostmortem.mockResolvedValue({ status: "not_debug_product" });
     const dispatch = await loadDispatchWatchJob();
     await expect(dispatch({ ...payload, product_id: "some-future-product" })).resolves.toBeUndefined();
   });

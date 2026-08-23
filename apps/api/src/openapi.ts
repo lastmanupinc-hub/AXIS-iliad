@@ -579,6 +579,26 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/.well-known/agent-skills/index.json": {
+        get: {
+          summary: "Agent skills registry — RFC-path alias of /.well-known/skills/index.json (cloudflare/agent-skills-discovery-rfc)",
+          operationId: "getAgentSkillsIndex",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "AXIS skill definitions for AI coding assistants" },
+          },
+        },
+      },
+      "/.well-known/axis-estate.json": {
+        get: {
+          summary: "Canonical AXIS estate manifest — every sibling property (PAI'D, Foundry, Launch, TrustFabric) with MCP endpoints, payment rails, and discovery URLs",
+          operationId: "getAxisEstate",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Machine-readable estate registry (versioned, additive-only)" },
+          },
+        },
+      },
       "/v1/docs.md": {
         get: {
           summary: "Plain-text API reference (Markdown)",
@@ -1618,6 +1638,58 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
+      // ── Sentry connect flow (app_32: debug → wired to real incidents) ──
+      "/v1/account/sentry-token": {
+        post: {
+          summary: "Save a Sentry connection (token + org/project + watched-repo mapping)",
+          operationId: "saveSentryConnection",
+          tags: ["Debug"],
+          security: [{ apiKey: [] }],
+          requestBody: jsonBody(ref("SaveSentryConnectionRequest")),
+          responses: {
+            201: { description: "Connection saved" },
+            400: { description: "Invalid connection fields" },
+            401: { description: "Authentication required" },
+          },
+        },
+        get: {
+          summary: "List stored Sentry connections (masked)",
+          operationId: "listSentryConnections",
+          tags: ["Debug"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Connection listing" },
+            401: { description: "Authentication required" },
+          },
+        },
+      },
+      "/v1/account/sentry-token/{token_id}": {
+        delete: {
+          summary: "Delete a stored Sentry connection",
+          operationId: "deleteSentryConnection",
+          tags: ["Debug"],
+          security: [{ apiKey: [] }],
+          parameters: [pathParam("token_id", "Sentry connection identifier")],
+          responses: {
+            200: { description: "Connection deleted" },
+            401: { description: "Authentication required" },
+            404: { description: "Connection not found" },
+          },
+        },
+      },
+      "/v1/sentry/webhook": {
+        post: {
+          summary: "Sentry incident webhook (postmortem-draft trigger)",
+          operationId: "sentryWebhook",
+          tags: ["Debug"],
+          responses: {
+            200: { description: "Processed (handled flag + enqueued count)" },
+            400: { description: "Invalid JSON body" },
+            401: { description: "Signature verification failed" },
+          },
+        },
+      },
+
       // ── Billing History ──
       "/v1/billing/history": {
         get: {
@@ -2270,6 +2342,18 @@ export function buildOpenApiSpec(): OpenApiSpec {
           properties: {
             token: { type: "string", description: "GitHub personal access token" },
             label: { type: "string", description: "Optional label for the token" },
+          },
+        },
+        SaveSentryConnectionRequest: {
+          type: "object",
+          required: ["token", "org_slug", "project_slug", "repo_full_name"],
+          properties: {
+            token: { type: "string", description: "Sentry auth token with event:read scope — used for plain-REST issue/event hydration, never echoed back" },
+            org_slug: { type: "string", description: "Sentry organization slug the token reads" },
+            project_slug: { type: "string", description: "Sentry project slug whose incidents map to the watched repo" },
+            repo_full_name: { type: "string", description: "owner/repo — the watched repository this Sentry project's incidents belong to" },
+            webhook_secret: { type: "string", description: "Optional: your Sentry integration's webhook signing secret. Without it, incidents cannot trigger POST /v1/sentry/webhook (fail closed) — the token stays usable for outbound reads only" },
+            label: { type: "string", description: "Optional label for the connection" },
           },
         },
         BillingHistoryResponse: {

@@ -20,6 +20,14 @@ export interface WatchJobPayload {
   repo_full_name: string;
   event_type: string;
   ref: string;
+  /**
+   * app_32: set only by the Sentry incident webhook (event_type
+   * "sentry_incident") — the Sentry issue the debug watcher hydrates via
+   * plain REST. Optional and additive: push-triggered jobs never carry it,
+   * and no pre-existing watcher reads it, so extending the payload is
+   * backwards-compatible with every job already in the queue.
+   */
+  sentry_issue_id?: string;
 }
 
 const QUEUE_NAME = "watch";

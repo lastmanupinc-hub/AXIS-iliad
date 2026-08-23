@@ -86,7 +86,7 @@ From a single snapshot (ZIP, GitHub URL, or local dir), the system generates 149
 ### 5. Zero External HTTP Dependencies
 **Rarity**: ★★★★★ (Almost every Node.js HTTP server uses Express, Fastify, Koa, or Hono)
 
-The API server uses Node.js native `http.createServer()` with a custom routing table. 168 endpoints, middleware chain, auth, rate limiting, CORS, Prometheus metrics — all without a single HTTP framework dependency.
+The API server uses Node.js native `http.createServer()` with a custom routing table. 172 endpoints, middleware chain, auth, rate limiting, CORS, Prometheus metrics — all without a single HTTP framework dependency.
 
 **Why it matters**: Zero supply chain risk from HTTP framework CVEs. No dependency drift. No breaking changes from upstream.
 

@@ -841,6 +841,41 @@ CREATE INDEX IF NOT EXISTS idx_subscription_purchases_account ON subscription_pu
 CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_purchases_session ON subscription_purchases(paid_session_id) WHERE paid_session_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_subscription_purchases_status ON subscription_purchases(status);`,
   },
+  {
+    // app_32: the debug program's Sentry connect flow ("plain REST to Sentry
+    // API — deliberately no SDK / user connects their Sentry token",
+    // APPLICATION_BUILD_STRATEGY.md #8). Mirrors github_tokens' exact shape
+    // (AES-256-GCM via the same AXIS_TOKEN_KEY, token_prefix for display,
+    // valid flag) rather than inventing a new pattern for the same problem —
+    // with three additions github_tokens doesn't need: org_slug/project_slug
+    // (a Sentry API token is only usable against a specific org+project) and
+    // repo_full_name (the mapping that tells the incident webhook WHICH
+    // watched repo a Sentry project's incidents belong to — GitHub webhooks
+    // carry the repo name in the payload; Sentry webhooks carry only the
+    // project, so the join must be stored at connect time). encrypted_webhook_secret
+    // is the per-connection signing secret for POST /v1/sentry/webhook —
+    // per-connection rather than a global env var because each user's Sentry
+    // integration signs with its own secret; a connection without one stored
+    // cannot trigger the webhook (fail closed), only manual regeneration.
+    version: 45,
+    name: "sentry_tokens",
+    sql: `CREATE TABLE IF NOT EXISTS sentry_tokens (
+  token_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  label TEXT NOT NULL DEFAULT 'default',
+  token_prefix TEXT NOT NULL,
+  encrypted_token TEXT NOT NULL,
+  org_slug TEXT NOT NULL,
+  project_slug TEXT NOT NULL,
+  repo_full_name TEXT NOT NULL,
+  encrypted_webhook_secret TEXT,
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  valid INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_sentry_tokens_account ON sentry_tokens(account_id);
+CREATE INDEX IF NOT EXISTS idx_sentry_tokens_project ON sentry_tokens(project_slug);`,
+  },
 ];
 
 /**

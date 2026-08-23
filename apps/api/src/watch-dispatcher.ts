@@ -22,6 +22,7 @@ import { processNotebookReindex, defaultNotebookReindexDeps } from "./notebook-r
 import { processObsidianVaultSync, defaultObsidianVaultDeps } from "./obsidian-vault-watcher.js";
 import { processArtifactsApply, defaultArtifactsApplyDeps } from "./artifacts-apply-watcher.js";
 import { processMarketingApply, defaultMarketingApplyDeps } from "./marketing-apply-watcher.js";
+import { processDebugPostmortem, defaultDebugPostmortemDeps } from "./debug-postmortem-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -88,6 +89,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const marketing = await processMarketingApply(payload, defaultMarketingApplyDeps());
   if (marketing.status !== "not_marketing_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "marketing", status: marketing.status });
+    return;
+  }
+
+  const debug = await processDebugPostmortem(payload, defaultDebugPostmortemDeps());
+  if (debug.status !== "not_debug_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "debug", status: debug.status });
     return;
   }
 
