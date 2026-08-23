@@ -1605,7 +1605,19 @@ project_begin:
         roi_reason: "validation_strength 5; compliance buyers read the disclosure."
         severity: MEDIUM
         source_file: "packages/ap2/src/index.ts"
-        completion_status: open
+        completion_status: open  # BLOCKER FOUND 2026-08-23 (not previously recorded, discovered while
+        # scoping this candidate after app_33 shipped): the candidate's own acceptance bar names
+        # "Stripe test-mode" explicitly, but no Stripe TEST-mode key exists anywhere in this
+        # environment — checked both locally (key.txt: only STRIPE_*_LIVE / X_AXIS_LLC_LIVE_STRIPE_KEY
+        # variants, no sk_test_ equivalent) and on the deployed service (Render env-vars list shows one
+        # undifferentiated STRIPE_SECRET_KEY, and money_01/money_02's own history confirms real
+        # production charges have run against it — apps/api/src/stripe.ts and env.ts wire no
+        # test/live distinction at all). Re-grading on push + alerting can proceed without live
+        # verification, but "VERIFY golden vectors against live PAI'D + Stripe test-mode" cannot be
+        # honestly satisfied without either an owner-provisioned Stripe test-mode key or a scoped-down
+        # acceptance bar (e.g. verify against PAI'D's own sandbox/test surface only, if one exists,
+        # and record the Stripe half as a named owner-gated deferral rather than skip it silently).
+        # NOT claimed pending that decision.
 
       - id: "app_41_brand_voice_linter"
         description: "brand → voice linter: synthesize vale rules (MIT, external binary) from the program's own voice guide; enforce on user-facing strings in PRs; the guide's own examples must pass their own rules. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #14."
