@@ -123,7 +123,7 @@ import { handleListVersions, handleGetVersion, handleDiffVersions } from "./vers
 import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
 import { handleGetFleet } from "./fleet-handlers.js";
 import { handleListProjects, handleListProjectSnapshots } from "./projects-handlers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleLinkedInOAuthStart, handleLinkedInOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
@@ -601,8 +601,6 @@ router.get("/v1/auth/github", handleGitHubOAuthStart);
 router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
 router.get("/v1/auth/google", handleGoogleOAuthStart);
 router.get("/v1/auth/google/callback", handleGoogleOAuthCallback);
-router.get("/v1/auth/linkedin", handleLinkedInOAuthStart);
-router.get("/v1/auth/linkedin/callback", handleLinkedInOAuthCallback);
 router.post("/v1/auth/exchange", handleOAuthExchange);
 router.post("/v1/auth/session", handleCreateSession);
 router.post("/v1/auth/logout", handleOAuthLogout);

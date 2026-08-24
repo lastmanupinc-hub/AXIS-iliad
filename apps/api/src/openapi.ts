@@ -1349,36 +1349,6 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
-      "/v1/auth/linkedin": {
-        get: {
-          summary: "Start LinkedIn OAuth flow (redirects to LinkedIn)",
-          operationId: "linkedinOAuthStart",
-          tags: ["OAuth"],
-          responses: {
-            302: { description: "Redirect to LinkedIn authorization page" },
-            503: { description: "LinkedIn OAuth not configured" },
-          },
-        },
-      },
-      "/v1/auth/linkedin/callback": {
-        get: {
-          summary: "LinkedIn OAuth callback (exchanges code for token)",
-          operationId: "linkedinOAuthCallback",
-          tags: ["OAuth"],
-          parameters: [
-            queryParam("code", "Authorization code from LinkedIn"),
-            queryParam("state", "CSRF state parameter"),
-            queryParam("error", "Error code from LinkedIn if authorization was denied"),
-          ],
-          responses: {
-            302: { description: "Redirect to web app with token" },
-            400: { description: "Missing code or state parameter" },
-            502: { description: "LinkedIn API error during token exchange" },
-            503: { description: "LinkedIn OAuth not configured" },
-          },
-        },
-      },
-
       // -- OAuth 2.0 authorization server (MCP client auth -- RFC 6749/8414) --
       "/oauth/authorize": {
         get: {
