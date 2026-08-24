@@ -25,11 +25,11 @@ claims:
     verified_at: "2026-07-02"
 
   - id: endpoint_count
-    text: "175 REST endpoints"
-    value: 175
+    text: "178 REST endpoints"
+    value: 178
     source: "apps/api/src/counts.ts ENDPOINT_COUNT (guarded by counts-consistency.test.ts)"
     status: verified
-    verified_at: "2026-07-12"
+    verified_at: "2026-08-24"
 
   - id: mcp_tool_count
     text: "43 MCP tools"
