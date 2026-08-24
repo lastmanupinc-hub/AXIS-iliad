@@ -293,3 +293,124 @@ describe("grantUsageCredits", () => {
     expect(charge.effective_overage_cents).toBe(0);
   });
 });
+
+// ─── Free trial carve-out (splitFromUsed's isFreeTrialActive() branch) ──────
+//
+// Verifies the exact contract the trial's design depends on: every call is
+// fully covered (effective_overage_cents 0) AND the real monthly-allowance
+// counter is left untouched — a heavy trial week must not leave an account's
+// included_credits_used exhausted for the rest of that calendar month once
+// the trial ends (usage_credit_monthly is keyed by month, not by trial
+// window). Still writes the usage_credit_ledger row (analytics survive).
+describe("consumeUsageCredits / previewUsageCredits — free trial carve-out", () => {
+  const ENV_KEY = "AXIS_FREE_TRIAL_STARTED_AT";
+  const original = process.env[ENV_KEY];
+
+  beforeEach(async () => {
+    await resetTestDb();
+    delete process.env[ENV_KEY];
+  });
+
+  function startTrial(hoursAgo = 1): void {
+    process.env[ENV_KEY] = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
+  }
+  function restoreEnv(): void {
+    if (original === undefined) delete process.env[ENV_KEY];
+    else process.env[ENV_KEY] = original;
+  }
+
+  it("previewUsageCredits reports zero cost during an active trial, for a free-tier account", async () => {
+    const account = await createAccount("TrialPreviewFree", "trial-preview-free@example.com", "free");
+    startTrial();
+    try {
+      const charge = await previewUsageCredits(account.account_id, "free", "analyze_repo", 50);
+      expect(charge.effective_overage_cents).toBe(0);
+      expect(charge.overage_credits).toBe(0);
+      expect(charge.credits_required).toBe(0);
+    } finally {
+      restoreEnv();
+    }
+  });
+
+  it("previewUsageCredits reports zero cost during an active trial even at the highest engineer-mode price ($250)", async () => {
+    const account = await createAccount("TrialPreviewEngineer", "trial-preview-engineer@example.com", "free");
+    startTrial();
+    try {
+      const charge = await previewUsageCredits(account.account_id, "free", "prepare_agentic_purchasing", 25000);
+      expect(charge.effective_overage_cents).toBe(0);
+    } finally {
+      restoreEnv();
+    }
+  });
+
+  it("consumeUsageCredits does not increment included_credits_used during an active trial", async () => {
+    const account = await createAccount("TrialConsume", "trial-consume@example.com", "paid");
+    startTrial();
+    try {
+      const before = await getUsageCreditSummary(account.account_id, "paid");
+      expect(before.included_credits_used).toBe(0);
+
+      const charge = await consumeUsageCredits(account.account_id, "paid", "analyze_repo", 50);
+      expect(charge.effective_overage_cents).toBe(0);
+      expect(charge.included_credits_used).toBe(0); // unchanged, not incremented
+
+      const after = await getUsageCreditSummary(account.account_id, "paid");
+      expect(after.included_credits_used).toBe(0);
+      expect(after.included_credits_remaining).toBe(before.included_credits_remaining); // full allowance still there
+    } finally {
+      restoreEnv();
+    }
+  });
+
+  it("consumeUsageCredits still writes a usage_credit_ledger row during the trial, at credits_required 0 — the signature that distinguishes a trial-covered call from a normal one", async () => {
+    const account = await createAccount("TrialLedger", "trial-ledger@example.com", "paid");
+    startTrial();
+    try {
+      await consumeUsageCredits(account.account_id, "paid", "analyze_repo", 50);
+    } finally {
+      restoreEnv();
+    }
+    const row = await sql.one<{ amount_cents: number; credits_required: number }>(
+      "SELECT amount_cents, credits_required FROM usage_credit_ledger WHERE account_id = ? AND tool = ?",
+      [account.account_id, "analyze_repo"],
+    );
+    expect(row).toBeTruthy();
+    expect(Number(row!.amount_cents)).toBe(50); // the real nominal price, not zeroed
+    expect(Number(row!.credits_required)).toBe(0); // but nothing was actually required/drawn down
+  });
+
+  it("a prior real (pre-trial) consume's included_credits_used is preserved untouched by a later trial-covered call", async () => {
+    const account = await createAccount("TrialPreservesPrior", "trial-preserves-prior@example.com", "paid");
+    // Real consume BEFORE the trial starts.
+    const before = await consumeUsageCredits(account.account_id, "paid", "analyze_repo", 50);
+    expect(before.included_credits_used).toBeGreaterThan(0);
+    const usedBeforeTrial = before.included_credits_used;
+
+    startTrial();
+    try {
+      await consumeUsageCredits(account.account_id, "paid", "iliad_llm_inference", 2);
+      const summary = await getUsageCreditSummary(account.account_id, "paid");
+      // Unchanged by the trial-covered call — still exactly what the real
+      // pre-trial call left it at, not reset to 0 and not incremented further.
+      expect(summary.included_credits_used).toBe(usedBeforeTrial);
+    } finally {
+      restoreEnv();
+    }
+  });
+
+  it("reverts to real metering the instant the trial window closes — no lingering free access", async () => {
+    const account = await createAccount("TrialReverts", "trial-reverts@example.com", "free");
+    // A trial that started 8 days ago has already ended (7-day window).
+    process.env[ENV_KEY] = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    try {
+      const charge = await consumeUsageCredits(account.account_id, "free", "analyze_repo", 50);
+      // Free tier's normal real math: no included allowance consumed by "free"
+      // plan credits for this path at this price is plausible, so just assert
+      // this is REAL math (credits_required matches creditsFromUsdCents), not
+      // the trial's forced-zero shortcut.
+      expect(charge.credits_required).toBe(creditsFromUsdCents(50));
+    } finally {
+      restoreEnv();
+    }
+  });
+});

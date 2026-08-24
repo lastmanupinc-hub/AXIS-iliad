@@ -1,5 +1,6 @@
 // ─── OpenAPI 3.1 Specification for Axis' Iliad API ─────────────
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
+import { isFreeTrialActive, getTrialWindow } from "@axis/snapshots";
 
 export interface OpenApiSpec {
   openapi: string;
@@ -25,7 +26,15 @@ export function buildOpenApiSpec(): OpenApiSpec {
       version: API_VERSION,
       description:
         "Axis' Iliad provides AI-powered code analysis, context mapping, and multi-program file generation. " +
-        `Submit a codebase snapshot and AXIS produces tailored configuration files, analysis reports, and generator outputs across ${PROGRAM_COUNT} programs (${ARTIFACT_COUNT} artifacts).`,
+        `Submit a codebase snapshot and AXIS produces tailored configuration files, analysis reports, and generator outputs across ${PROGRAM_COUNT} programs (${ARTIFACT_COUNT} artifacts).` +
+        // Rebuilt fresh per request (never cached — see server.ts/handlers.ts call
+        // sites), so this reflects the live trial window, not a stale build-time
+        // value. The 402 responses documented per-path below are the steady-state
+        // contract; this banner exists so an agent reading the spec first doesn't
+        // needlessly self-deter or pre-negotiate payment during a week none of them fire.
+        (isFreeTrialActive()
+          ? ` FREE TRIAL ACTIVE (ends ${getTrialWindow()?.endsAt.toISOString()}): every program and MCP tool is free right now — the 402/payment-required responses documented below will not occur until the trial ends.`
+          : ""),
       contact: {
         name: "AXIS Platform",
         url: "https://github.com/no-fate-platform/axis-iliad",
@@ -1473,6 +1482,9 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/admin/mcp-usage": {
         get: { summary: "Admin: MCP tool usage metrics", operationId: "getAdminMcpUsage", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "MCP usage metrics" }, 403: { description: "Admin access required" } } },
+      },
+      "/v1/admin/rest-usage": {
+        get: { summary: "Admin: REST program usage metrics (cross-account)", operationId: "getAdminRestUsage", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "REST program usage metrics" }, 403: { description: "Admin access required" } } },
       },
       "/v1/admin/revenue": {
         get: { summary: "Admin: revenue metrics", operationId: "getAdminRevenue", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "Revenue metrics" }, 403: { description: "Admin access required" } } },

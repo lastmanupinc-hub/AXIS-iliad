@@ -13,11 +13,13 @@ import {
   listMemoryEntries,
   trackEvent,
   resolveStage,
+  isFreeTrialActive,
 } from "@axis/snapshots";
 import { buildFleetReport, FLEET_MIN_PROJECTS, FLEET_MAX_PROJECTS, type FleetProjectInput } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
 import { requireAuth } from "./billing.js";
+import { buildTrialNotice } from "./trial-notice.js";
 
 // Bound total projects EXAMINED per request — the FLEET_MAX_PROJECTS cap alone
 // only bounds ELIGIBLE projects collected, so an account with many context-less
@@ -43,7 +45,7 @@ export async function handleGetFleet(req: IncomingMessage, res: ServerResponse):
   const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  if (ctx.account!.tier === "free") {
+  if (ctx.account!.tier === "free" && !isFreeTrialActive()) {
     sendError(res, 403, ErrorCode.TIER_REQUIRED, "Fleet intelligence requires a paid plan — it computes cross-project reports over your whole portfolio.");
     return;
   }
@@ -93,5 +95,6 @@ export async function handleGetFleet(req: IncomingMessage, res: ServerResponse):
     eligible_projects: eligible.length,
     projects: eligible.map((p) => p.project_name),
     files,
+    trial: buildTrialNotice(false),
   });
 }

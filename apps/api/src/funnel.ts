@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { requireAuth } from "./billing.js";
 import { ErrorCode, log } from "./logger.js";
+import { buildTrialNotice } from "./trial-notice.js";
 import {
   inviteSeat,
   acceptSeat,
@@ -24,6 +25,7 @@ import {
   PLAN_CATALOG,
   PLAN_FEATURES,
   sendSeatInvitation,
+  isFreeTrialActive,
 } from "@axis/snapshots";
 
 const ALLOWED_FUNNEL_EVENT_TYPES: FunnelEventType[] = [
@@ -84,7 +86,7 @@ export async function handleInviteSeat(
   const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  if (ctx.account!.tier === "free") {
+  if (ctx.account!.tier === "free" && !isFreeTrialActive()) {
     sendError(res, 403, ErrorCode.TIER_REQUIRED, "Team seats require Pro or Enterprise tier");
     return;
   }
@@ -126,7 +128,7 @@ export async function handleInviteSeat(
       log("warn", "seat-invitation-email-failed", { seat_id: seat.seat_id, error: e instanceof Error ? e.message : String(e) });
     });
 
-    sendJSON(res, 201, { seat });
+    sendJSON(res, 201, { seat, trial: buildTrialNotice(false) });
   /* v8 ignore start — V8 quirk: seat error handling tested but V8 won't credit ternary/includes */
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

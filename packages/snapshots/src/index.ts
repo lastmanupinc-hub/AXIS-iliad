@@ -64,7 +64,9 @@ export {
   getRecentActivity,
   recordApiCall,
   getApiCallSummary,
+  getRestUsageSummary,
 } from "./billing-store.js";
+export type { RestUsageSummary } from "./billing-store.js";
 
 // Funnel & Seats
 export type { FunnelStage, FunnelEventType, FunnelEvent, SeatRole, Seat, PlanFeature, PlanDefinition, UpgradePrompt } from "./funnel-types.js";
@@ -351,6 +353,10 @@ export {
   consumeFreeScrapes,
   getFreeScrapePoolStatus,
 } from "./free-scrape-pool-store.js";
+
+// Free trial mode (temporary, owner-triggered: every program/tool free, no payment gate)
+export type { TrialWindow } from "./trial-mode.js";
+export { getTrialWindow, isFreeTrialActive } from "./trial-mode.js";
 
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";

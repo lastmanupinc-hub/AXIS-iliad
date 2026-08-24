@@ -7,7 +7,7 @@ project_begin:
     category: "AI-native codebase intelligence platform"
     boundary: >
       Axis' Iliad accepts any repository (GitHub URL, ZIP upload, CLI, API) and
-      generates 149 structured artifacts across 21 specialized programs — covering
+      generates 152 structured artifacts across 21 specialized programs — covering
       codebase understanding, debugging, skills governance, frontend rules, SEO,
       optimization, theme/brand/marketing systems, MCP connectors, Obsidian skill
       packs, agent superpowers, remotion scripts, canvas assets, algorithmic art,
@@ -18,7 +18,7 @@ project_begin:
       It is NOT a code generator, linter, framework, or SaaS dashboard. It is the
       meta-layer that produces structured context for AI agents and human developers.
     core_promise: >
-      One reliable analysis call that turns any codebase into 149 agent-ready
+      One reliable analysis call that turns any codebase into 152 agent-ready
       artifacts — replacing the need to chain 10+ generic MCP servers. Agents
       and merchants depend on AXIS as the first call they make when they need to
       understand, harden, or purchase-enable a codebase. Share-to-earn referral
@@ -2920,6 +2920,177 @@ project_begin:
         severity: MEDIUM
         source_file: "packages/generator-core/src/generate-programs.test.ts"
         completion_status: open
+
+      - id: "mcp_02_free_trial_mode"
+        description: >
+          User-directed (not queue-selected): a temporary, owner-triggered 7-day
+          window where every AXIS Iliad program and MCP tool is free — zero
+          payment gates anywhere, for anyone — with detailed cross-account
+          analytics, so real adoption patterns can inform investment decisions
+          without payment friction contaminating the signal.
+        roi_score: 74
+        roi_reason: "agent_acquisition 5 (removes payment friction platform-wide for a week), revenue_loop_closure 3 (the trial notice + analytics turn the week into a measured funnel input, not just a giveaway), validation_strength 5 (13 gates individually proven, both directions, across two exhaustive research passes + an adversarial stress-test); implementation_cost -3 (touched ~28 files across both packages, a genuinely large surface for a billing-adjacent change)."
+        severity: HIGH
+        source_file: "packages/snapshots/src/trial-mode.ts"
+        completion_status: complete  # SHIPPED 2026-08-23.
+        # PROCESS: 4 rounds of AskUserQuestion resolved the load-bearing forks before
+        # any code — (1) post-trial pricing reverts to exactly today's model, not a
+        # new permanent restriction; (2) existing rate-limits/quotas stay untouched,
+        # only payment gates waive; (3) hard automatic end (env-var start timestamp +
+        # fixed 7-day duration, no manual step to end it) with a LITERAL zero-
+        # exceptions bar — confirmed to include even ping_payment's own $0 simulated
+        # x402 challenge; (4) GitHub Sponsors/FUNDING.yml deferred, non-blocking, no
+        # existing setup found, needs the owner's actual handle. Two rounds of
+        # exhaustive Explore-agent research (every tier==="free" gate, every
+        # buildMcpPaymentRequiredError call, every 402/403 site across the whole
+        # apps/api surface — 219k + 236k tokens) plus one adversarial Plan-agent
+        # stress-test (219k tokens) preceded implementation — the stress-test alone
+        # found 2 real gaps the first design pass missed (handleCreateSnapshot's
+        # anonymous branch bypassed both shared chokepoints entirely; mcp-server.ts
+        # has TWO _usage construction sites, not one, and the idempotent-replay
+        # branch would have silently never carried the trial notice).
+        #
+        # ARCHITECTURE: one new pure module (packages/snapshots/src/trial-mode.ts) —
+        # isFreeTrialActive(now = Date.now())/getTrialWindow() reading
+        # AXIS_FREE_TRIAL_STARTED_AT (ISO timestamp, owner sets once; malformed/unset
+        # -> trial OFF, fails toward normal billing never toward accidental free
+        # access). Two shared chokepoints cover the bulk of the surface WITHOUT
+        # touching their ~36 individual call sites: consumeUsageCredits/
+        # previewUsageCredits (usage-credit-metering.ts's splitFromUsed, backs all 21
+        # METERED_MCP_TOOLS + REST paid/suite) and settleOverageCash (cashier.ts,
+        # backs REST free-tier's cash path + defense-in-depth for anything else).
+        # DELIBERATE CARVE-OUT, not a blanket bypass: consumeUsageCredits does NOT
+        # increment the real included_credits_used counter during the trial (that
+        # counter is calendar-month-keyed, so a heavy trial week would otherwise
+        # leave an account's allowance exhausted for the REST of that month once the
+        # trial ends — a real, if temporary, violation of "reverts to exactly
+        # today") — it still writes the usage_credit_ledger row (credits_required:0,
+        # real amount_cents) so the trial stays visible to analytics. Same carve-out
+        # shape applied to meterPersistenceOp (persistence_credits has NO calendar
+        # reset at all, so this one matters even more — a real debit there would be
+        # felt long after the trial ends).
+        #
+        # 13 bespoke gates individually patched (each bypasses both chokepoints
+        # entirely, confirmed by exhaustive grep across every apps/api file that
+        # resolves auth, not assumed complete): MCP — runCloser, runDeploy (flat
+        # "requires a paid plan" throw, no MPP fallback even normally),
+        # runAnalyzeFiles, runPreparePurchasing (real buildMcpPaymentRequiredError
+        # 402s), runPingPayment (owner-confirmed: suppressed too, always returns the
+        # success envelope). REST — handleGetFleet, handleInviteSeat (403
+        # TIER_REQUIRED, no MPP fallback), handleNotebookAsk (402 via a hard
+        # isProgramEnabled use), handleDiffVersions/meterPersistenceOp (a THIRD,
+        # fully independent credit ledger), handleCreateSnapshot's ANONYMOUS branch
+        # (the stress-test's own find — a hardcoded 402 for anon callers requesting
+        # non-free outputs, structurally distinct from this same handler's
+        # authenticated free-tier path, which the two chokepoints already covered).
+        # Explicitly EXCLUDED, confirmed sound by the stress-test's own independent
+        # re-derivation: billing.ts's 4 account-lifecycle gates
+        # (handleCreateAccount/handleUpdateTier/handleUpdatePrograms/
+        # handleAddCredits) — "pay to change your account" is a different category
+        # from "pay to use a program," and waiving it would mean giving away Pro
+        # tier itself for $0, defeating the whole point of reverting to real pricing
+        # after.
+        #
+        # NOTICE: MCP gets one `trial` field in every tool's `_usage` block (both
+        # construction sites in mcp-server.ts, via one shared buildTrialNotice()
+        # helper so there's genuinely one place to edit) when active; REST gets the
+        # same via apps/api/src/trial-notice.ts's buildTrialNotice(hasPerCallPath),
+        # spread into makeProgramHandler's response plus each of the ~10 bespoke
+        # handlers already being touched for the gate fix. Wording is honest per
+        # gate category rather than one blanket line — closer/deploy (MCP) and
+        # fleet/seats/notebook/persistence say "normally requires a paid plan";
+        # everything else says "standard per-call pricing resumes" — because
+        # "Engineer" is a per-call price tier open to any account today, not a
+        # subscription (confirmed in code: resolveAgentMode/priceForMode never
+        # reference BillingTier), so a blanket "requires Pro or Engineer membership"
+        # line would have been false for the ~19 tools that keep accepting free-tier
+        # per-call payment after the trial. Also added a live, request-time-rebuilt
+        # trial banner to openapi.ts's top-level description (small, not
+        # load-bearing) so an agent reading the spec first doesn't self-deter.
+        #
+        # ANALYTICS: MCP side needed no new work (GET /v1/admin/mcp-usage already
+        # cross-account-complete). REST side had a REAL gap: recordUsageBestEffort
+        # (writes usage_records, the one table with a `program` column) was called
+        # from exactly 5 places; Firecrawl scrape/crawl, fleet, seats have no
+        # snapshot_id to attach a row to at all (a schema constraint, not an
+        # oversight — usage_records.snapshot_id is NOT NULL), so forcing them in
+        # would have been wrong. Closed the gap that WAS closeable: added real
+        # usage_records writes to handleDiffVersions and handleNotebookAsk (both
+        # have a genuine snapshot_id). New getRestUsageSummary({windowDays})
+        # (billing-store.ts) mirrors getMcpUsageSummary's no-account-filter groupBy
+        # shape, returns BOTH a by_program breakdown (usage_records — "what's used")
+        # and a by_endpoint breakdown (account_api_calls — covers fleet/seats/
+        # Firecrawl, which usage_records structurally cannot) plus
+        # top_accounts_by_program ("who's using it"). New GET /v1/admin/rest-usage
+        # (admin.ts + server.ts registration) mirrors handleAdminMcpUsage's exact
+        # shape. ENDPOINT_COUNT cascade: 175->176 (counts.ts, apps/web/src/config.ts,
+        # LAUNCH_CLAIMS.yaml, README.md, launch-content.md, AXIS_Board_Pitch.md,
+        # obsidian-vault-pack.md, superpowers-pack.md — the last 5 doc files could
+        # only be committed where they didn't collide with a concurrent session's own
+        # in-flight staged work, see COMMIT NOTE below); new OpenAPI path entry for
+        # the new endpoint (openapi-router-bijection.test.ts caught the omission).
+        #
+        # VERIFIED: tsc clean across both packages, real dist rebuild of
+        # packages/snapshots (not just --noEmit) before every apps/api typecheck —
+        # this session's own established process lesson, reapplied without
+        # re-learning it. New apps/api/src/trial-completeness.test.ts is the real
+        # proof of the zero-exceptions bar, not a unit-test-by-unit-test hope: every
+        # bespoke gate driven through its REAL function/handler against the real
+        # test Postgres (no mocking of the trial mechanism itself), asserting three
+        # states each — OFF blocks exactly as before, ACTIVE succeeds, EXPIRED
+        # (started 8 days ago) blocks again, proving the automatic revert actually
+        # reverts rather than latching open. 25/25 passing, covering 8 of the 13
+        # gates end-to-end; the other 5 (meterPersistenceOp, and the two shared
+        # chokepoints) are proven at the gate-function/unit level in
+        # persistence-metering.test.ts/usage-credit-metering.test.ts/
+        # cashier-trial.test.ts instead, deliberately — a full HTTP pipeline for
+        # notebook-ask/diff-versions needs a real indexed snapshot / real generation
+        # versions for no additional coverage of the trial logic itself, since the
+        # gate condition is identical either way. handleNotebookAsk's specific gate
+        # has no dedicated new test (same shape as fleet/seats, already proven twice
+        # over) — the one honestly-disclosed residual gap, not a silent one.
+        #
+        # REAL BUGS FOUND AND FIXED DURING VERIFICATION (not caused by the trial
+        # design, caused by test-suite fixture mistakes while proving it): (1) my own
+        # persistence-metering.test.ts used afterEach without importing it — a
+        # ReferenceError that failed the whole suite file, caught by actually running
+        # it rather than assuming it worked. (2) THE bigger one: cashier.ts's new
+        # isFreeTrialActive() call, being the literal first line of
+        # settleOverageCash, crashes any test file that fully-replaces
+        # `@axis/snapshots` via `vi.mock("@axis/snapshots", () => ({...}))` (a
+        # complete replacement, no importOriginal spread) without including that
+        # function — found by actually running the full existing suite, not assumed
+        # safe. Sweaty-swept EVERY such full-replacement mock in apps/api/src (6
+        # files: cashier-paid-wallet.test.ts, cashier-settled-payment.test.ts,
+        # github-webhook.test.ts, metrics-branches.test.ts, watch-dispatcher.test.ts,
+        # plus this candidate's own new cashier-trial.test.ts which already had it
+        # correct) and added the stub to all of them — 2 confirmed actually reachable
+        # (the cashier files, 38 tests), the other 3 defensive-only (verified their
+        # own code paths don't reach cashier.ts, added anyway since the fix is free).
+        #
+        # COMMIT NOTE — shared-worktree hazard (see memory
+        # shared-worktree-git-discipline, another real incidence of it): a concurrent
+        # session had ~35 files FULLY STAGED (a complete app_41 brand-voice-lint
+        # feature, 1373 insertions) at commit time, including several files this
+        # candidate also touched (README.md, LAUNCH_CLAIMS.yaml,
+        # apps/web/src/config.ts, AXIS_Board_Pitch.md, launch-content.md,
+        # superpowers-pack.md, github-webhook.test.ts, watch-dispatcher.test.ts) — my
+        # own small edits to those 8 files (endpoint-count bumps, 2 defensive mock
+        # stubs) landed as unstaged deltas ON TOP of their staged snapshot. Staging
+        # any of those 8 with `git add` would have bundled their entire in-flight
+        # feature into THIS commit under this message — never done. Committed only
+        # the ~28 files with zero entanglement (confirmed via `git diff --cached
+        # --stat` naming every staged file by hand, not assumed); the 8 small
+        # touch-ups remain real, verified, uncommitted working-tree changes — either
+        # they ride along naturally in the other session's own eventual commit, or a
+        # follow-up commit picks up exactly those 8 once it lands. Nothing lost,
+        # nothing wrongly attributed.
+        #
+        # NOT DONE (deliberately, not silently): the trial itself is NOT flipped on
+        # — AXIS_FREE_TRIAL_STARTED_AT is unset in Render. That's the owner's
+        # explicit go/no-go moment, separate from shipping the code that makes the
+        # trial possible. GitHub Sponsors/.github/FUNDING.yml — needs the owner's
+        # actual platform + handle, genuinely can't be guessed.
 
   highest_roi_definition:
     meaning: >

@@ -438,6 +438,85 @@ export async function getUsageSummary(account_id: string, since?: string): Promi
   }));
 }
 
+/**
+ * Cross-account REST usage summary — the program-side twin of
+ * getMcpUsageSummary (mcp-usage-store.ts), mirroring its no-account-filter
+ * groupBy shape so the admin surfaces feel consistent. Free trial (infra:
+ * the "detailed analytics, who used what, how many times" requirement).
+ *
+ * `by_program`/`top_accounts_by_program` are sourced from usage_records —
+ * the one table with a `program` column, written by every
+ * generator-producing endpoint (makeProgramHandler's ~19 programs,
+ * handleCreateSnapshot, handleGitHubAnalyze, handleAnalyze,
+ * handlePreparePurchasing, and — as of this same change —
+ * handleDiffVersions/handleNotebookAsk). `by_endpoint` is sourced from
+ * account_api_calls (path+method, no `program` column, but no NOT-NULL
+ * snapshot_id requirement either) specifically to cover the REST features
+ * usage_records structurally cannot represent: fleet reports and seat
+ * invitations have no snapshot to attach a usage_records row to at all, and
+ * Firecrawl scrape/crawl are not snapshot-scoped calls either. Reporting
+ * both keeps this honest rather than silently undercounting activity
+ * usage_records was never going to capture.
+ */
+export interface RestUsageSummary {
+  since: string;
+  window_days: number;
+  total_runs: number;
+  unique_accounts: number;
+  by_program: Record<string, number>;
+  /** Top account+program pairs by run count, this window — "who is using what." */
+  top_accounts_by_program: Array<{ account_id: string; program: string; runs: number }>;
+  by_endpoint: Record<string, number>;
+}
+
+export async function getRestUsageSummary(options?: { windowDays?: number }): Promise<RestUsageSummary> {
+  const windowDays = options?.windowDays ?? 30;
+  const since = new Date(Date.now() - windowDays * 86400000).toISOString();
+
+  // pg COUNT/COUNT(DISTINCT) return strings/bigints — Number() coerces.
+  const scalar = async (text: string): Promise<number> =>
+    Number((await sql.one<{ c: string | number }>(text, [since]))?.c ?? 0);
+
+  const byProgramRows = await sql.many<{ program: string; runs: string | number }>(
+    "SELECT program, COUNT(*) AS runs FROM usage_records WHERE created_at >= ? GROUP BY program ORDER BY runs DESC",
+    [since],
+  );
+  const by_program: Record<string, number> = {};
+  for (const r of byProgramRows) by_program[r.program] = Number(r.runs ?? 0);
+
+  const topRows = await sql.many<{ account_id: string; program: string; runs: string | number }>(
+    `SELECT account_id, program, COUNT(*) AS runs
+       FROM usage_records
+      WHERE created_at >= ?
+      GROUP BY account_id, program
+      ORDER BY runs DESC
+      LIMIT 50`,
+    [since],
+  );
+  const top_accounts_by_program = topRows.map((r) => ({
+    account_id: r.account_id,
+    program: r.program,
+    runs: Number(r.runs ?? 0),
+  }));
+
+  const byEndpointRows = await sql.many<{ path: string; calls: string | number }>(
+    "SELECT path, COUNT(*) AS calls FROM account_api_calls WHERE created_at >= ? GROUP BY path ORDER BY calls DESC LIMIT 50",
+    [since],
+  );
+  const by_endpoint: Record<string, number> = {};
+  for (const r of byEndpointRows) by_endpoint[r.path] = Number(r.calls ?? 0);
+
+  return {
+    since,
+    window_days: windowDays,
+    total_runs: await scalar("SELECT COUNT(*) c FROM usage_records WHERE created_at >= ?"),
+    unique_accounts: await scalar("SELECT COUNT(DISTINCT account_id) c FROM usage_records WHERE created_at >= ?"),
+    by_program,
+    top_accounts_by_program,
+    by_endpoint,
+  };
+}
+
 /** One day's worth of program-run usage — `GET /v1/account/usage/timeseries` (WO-A3). */
 export interface UsageDayBucket {
   /** UTC calendar date, "YYYY-MM-DD". */

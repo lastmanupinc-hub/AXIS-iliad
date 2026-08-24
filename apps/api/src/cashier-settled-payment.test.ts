@@ -16,6 +16,11 @@ vi.mock("@axis/snapshots", () => ({
   recordPaidCall: vi.fn(async () => undefined),
   recordSettledPayment: vi.fn(async () => undefined),
   recordPaymentFunnelEvent: vi.fn(async () => undefined),
+  // Free trial: settleOverageCash's first line as of this session — every
+  // test in this file exercises the pre-existing rail behavior, so the
+  // trial stays off throughout (a dedicated trial-on suite lives in
+  // cashier-trial.test.ts).
+  isFreeTrialActive: vi.fn(() => false),
 }));
 
 vi.mock("./mpp.js", () => ({

@@ -13,6 +13,8 @@ import {
   recordMcpUsage,
   recordCompensationOwed,
   recordPaymentFunnelEvent,
+  isFreeTrialActive,
+  getTrialWindow,
 } from "@axis/snapshots";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { classifyProbe, captureIntent, detectMcpSource } from "./intent.js";
@@ -92,6 +94,35 @@ import { resolveAgentMode, getPricingTier } from "./mpp.js";
 import { applyLiteCaps } from "./lite-caps.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
+
+// ─── Free trial notice ───────────────────────────────────────────
+//
+// closer/deploy are the only two MCP-dispatched tools with no per-call
+// payment path today — they hard-require an actual paid plan (Starter/Pro/
+// Growth), unlike every other metered tool, which accepts per-call payment
+// at any tier. The trial notice's wording reflects what genuinely resumes
+// for each after the trial (not a single blanket claim that would be false
+// for the other ~19 metered tools).
+const NO_PER_CALL_PATH_MCP_TOOLS = new Set(["closer", "deploy"]);
+
+/**
+ * The `trial` field attached to every tool call's `_usage` block while a
+ * free trial is active — `undefined` (dropped by JSON.stringify) when it
+ * isn't, so an unaffected response's shape is byte-identical to before this
+ * existed. Built fresh per call (not cached) since `ends_at` reflects the
+ * live window and a call right at the boundary must resolve consistently
+ * with `isFreeTrialActive()`'s own check for that same request.
+ */
+function buildTrialNotice(toolName: string): { active: true; ends_at: string; message: string } | undefined {
+  if (!isFreeTrialActive()) return undefined;
+  const window = getTrialWindow();
+  if (!window) return undefined; // defensive only — isFreeTrialActive() already implies a window exists
+  const ends_at = window.endsAt.toISOString();
+  const message = NO_PER_CALL_PATH_MCP_TOOLS.has(toolName)
+    ? `Free during the AXIS trial (ends ${ends_at}). Normally requires a paid plan (Starter/Pro/Growth) — that requirement resumes after the trial.`
+    : `Free during the AXIS trial (ends ${ends_at}). Standard per-call pricing resumes after the trial.`;
+  return { active: true, ends_at, message };
+}
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "axis-iliad";
@@ -334,6 +365,7 @@ export async function dispatch(
               // for this account, then reports the running totals.
               compensation: await compensateAndSummarize(auth.account.account_id),
               tool: canonicalToolName,
+              trial: buildTrialNotice(canonicalToolName),
             },
             _idempotent_replay: true,
           });
@@ -494,6 +526,7 @@ export async function dispatch(
             // for this account, then reports the running totals.
             compensation: auth.account ? await compensateAndSummarize(auth.account.account_id) : null,
             tool: canonicalToolName,
+            trial: buildTrialNotice(canonicalToolName),
           },
         });
       } catch (err) {

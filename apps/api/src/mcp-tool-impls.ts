@@ -100,6 +100,7 @@ import {
   consumeFreeScrapes,
   getCachedScrape,
   putCachedScrape,
+  isFreeTrialActive,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -1943,7 +1944,7 @@ export async function runAnalyzeFiles(
   // free-only path unlike REST's handleAnalyze) — a genuine new leak, not a fix.
   // Free tier is still rejected here, exactly matching runCloser/runDeploy's cycle-16
   // fix and REST's real cash-only treatment of free tier for this gate.
-  if (account.tier === "free") {
+  if (account.tier === "free" && !isFreeTrialActive()) {
     throw new Error(await buildMcpPaymentRequiredError(
       "analyze_files",
       account.account_id,
@@ -3141,7 +3142,7 @@ export async function runCloser(
   // the charge. Only genuinely free-tier callers are blocked now, matching REST's own
   // isPro auth-gate — a paid/suite account with a manually-disabled entitlement still
   // pays for and gets the run, exactly like calling the REST endpoint directly does.
-  if (auth.account.tier === "free") {
+  if (auth.account.tier === "free" && !isFreeTrialActive()) {
     throw new Error("closer requires a paid plan. Upgrade at iliad.trustfabric.ai/billing.");
   }
 
@@ -3268,7 +3269,7 @@ export async function runDeploy(
   // runCloser's identical comment above for the full rationale (program_entitlements
   // is never auto-populated on a free→paid upgrade, so this used to hard-reject a
   // brand-new paid subscriber the REST twin would have happily charged and served).
-  if (auth.account.tier === "free") {
+  if (auth.account.tier === "free" && !isFreeTrialActive()) {
     throw new Error("deploy requires a paid plan. Upgrade at iliad.trustfabric.ai/billing.");
   }
 
@@ -3391,7 +3392,7 @@ export async function runPreparePurchasing(
   // unconditionally rejected here, while the REST twin only ever uses isProgramEnabled
   // for 402 WORDING, never as a hard gate. Only genuinely free-tier callers are
   // blocked now, matching REST parity — same fix as runCloser/runDeploy.
-  const purchasingBlocked = auth.account.tier === "free"
+  const purchasingBlocked = auth.account.tier === "free" && !isFreeTrialActive()
     ? PURCHASING_PROGRAMS.filter(p => !MCP_FREE_PROGRAMS.has(p))
     : [];
   if (purchasingBlocked.length > 0) {
@@ -4131,6 +4132,25 @@ export async function runPingPayment(_args: Record<string, unknown>, req: Incomi
 
   const auth = await resolveAuth(req);
   const accountId = auth.anonymous ? null : (auth.account?.account_id ?? null);
+
+  // Free trial: owner-confirmed (2026-08-23) this applies even to this tool's own
+  // intentionally-simulated $0 challenge — the bar is literally zero 402-shaped
+  // responses from anything, no documented-educational-probe exception. Reports
+  // settled_cents: 0 rather than the real 1-cent price, since nothing is charged.
+  if (isFreeTrialActive()) {
+    return JSON.stringify(
+      {
+        ok: true,
+        tool: "ping_payment",
+        settled_cents: 0,
+        price_usd: "0.00",
+        message: "Payment flow probe — free during the AXIS trial, no challenge issued. Every metered tool is free right now too; see each call's _usage.trial field.",
+        next: "Call prepare_agentic_purchasing or analyze_repo — same 402 vocabulary applies at real prices after the trial.",
+      },
+      null,
+      2,
+    );
+  }
 
   if (!hasPaymentCredential(req)) {
     try {

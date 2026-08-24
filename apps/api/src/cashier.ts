@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Receipt } from "mppx";
 import { chargeMpp } from "./mpp.js";
-import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensationOwed, recordPaymentFunnelEvent } from "@axis/snapshots";
+import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensationOwed, recordPaymentFunnelEvent, isFreeTrialActive } from "@axis/snapshots";
 import type { PaymentProvider } from "@axis/snapshots";
 import { log, getRequestId, ErrorCode } from "./logger.js";
 import { randomUUID } from "node:crypto";
@@ -340,6 +340,14 @@ export async function settleOverageCash(
   overageCents: number,
   opts: SettleOptions,
 ): Promise<{ status: 402 | 200 } | null> {
+  // Defense-in-depth for the free trial: every upstream caller (chargeWithDiscounts,
+  // authorizeMcpToolCredits's consumeUsageCredits) already resolves overageCents to 0
+  // during an active trial on its own, so this is normally redundant — but it's the
+  // single collection tail EVERY cash-owing path reduces to, and it's cheap enough
+  // that a future call site forgetting to route through one of those two doesn't
+  // reopen a real charge during the trial. Checked before even the pre-existing
+  // overageCents<=0 short-circuit below.
+  if (isFreeTrialActive()) return { status: 200 };
   if (overageCents <= 0) return { status: 200 };
   if (await consumeFreeCall(accountId)) return { status: 200 };
 

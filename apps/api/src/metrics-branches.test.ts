@@ -8,6 +8,11 @@ vi.mock("@axis/snapshots", () => ({
   getDb: vi.fn(() => ({})),
   openMemoryDb: vi.fn(),
   closeDb: vi.fn(),
+  // Free trial: defensive-only, in case anything this suite touches ever
+  // reaches a trial-aware code path — see cashier-paid-wallet.test.ts's
+  // identical note for why a missing property here would be a hard crash,
+  // not a silent no-op.
+  isFreeTrialActive: vi.fn(() => false),
 }));
 
 vi.mock("./router.js", () => ({

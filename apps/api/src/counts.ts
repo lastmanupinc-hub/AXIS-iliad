@@ -45,7 +45,7 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
 export const MCP_TOOL_COUNT = 43;
-export const ENDPOINT_COUNT = 175; // +3 app_33: provider-key save/list/delete (poll-driven — no webhook route)
+export const ENDPOINT_COUNT = 176; // +1 mcp_02 (free-trial): GET /v1/admin/rest-usage — the REST-program twin of GET /v1/admin/mcp-usage
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */
 export const API_VERSION = "0.5.3";

@@ -47,6 +47,7 @@ import {
   getFreeScrapePoolStatus,
   getUsageCreditSummary,
   recordCompensationOwed,
+  isFreeTrialActive,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord, TierLimits } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -63,6 +64,7 @@ import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./co
 import { MCP_TOOLS, getMcpToolBazaarInfo } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
+import { buildTrialNotice } from "./trial-notice.js";
 
 // ─── Referral discount wrapper ──────────────────────────────────
 
@@ -78,8 +80,15 @@ async function chargeWithDiscounts(
     ? opts.meta.tier
     : "free";
   const tool = opts.meta?.tool ?? opts.meta?.program ?? "default";
+  // Free trial: paid/suite tier already resolves to 0 via consumeUsageCredits's own
+  // trial carve-out (packages/snapshots/src/usage-credit-metering.ts) — that call still
+  // happens unconditionally below so its usage_credit_ledger row still gets written for
+  // analytics. Free tier normally bypasses consumeUsageCredits entirely (full cash price,
+  // no included-credit draw-down even outside a trial), so it needs its own trial check
+  // here directly — the whole reason settleOverageCash's own trial check isn't enough on
+  // its own to cover this branch.
   const overageCents = tier === "free"
-    ? amountCents
+    ? (isFreeTrialActive() ? 0 : amountCents)
     : (await consumeUsageCredits(accountId, tier, tool, amountCents)).effective_overage_cents;
 
   res.setHeader("X-Axis-Request-Cost", (overageCents / 100).toFixed(2));
@@ -109,7 +118,7 @@ async function chargeWithDiscounts(
  * (a silently-dropped write permanently undercounts that run's quota), so
  * failures are caught and logged loudly for reconciliation instead.
  */
-async function recordUsageBestEffort(
+export async function recordUsageBestEffort(
   accountId: string,
   program: string,
   snapshotId: string,
@@ -481,6 +490,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
         program,
         files: programFiles,
         skipped: result.skipped,
+        ...(isPro ? { trial: buildTrialNotice(true) } : {}),
       });
     } catch (err) {
       log("error", "program_generation_failed", {
@@ -733,7 +743,13 @@ export async function handleCreateSnapshot(
         }
       }
     }
-    if (anonPro.size > 0) {
+    // Found during the free-trial design review: this branch never calls
+    // chargeWithDiscounts (unlike the two authenticated branches above, which
+    // both offer a real MPP payment first) — it's a flat, unconditional 402
+    // with no payment path at all for an anonymous caller. Both chokepoints
+    // this file's charging normally funnels through are irrelevant here, so
+    // the trial has to be checked directly at this gate.
+    if (anonPro.size > 0 && !isFreeTrialActive()) {
       const proList = [...anonPro].sort();
       const budget = parseAgentBudget(req);
       const pricing = getPricingTier("analyze_repo");
@@ -817,6 +833,7 @@ export async function handleCreateSnapshot(
       repo_profile: repoProfile,
       generated_files: generated.files.map(f => ({ path: f.path, program: f.program, description: f.description })),
       compliance_grade: gradeCompliance(snapshot.files),
+      trial: buildTrialNotice(true),
     });
   } catch (err) {
     if (snapshot) {
@@ -1372,6 +1389,7 @@ export async function handleGitHubAnalyze(
         files_skipped: fetchResult.skipped_count,
         total_bytes: fetchResult.total_bytes,
       },
+      trial: buildTrialNotice(true),
     });
   } catch (err) {
     if (snapshot) {
@@ -2142,6 +2160,7 @@ export async function handleAnalyze(
       total_files: enrichedFiles.length,
       next_steps: nextSteps,
       ...(githubMeta ? { github: githubMeta } : {}),
+      trial: buildTrialNotice(true),
     });
   } catch (err) {
     if (snapshot) {
@@ -2690,6 +2709,7 @@ export async function handlePreparePurchasing(
           free_calls_remaining: myCredits!.free_calls_remaining,
         },
       } : {}),
+      trial: buildTrialNotice(true),
     });
   } catch (err) {
     if (snapshot) {
@@ -4853,6 +4873,7 @@ export async function handleFirecrawlScrape(
           markdown: scrapedMarkdown,
           metadata: scrapedMetadata,
         },
+        trial: buildTrialNotice(true),
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -5094,6 +5115,7 @@ export async function handleFirecrawlCrawl(
           metadata: result.metadata ?? {},
         })) ?? [],
       },
+      trial: buildTrialNotice(true),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

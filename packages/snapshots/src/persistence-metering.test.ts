@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { resetTestDb } from "./pg-test.js";
 import { sql } from "./pg.js";
 import { createAccount } from "./billing-store.js";
@@ -317,5 +317,79 @@ describe("addPersistenceCredits — concurrency", () => {
 
     expect(new Set(results).size).toBe(N); // every grant saw a DIFFERENT balance_after
     expect(await getPersistenceBalance(acct.account_id)).toBe(N); // no lost update
+  });
+});
+
+// ─── Free trial carve-out ────────────────────────────────────────
+//
+// Unlike consumeUsageCredits's monthly-reset allowance, persistence_credits
+// has no calendar reset — a real debit here would still be felt after the
+// trial ends. Both gates (free tier always blocked; paid/suite blocked when
+// balance is insufficient) must be waived during the trial, and the balance
+// must be left genuinely untouched (credits_delta: 0), not just reported as
+// "ok" while quietly debited.
+describe("meterPersistenceOp — free trial carve-out", () => {
+  const ENV_KEY = "AXIS_FREE_TRIAL_STARTED_AT";
+  const original = process.env[ENV_KEY];
+
+  beforeEach(async () => {
+    await resetTestDb();
+    delete process.env[ENV_KEY];
+  });
+  afterEach(() => {
+    if (original === undefined) delete process.env[ENV_KEY];
+    else process.env[ENV_KEY] = original;
+  });
+
+  function startTrial(hoursAgo = 1): void {
+    process.env[ENV_KEY] = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
+  }
+
+  it("a free-tier account, normally hard-blocked, succeeds during an active trial", async () => {
+    const acct = await createAccount("TrialFreeTier", "trial-free-tier@example.com", "free");
+    startTrial();
+    const result = await meterPersistenceOp(acct.account_id, "free", "diff_versions");
+    expect(result.ok).toBe(true);
+  });
+
+  it("does not actually debit the free-tier account's balance during the trial", async () => {
+    const acct = await createAccount("TrialFreeTierBalance", "trial-free-tier-balance@example.com", "free");
+    startTrial();
+    await meterPersistenceOp(acct.account_id, "free", "diff_versions");
+    expect(await getPersistenceBalance(acct.account_id)).toBe(0); // still 0, not negative
+  });
+
+  it("a paid account with an ALREADY-EXHAUSTED balance succeeds during the trial (the insufficient-credits gate is itself a payment gate)", async () => {
+    const acct = await createAccount("TrialExhausted", "trial-exhausted@example.com", "paid");
+    expect(await getPersistenceBalance(acct.account_id)).toBe(0); // never purchased any
+    startTrial();
+    const result = await meterPersistenceOp(acct.account_id, "paid", "diff_versions");
+    expect(result.ok).toBe(true);
+  });
+
+  it("does not debit a paid account's real (purchased) balance during the trial", async () => {
+    const acct = await createAccount("TrialPreservesBalance", "trial-preserves-balance@example.com", "paid");
+    await addPersistenceCredits(acct.account_id, 10, "purchase");
+    startTrial();
+    await meterPersistenceOp(acct.account_id, "paid", "diff_versions");
+    expect(await getPersistenceBalance(acct.account_id)).toBe(10); // unchanged, not debited
+  });
+
+  it("still writes a ledger row during the trial, at credits_delta 0 — visible to analytics without being felt as a real debit", async () => {
+    const acct = await createAccount("TrialLedgerRow", "trial-ledger-row@example.com", "paid");
+    await addPersistenceCredits(acct.account_id, 10, "purchase");
+    startTrial();
+    await meterPersistenceOp(acct.account_id, "paid", "diff_versions");
+    const ledger = await getPersistenceLedger(acct.account_id);
+    const trialRow = ledger.find((r) => r.operation === "diff_versions");
+    expect(trialRow).toBeTruthy();
+    expect(trialRow!.credits_delta).toBe(0);
+  });
+
+  it("reverts to real metering once the trial window closes — a free-tier account is blocked again", async () => {
+    const acct = await createAccount("TrialReverts", "trial-reverts-persistence@example.com", "free");
+    process.env[ENV_KEY] = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(); // ended yesterday
+    const result = await meterPersistenceOp(acct.account_id, "free", "diff_versions");
+    expect(result.ok).toBe(false);
   });
 });

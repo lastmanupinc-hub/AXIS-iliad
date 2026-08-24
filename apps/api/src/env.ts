@@ -123,6 +123,7 @@ export const ENV_SPEC: EnvSpec[] = [
   // MCP / commerce runtime (mcp-runtime.ts, mcp-tool-impls.ts)
   { key: "AXIS_MCP_INBAND_SETTLEMENT", required: false, type: "boolean", default: "true", description: "H1: collect payment in-band on the MCP tool-call surface (an over-quota agent's 402 can be settled via an X-Payment retry on the same call). Degrades to the existing 402-negotiation error if the payment rail isn't configured." },
   { key: "AXIS_PAYMENT_PROBE_ENABLED", required: false, type: "boolean", default: "true", description: "Enables the payment-capability self-probe path in mcp-tool-impls.ts. Set to \"false\" to disable it." },
+  { key: "AXIS_FREE_TRIAL_STARTED_AT", required: false, type: "string", description: "ISO-8601 timestamp opening a 7-day free-trial window (every program/tool free, no payment gate anywhere — see packages/snapshots/src/trial-mode.ts). Owner sets this once to start the trial; it ends automatically 7 days later, no redeploy or manual flag flip needed. Unset or unparseable ⇒ trial off, normal billing — never fails open toward accidental free access." },
 
   // Code sandbox (code-sandbox.ts) — Docker-backed iliad_code_sandbox tool
   { key: "AXIS_CODE_SANDBOX_DISABLED", required: false, type: "string", description: "Set to \"1\" to force iliad_code_sandbox off (returns not-configured) even if Docker is reachable — an operator kill switch independent of Docker availability." },

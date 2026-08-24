@@ -5,6 +5,7 @@ import { getActiveSubscriptionByAccount, priceToPlanId } from "./stripe-store.js
 import { getAccountPaidPlanId } from "./billing-store.js";
 import { getReferralTokenUsageModifier } from "./referral-store.js";
 import { MARKETED_TIERS, OVERAGE_CENTS_PER_CREDIT } from "./pricing-constants.js";
+import { isFreeTrialActive } from "./trial-mode.js";
 
 export type UsageCreditPlanId = "free" | "starter" | "pro" | "growth" | "enterprise";
 
@@ -139,6 +140,29 @@ function splitFromUsed(
   credits_required: number,
   included_credits_used: number,
 ): ChargeComputation {
+  // Free trial: every call is fully covered, and the real monthly-allowance
+  // counter is left untouched — nextIncludedUsed carries the CURRENT value
+  // through unchanged rather than adding this call's credits_required to it.
+  // usage_credit_monthly is keyed by calendar month, so letting trial volume
+  // (especially $250 engineer-mode calls) burn through it would leave the
+  // account with less room for the REST of that month once the trial ends —
+  // not "reverts to exactly today." consumeUsageCredits still writes its
+  // usage_credit_ledger row below with the real amountCents and this
+  // zeroed-out split, so the trial remains fully visible to analytics: a row
+  // with credits_required === 0 while amount_cents > 0 only ever happens
+  // during an active trial (creditsFromUsdCents otherwise floors at 1).
+  if (isFreeTrialActive()) {
+    return {
+      month_key,
+      summary,
+      credits_required: 0,
+      included_credits_applied: 0,
+      overage_credits: 0,
+      nextIncludedUsed: included_credits_used,
+      nextIncludedRemaining: Math.max(0, summary.monthly_allowance - included_credits_used),
+      effective_overage_cents: 0,
+    };
+  }
   const remaining = Math.max(0, summary.monthly_allowance - included_credits_used);
   const included_credits_applied = Math.min(remaining, credits_required);
   const overage_credits = Math.max(0, credits_required - included_credits_applied);

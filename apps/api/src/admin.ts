@@ -10,6 +10,7 @@ import {
   getMcpUsageWindows,
   getMcpUsageSummary,
   getMcpUsageNewVsReturning,
+  getRestUsageSummary,
   getGrowthSnapshot,
   getFunnelMetrics,
   grantEntitlement,
@@ -112,6 +113,32 @@ export async function handleAdminMcpUsage(
     summary: await getMcpUsageSummary({ windowDays }),
     new_vs_returning: await getMcpUsageNewVsReturning({ windowDays }),
   });
+}
+
+/**
+ * GET /v1/admin/rest-usage — cross-account REST program telemetry (admin
+ * only), the program-side twin of GET /v1/admin/mcp-usage above. Optional
+ * ?window_days=N (default 30, clamped 1..365), same shape as the MCP
+ * endpoint. See getRestUsageSummary's own doc comment (billing-store.ts) for
+ * why this reports both a program breakdown (usage_records) and an endpoint
+ * breakdown (account_api_calls) — some REST features (fleet, seats,
+ * Firecrawl) have no snapshot to attach a usage_records row to.
+ */
+export async function handleAdminRestUsage(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+
+  /* v8 ignore next — req.url always present in tests */
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const windowDays = Math.min(
+    Math.max(parseInt(url.searchParams.get("window_days") ?? "30", 10) || 30, 1),
+    365,
+  );
+
+  sendJSON(res, 200, await getRestUsageSummary({ windowDays }));
 }
 
 /**

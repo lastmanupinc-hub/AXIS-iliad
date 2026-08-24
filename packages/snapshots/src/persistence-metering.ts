@@ -6,6 +6,7 @@ import {
   PERSISTENCE_MIN_TIER,
   SUITE_MONTHLY_PERSISTENCE_CREDITS,
 } from "./billing-types.js";
+import { isFreeTrialActive } from "./trial-mode.js";
 
 // ─── Balance ─────────────────────────────────────────────────────
 
@@ -141,7 +142,7 @@ export async function meterPersistenceOp(
   op: PersistenceOp,
   snapshot_id?: string,
 ): Promise<MeterResult> {
-  if (tier === "free") {
+  if (tier === "free" && !isFreeTrialActive()) {
     return {
       ok: false,
       reason: "Persistence requires a paid plan. Upgrade at iliad.trustfabric.ai/billing.",
@@ -164,21 +165,31 @@ export async function meterPersistenceOp(
     );
     const balance = Math.max(0, Number(balRow.rows[0]?.bal ?? 0));
 
-    if (balance < cost) {
+    // Free trial: never actually debit the account's real (often purchased-with-
+    // real-money) persistence balance — this ledger has no calendar-month reset
+    // the way usage_credit_monthly does, so a real debit here would still be felt
+    // after the trial ends, unlike consumeUsageCredits's carve-out. A paid/suite
+    // account whose balance is ALREADY exhausted also gets through during the
+    // trial (the "insufficient credits" block is itself a payment gate).
+    const trialActive = isFreeTrialActive();
+    if (!trialActive && balance < cost) {
       return {
         ok: false,
         reason: `Insufficient persistence credits. Need ${cost}, have ${balance}. Purchase more at iliad.trustfabric.ai/billing.`,
       };
     }
 
-    const balance_after = balance - cost;
+    // Still write the ledger row for analytics even during the trial — at
+    // credits_delta: 0, so balance_after equals balance unchanged.
+    const debit = trialActive ? 0 : cost;
+    const balance_after = balance - debit;
     await client.query(
       pgPlaceholders(
         `INSERT INTO persistence_credits
              (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
       ),
-      [randomUUID(), account_id, -cost, op, snapshot_id ?? null, balance_after, new Date().toISOString()],
+      [randomUUID(), account_id, -debit, op, snapshot_id ?? null, balance_after, new Date().toISOString()],
     );
 
     return { ok: true, balance_after };
