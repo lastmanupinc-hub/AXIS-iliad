@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError, readBody } from "./router.js";
-import { requireAuth, constantTimeEqual } from "./billing.js";
+import { requireAuth, isAdminCaller } from "./billing.js";
 import type { AuthContext } from "./billing.js";
 import { ErrorCode } from "./logger.js";
 import {
@@ -20,22 +20,25 @@ import {
 import { PRODUCT_IDS, getProduct } from "@axis/generator-core";
 
 /**
- * Require admin access. Validates auth first, then checks the raw API key
- * against the ADMIN_API_KEY env var. Returns null (and sends 403) on failure.
+ * Require admin access. Validates auth first, then checks the caller against
+ * the ADMIN_API_KEY env var via billing.ts's shared isAdminCaller() — the
+ * same check every other admin gate in the codebase uses (Authorization
+ * Bearer, X-Axis-Key, or the owner's HttpOnly admin-elevation cookie).
+ * Returns null (and sends 403) on failure. This used to re-parse the
+ * Authorization header itself, accepting only Bearer — a real gap the
+ * admin-page-reachability fix closed by consolidating onto isAdminCaller,
+ * which also picks up X-Axis-Key and the admin cookie for free.
  */
 export async function requireAdmin(req: IncomingMessage, res: ServerResponse): Promise<AuthContext | null> {
   const ctx = await requireAuth(req, res);
   if (!ctx) return null; // 401 already sent
 
-  const adminKey = process.env.ADMIN_API_KEY;
-  if (!adminKey) {
+  if (!process.env.ADMIN_API_KEY) {
     sendError(res, 403, "FORBIDDEN", "Admin endpoints are not configured");
     return null;
   }
 
-  const authHeader = req.headers.authorization;
-  const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (rawKey === null || !constantTimeEqual(rawKey, adminKey)) {
+  if (!isAdminCaller(req)) {
     sendError(res, 403, "FORBIDDEN", "Admin access required");
     return null;
   }

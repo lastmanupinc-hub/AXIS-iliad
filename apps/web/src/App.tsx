@@ -295,6 +295,11 @@ export function App() {
   // bookmark or reload) gets bounced to #account before the probe ever has
   // a chance to complete, every single time.
   const [privateAccessResolved, setPrivateAccessResolved] = useState(false);
+  // Bumped by recheckPrivateAccess() to re-run the probe effect below on
+  // demand (e.g. right after the owner submits the admin key on a
+  // selfGatesAdmin route) without a full page reload.
+  const [privateAccessNonce, setPrivateAccessNonce] = useState(0);
+  const recheckPrivateAccess = useCallback(() => setPrivateAccessNonce((n) => n + 1), []);
 
   const handleAuthChange = useCallback(() => {
     setLoggedIn(!!localStorage.getItem("axis_api_key"));
@@ -367,7 +372,10 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [loggedIn]);
+    // privateAccessNonce is a deliberate re-run trigger, not a value read
+    // inside the effect — recheckPrivateAccess() bumps it to force this
+    // probe to run again (e.g. right after the admin-key form succeeds).
+  }, [loggedIn, privateAccessNonce]);
 
   // WO-P5/WO-P6: the PROJECT_DETAIL_PAGES routes are ID-addressable — the
   // result they need is keyed on `route.params.id`, not "whatever the app
@@ -470,7 +478,11 @@ export function App() {
     // comment: "account" survives only as the OAuth redirect target) — an
     // unconditional extra render-then-redirect hop, the same shape cycle 9
     // fixed for AccountDashboardPage's "Invite teammate" quick action.
-    if (routeForPage(route.page).adminOnly && loggedIn && privateAccessResolved && !privateAccess) {
+    if (
+      routeForPage(route.page).adminOnly &&
+      !routeForPage(route.page).selfGatesAdmin &&
+      loggedIn && privateAccessResolved && !privateAccess
+    ) {
       navigate("settings");
     }
   }, [route.page, privateAccess, privateAccessResolved, loggedIn, navigate]);
@@ -499,8 +511,8 @@ export function App() {
 
   // Runtime context the route-table derivations depend on.
   const navCtx = useMemo<NavContext>(
-    () => ({ loggedIn, privateAccess, privateAccessResolved, hasResult: !!result }),
-    [loggedIn, privateAccess, privateAccessResolved, result],
+    () => ({ loggedIn, privateAccess, privateAccessResolved, recheckPrivateAccess, hasResult: !!result }),
+    [loggedIn, privateAccess, privateAccessResolved, recheckPrivateAccess, result],
   );
 
   // Command palette actions — every visible nav route, with the live Ctrl+N

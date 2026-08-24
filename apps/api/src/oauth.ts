@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError, readBody } from "./router.js";
 import { ErrorCode, log } from "./logger.js";
-import { SESSION_COOKIE, readSessionCookie } from "./billing.js";
+import { SESSION_COOKIE, readSessionCookie, ADMIN_COOKIE, constantTimeEqual } from "./billing.js";
 import {
   createOAuthState,
   consumeOAuthState,
@@ -306,6 +306,78 @@ export async function handleCreateSession(
   }
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Set-Cookie", sessionCookie(encodeURIComponent(apiKey), SESSION_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
+  sendJSON(res, 200, { ok: true });
+}
+
+/** ~24h lifetime for the admin-elevation cookie — shorter than the 30-day
+ *  session cookie since this proves a single shared high-privilege secret
+ *  rather than an individual account; re-entering it occasionally is a fair
+ *  trade for a smaller exposure window. */
+const ADMIN_COOKIE_MAX_AGE_S = 24 * 60 * 60;
+
+/** Build a Set-Cookie value for the admin-elevation cookie. Same flags as
+ *  sessionCookie() above (HttpOnly/SameSite=Lax/Secure-when-https) — see
+ *  that function's doc comment for the reasoning. Pass maxAgeSeconds=0 to clear. */
+function adminCookie(value: string, maxAgeSeconds: number, webAppUrl: string): string {
+  const secure = webAppUrl.startsWith("https://");
+  return [
+    `${ADMIN_COOKIE}=${value}`,
+    "HttpOnly",
+    "SameSite=Lax",
+    "Path=/",
+    `Max-Age=${maxAgeSeconds}`,
+    secure ? "Secure" : "",
+  ].filter(Boolean).join("; ");
+}
+
+/**
+ * POST /v1/admin/session — exchange the raw ADMIN_API_KEY for an HttpOnly
+ * admin-elevation cookie. The key is typed once by the owner and never
+ * persisted client-side in any JS-readable form (no localStorage/
+ * sessionStorage) — same posture as the SESSION_COOKIE cutover (H1),
+ * extended to cover the admin gate so the owner's own browser can load
+ * admin-only pages (Admin Analytics) without a script/curl round-trip.
+ * billing.ts's isAdminCaller() accepts this cookie as an alternative to the
+ * Authorization/X-Axis-Key header — same secret, a JS-unreadable transport.
+ * Deny-by-default: a wrong key never sets anything, just a 403.
+ */
+export async function handleAdminSessionLogin(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ownerKey = process.env.ADMIN_API_KEY;
+  if (!ownerKey) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Admin access is not configured");
+    return;
+  }
+  let body: { admin_key?: unknown };
+  try {
+    body = JSON.parse(await readBody(req));
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+  const adminKey = body.admin_key;
+  if (typeof adminKey !== "string" || !adminKey) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "admin_key is required");
+    return;
+  }
+  if (!constantTimeEqual(adminKey, ownerKey)) {
+    sendError(res, 403, ErrorCode.FORBIDDEN, "Invalid admin key");
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Set-Cookie", adminCookie(encodeURIComponent(adminKey), ADMIN_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
+  sendJSON(res, 200, { ok: true });
+}
+
+/** DELETE /v1/admin/session — clear the admin-elevation cookie. */
+export async function handleAdminSessionLogout(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Set-Cookie", adminCookie("", 0, getOAuthConfig().webAppUrl));
   sendJSON(res, 200, { ok: true });
 }
 

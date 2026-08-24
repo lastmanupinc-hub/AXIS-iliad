@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ApiError,
   getAdminStats,
@@ -6,24 +6,42 @@ import {
   getAdminActivity,
   getFunnelMetrics,
   getMcpUsage,
+  getRestUsage,
   getAdminRevenue,
+  submitAdminKey,
   type AdminStats,
   type AdminAccountsResponse,
   type AdminActivityResponse,
   type FunnelMetrics,
   type McpUsageResponse,
+  type RestUsageResponse,
   type AdminRevenue,
 } from "../api.ts";
 import { Skeleton, Callout, TableWrap } from "../components/primitives/index.ts";
 
-export function AdminPage() {
+export interface AdminPageProps {
+  /** Called after the owner successfully submits the admin key, so App.tsx
+   *  can re-run its own privateAccess probe and light up the nav/shortcut
+   *  for the rest of the session — this page's own reload is independent. */
+  onUnlocked?: () => void;
+}
+
+export function AdminPage({ onUnlocked }: AdminPageProps = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // True specifically on a 403 from the admin probe — distinct from `error`
+  // (network/5xx/etc.) because this state renders a key-entry form instead
+  // of a dead-end Callout; see loadAdminData's catch block.
+  const [needsKey, setNeedsKey] = useState(false);
+  const [adminKeyInput, setAdminKeyInput] = useState("");
+  const [submittingKey, setSubmittingKey] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [accounts, setAccounts] = useState<AdminAccountsResponse | null>(null);
   const [activity, setActivity] = useState<AdminActivityResponse | null>(null);
   const [funnelMetrics, setFunnelMetrics] = useState<FunnelMetrics | null>(null);
   const [mcpUsage, setMcpUsage] = useState<McpUsageResponse | null>(null);
+  const [restUsage, setRestUsage] = useState<RestUsageResponse | null>(null);
   const [revenue, setRevenue] = useState<AdminRevenue | null>(null);
   // H-Phase-A cycle 8: loadAdminData is triggered both on mount AND by the
   // Refresh button — same dual-trigger shape MyAnalyticsPage.tsx's load()
@@ -37,12 +55,13 @@ export function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const [statsRes, accountsRes, activityRes, funnelRes, mcpUsageRes, revenueRes] = await Promise.all([
+      const [statsRes, accountsRes, activityRes, funnelRes, mcpUsageRes, restUsageRes, revenueRes] = await Promise.all([
         getAdminStats(),
         getAdminAccounts(25, 0),
         getAdminActivity(25),
         getFunnelMetrics(),
         getMcpUsage(30),
+        getRestUsage(30),
         getAdminRevenue(),
       ]);
       if (requestIdRef.current !== requestId) return;
@@ -51,11 +70,13 @@ export function AdminPage() {
       setActivity(activityRes);
       setFunnelMetrics(funnelRes.metrics);
       setMcpUsage(mcpUsageRes);
+      setRestUsage(restUsageRes);
       setRevenue(revenueRes);
+      setNeedsKey(false);
     } catch (err) {
       if (requestIdRef.current !== requestId) return;
       if (err instanceof ApiError && err.status === 403) {
-        setError("Admin access required. Use an admin API key.");
+        setNeedsKey(true);
       } else if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -70,10 +91,54 @@ export function AdminPage() {
     void loadAdminData();
   }, []);
 
+  async function handleSubmitAdminKey(e: FormEvent) {
+    e.preventDefault();
+    setSubmittingKey(true);
+    setKeyError(null);
+    try {
+      await submitAdminKey(adminKeyInput);
+      setAdminKeyInput("");
+      onUnlocked?.();
+      await loadAdminData();
+    } catch {
+      setKeyError("Invalid admin key.");
+    } finally {
+      setSubmittingKey(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="empty-state" role="status" aria-live="polite">
         <Skeleton lines={6} height={60} />
+      </div>
+    );
+  }
+
+  if (needsKey) {
+    return (
+      <div className="card" style={{ maxWidth: 420 }}>
+        <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: 8 }}>Admin Analytics</h1>
+        <p className="text-muted text-sm mb-2">
+          Enter the owner admin key to unlock this page. It's exchanged once for an HttpOnly
+          cookie on the API host — never stored where page JavaScript can read it.
+        </p>
+        <form onSubmit={(e) => void handleSubmitAdminKey(e)} className="flex gap-2" style={{ flexWrap: "wrap" }}>
+          <input
+            value={adminKeyInput}
+            onChange={(e) => setAdminKeyInput(e.target.value)}
+            type="password"
+            placeholder="Admin key"
+            aria-label="Admin key"
+            autoComplete="off"
+            style={{ width: 240 }}
+            required
+          />
+          <button type="submit" className="btn btn-primary" disabled={submittingKey || !adminKeyInput}>
+            {submittingKey ? "Checking…" : "Unlock"}
+          </button>
+        </form>
+        {keyError && <Callout tone="danger">{keyError}</Callout>}
       </div>
     );
   }
@@ -280,6 +345,114 @@ export function AdminPage() {
                 </table>
               </TableWrap>
             </div>
+          </div>
+        </>
+      )}
+
+      {restUsage && (
+        <>
+          <div className="card">
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>REST Usage</h2>
+            <p>
+              Program generations and endpoint hits from the REST API (authenticated calls only
+              — see below). Window: last {restUsage.window_days} days.
+            </p>
+          </div>
+          <div className="grid grid-2">
+            <div className="card">
+              <div className="stat-label">Program Runs</div>
+              <div>{restUsage.total_runs.toLocaleString()}</div>
+            </div>
+            <div className="card">
+              <div className="stat-label">Unique Accounts</div>
+              <div>{restUsage.unique_accounts.toLocaleString()}</div>
+            </div>
+          </div>
+          <div className="grid grid-2">
+            <div className="card">
+              <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Runs by Program</h2>
+              <TableWrap label="Runs by program">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Program</th>
+                      <th>Runs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(restUsage.by_program).length === 0 && (
+                      <tr>
+                        <td colSpan={2}>No program runs in this window.</td>
+                      </tr>
+                    )}
+                    {Object.entries(restUsage.by_program).map(([program, count]) => (
+                      <tr key={program}>
+                        <td>{program}</td>
+                        <td>{count.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </div>
+            <div className="card">
+              <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Calls by Endpoint</h2>
+              <p className="text-muted text-sm mb-2">
+                Every authenticated REST call, including endpoints with no per-program breakdown
+                (fleet, seats, Firecrawl).
+              </p>
+              <TableWrap label="Calls by endpoint">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Endpoint</th>
+                      <th>Calls</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(restUsage.by_endpoint).length === 0 && (
+                      <tr>
+                        <td colSpan={2}>No REST calls in this window.</td>
+                      </tr>
+                    )}
+                    {Object.entries(restUsage.by_endpoint).map(([endpoint, count]) => (
+                      <tr key={endpoint}>
+                        <td className="mono">{endpoint}</td>
+                        <td>{count.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </div>
+          </div>
+          <div className="card">
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Top Accounts by Program</h2>
+            <TableWrap label="Top accounts by program">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Account</th>
+                    <th>Program</th>
+                    <th>Runs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {restUsage.top_accounts_by_program.length === 0 && (
+                    <tr>
+                      <td colSpan={3}>No program runs in this window.</td>
+                    </tr>
+                  )}
+                  {restUsage.top_accounts_by_program.slice(0, 15).map((row) => (
+                    <tr key={`${row.account_id}:${row.program}`}>
+                      <td>{row.account_id.slice(0, 8)}...</td>
+                      <td>{row.program}</td>
+                      <td>{row.runs.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
           </div>
         </>
       )}

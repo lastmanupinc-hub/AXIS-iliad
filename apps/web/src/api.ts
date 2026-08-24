@@ -282,6 +282,17 @@ export interface McpUsageResponse {
   };
 }
 
+/** GET /v1/admin/rest-usage — the REST-program twin of McpUsageResponse. */
+export interface RestUsageResponse {
+  since: string;
+  window_days: number;
+  total_runs: number;
+  unique_accounts: number;
+  by_program: Record<string, number>;
+  top_accounts_by_program: Array<{ account_id: string; program: string; runs: number }>;
+  by_endpoint: Record<string, number>;
+}
+
 export interface FunnelMetrics {
   total_accounts: number;
   total_seats: number;
@@ -1675,6 +1686,23 @@ export async function getAdminActivity(limit = 50): Promise<AdminActivityRespons
 
 export async function getMcpUsage(windowDays = 30): Promise<McpUsageResponse> {
   return fetchJSON(`/v1/admin/mcp-usage?window_days=${encodeURIComponent(String(windowDays))}`);
+}
+
+export async function getRestUsage(windowDays = 30): Promise<RestUsageResponse> {
+  return fetchJSON(`/v1/admin/rest-usage?window_days=${encodeURIComponent(String(windowDays))}`);
+}
+
+/** Exchange the raw owner ADMIN_API_KEY for the HttpOnly admin-elevation
+ *  cookie (see billing.ts ADMIN_COOKIE) — same one-shot-exchange shape as
+ *  establishSession() above, deliberately never persisted client-side. */
+export async function submitAdminKey(adminKey: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/v1/admin/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ admin_key: adminKey }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`Invalid admin key (${res.status})`);
 }
 
 export interface AdminRevenue {

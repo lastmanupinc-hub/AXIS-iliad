@@ -1486,6 +1486,20 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/admin/rest-usage": {
         get: { summary: "Admin: REST program usage metrics (cross-account)", operationId: "getAdminRestUsage", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "REST program usage metrics" }, 403: { description: "Admin access required" } } },
       },
+      "/v1/admin/session": {
+        post: {
+          summary: "Admin: exchange the owner ADMIN_API_KEY for an HttpOnly admin-elevation cookie",
+          operationId: "createAdminSession",
+          tags: ["Admin"],
+          responses: { 200: { description: "Admin session established" }, 403: { description: "Invalid admin key" } },
+        },
+        delete: {
+          summary: "Admin: clear the admin-elevation cookie",
+          operationId: "clearAdminSession",
+          tags: ["Admin"],
+          responses: { 200: { description: "Admin session cleared" } },
+        },
+      },
       "/v1/admin/revenue": {
         get: { summary: "Admin: revenue metrics", operationId: "getAdminRevenue", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "Revenue metrics" }, 403: { description: "Admin access required" } } },
       },

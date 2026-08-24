@@ -589,14 +589,20 @@ describe("Admin gate race (H-Phase-A cycle 4)", () => {
   // cycle 9's applySuiteMonthlyGrant lock). The fix is still correct by
   // direct code-reading: navigate("settings") is provably one hash change,
   // navigate("account") is provably two, in the real running app.
-  it("a non-admin is bounced to #settings (directly, not via an intermediate #account hop) once the probe resolves as forbidden", async () => {
+  // Admin-page-reachability fix: "admin" is selfGatesAdmin, so a forbidden
+  // probe no longer bounces it away to #settings the way every other
+  // adminOnly page still does (myanalytics, tested elsewhere, is unchanged)
+  // — it stays on #admin and shows its own key-entry form instead, so the
+  // owner's browser can actually unlock it without a script/curl round-trip.
+  it("a non-admin stays on #admin and sees the key-entry form once the probe resolves as forbidden (does not bounce to #settings)", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
     const { resolveAdmin } = stubDeferredAdminFetch();
     window.location.hash = "#admin";
     const { container } = render(<App />);
-    expect(shellPage(container)).toBe("admin"); // not bounced yet — probe still pending
+    expect(shellPage(container)).toBe("admin"); // not resolved yet — probe still pending
     resolveAdmin(false);
-    await waitFor(() => expect(shellPage(container)).toBe("settings"));
+    await waitFor(() => expect(screen.getByLabelText("Admin key")).toBeTruthy());
+    expect(shellPage(container)).toBe("admin");
   });
 
   // H-Phase-A cycle 7: cycle 4's fix only patched the REDIRECT decision

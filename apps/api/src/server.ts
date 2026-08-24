@@ -123,7 +123,7 @@ import { handleListVersions, handleGetVersion, handleDiffVersions } from "./vers
 import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
 import { handleGetFleet } from "./fleet-handlers.js";
 import { handleListProjects, handleListProjectSnapshots } from "./projects-handlers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
@@ -593,6 +593,8 @@ router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
 router.get("/v1/admin/rest-usage", handleAdminRestUsage);
 router.get("/v1/admin/revenue", handleAdminRevenue);
 router.post("/v1/admin/entitlements/grant", handleAdminGrantEntitlement);
+router.post("/v1/admin/session", handleAdminSessionLogin);
+router.delete("/v1/admin/session", handleAdminSessionLogout);
 
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);

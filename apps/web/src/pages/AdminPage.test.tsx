@@ -11,7 +11,7 @@
 
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AdminPage } from "./AdminPage.tsx";
 
 function emptyAdminResponses(): Record<string, unknown> {
@@ -29,6 +29,10 @@ function emptyAdminResponses(): Record<string, unknown> {
       windows: { total: 0, last_24h: 0, last_7d: 0, last_30d: 0 },
       summary: { since: "2026-01-01", window_days: 30, total_calls: 0, unique_accounts: 0, anonymous_calls: 0, by_tool: {}, by_source: {}, by_probe_class: {} },
       new_vs_returning: { window_days: 30, new_accounts: 0, returning_accounts: 0 },
+    },
+    "/v1/admin/rest-usage": {
+      since: "2026-01-01", window_days: 30, total_runs: 0, unique_accounts: 0,
+      by_program: {}, top_accounts_by_program: [], by_endpoint: {},
     },
     "/v1/admin/revenue": {
       generated_at: "2026-01-01",
@@ -108,6 +112,102 @@ describe("AdminPage — empty-state guards + TableWrap (H5.1b(f))", () => {
 
     await waitFor(() => expect(screen.getByText("ada@example.com")).toBeTruthy());
     expect(screen.queryByText("No accounts yet.")).toBeNull();
+  });
+});
+
+describe("AdminPage — REST Usage panel", () => {
+  it("shows honest empty messages for program runs, endpoint calls, and top accounts", async () => {
+    stubAdminFetch(emptyAdminResponses());
+    render(<AdminPage />);
+
+    await waitFor(() => expect(screen.getByText("REST Usage")).toBeTruthy());
+    // "No program runs in this window." is shared copy across two independent
+    // empty tables (Runs by Program from by_program, Top Accounts by Program
+    // from top_accounts_by_program) — both real, both expected.
+    expect(screen.getAllByText("No program runs in this window.")).toHaveLength(2);
+    expect(screen.getByText("No REST calls in this window.")).toBeTruthy();
+  });
+
+  it("renders real by_program, by_endpoint, and top_accounts_by_program rows", async () => {
+    const responses = emptyAdminResponses();
+    responses["/v1/admin/rest-usage"] = {
+      since: "2026-01-01", window_days: 30, total_runs: 12, unique_accounts: 3,
+      by_program: { closer: 7, debug: 5 },
+      top_accounts_by_program: [{ account_id: "acct_deadbeef1234", program: "closer", runs: 7 }],
+      by_endpoint: { "/v1/account/seats": 4 },
+    };
+    stubAdminFetch(responses);
+    render(<AdminPage />);
+
+    // "closer" legitimately appears twice by design — once in "Runs by
+    // Program" (from by_program) and once in "Top Accounts by Program"
+    // (from top_accounts_by_program) — a real account's usage naturally
+    // shows up in both breakdowns, so this asserts the count, not just presence.
+    await waitFor(() => expect(screen.getAllByText("closer")).toHaveLength(2));
+    expect(screen.getByText("debug")).toBeTruthy();
+    expect(screen.getByText("/v1/account/seats")).toBeTruthy();
+    expect(screen.getByText("acct_dea...")).toBeTruthy(); // account_id.slice(0, 8) === "acct_dea"
+  });
+});
+
+describe("AdminPage — locked state (owner admin-key unlock)", () => {
+  function stub403ThenUnlock() {
+    let unlocked = false;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/admin/session") && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as { admin_key?: string };
+        if (body.admin_key === "correct-key") {
+          unlocked = true;
+          return { ok: true, status: 200, json: async () => ({ ok: true }), text: async () => "{}", headers: { get: () => null } } as unknown as Response;
+        }
+        return { ok: false, status: 403, json: async () => ({ error: "Invalid admin key" }), text: async () => JSON.stringify({ error: "Invalid admin key" }), headers: { get: () => null } } as unknown as Response;
+      }
+      if (!unlocked) {
+        return { ok: false, status: 403, json: async () => ({ error: "forbidden" }), text: async () => JSON.stringify({ error: "forbidden" }), headers: { get: () => null } } as unknown as Response;
+      }
+      const responses = emptyAdminResponses();
+      const hit = Object.entries(responses).find(([match]) => url.includes(match));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    }));
+  }
+
+  it("shows a key-entry form instead of a dead-end error on a 403", async () => {
+    stub403ThenUnlock();
+    render(<AdminPage />);
+
+    await waitFor(() => expect(screen.getByLabelText("Admin key")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Unlock" })).toBeTruthy();
+  });
+
+  it("submitting the correct key unlocks the dashboard and calls onUnlocked", async () => {
+    stub403ThenUnlock();
+    const onUnlocked = vi.fn();
+    render(<AdminPage onUnlocked={onUnlocked} />);
+
+    await waitFor(() => expect(screen.getByLabelText("Admin key")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Admin key"), { target: { value: "correct-key" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
+
+    await waitFor(() => expect(screen.getByText("Admin Analytics")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Total Accounts")).toBeTruthy());
+    expect(onUnlocked).toHaveBeenCalledTimes(1);
+  });
+
+  it("submitting the wrong key shows an inline error and does not call onUnlocked", async () => {
+    stub403ThenUnlock();
+    const onUnlocked = vi.fn();
+    render(<AdminPage onUnlocked={onUnlocked} />);
+
+    await waitFor(() => expect(screen.getByLabelText("Admin key")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Admin key"), { target: { value: "wrong-key" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
+
+    await waitFor(() => expect(screen.getByText("Invalid admin key.")).toBeTruthy());
+    expect(onUnlocked).not.toHaveBeenCalled();
+    // Still locked — the form is still there, not the dashboard.
+    expect(screen.getByLabelText("Admin key")).toBeTruthy();
   });
 });
 

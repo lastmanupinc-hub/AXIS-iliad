@@ -83,6 +83,32 @@ export function readSessionCookie(req: IncomingMessage): string | null {
 }
 
 /**
+ * Name of the HttpOnly admin-elevation cookie set by POST /v1/admin/session.
+ * Lets the owner's own browser reach admin-only pages (Admin Analytics) by
+ * proving the same ADMIN_API_KEY isAdminCaller() already accepts via header
+ * — just over a transport page JavaScript can never read, so a browser
+ * session doesn't need to hold a JS-readable copy of the platform's single
+ * highest-privilege secret (the exact anti-pattern H1 eliminated for
+ * account auth — see SESSION_COOKIE above). Deliberately separate from
+ * SESSION_COOKIE: this proves "holds the owner secret," not "is logged in
+ * as a particular account."
+ */
+export const ADMIN_COOKIE = "axis_admin";
+
+/** Read the admin-elevation cookie (see ADMIN_COOKIE). Mirrors readSessionCookie. */
+export function readAdminCookie(req: IncomingMessage): string | null {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq !== -1 && part.slice(0, eq).trim() === ADMIN_COOKIE) {
+      return decodeURIComponent(part.slice(eq + 1).trim()) || null;
+    }
+  }
+  return null;
+}
+
+/**
  * Extract and resolve the API key from the Authorization header, X-Axis-Key, or
  * the first-party HttpOnly session cookie. Sets auth context on the request; does
  * NOT reject anonymous requests — callers check context.anonymous to enforce auth.
@@ -152,8 +178,12 @@ export function constantTimeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ha, hb);
 }
 
-/** True when the caller presented the ADMIN_API_KEY (owner/admin gate). */
-function isAdminCaller(req: IncomingMessage): boolean {
+/** True when the caller presented the ADMIN_API_KEY (owner/admin gate) —
+ *  via header (scripts/CI/curl) or the HttpOnly admin-elevation cookie
+ *  (the owner's own browser, see ADMIN_COOKIE above). Exported: admin.ts's
+ *  requireAdmin() shares this check rather than re-parsing headers itself,
+ *  so the cookie fallback covers every /v1/admin/* route too. */
+export function isAdminCaller(req: IncomingMessage): boolean {
   const ownerKey = process.env.ADMIN_API_KEY;
   if (!ownerKey) return false;
 
@@ -165,6 +195,8 @@ function isAdminCaller(req: IncomingMessage): boolean {
     rawKey = authHeader.slice(7);
   } else if (typeof xAxisKey === "string" && xAxisKey) {
     rawKey = xAxisKey;
+  } else {
+    rawKey = readAdminCookie(req);
   }
 
   return rawKey !== null && constantTimeEqual(rawKey, ownerKey);

@@ -3,7 +3,8 @@ import type { Server } from "node:http";
 import { resetTestDb, createOAuthState, getAccountByGitHubId, getAccountByGoogleId, createAccount, createApiKey, createSnapshot, getSnapshot, saveGeneratorResult, getGeneratorResult } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
+import { handleAdminStats } from "./admin.js";
 import { resolveAuth } from "./billing.js";
 import { sendJSON } from "./router.js";
 import { resetRateLimits } from "./rate-limiter.js";
@@ -54,6 +55,12 @@ describe("OAuth API routes", () => {
     router.post("/v1/auth/exchange", handleOAuthExchange);
     router.post("/v1/auth/session", handleCreateSession);
     router.post("/v1/auth/logout", handleOAuthLogout);
+    router.post("/v1/admin/session", handleAdminSessionLogin);
+    router.delete("/v1/admin/session", handleAdminSessionLogout);
+    // A real admin-gated route (not a bespoke probe) — proves the admin
+    // cookie actually unlocks isAdminCaller() in production code, not just
+    // a test double.
+    router.get("/v1/admin/stats", handleAdminStats);
     // Minimal authed probe to exercise the cookie path through resolveAuth.
     router.get("/whoami", async (r, s) => {
       const auth = await resolveAuth(r);
@@ -514,5 +521,106 @@ describe("OAuth API routes", () => {
     const res = await req("POST", "/v1/auth/session", {});
     expect(res.status).toBe(400);
     expect(res.headers["set-cookie"]).toBeUndefined();
+  });
+
+  // ─── /v1/admin/session (ADMIN_API_KEY → HttpOnly admin-elevation cookie) ──
+  describe("admin session cookie (owner admin-key login)", () => {
+    const ADMIN_KEY = "test-admin-key-9f3c2a";
+    let savedAdminKey: string | undefined;
+
+    beforeAll(() => {
+      savedAdminKey = process.env.ADMIN_API_KEY;
+      process.env.ADMIN_API_KEY = ADMIN_KEY;
+    });
+
+    afterAll(() => {
+      if (savedAdminKey === undefined) delete process.env.ADMIN_API_KEY;
+      else process.env.ADMIN_API_KEY = savedAdminKey;
+    });
+
+    // /v1/admin/* routes require BOTH a valid account (requireAuth) and the
+    // admin key (isAdminCaller) — the real owner's browser carries both as
+    // separate cookies (axis_session + axis_admin), with no Authorization
+    // header at all once migrated off the legacy bearer fallback. This
+    // mirrors that exactly, rather than a Bearer header, so the tests below
+    // exercise the actual production shape.
+    async function realAccountSessionCookie(email: string): Promise<string> {
+      const account = await createAccount("Admin Page Tester", email);
+      const { rawKey } = await createApiKey(account.account_id);
+      const session = await req("POST", "/v1/auth/session", { api_key: rawKey });
+      return session.headers["set-cookie"].split(";")[0];
+    }
+
+    it("exchanges the correct admin key for an HttpOnly axis_admin cookie that unlocks a real admin route", async () => {
+      const res = await req("POST", "/v1/admin/session", { admin_key: ADMIN_KEY });
+      expect(res.status).toBe(200);
+      const setCookie = res.headers["set-cookie"];
+      expect(setCookie).toContain("axis_admin=");
+      expect(setCookie).toContain("HttpOnly");
+      expect(setCookie).toContain("SameSite=Lax");
+      expect(setCookie).toContain("Path=/");
+
+      // No Authorization/X-Axis-Key header — the session + admin cookies
+      // together must satisfy requireAuth + isAdminCaller on a real route.
+      const adminCookie = setCookie.split(";")[0];
+      const sessionCookie = await realAccountSessionCookie("admin-cookie-unlock@example.com");
+      const stats = await req("GET", "/v1/admin/stats", undefined, { Cookie: `${sessionCookie}; ${adminCookie}` });
+      expect(stats.status).toBe(200);
+    });
+
+    it("rejects a wrong admin key with 403 and sets no cookie", async () => {
+      const res = await req("POST", "/v1/admin/session", { admin_key: "not-the-real-key" });
+      expect(res.status).toBe(403);
+      expect(res.headers["set-cookie"]).toBeUndefined();
+    });
+
+    it("requires the admin_key field (400)", async () => {
+      const res = await req("POST", "/v1/admin/session", {});
+      expect(res.status).toBe(400);
+      expect(res.headers["set-cookie"]).toBeUndefined();
+    });
+
+    it("a logged-in but non-admin session still 403s without the admin cookie (no accidental blanket unlock)", async () => {
+      const sessionCookie = await realAccountSessionCookie("admin-cookie-locked@example.com");
+      const stats = await req("GET", "/v1/admin/stats", undefined, { Cookie: sessionCookie });
+      expect(stats.status).toBe(403);
+    });
+
+    it("with no session at all, a real admin route 401s before the admin check ever runs", async () => {
+      const stats = await req("GET", "/v1/admin/stats");
+      expect(stats.status).toBe(401);
+    });
+
+    it("DELETE clears the cookie so the previously-unlocked route 403s again", async () => {
+      const sessionCookie = await realAccountSessionCookie("admin-cookie-logout@example.com");
+      const login = await req("POST", "/v1/admin/session", { admin_key: ADMIN_KEY });
+      const adminCookie = login.headers["set-cookie"].split(";")[0];
+      expect((await req("GET", "/v1/admin/stats", undefined, { Cookie: `${sessionCookie}; ${adminCookie}` })).status).toBe(200);
+
+      const logout = await req("DELETE", "/v1/admin/session");
+      expect(logout.status).toBe(200);
+      const clearedCookie = logout.headers["set-cookie"];
+      expect(clearedCookie).toContain("axis_admin=;");
+      expect(clearedCookie).toContain("Max-Age=0");
+
+      // The old cookie value itself is still technically valid if replayed —
+      // logout clears the browser's copy server-side, it doesn't revoke the
+      // secret (no server-side revocation list exists for either cookie,
+      // same as SESSION_COOKIE/logout). Confirm the ORIGINAL admin cookie
+      // still authenticates, then confirm a client that actually drops it
+      // (as a real browser does on Set-Cookie Max-Age=0) is locked out again.
+      expect((await req("GET", "/v1/admin/stats", undefined, { Cookie: `${sessionCookie}; ${adminCookie}` })).status).toBe(200);
+      expect((await req("GET", "/v1/admin/stats", undefined, { Cookie: sessionCookie })).status).toBe(403);
+    });
+
+    it("returns 503 when ADMIN_API_KEY is not configured", async () => {
+      delete process.env.ADMIN_API_KEY;
+      try {
+        const res = await req("POST", "/v1/admin/session", { admin_key: ADMIN_KEY });
+        expect(res.status).toBe(503);
+      } finally {
+        process.env.ADMIN_API_KEY = ADMIN_KEY;
+      }
+    });
   });
 });

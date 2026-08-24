@@ -161,6 +161,10 @@ export interface NavContext {
    *  App.tsx:466, since H-Phase-A cycle 4 — this is the render-side half of
    *  that same fix, which cycle 4 missed). */
   privateAccessResolved: boolean;
+  /** Re-runs the admin probe (App.tsx) — lets a selfGatesAdmin route unlock
+   *  privateAccess after the owner submits the admin key (AdminPage's
+   *  onUnlocked) without a full page reload. */
+  recheckPrivateAccess: () => void;
   /** A project result is currently loaded (any project, not just the account
    *  overview's list) — informational; no route's `visible` gates on it since
    *  WO-P5 moved the per-project view off the shared "#dashboard" hash. */
@@ -249,6 +253,12 @@ export interface RouteDef {
   authOnly?: boolean;
   /** Additionally requires the admin probe (privateAccess) to succeed. */
   adminOnly?: boolean;
+  /** Skips the adminOnly redirect-away (App.tsx) when privateAccess hasn't
+   *  resolved true — the route's own render function handles that state
+   *  itself (e.g. showing an "enter admin key" form) instead of bouncing to
+   *  Settings. Sits alongside adminOnly, not instead of it: adminOnly still
+   *  keeps this route out of the nav/shortcut list via `visible` below. */
+  selfGatesAdmin?: boolean;
   /** Runtime visibility for nav/shortcuts/palette (default: always visible). */
   visible?: (ctx: NavContext) => boolean;
   /** Sidebar/drawer/rail placement; omit for footer-only or child pages. */
@@ -636,14 +646,15 @@ export const ROUTES: RouteDef[] = [
     shortcut: 8,
     authOnly: true,
     adminOnly: true,
+    selfGatesAdmin: true,
     visible: (ctx) => ctx.privateAccess,
     nav: { group: "ACCOUNT", icon: "settings" },
     render: (ctx) =>
       !ctx.privateAccessResolved ? (
         <div className="empty-state" role="status" aria-live="polite"><span className="spinner" /> Loading…</div>
-      ) : ctx.privateAccess ? (
-        <AdminPage />
-      ) : null,
+      ) : (
+        <AdminPage onUnlocked={ctx.recheckPrivateAccess} />
+      ),
   },
   {
     page: "docs",
