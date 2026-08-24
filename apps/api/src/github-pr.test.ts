@@ -1,5 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
-import { openDriftPullRequest, driftBranchName, openApplyPullRequest, applyBranchName, type OpenDriftPrParams, type OpenApplyPrParams } from "./github-pr.js";
+import {
+  openDriftPullRequest,
+  driftBranchName,
+  openApplyPullRequest,
+  applyBranchName,
+  fetchPullRequestFiles,
+  postCommitStatus,
+  type OpenDriftPrParams,
+  type OpenApplyPrParams,
+} from "./github-pr.js";
 
 // Fake fetch that returns staged responses in call order and records each call.
 function seqFetch(responses: Array<{ status: number; json?: unknown }>): {
@@ -236,5 +245,73 @@ describe("openApplyPullRequest (generic multi-file Apply-channel substrate)", ()
     });
     expect(driftResult).toEqual(genericResult);
     expect(driftCalls.map((c) => ({ method: c.method, url: c.url }))).toEqual(genericCalls.map((c) => ({ method: c.method, url: c.url })));
+  });
+});
+
+// app_41: PR-file listing + commit-status posting — the brand-voice-lint
+// watcher's own REST surface, distinct from the PR-OPENING flow above.
+
+describe("fetchPullRequestFiles", () => {
+  it("returns filename/status/patch for every changed file", async () => {
+    const { fetch, calls } = seqFetch([
+      {
+        status: 200,
+        json: [
+          { filename: "src/App.tsx", status: "modified", patch: "@@ -1,1 +1,1 @@\n+x" },
+          { filename: "assets/logo.png", status: "modified" }, // binary — no patch field
+        ],
+      },
+    ]);
+    const files = await fetchPullRequestFiles(fetch, "t", "o", "r", 7);
+    expect(files).toEqual([
+      { filename: "src/App.tsx", status: "modified", patch: "@@ -1,1 +1,1 @@\n+x" },
+      { filename: "assets/logo.png", status: "modified", patch: undefined },
+    ]);
+    expect(calls[0]).toMatchObject({ method: "GET", url: expect.stringContaining("/repos/o/r/pulls/7/files") });
+  });
+
+  it("returns an empty array rather than throwing on a non-200 response", async () => {
+    const { fetch } = seqFetch([{ status: 404, json: { message: "Not Found" } }]);
+    expect(await fetchPullRequestFiles(fetch, "t", "o", "r", 999)).toEqual([]);
+  });
+
+  it("drops malformed entries (missing filename/status) rather than propagating them", async () => {
+    const { fetch } = seqFetch([{ status: 200, json: [{ filename: "ok.tsx", status: "added" }, { status: "modified" }, {}] }]);
+    const files = await fetchPullRequestFiles(fetch, "t", "o", "r", 7);
+    expect(files).toEqual([{ filename: "ok.tsx", status: "added", patch: undefined }]);
+  });
+});
+
+describe("postCommitStatus", () => {
+  it("posts state/description/context to the statuses endpoint", async () => {
+    const { fetch, calls } = seqFetch([{ status: 201, json: { id: 1 } }]);
+    const r = await postCommitStatus(fetch, {
+      owner: "o",
+      repo: "r",
+      token: "t",
+      sha: "deadbeef",
+      state: "failure",
+      description: "AXIS Brand: 1 off-voice string found.",
+      context: "axis/brand-voice-lint",
+    });
+    expect(r).toEqual({ posted: true });
+    expect(calls[0]).toMatchObject({ method: "POST", url: expect.stringContaining("/repos/o/r/statuses/deadbeef") });
+    expect(calls[0].body).toEqual({ state: "failure", description: "AXIS Brand: 1 off-voice string found.", context: "axis/brand-voice-lint" });
+  });
+
+  it("truncates a description over GitHub's 140-char cap rather than letting the API reject it", async () => {
+    const { fetch, calls } = seqFetch([{ status: 201, json: {} }]);
+    const long = "x".repeat(200);
+    await postCommitStatus(fetch, { owner: "o", repo: "r", token: "t", sha: "s", state: "success", description: long, context: "c" });
+    const posted = calls[0].body?.description as string;
+    expect(posted.length).toBe(140);
+    expect(posted.endsWith("...")).toBe(true);
+  });
+
+  it("reports posted:false with a reason on a non-201 response, never throws", async () => {
+    const { fetch } = seqFetch([{ status: 422, json: { message: "invalid" } }]);
+    const r = await postCommitStatus(fetch, { owner: "o", repo: "r", token: "t", sha: "s", state: "success", description: "d", context: "c" });
+    expect(r.posted).toBe(false);
+    expect(r.reason).toContain("422");
   });
 });

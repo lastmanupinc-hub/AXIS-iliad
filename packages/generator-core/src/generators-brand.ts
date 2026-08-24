@@ -168,6 +168,80 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
 }
 
 // ─── voice-and-tone.md ──────────────────────────────────────────
+//
+// VOICE_EXAMPLES is exported so app_41's V-gate ("the guide's own examples
+// pass their own rules") tests against the SAME Do/Don't pairs this file
+// renders — not a second, drifting copy. `dont_reason_words` names the
+// specific word(s) that make each Don't example off-voice, honestly, in the
+// same spirit as app_33's "even split, not per-request precision": most
+// pairs differ by a genuinely forbidden WORD (mechanically vale-checkable),
+// but two (loading/empty-state) differ by INFORMATIVENESS, not vocabulary —
+// no word list can catch that, so their `dont_reason_words` is empty and the
+// V-gate excludes them explicitly rather than pretending to cover them.
+
+export interface VoiceExample {
+  context: string;
+  tone: string;
+  do: string;
+  dont: string;
+  rule: string;
+  /** Word(s)/phrase(s) that make `dont` off-voice — empty means genuinely not vale-coverable (see header). */
+  dont_reason_words: string[];
+}
+
+export const VOICE_EXAMPLES: VoiceExample[] = [
+  {
+    context: "Celebration / Success",
+    tone: "Warm, brief, affirming",
+    do: "Done. 8 files generated.",
+    dont: "Congratulations! Your amazing files have been successfully created!",
+    rule: "Acknowledge without over-celebrating. The user's goal was the work, not the notification.",
+    dont_reason_words: ["congratulations", "amazing"],
+  },
+  {
+    context: "Error / Failure",
+    tone: "Direct, calm, solution-oriented",
+    do: "Upload failed — file exceeds 10MB limit. Reduce file size or exclude binary assets.",
+    dont: "Oops! Something went wrong.",
+    rule: "Name the problem, explain why, give the next step. Never blame the user.",
+    dont_reason_words: ["oops"],
+  },
+  {
+    context: "Onboarding / First Use",
+    tone: "Welcoming, clear, low-pressure",
+    do: "Upload a project snapshot to get started. You'll receive a full context analysis.",
+    dont: "Welcome to the most powerful analysis platform ever created!",
+    rule: "Show the first action. Don't sell — let the product demonstrate value.",
+    dont_reason_words: ["most powerful", "ever created"],
+  },
+  {
+    context: "Technical Documentation",
+    tone: "Precise, neutral, structured",
+    do: "The `buildContextMap()` function accepts a `SnapshotRecord` and returns a `ContextMap`.",
+    dont: "You can easily use buildContextMap to get cool context data.",
+    rule: "Use exact types, function names, and parameter names. Skip adjectives.",
+    dont_reason_words: ["easily", "cool"],
+  },
+  {
+    context: "Loading / In-Progress",
+    tone: "Informative, patient",
+    do: "Analyzing 237 files...",
+    dont: "Please wait while we process your request.",
+    rule: "Describe the current step. Give the user a mental model of progress.",
+    // Genuinely not vale-coverable: the Don't is generic/uninformative, not off-VOCABULARY.
+    // Flagging "please" or "process" globally would be noise, not signal.
+    dont_reason_words: [],
+  },
+  {
+    context: "Empty States",
+    tone: "Oriented, actionable",
+    do: "No snapshots yet. Upload a project to see analysis results here.",
+    dont: "Nothing to display.",
+    rule: "Explain what will appear and how to make it appear.",
+    // Same as above: differs by terseness/informativeness, not a forbidden word.
+    dont_reason_words: [],
+  },
+];
 
 export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -212,53 +286,15 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("## Tone by Context");
   lines.push("");
 
-  lines.push("### Celebration / Success");
-  lines.push("");
-  lines.push("- Tone: Warm, brief, affirming");
-  lines.push("- Do: \"Done. 8 files generated.\"");
-  lines.push("- Don't: \"Congratulations! Your amazing files have been successfully created!\"");
-  lines.push("- Rule: Acknowledge without over-celebrating. The user's goal was the work, not the notification.");
-  lines.push("");
-
-  lines.push("### Error / Failure");
-  lines.push("");
-  lines.push("- Tone: Direct, calm, solution-oriented");
-  lines.push("- Do: \"Upload failed — file exceeds 10MB limit. Reduce file size or exclude binary assets.\"");
-  lines.push("- Don't: \"Oops! Something went wrong.\"");
-  lines.push("- Rule: Name the problem, explain why, give the next step. Never blame the user.");
-  lines.push("");
-
-  lines.push("### Onboarding / First Use");
-  lines.push("");
-  lines.push("- Tone: Welcoming, clear, low-pressure");
-  lines.push("- Do: \"Upload a project snapshot to get started. You'll receive a full context analysis.\"");
-  lines.push("- Don't: \"Welcome to the most powerful analysis platform ever created!\"");
-  lines.push("- Rule: Show the first action. Don't sell — let the product demonstrate value.");
-  lines.push("");
-
-  lines.push("### Technical Documentation");
-  lines.push("");
-  lines.push("- Tone: Precise, neutral, structured");
-  lines.push("- Do: \"The `buildContextMap()` function accepts a `SnapshotRecord` and returns a `ContextMap`.\"");
-  lines.push("- Don't: \"You can easily use buildContextMap to get cool context data.\"");
-  lines.push("- Rule: Use exact types, function names, and parameter names. Skip adjectives.");
-  lines.push("");
-
-  lines.push("### Loading / In-Progress");
-  lines.push("");
-  lines.push("- Tone: Informative, patient");
-  lines.push("- Do: \"Analyzing 237 files...\" → \"Detecting frameworks...\" → \"Generating outputs...\"");
-  lines.push("- Don't: \"Please wait while we process your request.\"");
-  lines.push("- Rule: Describe the current step. Give the user a mental model of progress.");
-  lines.push("");
-
-  lines.push("### Empty States");
-  lines.push("");
-  lines.push("- Tone: Oriented, actionable");
-  lines.push("- Do: \"No snapshots yet. Upload a project to see analysis results here.\"");
-  lines.push("- Don't: \"Nothing to display.\"");
-  lines.push("- Rule: Explain what will appear and how to make it appear.");
-  lines.push("");
+  for (const ex of VOICE_EXAMPLES) {
+    lines.push(`### ${ex.context}`);
+    lines.push("");
+    lines.push(`- Tone: ${ex.tone}`);
+    lines.push(`- Do: "${ex.do}"`);
+    lines.push(`- Don't: "${ex.dont}"`);
+    lines.push(`- Rule: ${ex.rule}`);
+    lines.push("");
+  }
 
   // Writing Checklist
   lines.push("## Writing Checklist");
@@ -298,6 +334,26 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
 }
 
 // ─── content-constraints.md ─────────────────────────────────────
+//
+// TERMINOLOGY_TABLE is exported so app_41's vale-rule synthesizer
+// (generateValePreferredTermsStyle below) reuses this SAME data as its
+// substitution rules' source, rather than hand-copying the table a second
+// time — the LLM_MODEL_PRICING lesson (app_33) applied here too.
+
+export interface TerminologyRule {
+  use: string;
+  not: string[];
+  reason: string;
+}
+
+export const TERMINOLOGY_TABLE: TerminologyRule[] = [
+  { use: "snapshot", not: ["upload", "submission"], reason: "Canonical term for project input" },
+  { use: "context map", not: ["analysis", "scan"], reason: "Canonical term for parsed output" },
+  { use: "generator", not: ["creator", "builder"], reason: "Canonical term for output producers" },
+  { use: "program", not: ["feature", "module", "tool"], reason: "Product-level unit" },
+  { use: "project", not: ["repo", "codebase"], reason: "User's input concept" },
+  { use: "output file", not: ["artifact", "result"], reason: "What generators produce" },
+];
 
 export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -379,12 +435,9 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
   lines.push("");
   lines.push("| Use This | Not This | Reason |");
   lines.push("|----------|----------|--------|");
-  lines.push("| snapshot | upload, submission | Canonical term for project input |");
-  lines.push("| context map | analysis, scan | Canonical term for parsed output |");
-  lines.push("| generator | creator, builder | Canonical term for output producers |");
-  lines.push("| program | feature, module, tool | Product-level unit |");
-  lines.push("| project | repo, codebase | User's input concept |");
-  lines.push("| output file | artifact, result | What generators produce |");
+  for (const t of TERMINOLOGY_TABLE) {
+    lines.push(`| ${mdInline(t.use)} | ${t.not.map(mdInline).join(", ")} | ${mdInline(t.reason)} |`);
+  }
   lines.push("");
 
   // Formatting Standards
@@ -867,4 +920,115 @@ export function renderContentViolations(findings: ContentFinding[]): string[] {
   if (sorted.length > 40) lines.push(`| … | | | +${sorted.length - 40} more |`);
   lines.push("");
   return lines;
+}
+
+// ═══ app_41: vale rule synthesis (.vale.ini + styles/AXIS/*.yml) ═════════════
+//
+// docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #14 — "A: enforce
+// voice-and-tone on user-facing strings in PRs via vale rules the program
+// synthesizes from its own guide." These three generators emit a REAL,
+// runnable vale (MIT, github.com/errata-ai/vale) configuration — not
+// prose ABOUT voice, rules a linter can actually execute. Every token comes
+// from data this file already owns (CONTENT_RULES, TERMINOLOGY_TABLE,
+// VOICE_EXAMPLES) — synthesized, never hand-duplicated (the LLM_MODEL_PRICING
+// lesson, app_33).
+//
+// V ("the guide's own examples pass their own rules") is NOT proven here —
+// these three functions are pure, deterministic, no external process. The
+// self-consistency check that actually RUNS vale against VOICE_EXAMPLES lives
+// in apps/api/src/brand-voice-lint-watcher.ts (the Watch mechanic's own
+// runtime, where every other watcher's external-tool calls already live —
+// canvas-diagram-watcher.ts's D2 render is the precedent), proven again by a
+// dedicated test using the real vale binary.
+
+function escapeRegexToken(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Literal phrase -> a word-bounded regex token vale's existence check can use. */
+function literalToToken(phrase: string): string {
+  return `\\b${phrase.split(/\s+/).map(escapeRegexToken).join("[ -]")}\\b`;
+}
+
+/** All off-voice tokens this program can synthesize a rule for — CONTENT_RULES' regex sources (marketing fluff + dismissive language; PLACEHOLDER is a doc-hygiene concern, not a voice one) plus every VOICE_EXAMPLES word/phrase named as the reason its Don't example is off-voice. Exported so the watcher's runtime self-check and this generator can never drift apart. */
+export function valeForbiddenTokens(): string[] {
+  const fromContentRules = CONTENT_RULES.filter((r) => r.klass !== "PLACEHOLDER").map((r) => r.re.source);
+  const fromVoiceExamples = VOICE_EXAMPLES.flatMap((ex) => ex.dont_reason_words).map(literalToToken);
+  // Dedupe (a word could plausibly appear in both sources) while preserving
+  // stable, deterministic order — Set preserves insertion order in JS.
+  return [...new Set([...fromContentRules, ...fromVoiceExamples])];
+}
+
+// ─── .vale.ini ────────────────────────────────────────────────────
+
+export function generateValeConfig(_ctx: ContextMap): GeneratedFile {
+  const lines: string[] = [
+    "# AXIS Brand — vale configuration (synthesized from this repo's own voice guide)",
+    "# Run: vale --config .vale.ini <file>",
+    "StylesPath = styles",
+    "MinAlertLevel = suggestion",
+    "",
+    "[*]",
+    "BasedOnStyles = AXIS",
+    "",
+  ];
+  return {
+    path: ".vale.ini",
+    content: lines.join("\n"),
+    content_type: "text/plain",
+    program: "brand",
+    description: "vale configuration pointing at the synthesized AXIS voice style",
+  };
+}
+
+// ─── styles/AXIS/ForbiddenPatterns.yml ───────────────────────────
+
+export function generateValeForbiddenTermsStyle(_ctx: ContextMap): GeneratedFile {
+  const tokens = valeForbiddenTokens();
+  const lines: string[] = [
+    "# Synthesized from content-constraints.md's marketing/dismissive-language rules",
+    "# and voice-and-tone.md's own Don't examples — see generators-brand.ts's",
+    "# valeForbiddenTokens(). Do not hand-edit; regenerate instead.",
+    "extends: existence",
+    `message: ${yamlFlowScalar("Off-voice language: '%s'. See voice-and-tone.md and content-constraints.md.")}`,
+    "level: error",
+    "ignorecase: true",
+    "tokens:",
+    ...tokens.map((t) => `  - ${yamlFlowScalar(t)}`),
+    "",
+  ];
+  return {
+    path: "styles/AXIS/ForbiddenPatterns.yml",
+    content: lines.join("\n"),
+    content_type: "text/yaml",
+    program: "brand",
+    description: "vale existence rule synthesized from this repo's own forbidden voice patterns",
+  };
+}
+
+// ─── styles/AXIS/PreferredTerms.yml ──────────────────────────────
+
+export function generateValePreferredTermsStyle(_ctx: ContextMap): GeneratedFile {
+  const swap: Array<[string, string]> = [];
+  for (const t of TERMINOLOGY_TABLE) {
+    for (const bad of t.not) swap.push([bad, t.use]);
+  }
+  const lines: string[] = [
+    "# Synthesized from content-constraints.md's Controlled Terminology table —",
+    "# see generators-brand.ts's TERMINOLOGY_TABLE. Do not hand-edit; regenerate instead.",
+    "extends: substitution",
+    `message: ${yamlFlowScalar("Use '%s' instead of '%s'. See content-constraints.md's Controlled Terminology.")}`,
+    "level: warning",
+    "ignorecase: true",
+    "swap:",
+    ...swap.map(([bad, good]) => `  ${yamlFlowScalar(bad)}: ${yamlFlowScalar(good)}`),
+    "",
+  ];
+  return {
+    path: "styles/AXIS/PreferredTerms.yml",
+    content: lines.join("\n"),
+    content_type: "text/yaml",
+    program: "brand",
+    description: "vale substitution rule synthesized from this repo's own controlled terminology",
+  };
 }

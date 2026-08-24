@@ -24,6 +24,7 @@ import { processArtifactsApply, defaultArtifactsApplyDeps } from "./artifacts-ap
 import { processMarketingApply, defaultMarketingApplyDeps } from "./marketing-apply-watcher.js";
 import { processDebugPostmortem, defaultDebugPostmortemDeps } from "./debug-postmortem-watcher.js";
 import { processOptimizationMeter, defaultOptimizationMeterDeps } from "./optimization-meter-watcher.js";
+import { processBrandVoiceLint, defaultBrandVoiceLintDeps } from "./brand-voice-lint-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -102,6 +103,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const optimization = await processOptimizationMeter(payload, defaultOptimizationMeterDeps());
   if (optimization.status !== "not_optimization_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "optimization", status: optimization.status });
+    return;
+  }
+
+  const brand = await processBrandVoiceLint(payload, defaultBrandVoiceLintDeps());
+  if (brand.status !== "not_brand_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "brand", status: brand.status });
     return;
   }
 

@@ -1322,7 +1322,15 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(147); // +3 pitch (pitch-deck.md/json, slide-art-prompts.json); +3: verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1); +1: architecture-diagram.d2 (app_24); +1: seo-head-tags.html (app_30)
+    // FOUND STALE at 147 while shipping app_41 (2026-08-23) — this pin had already
+    // drifted 2 behind the real count-honesty-guarded value (149) before this
+    // candidate touched anything; count-surface-coverage.test.ts only scans
+    // .md/.json/.yaml/.yml/.html, never .ts source, so a hardcoded number in a TEST
+    // FILE is invisible to every doc-count guard (a known, documented gap in that
+    // guard's own scope). Not investigated further which candidate caused the
+    // earlier 147->149 drift; fixed forward to the real current total. +3 app_41:
+    // .vale.ini + styles/AXIS/ForbiddenPatterns.yml + styles/AXIS/PreferredTerms.yml (brand).
+    expect(generators.length).toBe(152);
     const paths = generators.map(g => g.path);
     expect(paths).toContain("symbol-index.json");
     expect(paths).toContain("context-map.json");

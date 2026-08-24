@@ -6,7 +6,7 @@
 **Category**: AI Development Intelligence Platform
 **Tagline**: The operating system for AI-native development
 **Owner**: Last Man Up Inc.
-**Model**: Freemium SaaS — Free tier (3 programs, 16 generators) → Paid tiers (21 programs, 149 generators; Starter $29 / Pro $99 / Growth $299 per month)
+**Model**: Freemium SaaS — Free tier (3 programs, 16 generators) → Paid tiers (21 programs, 152 generators; Starter $29 / Pro $99 / Growth $299 per month)
 
 ---
 
@@ -18,7 +18,7 @@
 |----------|---------|------------|---------------|
 | AI Code Assistants | GitHub Copilot, Cursor, Cody, Tabnine | $2B+ (2024) | **Upstream enabler** — AXIS feeds context to these tools |
 | Static Analysis | SonarQube, ESLint, Semgrep, CodeClimate | $800M | **Different axis** — AXIS analyzes architecture, not lint rules |
-| Code Intelligence | Sourcegraph, Codeium, Codacy | $500M | **Deeper output** — 149 artifacts vs. search results |
+| Code Intelligence | Sourcegraph, Codeium, Codacy | $500M | **Deeper output** — 152 artifacts vs. search results |
 | DevOps Intelligence | LinearB, Sleuth, Faros AI | $300M | **Repo-level** — AXIS operates at code level, not workflow |
 | Documentation | Mintlify, ReadMe, GitBook | $200M | **Broader scope** — docs are 1 of 21 program outputs |
 | AI Dev Tools (new) | Devin, SWE-Agent, OpenHands | $1B+ (projected) | **Infrastructure layer** — AXIS provides the context these agents need |
@@ -27,7 +27,7 @@
 
 | Advantage | Evidence | Defensibility |
 |-----------|---------|---------------|
-| 149 generators across 21 programs | apps/api/src/counts.ts canonical counts | High — breadth creates switching cost |
+| 152 generators across 21 programs | apps/api/src/counts.ts canonical counts | High — breadth creates switching cost |
 | Self-governing YAML constitution | docs/agentic-asset/ governance corpus | Very High — novel architecture |
 | Zero runtime HTTP dependencies | Custom router, verified in package.json | Medium — engineering discipline |
 | 91.5% test coverage (4,900+ tests) | vitest --coverage output | High — quality compounds |
@@ -37,7 +37,7 @@
 
 | Feature | Axis' Iliad | Sourcegraph | SonarQube | Devin |
 |---------|-------------|-------------|-----------|-------|
-| Repo analysis | ✅ 149 artifacts | ✅ Search + navigation | ✅ Quality gates | ✅ Task completion |
+| Repo analysis | ✅ 152 artifacts | ✅ Search + navigation | ✅ Quality gates | ✅ Task completion |
 | Agent instructions gen | ✅ AGENTS.md, CLAUDE.md | ❌ | ❌ | ❌ |
 | Design tokens gen | ✅ Theme program | ❌ | ❌ | ❌ |
 | Brand guidelines gen | ✅ Brand program | ❌ | ❌ | ❌ |
@@ -86,7 +86,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | # | Title | Format | Channel | Goal |
 |---|-------|--------|---------|------|
 | 1 | "Why Your AI Coding Assistant Needs Better Context" | Blog post (2,000 words) | Blog, HN, Dev.to | Problem awareness |
-| 2 | "149 Artifacts From One Upload: How Axis' Iliad Works" | Technical deep-dive | Blog, YouTube | Product understanding |
+| 2 | "152 Artifacts From One Upload: How Axis' Iliad Works" | Technical deep-dive | Blog, YouTube | Product understanding |
 | 3 | "The YAML Constitution: How We Built a Self-Governing AI System" | Architecture blog | Blog, HN | Technical credibility |
 | 4 | "From 0 to 91.5% Coverage: Testing a 20-Program Generator" | Engineering blog | Blog, Dev.to | Developer respect |
 | 5 | "Zero Dependencies: Why We Built Our Own HTTP Router" | Opinion piece | Blog, HN, Reddit | Philosophy alignment |
@@ -130,7 +130,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 
 | Day | Subject | Content |
 |-----|---------|---------|
-| 0 | You just unlocked the full catalog | Welcome to Pro. Guide to all 21 programs and 149 generators. |
+| 0 | You just unlocked the full catalog | Welcome to Pro. Guide to all 21 programs and 152 generators. |
 | 3 | Your brand guidelines are generated | Highlight Brand program output. "Share with your designer." |
 | 7 | Ship a video about your project | Remotion storyboard walkthrough |
 | 14 | Your optimization rules are saving tokens | Cost savings report from Optimization program |
@@ -149,7 +149,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 ## Landing Page Copy
 
 ### Hero Section
-**Headline**: 149 generators. 21 programs. One upload.
+**Headline**: 152 generators. 21 programs. One upload.
 **Subhead**: Axis' Iliad analyzes your codebase and generates structured intelligence — from agent instructions to brand guidelines to video storyboards.
 **CTA**: Analyze your repo free →
 
@@ -158,7 +158,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | Column | Headline | Body |
 |--------|----------|------|
 | 1 | Make AI tools smarter | Generate AGENTS.md, CLAUDE.md, and .cursorrules that give your AI assistant real context about your codebase. |
-| 2 | 149 artifacts, zero effort | From architecture diagrams to marketing copy to design tokens — all generated from a single snapshot of your repo. |
+| 2 | 152 artifacts, zero effort | From architecture diagrams to marketing copy to design tokens — all generated from a single snapshot of your repo. |
 | 3 | Self-auditing quality | 4,900+ tests. 91.5% coverage. A system that checks its own work. |
 
 ### Social Proof Section

@@ -58,7 +58,7 @@ export const FREE_PROGRAM_NAMES = ["search", "skills", "debug"] as const;
 export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
 
 /** Generated artifacts per full run (= TOTAL_GENERATORS). */
-export const ARTIFACT_COUNT = 149; // +2 redundancy-sweep.mjs + redundancy-sweep-playbook.md (tool_01, superpowers)
+export const ARTIFACT_COUNT = 152; // +3 app_41: .vale.ini + styles/AXIS/ForbiddenPatterns.yml + styles/AXIS/PreferredTerms.yml (brand)
 
 /**
  * Artifacts produced by the FREE_PROGRAM_NAMES programs alone (search+skills+debug) —

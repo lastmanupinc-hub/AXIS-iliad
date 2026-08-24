@@ -91,6 +91,20 @@ export { generatePitchDeck, generatePitchDeckJson, generateSlideArtPrompts } fro
 export { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate, generateTokenBudgetPlan, LLM_MODEL_PRICING } from "./generators-optimization.js";
 export { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap, generateDarkModeTokens } from "./generators-theme.js";
 export { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
+// app_41 — real vale (MIT) rule synthesis from this program's own guide data;
+// exported alongside the source data (TERMINOLOGY_TABLE, VOICE_EXAMPLES,
+// valeForbiddenTokens) so the watch mechanic (apps/api) can run the SAME
+// self-consistency check this generator's rules are built from.
+export {
+  generateValeConfig,
+  generateValeForbiddenTermsStyle,
+  generateValePreferredTermsStyle,
+  valeForbiddenTokens,
+  TERMINOLOGY_TABLE,
+  VOICE_EXAMPLES,
+  type TerminologyRule,
+  type VoiceExample,
+} from "./generators-brand.js";
 export { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist, generateAutomationPipeline } from "./generators-superpowers.js";
 export { generateVerifyGate, generateVerifyFull, generatePrePushHook } from "./generators-verify-gate.js";
 export { generateRedundancySweepScript, generateRedundancySweepPlaybook } from "./generators-redundancy-sweep.js";

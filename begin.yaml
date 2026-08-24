@@ -1692,7 +1692,101 @@ project_begin:
         roi_reason: "canonical_coherence 4 — a guide nobody enforces is a PDF."
         severity: LOW
         source_file: "packages/generator-core/src/generators-brand.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-23, same session as app_33.
+        # DEPENDENCY: vale (MIT, errata-ai/vale) fetched as a portable binary into .tools/ (gitignored)
+        # rather than a machine-wide chocolatey install — a shared-machine chocolatey lock was already
+        # held (likely a concurrent session), and a per-repo dev-tool binary is the more reproducible
+        # choice anyway. Verified empirically against the REAL binary before writing any watcher code
+        # (existence/substitution rule format, JSON output shape, exit-code-on-error semantics) —
+        # matches this session's own discipline of never guessing an external tool's contract.
+        # DELIVERED: (1) A — three new pure, deterministic generators in generators-brand.ts
+        # (generateValeConfig, generateValeForbiddenTermsStyle, generateValePreferredTermsStyle)
+        # synthesize a REAL, runnable vale config from data this file already owned — CONTENT_RULES
+        # (marketing/dismissive language) and a newly-extracted TERMINOLOGY_TABLE (was hardcoded prose
+        # in generateContentConstraints, now a shared const) feed ForbiddenPatterns.yml/PreferredTerms.yml,
+        # never a second hand-copy (the LLM_MODEL_PRICING lesson, app_33, applied again). brand-voice-
+        # lint-watcher.ts (NEW, triggered by the EXISTING pull_request webhook path) extracts real
+        # user-facing strings from a PR's own diff (JSX text + aria-label/alt/title/placeholder, ADDED
+        # lines only, accurate new-file line numbers from real hunk-header parsing) and posts a GitHub
+        # COMMIT STATUS — a genuinely different mechanic from every prior PR-opening watcher, since
+        # brand's W is "PR-lint" (a CI check), not a content PR. (2) V — "the guide's own examples pass
+        # their own rules", proven twice: empirically against the real vale binary during design (before
+        # any watcher code existed — every Do example: zero error-severity findings; every Don't example
+        # with a stated reason word: at least one), AND as a RUNTIME self-check the watcher runs before
+        # ever trusting the rules against a real PR (verifyVoiceExamplesSelfConsistent) — a failure here
+        # reports distinctly rather than posting a possibly-nonsensical status. Two of voice-and-tone.md's
+        # six Do/Don't pairs (Loading, Empty States) differ by informativeness, not vocabulary — named as
+        # NOT vale-coverable rather than force-fit or silently dropped. (3) W — PR-lint via the pull_request
+        # webhook path that already existed; WatchJobPayload.pr_number added (optional/additive, mirrors
+        # app_32's sentry_issue_id precedent), threaded from github-webhook.ts through to the watcher,
+        # dispatcher branch 14.
+        # SAFETY (this watcher is genuinely new attack surface — every prior external-process caller,
+        # canvas-diagram-watcher.ts's D2 renderer, only ever processes AXIS-generated text; this one
+        # shells out to vale against text extracted DIRECTLY from a PR author's own diff): PR-derived
+        # text only ever becomes a generated temp file's CONTENT, never a shell command string — execFile
+        # + an argv of fixed, AXIS-built paths only. Bounded blast radius: MAX_STRINGS (200) and
+        # MAX_STRING_LENGTH (500) cap extraction, MAX_LINE_LENGTH (2000, applied BEFORE regex matching —
+        # a self-caught bug, see below) caps a single diff line, VALE_TIMEOUT_MS bounds the subprocess.
+        # Proven, not just asserted: a dedicated red-proof test feeds shell-metacharacter-laden PR text
+        # (`"; rm -rf / #\`whoami\`$(echo pwned)`) through the REAL vale binary and confirms it's treated
+        # as inert file content.
+        # SELF-CAUGHT BUG (before the adversarial review, on my own re-read): MAX_STRING_LENGTH truncated
+        # each MATCH but extractFromLine's regexes still scanned the full, UNCAPPED line first — a single
+        # pathologically long diff line could undermine the "bounded blast radius" claim. Fixed with
+        # MAX_LINE_LENGTH, applied before regex matching; red-proof test added.
+        # ADVERSARIAL WORKFLOW REVIEW (3 dimensions — security/v-gate-honesty/correctness — 4 findings
+        # raised, all 4 independently verified, 0 refuted; security dimension came back clean): (1) HIGH —
+        # MAX_STRINGS' truncation was completely silent: a PR tripping the 200-string cap could post a
+        # confident "all on-voice" success while a real off-voice string past the cap was never checked —
+        # the one thing this file's own "false negatives fine, false positives not" philosophy actually
+        # forbids. Fixed: extractUserFacingStrings now returns {strings, truncated}, and `truncated` is
+        # disclosed in BOTH the success and failure commit-status description, never silently claimed as
+        # exhaustive. (2) LOW — the failure description paired violations[0] with errorFindings[0] (first
+        # array entry) rather than the finding whose OWN line actually matches violations[0] — correct
+        # only by luck of vale's return ordering, not by construction. Fixed: looks up the finding by its
+        # real batch line explicitly; a scrambled-order red-proof test added. (3) LOW — a garbled/malformed
+        # hunk header silently left newLine stale, fabricating line numbers for every added line after it.
+        # Fixed: an unrecognized "@@" line now stops trusting THAT FILE's line numbers (earlier well-formed
+        # hunks in the same file are kept); red-proof test added. (4) MEDIUM — the runtime self-check proves
+        # rule self-consistency against VOICE_EXAMPLES' clean prose, never against the structurally
+        # different text extractUserFacingStrings actually produces (JSX-interpolation-adjacent fragments,
+        # attribute values, truncated slices) — can only widen false negatives, never fabricate a citation,
+        # so disclosed as a named, accepted limitation (same treatment as the cross-line-JSX exclusion)
+        # rather than re-architected under this candidate's scope.
+        # FOUND AND FIXED IN PASSING, not this candidate's own scope: TWO hardcoded generator-count pins
+        # in TEST FILES (generate.test.ts, generate-programs.test.ts, both stale at 147 — count-surface-
+        # coverage.test.ts only scans .md/.json/.yaml/.yml/.html, never .ts source, so a number in a test
+        # file is invisible to every doc-count guard, a known documented gap) and ONE hardcoded
+        # ARTIFACT_COUNT mirror in production source (generators-agentic-purchasing.ts, kept manually
+        # pinned rather than imported to avoid a genuine circular-import with generate.ts's own REGISTRY —
+        # same reasoning as counts.ts's own manually-pinned constants). All three fixed forward to the
+        # real current total, not investigated further for which candidate caused the original drift.
+        # VERIFIED: 102/102 across 5 new/touched test files (watcher: 27 — canonical cases, the 4
+        # adversarial-review red-proofs, the real-vale-binary security red-proof, self-check red-proofs,
+        # diff-parsing edge cases; generators-brand-vale: 7 — structural + 2 real-vale-binary V-gate
+        # proofs; github-pr: 18 (whole file) — fetchPullRequestFiles + postCommitStatus; github-webhook:
+        # 34 (whole file) — pr_number threading; watch-dispatcher: 16 (whole file) — branch-14
+        # fallthrough). tsc clean on snapshots + generator-core + api. CASCADE: ARTIFACT_COUNT 149->152
+        # (+3: .vale.ini, styles/AXIS/ForbiddenPatterns.yml, styles/AXIS/PreferredTerms.yml) across
+        # counts.ts-derived TOTAL_GENERATORS, web config.ts, and a genuinely wide doc surface (README.md,
+        # apps/web/index.html, examples/README.{md,json}, server.json, generator-core/package.json,
+        # DocsPage.tsx + ProgramsPage.tsx's brand entries, LAUNCH_CLAIMS.yaml, launch-content.md,
+        # marketing-pack.md, AXIS_Board_Pitch.md, canvas-pack.md, remotion-pack.md, superpowers-pack.md,
+        # CONTRIBUTING.md, and begin.yaml's own identity section) — every "149" occurrence checked for
+        # context before touching it (this session's own prior sed-mishap lesson), begin.yaml's
+        # HISTORICAL 147->149 drift-fix comments left untouched on purpose (they record a real past
+        # event, not a current claim). count-honesty + count-surface-coverage + counts-consistency +
+        # launch-claims + strategic-docs-honesty guards all re-verified green (52/52) after every fix.
+        # SHARED-WORKTREE DISCIPLINE: a concurrent session's "free trial mode" feature landed touches to
+        # several of the same files this candidate also needed (config.ts's ENDPOINT_COUNT, LAUNCH_CLAIMS
+        # .yaml's endpoint_count, README.md's endpoint count) mid-build. Isolated via temporary revert +
+        # stage + restore (git add -p is unavailable non-interactively here) so my commit carries only my
+        # own hunks — their in-flight hunks stay on disk, unstaged, exactly as if I'd never touched the file.
+        # NOT DONE, deliberately, each its own scope: the web SettingsPage (no connect flow needed here —
+        # unlike sentry/provider-key, brand-voice-lint reuses the existing GitHub token, no new credential);
+        # non-JSX string literals (error messages, toast copy) — a stated v1 exclusion, JSX text + a fixed
+        # attribute allowlist only; cross-line JSX text — same stated exclusion; an MCP twin for anything
+        # (nothing here has a REST surface to twin).
 
       - id: "app_42_marketing_connected"
         description: "marketing → connected to a channel: push generated sequences into Resend (existing rail), schedule via pg-boss substrate, test-send round-trip before any real audience, feed send/conversion stats back into the funnel map. docs/saas-strategy/APPLICATION_BUILD_STRATEGY.md #15."

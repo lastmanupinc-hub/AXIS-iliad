@@ -63,3 +63,8 @@ apps/cli/.tsc-out/
 
 # spoke_05 storefront build output (regenerate: node scripts/build-storefront.mjs)
 .storefront-dist/
+
+# app_41: local dev copy of the vale binary (MIT, external — never vendored/committed;
+# fetched from https://github.com/errata-ai/vale/releases for local rule-synthesis
+# verification, same as this repo already treats hadolint/docker as external tools)
+.tools/

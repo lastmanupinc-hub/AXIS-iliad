@@ -28,6 +28,14 @@ export interface WatchJobPayload {
    * backwards-compatible with every job already in the queue.
    */
   sentry_issue_id?: string;
+  /**
+   * app_41: set only by pull_request webhook deliveries (event_type
+   * "pull_request") — the PR the brand-voice-lint watcher fetches changed
+   * files for and posts a commit status against. Optional and additive, same
+   * shape as sentry_issue_id above: push-triggered jobs never carry it, and
+   * no pre-existing watcher reads it.
+   */
+  pr_number?: number;
 }
 
 const QUEUE_NAME = "watch";

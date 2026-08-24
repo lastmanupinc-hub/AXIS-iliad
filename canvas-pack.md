@@ -42,7 +42,7 @@
 │  │  (cols 1-6)                  │  │  (cols 7-12)                         │   │
 │  │                              │  │                                      │   │
 │  │  Upload → Parse → Context    │  │  ┌────┐ ┌────┐ ┌────┐ ┌──────┐     │   │
-│  │    → Generate → 149 Artifacts │  │  │ 20 │ │ 143 │ │3906│ │99.99%│     │   │
+│  │    → Generate → 152 Artifacts │  │  │ 20 │ │ 143 │ │3906│ │99.99%│     │   │
 │  │                              │  │  │prog│ │ gen│ │test│ │ cov  │     │   │
 │  └──────────────────────────────┘  │  └────┘ └────┘ └────┘ └──────┘     │   │
 │                                     └──────────────────────────────────────┘   │
@@ -181,7 +181,7 @@ Corner badge on each: generator count.
 ### Pipeline Flow (Cols 1-6, Row 3)
 Horizontal flow: 5 connected nodes with arrows:
 ```
-[Upload] → [repo-parser] → [context-engine] → [generator-core] → [149 Artifacts]
+[Upload] → [repo-parser] → [context-engine] → [generator-core] → [152 Artifacts]
 ```
 Each node: surface-colored pill with cyan border. Arrow: cyan line with arrowhead. Below the arrow between generator-core and Artifacts: "deterministic" label in xs text.
 

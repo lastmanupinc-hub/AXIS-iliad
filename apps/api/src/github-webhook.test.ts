@@ -25,7 +25,7 @@ const watchtowerState = vi.hoisted(() => ({
   // test actually enqueued, so a test can assert on real call data instead of
   // just "it didn't throw".
   subscriptionsByRepo: new Map<string, Array<{ account_id: string; product_id: string }>>(),
-  enqueuedWatchJobs: [] as Array<{ account_id: string; product_id: string; repo_full_name: string; event_type: string; ref: string }>,
+  enqueuedWatchJobs: [] as Array<{ account_id: string; product_id: string; repo_full_name: string; event_type: string; ref: string; pr_number?: number }>,
 }));
 
 vi.mock("./github.js", () => ({
@@ -86,7 +86,7 @@ vi.mock("@axis/snapshots", () => ({
       created_at: new Date(0).toISOString(),
     })),
   ),
-  enqueueWatchJob: vi.fn(async (payload: { account_id: string; product_id: string; repo_full_name: string; event_type: string; ref: string }) => {
+  enqueueWatchJob: vi.fn(async (payload: { account_id: string; product_id: string; repo_full_name: string; event_type: string; ref: string; pr_number?: number }) => {
     watchtowerState.enqueuedWatchJobs.push(payload);
     return `job-${watchtowerState.enqueuedWatchJobs.length}`;
   }),
@@ -380,6 +380,22 @@ function pushBody(repoFullName: string): string {
   });
 }
 
+// app_41: pull_request-triggered watch jobs (unlike push) carry pr_number —
+// the brand-voice-lint watcher's only way to know which PR to check files
+// for and which SHA to post a commit status against.
+function prBody(repoFullName: string, prNumber: number, sha: string): string {
+  return JSON.stringify({
+    action: "opened",
+    number: prNumber,
+    pull_request: {
+      number: prNumber,
+      head: { sha, ref: "feature/x", repo: { full_name: repoFullName, html_url: `https://github.com/${repoFullName}` } },
+      base: { ref: "main" },
+    },
+    repository: { full_name: repoFullName, html_url: `https://github.com/${repoFullName}` },
+  });
+}
+
 // A second, larger fetchGitHubRepo response — used to force a real total_loc
 // change between two dispatches of the same repo (drives buildDeltaReport's
 // size section without depending on framework-specific route parsing).
@@ -646,6 +662,36 @@ describe("Watch mechanic — push events enqueue a watch job per subscription", 
 
     const accountIds = watchtowerState.enqueuedWatchJobs.map((j) => j.account_id).sort();
     expect(accountIds).toEqual(["acct_a", "acct_b"]);
+  });
+
+  it("app_41: a pull_request event's watch job carries pr_number; a push event's does not", async () => {
+    const repo = "watch-org/brand-subscriber";
+    watchtowerState.subscriptionsByRepo.set(repo, [{ account_id: "acct_a", product_id: "brand" }]);
+
+    const body = prBody(repo, 42, "prsha1234");
+    await req("POST", "/v1/github/webhook", body, {
+      "X-GitHub-Event": "pull_request",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "watch-delivery-pr-brand",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    expect(watchtowerState.enqueuedWatchJobs.length).toBe(1);
+    const job = watchtowerState.enqueuedWatchJobs[0];
+    expect(job.product_id).toBe("brand");
+    expect(job.event_type).toBe("pull_request");
+    expect(job.ref).toBe("prsha1234");
+    expect(job.pr_number).toBe(42);
+
+    watchtowerState.enqueuedWatchJobs.length = 0;
+    const pushJob = pushBody(repo);
+    await req("POST", "/v1/github/webhook", pushJob, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(pushJob),
+      "X-GitHub-Delivery": "watch-delivery-pr-brand-push",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(watchtowerState.enqueuedWatchJobs[0].pr_number).toBeUndefined();
   });
 
   it("a watch-enqueue failure does not break the existing anonymous snapshot/delta flow", async () => {

@@ -178,6 +178,8 @@ interface SnapshotTarget {
   ref: string;
   installationId: number | null;
   isPrivate: boolean;
+  /** app_41: set only for pull_request events — the brand-voice-lint watcher's target. */
+  prNumber: number | null;
 }
 
 function resolveSnapshotTarget(
@@ -194,6 +196,7 @@ function resolveSnapshotTarget(
       ref: p.ref ?? repo.default_branch ?? "HEAD",
       installationId: p.installation?.id ?? null,
       isPrivate: Boolean(repo.private),
+      prNumber: null,
     };
   }
 
@@ -214,6 +217,7 @@ function resolveSnapshotTarget(
       ref: p.pull_request?.head?.sha ?? p.pull_request?.head?.ref ?? "HEAD",
       installationId: p.installation?.id ?? null,
       isPrivate: false,
+      prNumber: p.pull_request?.number ?? null,
     };
   }
 
@@ -276,6 +280,7 @@ async function dispatchWebhookSnapshot(
         repo_full_name: target.repoFullName,
         event_type: event,
         ref: target.ref,
+        ...(target.prNumber !== null ? { pr_number: target.prNumber } : {}),
       });
     }
     if (subs.length > 0) {

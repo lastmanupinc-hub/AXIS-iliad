@@ -256,9 +256,12 @@ describe("verify-gate generators", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 147 registered generators", () => {
+  it("returns all 152 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(147); // +3 pitch (pitch-deck.md/json, slide-art-prompts.json); +3: verify.sh, verify-full.sh, .githooks/pre-push; +1: ap2-interop-samples.json (WO-07); +1: model-cascade.md (H7.1); +1: architecture-diagram.d2 (app_24); +1: seo-head-tags.html (app_30)
+    // FOUND STALE at 147 alongside generate.test.ts's identical pin while shipping
+    // app_41 (2026-08-23) — see that file's comment for the full gap explanation
+    // (a hardcoded count in a .ts test file is invisible to every doc-count guard).
+    expect(generators.length).toBe(152);
   });
 
   it("returns objects with path and program fields", () => {

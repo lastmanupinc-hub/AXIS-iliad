@@ -114,7 +114,7 @@ const PROGRAMS: ProgramDef[] = [
 
     tagline: "Brand guidelines, messaging system & channel rulebook",
     keywords: ["developer brand guidelines generator", "messaging system generator", "channel rulebook", "brand voice SaaS", "startup brand identity", "developer marketing copy"],
-    outputs: ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
+    outputs: ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", ".vale.ini", "styles/AXIS/ForbiddenPatterns.yml", "styles/AXIS/PreferredTerms.yml", "channel-rulebook.md"],
     cta: "Generate brand guidelines",
   },
   {

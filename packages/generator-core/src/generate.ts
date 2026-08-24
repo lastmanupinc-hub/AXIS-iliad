@@ -10,7 +10,7 @@ import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityM
 import { generatePitchDeck, generatePitchDeckJson, generateSlideArtPrompts } from "./generators-pitch.js";
 import { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate, generateTokenBudgetPlan } from "./generators-optimization.js";
 import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap, generateDarkModeTokens } from "./generators-theme.js";
-import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
+import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook, generateValeConfig, generateValeForbiddenTermsStyle, generateValePreferredTermsStyle } from "./generators-brand.js";
 import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist, generateAutomationPipeline } from "./generators-superpowers.js";
 import { generateVerifyGate, generateVerifyFull, generatePrePushHook } from "./generators-verify-gate.js";
 import { generateRedundancySweepScript, generateRedundancySweepPlaybook } from "./generators-redundancy-sweep.js";
@@ -86,6 +86,9 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "voice-and-tone.md": (ctx, _p, files) => generateVoiceAndTone(ctx, files),
   "content-constraints.md": (ctx, _p, files) => generateContentConstraints(ctx, files),
   "messaging-system.yaml": (ctx, _p, files) => generateMessagingSystem(ctx, files),
+  ".vale.ini": (ctx) => generateValeConfig(ctx),
+  "styles/AXIS/ForbiddenPatterns.yml": (ctx) => generateValeForbiddenTermsStyle(ctx),
+  "styles/AXIS/PreferredTerms.yml": (ctx) => generateValePreferredTermsStyle(ctx),
   "superpower-pack.md": (ctx, _p, files) => generateSuperpowerPack(ctx, files),
   "workflow-registry.json": (ctx, profile, files) => generateWorkflowRegistry(ctx, profile, files),
   "test-generation-rules.md": (ctx, _p, files) => generateTestGenerationRules(ctx, files),

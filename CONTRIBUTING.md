@@ -35,7 +35,7 @@ cd apps/web && npx vite
 | `packages/snapshots/` | Snapshot intake, Postgres (Neon) store, billing, funnel types |
 | `packages/repo-parser/` | Language/framework detection, import graph |
 | `packages/context-engine/` | Context map and repo profile builders |
-| `packages/generator-core/` | 149 generators across 21 programs |
+| `packages/generator-core/` | 152 generators across 21 programs |
 | `apps/api/` | HTTP server (port 4000) |
 | `apps/cli/` | CLI tool (`axis analyze`, `axis github`) |
 | `apps/web/` | React SPA (Vite, port 5173) |

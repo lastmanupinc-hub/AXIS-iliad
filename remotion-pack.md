@@ -4,7 +4,7 @@
 
 | Property | Value |
 |----------|-------|
-| Title | "Axis' Iliad: From Upload to 149 Artifacts" |
+| Title | "Axis' Iliad: From Upload to 152 Artifacts" |
 | Duration | 60 seconds |
 | Resolution | 1920 × 1080 (16:9) |
 | FPS | 30 |

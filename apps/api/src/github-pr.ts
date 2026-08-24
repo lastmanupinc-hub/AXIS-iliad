@@ -190,3 +190,65 @@ export async function openDriftPullRequest(fetchImpl: typeof fetch, p: OpenDrift
     body: p.body,
   });
 }
+
+// ─── app_41: PR-file listing + commit-status posting ─────────────
+//
+// Distinct from openApplyPullRequest's PR-OPENING flow above: brand's W is a
+// PR CHECK ("PR-lint"), not a content PR — it reads the diff and posts a
+// commit status against the PR's own head SHA, the same mechanism a CI
+// provider uses. No new branch, no new commit, nothing to open.
+
+export interface PullRequestFile {
+  filename: string;
+  status: string;
+  /** Unified-diff hunk text for this file; absent for binary files or very large diffs GitHub declines to compute a patch for. */
+  patch?: string;
+}
+
+/** GET /repos/{owner}/{repo}/pulls/{pull_number}/files — every changed file's unified-diff patch, up to GitHub's own pagination default (first 100 files; more than that is out of scope for a voice-lint check). */
+export async function fetchPullRequestFiles(
+  fetchImpl: typeof fetch,
+  token: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<PullRequestFile[]> {
+  const res = await ghCall(fetchImpl, token, "GET", `/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100`);
+  if (res.status !== 200 || !Array.isArray(res.body)) return [];
+  return (res.body as Array<Record<string, unknown>>)
+    .filter((f) => typeof f.filename === "string" && typeof f.status === "string")
+    .map((f) => ({
+      filename: f.filename as string,
+      status: f.status as string,
+      patch: typeof f.patch === "string" ? f.patch : undefined,
+    }));
+}
+
+export type CommitStatusState = "success" | "failure" | "error" | "pending";
+
+export interface PostCommitStatusParams {
+  owner: string;
+  repo: string;
+  token: string;
+  sha: string;
+  state: CommitStatusState;
+  description: string;
+  context: string;
+}
+
+export interface PostCommitStatusResult {
+  posted: boolean;
+  reason?: string;
+}
+
+/** POST /repos/{owner}/{repo}/statuses/{sha} — the PR-lint check result. GitHub caps description at 140 chars; truncated here rather than rejected by the API. */
+export async function postCommitStatus(fetchImpl: typeof fetch, p: PostCommitStatusParams): Promise<PostCommitStatusResult> {
+  const description = p.description.length > 140 ? `${p.description.slice(0, 137)}...` : p.description;
+  const res = await ghCall(fetchImpl, p.token, "POST", `/repos/${p.owner}/${p.repo}/statuses/${p.sha}`, {
+    state: p.state,
+    description,
+    context: p.context,
+  });
+  if (res.status !== 201) return { posted: false, reason: `status create failed (${res.status})` };
+  return { posted: true };
+}
