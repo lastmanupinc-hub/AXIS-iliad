@@ -3180,10 +3180,32 @@ project_begin:
         # follow-up commit picks up exactly those 8 once it lands. Nothing lost,
         # nothing wrongly attributed.
         #
-        # NOT DONE (deliberately, not silently): the trial itself is NOT flipped on
-        # — AXIS_FREE_TRIAL_STARTED_AT is unset in Render. That's the owner's
-        # explicit go/no-go moment, separate from shipping the code that makes the
-        # trial possible. GitHub Sponsors/.github/FUNDING.yml — needs the owner's
+        # TRIAL ACTIVATED 2026-08-24T01:22:28Z, owner-directed same session ("switch
+        # it on"). Verified via Render's own API before touching anything, not
+        # assumed: axis-api deploys from `main` (branch/repo/autoDeploy confirmed via
+        # GET /v1/services/{id}), and origin/main was ALREADY at this candidate's
+        # commit (a concurrent session's own unrelated push had fast-forwarded main
+        # to a commit with 4b34ad8 as an ancestor) — the code was already live before
+        # any action here, confirmed via GET .../deploys (the live deploy's commit
+        # matched). Setting AXIS_FREE_TRIAL_STARTED_AT via the env-vars API returned
+        # 200 but did NOT restart the running container (Render env-var API writes
+        # update config, not a live process's already-loaded `process.env` — no new
+        # deploy appeared in the deploys list afterward) — caught by verifying LIVE
+        # rather than trusting the 200: curled ping_payment right after the "successful"
+        # PUT and got the real challenge, not trial behavior, provably still off.
+        # Explicitly triggered a new deploy (POST .../deploys) to restart the
+        # container against the updated config, watched it build_in_progress ->
+        # update_in_progress -> live via the deploys API (never trusted silence),
+        # then re-verified with TWO independent live checks: ping_payment now
+        # returns the trial success envelope (settled_cents:0), and GET /v1/docs'
+        # OpenAPI banner shows "FREE TRIAL ACTIVE (ends 2026-08-31T01:22:28.000Z)" —
+        # the exact 7-day window. Ends itself automatically; no further action needed
+        # unless the owner wants to end it early (unset the env var + redeploy) or
+        # extend it (this candidate's design is a fixed 7-day duration from the
+        # start timestamp, not independently configurable — a real limitation if
+        # early-extension is ever wanted, worth knowing rather than assuming).
+        #
+        # STILL NOT DONE: GitHub Sponsors/.github/FUNDING.yml — needs the owner's
         # actual platform + handle, genuinely can't be guessed.
 
   highest_roi_definition:
