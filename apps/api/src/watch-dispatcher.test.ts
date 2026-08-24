@@ -14,6 +14,7 @@ const processMarketingApply = vi.fn();
 const processDebugPostmortem = vi.fn();
 const processOptimizationMeter = vi.fn();
 const processBrandVoiceLint = vi.fn();
+const processAlgorithmicRender = vi.fn();
 
 vi.mock("./skills-refresh-watcher.js", () => ({
   processSkillsRefresh: (...args: unknown[]) => processSkillsRefresh(...args),
@@ -71,11 +72,19 @@ vi.mock("./brand-voice-lint-watcher.js", () => ({
   processBrandVoiceLint: (...args: unknown[]) => processBrandVoiceLint(...args),
   defaultBrandVoiceLintDeps: () => "brand-deps",
 }));
+vi.mock("./algorithmic-render-watcher.js", () => ({
+  processAlgorithmicRender: (...args: unknown[]) => processAlgorithmicRender(...args),
+  defaultAlgorithmicRenderDeps: () => "algorithmic-deps",
+}));
 vi.mock("@axis/snapshots", () => ({
   registerWatchWorker: vi.fn(async (handler: unknown) => {
     (globalThis as { __capturedHandler?: unknown }).__capturedHandler = handler;
     return "sub-id";
   }),
+  // Free trial: defensive-only — watch-dispatcher.ts doesn't import this, but
+  // kept consistent with every other full-replacement @axis/snapshots mock in
+  // this suite (see cashier-paid-wallet.test.ts's note).
+  isFreeTrialActive: vi.fn(() => false),
 }));
 
 async function loadDispatchWatchJob() {
@@ -304,9 +313,32 @@ describe("watch-dispatcher", () => {
     processDebugPostmortem.mockResolvedValue({ status: "not_debug_product" });
     processOptimizationMeter.mockResolvedValue({ status: "not_optimization_product" });
     processBrandVoiceLint.mockResolvedValue({ status: "status_posted" });
+    processAlgorithmicRender.mockResolvedValue({ status: "pr_opened" });
     const dispatch = await loadDispatchWatchJob();
     await dispatch({ ...payload, product_id: "brand" });
     expect(processBrandVoiceLint).toHaveBeenCalledWith({ ...payload, product_id: "brand" }, "brand-deps");
+    expect(processAlgorithmicRender).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the algorithmic-render processor when every earlier handler declines the product_id", async () => {
+    processSkillsRefresh.mockResolvedValue({ status: "not_skills_product" });
+    processThemeTokenSync.mockResolvedValue({ status: "not_theme_product" });
+    processMcpHostedSync.mockResolvedValue({ status: "not_mcp_product" });
+    processSearchIndexSync.mockResolvedValue({ status: "not_search_product" });
+    processCanvasDiagramSync.mockResolvedValue({ status: "not_canvas_product" });
+    processSeoApply.mockResolvedValue({ status: "not_seo_product" });
+    processFrontendApply.mockResolvedValue({ status: "not_frontend_product" });
+    processNotebookReindex.mockResolvedValue({ status: "not_notebook_product" });
+    processObsidianVaultSync.mockResolvedValue({ status: "not_obsidian_product" });
+    processArtifactsApply.mockResolvedValue({ status: "not_artifacts_product" });
+    processMarketingApply.mockResolvedValue({ status: "not_marketing_product" });
+    processDebugPostmortem.mockResolvedValue({ status: "not_debug_product" });
+    processOptimizationMeter.mockResolvedValue({ status: "not_optimization_product" });
+    processBrandVoiceLint.mockResolvedValue({ status: "not_brand_product" });
+    processAlgorithmicRender.mockResolvedValue({ status: "pr_opened" });
+    const dispatch = await loadDispatchWatchJob();
+    await dispatch({ ...payload, product_id: "algorithmic" });
+    expect(processAlgorithmicRender).toHaveBeenCalledWith({ ...payload, product_id: "algorithmic" }, "algorithmic-deps");
   });
 
   it("does not throw when no processor claims the product_id (an unhandled product is a log line, not a crash)", async () => {
@@ -324,6 +356,7 @@ describe("watch-dispatcher", () => {
     processDebugPostmortem.mockResolvedValue({ status: "not_debug_product" });
     processOptimizationMeter.mockResolvedValue({ status: "not_optimization_product" });
     processBrandVoiceLint.mockResolvedValue({ status: "not_brand_product" });
+    processAlgorithmicRender.mockResolvedValue({ status: "not_algorithmic_product" });
     const dispatch = await loadDispatchWatchJob();
     await expect(dispatch({ ...payload, product_id: "some-future-product" })).resolves.toBeUndefined();
   });

@@ -106,6 +106,16 @@ function asRecord(v: unknown): Record<string, unknown> {
 export interface ApplyFile {
   path: string;
   content: string;
+  /**
+   * app_44: "utf8" (default) treats `content` as text and base64-encodes it
+   * for GitHub's Contents API. "base64" means `content` IS ALREADY the
+   * base64 GitHub wants — for binary files (PNGs), re-encoding raw bytes as
+   * if they were UTF-8 text would corrupt them (UTF-8 is lossy for
+   * arbitrary byte sequences); the caller base64-encodes the real bytes
+   * itself (`buffer.toString("base64")`) and this skips the redundant,
+   * corrupting re-encode.
+   */
+  encoding?: "utf8" | "base64";
 }
 
 export interface OpenApplyPrParams {
@@ -152,12 +162,21 @@ export async function openApplyPullRequest(fetchImpl: typeof fetch, p: OpenApply
 
   // 3. commit each file to the branch (existing sha per-file, to UPDATE rather than CREATE)
   for (const file of p.files) {
+    // Found on adversarial review: encodePath does `path.split("/")` with no
+    // guard — a caller-constructed file with a missing/non-string `path`
+    // (e.g. a malformed upstream record) would throw here UNCAUGHT, escaping
+    // this function entirely instead of the honest {opened:false, reason}
+    // every other failure mode in this function already returns. Same fail
+    // shape as everything else here, not a special case.
+    if (typeof file.path !== "string" || file.path.length === 0) {
+      return { opened: false, reason: `file has an invalid path: ${JSON.stringify(file.path)}` };
+    }
     const existing = await ghCall(fetchImpl, p.token, "GET", `${base}/contents/${encodePath(file.path)}?ref=${encodeURIComponent(p.branchName)}`);
     const existingSha = existing.status === 200 ? asRecord(existing.body).sha : undefined;
 
     const put = await ghCall(fetchImpl, p.token, "PUT", `${base}/contents/${encodePath(file.path)}`, {
       message: p.title,
-      content: Buffer.from(file.content, "utf8").toString("base64"),
+      content: file.encoding === "base64" ? file.content : Buffer.from(file.content, "utf8").toString("base64"),
       branch: p.branchName,
       ...(typeof existingSha === "string" ? { sha: existingSha } : {}),
     });

@@ -1867,7 +1867,95 @@ project_begin:
         roi_reason: "optionality 3; weakest market fit, cheapest to finish honestly."
         severity: LOW
         source_file: "packages/generator-core/src/generators-algorithmic.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-24, same session as app_33/app_41.
+        # DEPENDENCY: sharp (Apache-2.0) + @napi-rs/canvas (MIT) added as REAL apps/api dependencies
+        # (@napi-rs/canvas was already present transitively via pdfjs-dist, but a transitive dep is not
+        # something to build on — added directly). Both verified working natively in this environment
+        # before writing any watcher code (createCanvas+toBuffer, sharp composite+toBuffer) — no
+        # postinstall/build-script approval needed despite pnpm flagging sharp's own postinstall as
+        # ignored (its Windows platform binary resolves as a prebuilt optionalDependency instead).
+        # SAFETY, genuinely simpler than app_33/41: every render input here is AXIS-generated
+        # (generateVariationMatrix's own colors/seeds/counts), never third-party PR content — the SAME
+        # argument canvas-diagram-watcher.ts's own header already makes for D2. Both libraries run
+        # IN-PROCESS (no subprocess, no temp files, no shell) — narrower surface than app_32's REST calls
+        # or app_41's vale subprocess, so this candidate did not need app_41's adversarial-workflow
+        # review; a self-review sufficed and is proportionate to what's actually novel here.
+        # DELIVERED: (1) A — the existing generateVariationMatrix's own parameter matrix (colors, seeds,
+        # complexity, layout, element_count — real repo-derived numbers) is now actually RENDERED: 3 real
+        # layout algorithms (grid/radial/force-directed — the ONLY 3 a real variation can ever carry;
+        # generateVariationMatrix's own loop never emits the other 2 declared-possible names, treemap/
+        # component-tree, so implementing them would be dead code, named not silently skipped) via
+        # @napi-rs/canvas, seeded deterministically (mulberry32, no external dependency) so the same repo
+        # state always renders the same pixels. sharp's real, scoped role: compositing the rendered
+        # thumbnails into one contact-sheet overview image — not decorative, its own genuine capability.
+        # (2) V, verbatim — "every variation in the matrix renders without error": renderAllVariations
+        # attempts EVERY variation (one throwing never aborts the batch, so a bad variation doesn't hide
+        # whether the others are fine), and the PROCESSOR blocks the PR outright on ANY failure — a
+        # partial collection is not "the collection exists as images," named via failed_variations rather
+        # than shipped silently thin. (3) W — built as a real watcher even though the spec marks it
+        # optional/lowest-priority, for consistency with the dispatcher pattern every other program in
+        # this codebase already uses (dispatcher branch 15); on push, regenerates the matrix, renders
+        # everything, opens a PR with the matrix + every thumbnail PNG + the contact sheet.
+        # SELF-CAUGHT BUG (found writing this candidate's own idempotency test, not by luck): binary
+        # content (PNGs) passed through openApplyPullRequest's existing `Buffer.from(content,"utf8")`
+        # path would have been CORRUPTED — that path is for text files, and re-encoding raw bytes as if
+        # they were UTF-8 text is lossy for arbitrary byte sequences. Fixed by extending the SHARED
+        # ApplyFile/openApplyPullRequest (every watcher's own PR-opening substrate) with an optional
+        # `encoding: "base64"` field — additive, every existing text-file caller unaffected — so binary
+        # content is sent to GitHub exactly as base64-encoded, never re-encoded. Red-proof test: encodes
+        # real PNG signature bytes, decodes what was actually sent, asserts byte-for-byte equality.
+        # FOUND AND FIXED IN PASSING, blocking this candidate's own correctness (not cosmetic): generate-
+        # VariationMatrix embedded `generated: ctx.generated_at` — a REAL, fresh wall-clock stamp on every
+        # createSnapshot() call (packages/context-engine/src/engine.ts derives it from the snapshot's own
+        # created_at) — meaning two runs against the IDENTICAL logical repo state never produced identical
+        # bytes, silently breaking this watcher's idempotency check (the "regenerate, compare, skip if
+        # unchanged" pattern every watcher in this codebase relies on to not spam a PR on every push).
+        # Caught by my OWN idempotency test failing, not assumed correct. Fixed by removing the field —
+        # the same "no Generated: line" discipline generateGenerativeSketch already follows elsewhere in
+        # this SAME file. NOT fixed, named instead (three sibling generators in the same file have the
+        # identical anti-pattern — generateParameterPack's generated_at, generateCollectionMap's and
+        # generateExportManifest's `Generated: ${ctx.generated_at}` lines): none of the three currently
+        # have a watcher built against them, so nothing is BROKEN by leaving them as they are today: this
+        # is a real, related, but genuinely separate observation, not smuggled into this candidate's own
+        # fix (the app_32 precedent — a found-but-unrelated gap gets filed as its own note, not silently
+        # absorbed).
+        # ADVERSARIAL WORKFLOW REVIEW (2 dimensions — input-boundedness / correctness, scoped down from
+        # app_41's 3 since there is genuinely no untrusted-input attack surface here to review; the
+        # boundedness claim itself was independently checked rather than taken on the author's own say-so
+        # — confirmed to actually hold for every real VariationParams field): 3 findings raised, all 3
+        # independently verified, 0 refuted, all latent (not reachable via today's generateVariationMatrix,
+        # which never emits malformed data) but real defensive-programming gaps worth closing before
+        # anything less-trusted calls these same exported functions later. (1) MEDIUM — renderAllVariations'
+        # catch block re-read v.id on the SAME null/undefined v that had just thrown reading v.id in the
+        # try — a SECOND unguarded throw escaping the function entirely, defeating its own stated "one
+        # throwing never aborts the batch" guarantee (and, traced further, watch-queue.ts's registerWatchWorker
+        # has no per-job try/catch either, so the blast radius was the WHOLE pg-boss batch, not just one
+        # render). Fixed: id/thumbnail derived defensively BEFORE the try, so they can never themselves be
+        # a failure source. (2) LOW — element_count's clamp (Math.max(1, Math.min(200, Math.round(x))))
+        # propagated NaN through unchanged, unlike seed's `seed >>> 0`. Fixed with an explicit finiteness
+        # check. (3) LOW — openApplyPullRequest's encodePath had no guard for a non-string file.path,
+        # throwing uncaught instead of this function's own established {opened:false, reason} contract
+        # every other failure mode already uses. Fixed with the same contract. All 3 have RED-PROOF tests.
+        # VERIFIED: 59/59 across 3 new/touched test files (watcher: 22 — canonical cases incl. the
+        # RED-PROOF partial-collection-blocks-the-PR case, the idempotency case that caught the
+        # generated_at bug, the null-array-element red-proof, the NaN-element_count red-proof, seededRng
+        # determinism, layoutFor proving each named layout is genuinely different (not one generic
+        # renderer), realRenderVariation + realBuildContactSheet against the REAL native libraries with no
+        # mocks incl. a byte-identical determinism proof and a malformed-color-never-throws proof;
+        # dispatcher: 17 (whole file) — branch-15 fallthrough both directions;
+        # github-pr: 20 (whole file) — the binary-encoding + invalid-path red-proofs). tsc clean on
+        # generator-core + api.
+        # Pre-existing algorithmic generator suites (develop/harden2/injection/polish, 18 tests) and the
+        # full determinism suite re-verified green after the generated_at removal. No count cascade: no
+        # new REGISTRY generator (the render is watcher output landing as a PR, same as every prior
+        # watcher — app_32/33/41's own precedent), no new REST endpoint.
+        # NOT DONE, deliberately, each its own scope: the other 3 generators' generated_at anti-pattern
+        # (named above, not this candidate's own blocker); full 1920x1080 renders (the matrix's own
+        # `thumbnail` field/path names a thumbnail, and thumbnail-size (320x180) is what was actually
+        # promised and rendered — export-manifest.yaml's aspirational video/gif/png_sequence exports were
+        # never built by ANY prior candidate and remain unbuilt, not this one's job); treemap/component-
+        # tree layout algorithms (dead code today, named in the file header, not implemented against
+        # nothing that can invoke them).
 
       - id: "money_02_paid_access_incident_hardened"
         description: >

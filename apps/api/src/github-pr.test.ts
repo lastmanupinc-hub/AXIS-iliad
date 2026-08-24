@@ -217,6 +217,43 @@ describe("openApplyPullRequest (generic multi-file Apply-channel substrate)", ()
     expect(calls).toHaveLength(6); // never reaches the "open PR" call
   });
 
+  it("RED-PROOF: a file with an invalid path returns {opened:false, reason} like every other failure mode, never an uncaught throw", async () => {
+    // Found on adversarial review: encodePath does path.split("/") with no
+    // guard — a caller-constructed file with path:undefined (e.g. a
+    // watcher's own malformed record) used to throw here UNCAUGHT, escaping
+    // this function's own established {opened:false, reason} contract.
+    const { fetch, calls } = seqFetch([{ status: 200, json: { object: { sha: "basesha" } } }, { status: 201, json: {} }]);
+    const r = await openApplyPullRequest(
+      fetch,
+      applyParams({ files: [{ path: undefined as unknown as string, content: "x" }] }),
+    );
+    expect(r.opened).toBe(false);
+    expect(r.reason).toContain("invalid path");
+    expect(calls).toHaveLength(2); // branch created, but the per-file loop never reaches a network call for the bad file
+  });
+
+  it("app_44: encoding:'base64' sends the content AS-IS, never re-encoded as if it were UTF-8 text (binary files would be corrupted by a UTF-8 round-trip)", async () => {
+    // A real PNG signature byte sequence, base64-encoded — the KIND of bytes
+    // a naive Buffer.from(content, "utf8") would corrupt (0x89 is not valid
+    // standalone UTF-8, so a text round-trip mangles it).
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const alreadyBase64 = pngBytes.toString("base64");
+    const { fetch, calls } = seqFetch([
+      { status: 200, json: { object: { sha: "basesha" } } },
+      { status: 201, json: {} },
+      { status: 404, json: { message: "Not Found" } },
+      { status: 201, json: {} },
+      { status: 201, json: { html_url: "https://github.com/o/r/pull/1", number: 1 } },
+    ]);
+    await openApplyPullRequest(
+      fetch,
+      applyParams({ files: [{ path: "thumbnails/var_001.png", content: alreadyBase64, encoding: "base64" }] }),
+    );
+    expect(calls[3].body).toMatchObject({ content: alreadyBase64 });
+    // Decoding what was actually sent reconstructs the exact original bytes.
+    expect(Buffer.from(calls[3].body?.content as string, "base64")).toEqual(pngBytes);
+  });
+
   it("openDriftPullRequest is a 1-file case of the same substrate: identical call shape for a single file", async () => {
     const { fetch: driftFetch, calls: driftCalls } = seqFetch([
       { status: 200, json: { object: { sha: "basesha" } } },

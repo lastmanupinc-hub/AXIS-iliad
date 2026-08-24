@@ -25,6 +25,7 @@ import { processMarketingApply, defaultMarketingApplyDeps } from "./marketing-ap
 import { processDebugPostmortem, defaultDebugPostmortemDeps } from "./debug-postmortem-watcher.js";
 import { processOptimizationMeter, defaultOptimizationMeterDeps } from "./optimization-meter-watcher.js";
 import { processBrandVoiceLint, defaultBrandVoiceLintDeps } from "./brand-voice-lint-watcher.js";
+import { processAlgorithmicRender, defaultAlgorithmicRenderDeps } from "./algorithmic-render-watcher.js";
 import { log } from "./logger.js";
 
 async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
@@ -109,6 +110,12 @@ async function dispatchWatchJob(payload: WatchJobPayload): Promise<void> {
   const brand = await processBrandVoiceLint(payload, defaultBrandVoiceLintDeps());
   if (brand.status !== "not_brand_product") {
     log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "brand", status: brand.status });
+    return;
+  }
+
+  const algorithmic = await processAlgorithmicRender(payload, defaultAlgorithmicRenderDeps());
+  if (algorithmic.status !== "not_algorithmic_product") {
+    log("info", "watch-dispatcher.processed", { repo: payload.repo_full_name, product_id: payload.product_id, handler: "algorithmic", status: algorithmic.status });
     return;
   }
 

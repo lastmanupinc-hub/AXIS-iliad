@@ -678,7 +678,15 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
 
   const matrix = {
     project: id.name,
-    generated: ctx.generated_at,
+    // No `generated` timestamp field — found while building app_44's
+    // watcher: ctx.generated_at is derived from the SNAPSHOT's own
+    // created_at (packages/context-engine/src/engine.ts), which is a real,
+    // fresh wall-clock stamp on every createSnapshot() call. Embedding it
+    // here meant two runs against the IDENTICAL logical repo state never
+    // produced identical bytes — silently breaking any watcher's
+    // idempotency check (the exact same "no Generated: line" discipline
+    // generateGenerativeSketch already follows in this same file, applied
+    // here too now that a real consumer depends on it).
     parameters,
     variation_count: variations.length,
     variations,
