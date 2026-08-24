@@ -45,7 +45,7 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
 export const MCP_TOOL_COUNT = 43;
-export const ENDPOINT_COUNT = 178; // +2 admin-page-reachability fix: POST + DELETE /v1/admin/session (HttpOnly admin-elevation cookie login/logout)
+export const ENDPOINT_COUNT = 180; // +2 LinkedIn OAuth login: GET /v1/auth/linkedin + GET /v1/auth/linkedin/callback (owner-email match also auto-grants the admin-elevation cookie via the shared exchange handler)
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */
 export const API_VERSION = "0.5.3";

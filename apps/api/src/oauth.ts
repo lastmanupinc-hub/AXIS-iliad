@@ -16,8 +16,13 @@ import {
   exchangeGoogleCode,
   getGoogleUser,
   upsertAccountByGoogle,
+  getLinkedInAuthUrl,
+  exchangeLinkedInCode,
+  getLinkedInUser,
+  upsertAccountByLinkedIn,
   resolveApiKey,
   discardAccountSnapshotContent,
+  type Account,
 } from "@axis/snapshots";
 
 function getOAuthConfig() {
@@ -32,6 +37,14 @@ function getGoogleOAuthConfig() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const callbackUrl = process.env.GOOGLE_CALLBACK_URL ?? "http://localhost:4000/v1/auth/google/callback";
+  const webAppUrl = process.env.AXIS_WEB_URL ?? "http://localhost:3000";
+  return { clientId, clientSecret, callbackUrl, webAppUrl };
+}
+
+function getLinkedInOAuthConfig() {
+  const clientId = process.env.LINKEDIN_CLIENT_ID;
+  const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+  const callbackUrl = process.env.LINKEDIN_CALLBACK_URL ?? "http://localhost:4000/v1/auth/linkedin/callback";
   const webAppUrl = process.env.AXIS_WEB_URL ?? "http://localhost:3000";
   return { clientId, clientSecret, callbackUrl, webAppUrl };
 }
@@ -250,6 +263,88 @@ export async function handleGoogleOAuthCallback(
   }
 }
 
+/** GET /v1/auth/linkedin — initiate LinkedIn "Sign In with LinkedIn using
+ *  OpenID Connect" flow. Same shape as Google's start handler. */
+export async function handleLinkedInOAuthStart(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { clientId, callbackUrl } = getLinkedInOAuthConfig();
+  if (!clientId) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "LinkedIn OAuth is not configured");
+    return;
+  }
+
+  const state = await createOAuthState();
+  const url = getLinkedInAuthUrl(clientId, callbackUrl, state);
+  res.writeHead(302, { Location: url });
+  res.end();
+}
+
+/** GET /v1/auth/linkedin/callback — handle LinkedIn OAuth callback */
+export async function handleLinkedInOAuthCallback(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { clientId, clientSecret, callbackUrl, webAppUrl } = getLinkedInOAuthConfig();
+  if (!clientId || !clientSecret) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "LinkedIn OAuth is not configured");
+    return;
+  }
+
+  /* v8 ignore next */
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const error = url.searchParams.get("error");
+
+  if (error) {
+    const desc = url.searchParams.get("error_description") ?? error;
+    res.writeHead(302, { Location: `${webAppUrl}/account?error=${encodeURIComponent(desc)}` });
+    res.end();
+    return;
+  }
+
+  if (!code || !state) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "Missing code or state parameter");
+    return;
+  }
+
+  // Validate CSRF state
+  if (!(await consumeOAuthState(state))) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Invalid or expired OAuth state");
+    return;
+  }
+
+  try {
+    // Exchange code for access token (LinkedIn requires the redirect_uri to match).
+    const tokenResponse = await exchangeLinkedInCode(clientId, clientSecret, code, callbackUrl);
+
+    // Get LinkedIn user profile (OIDC userinfo: sub, email, name).
+    const lUser = await getLinkedInUser(tokenResponse.access_token);
+
+    // Find or create account, get API key (email-merge mirrors GitHub/Google).
+    const { rawKey } = await upsertAccountByLinkedIn(lUser.sub, lUser.name, lUser.email);
+
+    // Hand the key to the web app via a one-time code, NOT the URL — so the raw
+    // key never appears in the address bar, browser history, Referer, or logs.
+    const handoffCode = createAuthCode(rawKey);
+    const redirectUrl = new URL("/account", webAppUrl);
+    redirectUrl.searchParams.set("code", handoffCode);
+    redirectUrl.searchParams.set("login", "linkedin");
+    res.writeHead(302, {
+      Location: redirectUrl.toString(),
+      "Referrer-Policy": "no-referrer",
+      "Cache-Control": "no-store",
+    });
+    res.end();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "OAuth exchange failed";
+    res.writeHead(302, { Location: `${webAppUrl}/account?error=${encodeURIComponent(msg)}` });
+    res.end();
+  }
+}
+
 /** POST /v1/auth/exchange — trade a one-time OAuth code for the API key (body: { code }). */
 export async function handleOAuthExchange(
   req: IncomingMessage,
@@ -273,10 +368,18 @@ export async function handleOAuthExchange(
     return;
   }
   res.setHeader("Cache-Control", "no-store");
+  const webAppUrl = getOAuthConfig().webAppUrl;
   // Establish a first-party HttpOnly session cookie. Effective once the API is
   // served same-site with the web app; until then it's simply not sent and the
   // body key is used (kept for backward compatibility during the cutover).
-  res.setHeader("Set-Cookie", sessionCookie(encodeURIComponent(rawKey), SESSION_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
+  const cookies = [sessionCookie(encodeURIComponent(rawKey), SESSION_COOKIE_MAX_AGE_S, webAppUrl)];
+  // Owner auto-admin — see ownerAdminCookieFor's doc comment. Applies
+  // regardless of which OAuth provider produced this code (GitHub/Google/
+  // LinkedIn all funnel through this one exchange).
+  const resolved = await resolveApiKey(rawKey);
+  const ownerCookie = ownerAdminCookieFor(resolved?.account, webAppUrl);
+  if (ownerCookie) cookies.push(ownerCookie);
+  res.setHeader("Set-Cookie", cookies);
   sendJSON(res, 200, { api_key: rawKey });
 }
 
@@ -305,7 +408,12 @@ export async function handleCreateSession(
     return;
   }
   res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Set-Cookie", sessionCookie(encodeURIComponent(apiKey), SESSION_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
+  const webAppUrl = getOAuthConfig().webAppUrl;
+  const cookies = [sessionCookie(encodeURIComponent(apiKey), SESSION_COOKIE_MAX_AGE_S, webAppUrl)];
+  // Owner auto-admin — see ownerAdminCookieFor's doc comment.
+  const ownerCookie = ownerAdminCookieFor(resolved.account, webAppUrl);
+  if (ownerCookie) cookies.push(ownerCookie);
+  res.setHeader("Set-Cookie", cookies);
   sendJSON(res, 200, { ok: true });
 }
 
@@ -328,6 +436,26 @@ function adminCookie(value: string, maxAgeSeconds: number, webAppUrl: string): s
     `Max-Age=${maxAgeSeconds}`,
     secure ? "Secure" : "",
   ].filter(Boolean).join("; ");
+}
+
+/**
+ * Owner-identity auto-admin: when AXIS_OWNER_EMAIL is configured and the
+ * account that just logged in (any provider — GitHub/Google/LinkedIn — or a
+ * pasted key) has that exact email, return a Set-Cookie string granting the
+ * admin-elevation cookie ALONGSIDE the normal session cookie. Lets the owner
+ * get "the normal experience plus the analytics page" from one login, no
+ * separate key-entry step (AdminPage.tsx's form still works as a fallback
+ * for anyone else who holds the raw key). Returns null when unconfigured,
+ * the account isn't the owner, or ADMIN_API_KEY itself isn't set (nothing
+ * to grant). Case-insensitive email compare — OAuth providers and the
+ * create-account form don't guarantee a consistent case.
+ */
+function ownerAdminCookieFor(account: Account | null | undefined, webAppUrl: string): string | null {
+  const ownerEmail = process.env.AXIS_OWNER_EMAIL;
+  const adminKey = process.env.ADMIN_API_KEY;
+  if (!ownerEmail || !adminKey || !account) return null;
+  if (account.email.toLowerCase() !== ownerEmail.toLowerCase()) return null;
+  return adminCookie(encodeURIComponent(adminKey), ADMIN_COOKIE_MAX_AGE_S, webAppUrl);
 }
 
 /**

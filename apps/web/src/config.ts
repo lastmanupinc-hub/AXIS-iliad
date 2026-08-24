@@ -73,4 +73,4 @@ export const FREE_FILE_COUNT = 16;
 export const TOOL_COUNT = 38;
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
-export const ENDPOINT_COUNT = 178;
+export const ENDPOINT_COUNT = 180;

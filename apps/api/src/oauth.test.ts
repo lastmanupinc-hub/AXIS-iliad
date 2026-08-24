@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, createOAuthState, getAccountByGitHubId, getAccountByGoogleId, createAccount, createApiKey, createSnapshot, getSnapshot, saveGeneratorResult, getGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, createOAuthState, getAccountByGitHubId, getAccountByGoogleId, getAccountByLinkedInId, createAccount, createApiKey, createSnapshot, getSnapshot, saveGeneratorResult, getGeneratorResult } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleLinkedInOAuthStart, handleLinkedInOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
 import { handleAdminStats } from "./admin.js";
 import { resolveAuth } from "./billing.js";
 import { sendJSON } from "./router.js";
@@ -52,6 +52,8 @@ describe("OAuth API routes", () => {
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
     router.get("/v1/auth/google", handleGoogleOAuthStart);
     router.get("/v1/auth/google/callback", handleGoogleOAuthCallback);
+    router.get("/v1/auth/linkedin", handleLinkedInOAuthStart);
+    router.get("/v1/auth/linkedin/callback", handleLinkedInOAuthCallback);
     router.post("/v1/auth/exchange", handleOAuthExchange);
     router.post("/v1/auth/session", handleCreateSession);
     router.post("/v1/auth/logout", handleOAuthLogout);
@@ -415,6 +417,107 @@ describe("OAuth API routes", () => {
     }
   });
 
+  // ─── /v1/auth/linkedin ────────────────────────────────────────
+
+  it("returns 503 when LINKEDIN_CLIENT_ID is not set", async () => {
+    delete process.env.LINKEDIN_CLIENT_ID;
+    const res = await req("GET", "/v1/auth/linkedin");
+    expect(res.status).toBe(503);
+    expect(res.data).toContain("not configured");
+  });
+
+  it("redirects to LinkedIn when LINKEDIN_CLIENT_ID is set", async () => {
+    process.env.LINKEDIN_CLIENT_ID = "test-linkedin-id";
+    try {
+      const res = await req("GET", "/v1/auth/linkedin");
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("https://www.linkedin.com/oauth/v2/authorization");
+      expect(res.headers.location).toContain("client_id=test-linkedin-id");
+      expect(res.headers.location).toContain("response_type=code");
+      expect(res.headers.location).toContain("scope=openid");
+      expect(res.headers.location).toContain("state=");
+    } finally {
+      delete process.env.LINKEDIN_CLIENT_ID;
+    }
+  });
+
+  it("returns 400 for invalid/expired LinkedIn state", async () => {
+    process.env.LINKEDIN_CLIENT_ID = "test-id";
+    process.env.LINKEDIN_CLIENT_SECRET = "test-secret";
+    try {
+      const res = await req("GET", "/v1/auth/linkedin/callback?code=abc&state=bad-state");
+      expect(res.status).toBe(400);
+      expect(res.data).toContain("Invalid or expired OAuth state");
+    } finally {
+      delete process.env.LINKEDIN_CLIENT_ID;
+      delete process.env.LINKEDIN_CLIENT_SECRET;
+    }
+  });
+
+  it("completes LinkedIn OAuth flow successfully with mocked LinkedIn API", async () => {
+    process.env.LINKEDIN_CLIENT_ID = "test-id";
+    process.env.LINKEDIN_CLIENT_SECRET = "test-secret";
+    process.env.AXIS_WEB_URL = "http://localhost:3000";
+    const state = await createOAuthState();
+
+    // Mock fetch: first call = token exchange, second call = OIDC userinfo
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: "li_test_token", token_type: "Bearer", scope: "openid email profile" }),
+    } as Response);
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ sub: "linkedin-sub-123", email: "litest@example.com", email_verified: true, name: "LI Test" }),
+    } as Response);
+
+    try {
+      const res = await req("GET", `/v1/auth/linkedin/callback?code=valid_code&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("http://localhost:3000/account?");
+      expect(res.headers.location).toContain("code=");
+      expect(res.headers.location).toContain("login=linkedin");
+      expect(res.headers.location).not.toContain("axis_"); // raw key never in the URL
+      expect(res.headers["referrer-policy"]).toBe("no-referrer");
+
+      const acct = await getAccountByLinkedInId("linkedin-sub-123");
+      expect(acct).toBeDefined();
+      expect(acct!.name).toBe("LI Test");
+
+      // One-time code exchanges for the real key + sets the HttpOnly cookie.
+      const handoff = new URL(res.headers.location).searchParams.get("code")!;
+      const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
+      expect(exch.status).toBe(200);
+      expect(JSON.parse(exch.data).api_key).toMatch(/^axis_/);
+      expect(exch.headers["set-cookie"]).toContain("axis_session=");
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.LINKEDIN_CLIENT_ID;
+      delete process.env.LINKEDIN_CLIENT_SECRET;
+      delete process.env.AXIS_WEB_URL;
+    }
+  });
+
+  it("LinkedIn callback redirects with error when token exchange fails", async () => {
+    process.env.LINKEDIN_CLIENT_ID = "test-id";
+    process.env.LINKEDIN_CLIENT_SECRET = "test-secret";
+    const state = await createOAuthState();
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockResolvedValueOnce({ ok: false, status: 400 } as Response);
+
+    try {
+      const res = await req("GET", `/v1/auth/linkedin/callback?code=bad_code&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("error=");
+      expect(res.headers.location).toContain("token%20exchange%20failed");
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.LINKEDIN_CLIENT_ID;
+      delete process.env.LINKEDIN_CLIENT_SECRET;
+    }
+  });
+
   // ─── /v1/auth/logout ──────────────────────────────────────────
 
   it("logout clears the session cookie server-side", async () => {
@@ -621,6 +724,179 @@ describe("OAuth API routes", () => {
       } finally {
         process.env.ADMIN_API_KEY = ADMIN_KEY;
       }
+    });
+  });
+
+  // ─── Owner auto-admin (AXIS_OWNER_EMAIL) ───────────────────────
+  // "Login as the owner (any provider, or a pasted key) also grants the
+  // admin-elevation cookie" — the mechanism behind "connect it to my
+  // LinkedIn login so when I login I get the normal experience plus the
+  // analytics page". Exercised via LinkedIn specifically (what was asked
+  // for) AND via handleCreateSession (the paste-key path), since both
+  // funnel through the same ownerAdminCookieFor() check.
+  describe("owner auto-admin (AXIS_OWNER_EMAIL)", () => {
+    const OWNER_ADMIN_KEY = "test-owner-admin-key-7ae91c";
+    let savedAdminKey: string | undefined;
+    let savedOwnerEmail: string | undefined;
+
+    beforeAll(() => {
+      savedAdminKey = process.env.ADMIN_API_KEY;
+      savedOwnerEmail = process.env.AXIS_OWNER_EMAIL;
+    });
+
+    afterAll(() => {
+      if (savedAdminKey === undefined) delete process.env.ADMIN_API_KEY;
+      else process.env.ADMIN_API_KEY = savedAdminKey;
+      if (savedOwnerEmail === undefined) delete process.env.AXIS_OWNER_EMAIL;
+      else process.env.AXIS_OWNER_EMAIL = savedOwnerEmail;
+    });
+
+    // Each test sets its own AXIS_OWNER_EMAIL (never reused across tests) and
+    // creates its account with that exact email — accounts.email is unique,
+    // so a shared literal here caused real "duplicate key" DB errors, not a
+    // logic bug in the feature. ADMIN_API_KEY alone is safe to share.
+    beforeEach(() => {
+      process.env.ADMIN_API_KEY = OWNER_ADMIN_KEY;
+    });
+
+    it("LinkedIn login as the owner's email also grants admin — no separate key entry", async () => {
+      process.env.LINKEDIN_CLIENT_ID = "test-id";
+      process.env.LINKEDIN_CLIENT_SECRET = "test-secret";
+      process.env.AXIS_WEB_URL = "http://localhost:3000";
+      // Configured lowercase; the LinkedIn userinfo mock below returns a
+      // different case on purpose, to prove the compare is case-insensitive.
+      process.env.AXIS_OWNER_EMAIL = "li-owner-match@example.com";
+      const state = await createOAuthState();
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "li_owner_token", token_type: "Bearer", scope: "openid email profile" }),
+      } as Response);
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sub: "linkedin-owner-1", email: "LI-Owner-Match@Example.com", email_verified: true, name: "Owner" }),
+      } as Response);
+
+      try {
+        const callback = await req("GET", `/v1/auth/linkedin/callback?code=owner_code&state=${state}`);
+        const handoff = new URL(callback.headers.location).searchParams.get("code")!;
+        const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
+        expect(exch.status).toBe(200);
+
+        const setCookie = exch.headers["set-cookie"];
+        expect(setCookie).toContain("axis_session=");
+        expect(setCookie).toContain("axis_admin=");
+
+        // Both cookies together actually unlock a real admin route — not
+        // just "a cookie got set". req()'s helper joins multiple Set-Cookie
+        // headers with "; ", the same separator used within one cookie's own
+        // attributes, so there's no clean split point — but the server's own
+        // cookie parser (readSessionCookie/readAdminCookie) just scans every
+        // ";"-separated segment for its own target name and ignores the rest,
+        // so replaying the whole joined string as the request's Cookie header
+        // resolves both correctly without needing to tease them apart here.
+        const stats = await req("GET", "/v1/admin/stats", undefined, { Cookie: setCookie });
+        expect(stats.status).toBe(200);
+      } finally {
+        fetchSpy.mockRestore();
+        delete process.env.LINKEDIN_CLIENT_ID;
+        delete process.env.LINKEDIN_CLIENT_SECRET;
+        delete process.env.AXIS_WEB_URL;
+        delete process.env.AXIS_OWNER_EMAIL;
+      }
+    });
+
+    it("LinkedIn login as a non-owner email gets the normal session only — no admin cookie", async () => {
+      process.env.LINKEDIN_CLIENT_ID = "test-id";
+      process.env.LINKEDIN_CLIENT_SECRET = "test-secret";
+      process.env.AXIS_WEB_URL = "http://localhost:3000";
+      // Configured to prove the NEGATIVE case properly — AXIS_OWNER_EMAIL
+      // really is set, it just doesn't match this login's email.
+      process.env.AXIS_OWNER_EMAIL = "li-someone-else-owner@example.com";
+      const state = await createOAuthState();
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "li_other_token", token_type: "Bearer", scope: "openid email profile" }),
+      } as Response);
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sub: "linkedin-other-1", email: "someone-else@example.com", email_verified: true, name: "Someone Else" }),
+      } as Response);
+
+      try {
+        const callback = await req("GET", `/v1/auth/linkedin/callback?code=other_code&state=${state}`);
+        const handoff = new URL(callback.headers.location).searchParams.get("code")!;
+        const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
+        expect(exch.status).toBe(200);
+        const setCookie = exch.headers["set-cookie"];
+        expect(setCookie).toContain("axis_session=");
+        expect(setCookie).not.toContain("axis_admin=");
+
+        const sessionCookie = setCookie.split(";")[0];
+        expect((await req("GET", "/v1/admin/stats", undefined, { Cookie: sessionCookie })).status).toBe(403);
+      } finally {
+        fetchSpy.mockRestore();
+        delete process.env.LINKEDIN_CLIENT_ID;
+        delete process.env.LINKEDIN_CLIENT_SECRET;
+        delete process.env.AXIS_WEB_URL;
+        delete process.env.AXIS_OWNER_EMAIL;
+      }
+    });
+
+    it("pasting the owner's own API key (handleCreateSession) also grants admin", async () => {
+      process.env.AXIS_OWNER_EMAIL = "paste-owner-match@example.com";
+      try {
+        const account = await createAccount("Owner Paste", "paste-owner-match@example.com");
+        const { rawKey } = await createApiKey(account.account_id);
+
+        const res = await req("POST", "/v1/auth/session", { api_key: rawKey });
+        expect(res.status).toBe(200);
+        const setCookie = res.headers["set-cookie"];
+        expect(setCookie).toContain("axis_session=");
+        expect(setCookie).toContain("axis_admin=");
+      } finally {
+        delete process.env.AXIS_OWNER_EMAIL;
+      }
+    });
+
+    it("pasting a non-owner API key grants only the normal session cookie", async () => {
+      process.env.AXIS_OWNER_EMAIL = "paste-someone-else-owner@example.com";
+      try {
+        const account = await createAccount("Regular Paste", "paste-not-the-owner@example.com");
+        const { rawKey } = await createApiKey(account.account_id);
+
+        const res = await req("POST", "/v1/auth/session", { api_key: rawKey });
+        expect(res.status).toBe(200);
+        const setCookie = res.headers["set-cookie"];
+        expect(setCookie).toContain("axis_session=");
+        expect(setCookie).not.toContain("axis_admin=");
+      } finally {
+        delete process.env.AXIS_OWNER_EMAIL;
+      }
+    });
+
+    it("does nothing when AXIS_OWNER_EMAIL is not configured, even for a would-be-matching email", async () => {
+      delete process.env.AXIS_OWNER_EMAIL;
+      const account = await createAccount("No Owner Configured", "paste-no-owner-configured@example.com");
+      const { rawKey } = await createApiKey(account.account_id);
+
+      const res = await req("POST", "/v1/auth/session", { api_key: rawKey });
+      expect(res.status).toBe(200);
+      expect(res.headers["set-cookie"]).not.toContain("axis_admin=");
+    });
+
+    it("does nothing when ADMIN_API_KEY is not configured, even with a matching owner email", async () => {
+      delete process.env.ADMIN_API_KEY;
+      process.env.AXIS_OWNER_EMAIL = "paste-no-admin-key@example.com";
+      const account = await createAccount("No Admin Key Configured", "paste-no-admin-key@example.com");
+      const { rawKey } = await createApiKey(account.account_id);
+
+      const res = await req("POST", "/v1/auth/session", { api_key: rawKey });
+      expect(res.status).toBe(200);
+      expect(res.headers["set-cookie"]).not.toContain("axis_admin=");
     });
   });
 });

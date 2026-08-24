@@ -917,6 +917,15 @@ CREATE INDEX IF NOT EXISTS idx_provider_credentials_account ON provider_credenti
 CREATE INDEX IF NOT EXISTS idx_provider_credentials_account_provider ON provider_credentials(account_id, provider);
 CREATE INDEX IF NOT EXISTS idx_provider_credentials_repo ON provider_credentials(repo_full_name);`,
   },
+  {
+    // LinkedIn OAuth login (owner-admin-cookie work): third provider_id column,
+    // mirrors github_id/google_id exactly — same ADD COLUMN IF NOT EXISTS +
+    // partial unique index shape as migration 29 (accounts_google_id).
+    version: 47,
+    name: "accounts_linkedin_id",
+    sql: `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS linkedin_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_linkedin_id ON accounts(linkedin_id) WHERE linkedin_id IS NOT NULL;`,
+  },
 ];
 
 /**

@@ -228,7 +228,7 @@ export {
 } from "./memory-store.js";
 
 // OAuth
-export type { GitHubTokenResponse, GitHubUser, GoogleTokenResponse, GoogleUser } from "./oauth-store.js";
+export type { GitHubTokenResponse, GitHubUser, GoogleTokenResponse, GoogleUser, LinkedInTokenResponse, LinkedInUser } from "./oauth-store.js";
 export {
   createOAuthState,
   consumeOAuthState,
@@ -246,6 +246,12 @@ export {
   getAccountByGoogleId,
   linkGoogleId,
   upsertAccountByGoogle,
+  getLinkedInAuthUrl,
+  exchangeLinkedInCode,
+  getLinkedInUser,
+  getAccountByLinkedInId,
+  linkLinkedInId,
+  upsertAccountByLinkedIn,
 } from "./oauth-store.js";
 
 // Email Notifications
