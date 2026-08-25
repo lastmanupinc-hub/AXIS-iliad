@@ -3101,7 +3101,35 @@ project_begin:
         roi_reason: "production_quality_gain 4 (currently-broken assertions in committed main-line code, likely a red CI right now), validation_strength 3; implementation_cost -2 (small, contained, but needs the same per-site verification discipline as every past count bump, not a blind number swap)."
         severity: MEDIUM
         source_file: "packages/generator-core/src/generate-programs.test.ts"
-        completion_status: open
+        completion_status: complete  # SHIPPED 2026-08-24, same session as app_33/41/44.
+        # 2 of the 4 originally-named failures (generate.test.ts + generate-programs.test.ts's "147
+        # registered generators") were ALREADY fixed in passing during app_41 (bumped to 152, the real
+        # count at that time) — verified still green before touching anything else here, not assumed.
+        # The remaining 2 named failures (generators-agentic-purchasing-develop.test.ts's superpowers=8
+        # and dev-essentials=32) were still genuinely broken. Root cause verified per this candidate's own
+        # explicit instruction (do not blind-swap numbers): program-manifest.ts's real superpowers entry
+        # count is 10 (the original 8 + tool_01's redundancy-sweep.mjs/-playbook.md, confirmed by reading
+        # the actual mapping table), and dev-essentials' bundle definition includes "superpowers" among its
+        # programs — so its own +2 drift is the SAME root cause propagating through, not a second
+        # independent drift. Both fixed: 8->10, 32->34.
+        # FOUND A THIRD, NEWER DRIFT NOT NAMED BY THIS CANDIDATE'S OWN DESCRIPTION (brand-marketing bundle
+        # asserted 22, real 25) while re-verifying the fix — traced to MY OWN app_41 (brand-marketing
+        # includes "brand", which grew from 5 to 8 outputs shipping app_41's .vale.ini +
+        # ForbiddenPatterns.yml + PreferredTerms.yml; 22+3=25 confirms single cause, not investigated
+        # further). This is a real gap in app_41's OWN count-cascade verification — count-honesty/
+        # count-surface-coverage/counts-consistency/launch-claims/strategic-docs-honesty all scan DOCS,
+        # never this specific hardcoded-assertion test file, so app_41 shipped without ever running it.
+        # Fixed alongside the other two rather than filed as yet another separate candidate, since it's
+        # the identical mechanism this candidate exists to close.
+        # VERIFIED: 441/441 across the full related battery (generators-agentic-purchasing-develop.test.ts,
+        # generators-agentic-purchasing.test.ts, generators-agentic-purchasing-injection.test.ts,
+        # generate.test.ts, generate-programs.test.ts, product-registry.test.ts) — the broader
+        # "every bundle's outputs equals bundleOutputs(its programs)" and "each program's outputs matches
+        # the registry" tests in the same file (which iterate EVERY program/bundle, not just the 3 named
+        # ones) also passed, giving real confidence no other hardcoded count in this file is still stale.
+        # Grepped the whole generator-core test suite for the same assertion SHAPE
+        # (PROGRAM_OUTPUT_COUNTS.X / byId(...).outputs) — this is the only file that hardcodes them.
+        # No source file changed, test-only — no rebuild, no count cascade, no deploy-relevant change.
 
       - id: "mcp_02_free_trial_mode"
         description: >

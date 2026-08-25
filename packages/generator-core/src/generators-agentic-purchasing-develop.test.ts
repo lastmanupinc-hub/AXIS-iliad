@@ -30,8 +30,8 @@ describe("DEVELOP: program-manifest derives program counts from the registry", (
     const sum = Object.values(PROGRAM_OUTPUT_COUNTS).reduce((s, n) => s + n, 0);
     expect(sum).toBe(TOTAL_GENERATORS);
   });
-  it("superpowers owns 8 outputs (incl. the 3 verify-gate files), not 5", () => {
-    expect(PROGRAM_OUTPUT_COUNTS.superpowers).toBe(8);
+  it("superpowers owns 10 outputs (incl. the 3 verify-gate files + tool_01's redundancy-sweep.mjs/-playbook.md), not 5", () => {
+    expect(PROGRAM_OUTPUT_COUNTS.superpowers).toBe(10);
   });
   it("bundleOutputs sums per-program counts and ignores unknown slugs", () => {
     expect(bundleOutputs(["search", "skills", "debug"])).toBe(16);
@@ -71,9 +71,9 @@ describe("DEVELOP: commerce-registry catalog derives every output count", () => 
     expect(proAll.programs).toHaveLength(TOTAL_PROGRAMS);
     expect(proAll.outputs).toBe(TOTAL_GENERATORS);
   });
-  it("bundle counts are the corrected values (free 16, dev 32, brand 22)", () => {
+  it("bundle counts are the corrected values (free 16, dev 34, brand 25)", () => {
     expect(byId("free-bundle").outputs).toBe(16);
-    expect(byId("dev-essentials").outputs).toBe(32);
-    expect(byId("brand-marketing").outputs).toBe(22); // canvas gained architecture-diagram.d2 (app_24); seo gained seo-head-tags.html (app_30)
+    expect(byId("dev-essentials").outputs).toBe(34); // dev-essentials includes "superpowers" — same +2 as the PROGRAM_OUTPUT_COUNTS assertion above, same root cause (tool_01), not a second drift
+    expect(byId("brand-marketing").outputs).toBe(25); // canvas gained architecture-diagram.d2 (app_24); seo gained seo-head-tags.html (app_30); brand gained .vale.ini + styles/AXIS/ForbiddenPatterns.yml + styles/AXIS/PreferredTerms.yml (app_41)
   });
 });
