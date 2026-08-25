@@ -315,7 +315,7 @@ export const MCP_TOOLS = [
   {
     name: "list_programs",
     description:
-      `Inventory mode. List all ${PROGRAM_COUNT} AXIS programs, their generators, pricing tier, and artifact paths. Free, no auth, and no side effects. Use search_and_discover_tools instead when you only have a keyword, or discover_commerce_tools when you need install and onboarding metadata.`,
+      `Inventory mode. List all ${PROGRAM_COUNT} AXIS programs, their generators, pricing tier, and artifact paths. Free, no auth, and no side effects. Use search_and_discover_tools instead when you only have a keyword, or get_install_manifest when you need install and onboarding metadata.`,
     inputSchema: { type: "object", properties: {} },
     outputSchema: {
       type: "object",
@@ -358,6 +358,37 @@ export const MCP_TOOLS = [
         name: "Get a snapshot",
         input: { snapshot_id: "abc-123" },
         output: '{"snapshot_id":"abc-123","status":"complete","artifact_count":99,"artifacts":[{"path":"AGENTS.md","program":"search","description":"Agent instructions"}]}',
+      },
+    ],
+  },
+  {
+    name: "delete_snapshot",
+    description:
+      "Permanently delete a snapshot and everything derived from it (context map, repo profile, generated artifacts, search index entries). Same account scoping as get_snapshot: an anonymous (never-authenticated) snapshot is freely deletable by any caller, but an account-owned one requires the same Authorization: Bearer <api_key> used to create it — a mismatched or missing key fails with the same not-found error a nonexistent snapshot_id would, so a caller can't learn whether a snapshot they don't own even exists. This cannot be undone. MCP-layer equivalent of DELETE /v1/snapshots/:id.",
+    inputSchema: {
+      type: "object",
+      required: ["snapshot_id"],
+      properties: {
+        snapshot_id: {
+          type: "string",
+          description: "Snapshot ID returned by analyze_repo, analyze_files, or get_snapshot",
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        deleted: { type: "boolean" },
+        snapshot_id: { type: "string" },
+      },
+      required: ["deleted", "snapshot_id"],
+    },
+    annotations: toolAnnotations("Delete Snapshot", false, true, true),
+    examples: [
+      {
+        name: "Delete an owned snapshot",
+        input: { snapshot_id: "abc-123" },
+        output: '{"deleted":true,"snapshot_id":"abc-123"}',
       },
     ],
   },
@@ -624,7 +655,7 @@ export const MCP_TOOLS = [
   {
     name: "search_and_discover_tools",
     description:
-      `Search AXIS programs by keyword and return ranked matches with artifact paths. Free, no auth, and no stateful side effects. Example: q=checkout returns commerce-relevant programs first. Use this when you know the outcome you want but not the right program. Use list_programs instead for the full catalog, discover_commerce_tools for install metadata, or discover_agentic_purchasing_needs for purchasing-specific triage.`,
+      `Search AXIS programs by keyword and return ranked matches with artifact paths. Free, no auth, and no stateful side effects. Example: q=checkout returns commerce-relevant programs first. Use this when you know the outcome you want but not the right program. Use list_programs instead for the full catalog, get_install_manifest for install metadata, or discover_agentic_purchasing_needs for purchasing-specific triage.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -663,9 +694,18 @@ export const MCP_TOOLS = [
     ],
   },
   {
-    name: "discover_commerce_tools",
+    // Renamed from discover_commerce_tools (2026-08-25, Glama coherence
+    // review): the name claimed to discover "commerce tools" but the actual
+    // output is generic install/pricing/onboarding metadata with nothing
+    // commerce-specific in it — a real naming mismatch that made this look
+    // like it overlapped discover_agentic_purchasing_needs (which genuinely
+    // IS commerce-specific triage). The old name is kept working via
+    // LEGACY_TOOL_ALIASES (mcp-server.ts) — same precedent as
+    // discover_agentic_commerce_tools's own earlier rename to
+    // discover_commerce_tools — so no existing caller breaks.
+    name: "get_install_manifest",
     description:
-      "Discover AXIS install metadata, pricing, and shareable manifests for commerce-capable agents. Free, no auth, and no mutation beyond read access. Example: call before wiring AXIS into Claude Desktop, Cursor, or VS Code. Use this when you need onboarding and ecosystem setup details. Use search_and_discover_tools instead for keyword routing or discover_agentic_purchasing_needs for purchasing-task triage.",
+      "Get AXIS install metadata, pricing, and a shareable manifest for onboarding a new integration — MCP endpoint, per-client config for Claude Desktop/Cursor/VS Code, and the full tool catalog with pricing. Free, no auth, and no mutation beyond read access. Example: call before wiring AXIS into an MCP client for the first time. Use this when you need setup/ecosystem details, not tool discovery. Use search_and_discover_tools instead for keyword routing across programs, or discover_agentic_purchasing_needs for purchasing-task triage.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -681,12 +721,12 @@ export const MCP_TOOLS = [
       },
       required: ["axis_iliad", "tools", "free_tools", "install", "shareable_manifest"],
     },
-    annotations: toolAnnotations("Discover Commerce Tools", true, true),
+    annotations: toolAnnotations("Get Install Manifest", true, true),
     examples: [
       {
-        name: "Discover all commerce tools",
+        name: "Get the install manifest",
         input: {},
-        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":43}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":44}}',
       },
     ],
   },

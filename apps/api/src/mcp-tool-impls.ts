@@ -74,6 +74,7 @@ import {
 import {
   createSnapshot,
   getSnapshot,
+  deleteSnapshot,
   updateSnapshotStatus,
   saveContextMap,
   saveRepoProfile,
@@ -2202,6 +2203,9 @@ export async function runAnalyzeRepo(
 const FREE_TOOL_NAMES = new Set([
   "list_programs",
   "search_and_discover_tools",
+  "get_install_manifest",
+  // Legacy alias names (LEGACY_TOOL_ALIASES, mcp-server.ts) — kept here too
+  // since some free-tool checks may see a pre-normalization name.
   "discover_commerce_tools",
   "discover_agentic_commerce_tools",
   "discover_agentic_purchasing_needs",
@@ -2380,17 +2384,20 @@ const FREE_TOOLS_REQUIRING_AUTH = new Set(["get_referral_code", "get_referral_cr
 // H-Phase-A cycle 9: the inverse gap — auth_required's `!free` default can
 // only correct a FALSE NEGATIVE (a free tool that actually needs auth); it
 // has no way to mark a FALSE POSITIVE for a tool that's neither free nor
-// metered (get_snapshot, get_artifact, and improve_my_agent_with_axis are
-// the only 3 of 43 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS —
-// confirmed via direct count). get_snapshot/get_artifact's own handlers
-// (runGetSnapshot/runGetArtifact) only check auth CONDITIONALLY — an
-// ownerless/anonymous snapshot needs none at all — so `!free` alone
-// mismarked both as auth_required:true, disagreeing with GET /for-agents'
-// own hand-curated entries for the same two tools (which already correctly
-// say auth:false). improve_my_agent_with_axis genuinely DOES require auth
-// (runImproveMyAgent rejects an anonymous caller unconditionally), so it's
-// correctly left out of this set — `!free` already gets it right.
-const NON_FREE_TOOLS_NOT_REQUIRING_AUTH = new Set(["get_snapshot", "get_artifact"]);
+// metered. get_snapshot, get_artifact, and improve_my_agent_with_axis were
+// the only 3 of 43 tools in neither FREE_TOOL_NAMES nor METERED_MCP_TOOLS
+// when this set was written; delete_snapshot (2026-08-25, Glama coherence
+// review — the missing MCP-layer delete for snapshots) is the 4th, same
+// shape as get_snapshot/get_artifact exactly. Their handlers
+// (runGetSnapshot/runGetArtifact/runDeleteSnapshot) only check auth
+// CONDITIONALLY — an ownerless/anonymous snapshot needs none at all — so
+// `!free` alone would mismark all three as auth_required:true, disagreeing
+// with GET /for-agents' own hand-curated entries for get_snapshot/
+// get_artifact (which already correctly say auth:false). improve_my_agent_
+// with_axis genuinely DOES require auth (runImproveMyAgent rejects an
+// anonymous caller unconditionally), so it's correctly left out of this set
+// — `!free` already gets it right for that one.
+const NON_FREE_TOOLS_NOT_REQUIRING_AUTH = new Set(["get_snapshot", "get_artifact", "delete_snapshot"]);
 
 export interface McpToolCatalogEntry {
   name: string;
@@ -2500,7 +2507,7 @@ export function runDiscoverAgenticCommerceTools(): string {
     tool_selection_guide: {
       list_programs: "Use for complete inventory of all programs and outputs.",
       search_and_discover_tools: "Use for keyword routing to the best program.",
-      discover_commerce_tools: "Use for install and ecosystem onboarding metadata.",
+      get_install_manifest: "Use for install and ecosystem onboarding metadata.",
       discover_agentic_purchasing_needs: "Use for commerce-specific intent to workflow mapping.",
       ping_payment: "Use to learn the x402 payment loop for $0.005 before paying real money for a metered tool.",
     },
@@ -2526,7 +2533,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },
-    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: discover_commerce_tools (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop for $0.005, near-zero risk.`,
+    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: get_install_manifest (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop for $0.005, near-zero risk.`,
     first_action: "Call search_and_discover_tools with q=<your keyword> — free, no auth needed.",
   }, null, 2);
 }
@@ -3057,6 +3064,43 @@ export async function runGetSnapshot(
     null,
     2,
   );
+}
+
+// ─── Tool: delete_snapshot ─────────────────────────────────────────
+//
+// MCP-layer equivalent of DELETE /v1/snapshots/:id — this REST endpoint
+// existed with no MCP tool wrapping it (Glama coherence review, 2026-08-25:
+// "update/delete operations are missing for snapshots"). Mirrors
+// handleDeleteSnapshot's exact auth semantics: an anonymous snapshot
+// (account_id null) is freely deletable, an owned one requires the
+// requester's own account to match — same 404-not-401 pattern as
+// runGetSnapshot, so a mismatched caller learns nothing about whether the
+// snapshot exists at all.
+
+export async function runDeleteSnapshot(
+  args: Record<string, unknown>,
+  req: IncomingMessage,
+): Promise<string> {
+  const { snapshot_id } = args;
+  if (typeof snapshot_id !== "string" || !snapshot_id)
+    throw new Error("snapshot_id is required");
+
+  const snapshot = await getSnapshot(snapshot_id);
+  if (!snapshot) throw new Error(`Snapshot not found: ${snapshot_id}`);
+
+  if (snapshot.account_id) {
+    const auth = await resolveAuth(req);
+    if (!auth.account || auth.account.account_id !== snapshot.account_id) {
+      throw new Error(`Snapshot not found: ${snapshot_id}`);
+    }
+  }
+
+  const deleted = await deleteSnapshot(snapshot_id);
+  /* v8 ignore next 3 - deleteSnapshot always succeeds once getSnapshot above already found it */
+  if (!deleted) {
+    throw new Error("Failed to delete snapshot");
+  }
+  return JSON.stringify({ deleted: true, snapshot_id }, null, 2);
 }
 
 // ─── Tool: get_artifact ──────────────────────────────────────────

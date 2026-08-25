@@ -3631,7 +3631,7 @@ export function handleForAgents(
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
       { name: "prepare_agentic_purchasing",      auth: true,  x_payment: { ...PAYMENT_META, lite_price_usd: "0.25" }, description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence requirements, SCA exemption paths, playbooks. Paid ($0.50/run). Focus areas: sca, dispute, mandate, tap, tokenization. On 402, present checkout_url or pay autonomously, then retry." },
       { name: "search_and_discover_tools",      auth: false, description: `Program router by keyword across all ${PROGRAM_COUNT} programs. Use when you know desired outcome but not which program.` },
-      { name: "discover_commerce_tools",        auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
+      { name: "get_install_manifest",           auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
       // H-Phase-A cycle 4: runImproveMyAgent never calls any charge function and
       // "improve_my_agent_with_axis" isn't in MeteredMcpTool — it always runs
       // free-tier programs only, for any mode, for free. This entry used to
@@ -3664,7 +3664,7 @@ export function handleForAgents(
   // same hand-duplicated-catalog-drift shape cycle 6 already fixed once for
   // this endpoint's free-tool COUNT, just at the array-membership level
   // instead of a single field. Derive the missing entries from the SAME
-  // real source discover_commerce_tools itself uses, rather than
+  // real source get_install_manifest itself uses, rather than
   // hand-typing 23 more prose descriptions that would just drift again;
   // the 14 curated entries above keep their richer, hand-tuned descriptions
   // (better for the intent-scoring below) unchanged.
@@ -3845,9 +3845,10 @@ export function handleForAgents(
         // programs)" label. Moved out of the paid group above.
         { tool: "improve_my_agent_with_axis",       price: "free",       lite: null,         auth: true  },
         { tool: "get_snapshot",                     price: "free",       lite: null,         auth: false },
+        { tool: "delete_snapshot",                  price: "free",       lite: null,         auth: false },
         { tool: "get_artifact",                     price: "free",       lite: null,         auth: false },
         { tool: "search_and_discover_tools",        price: "free",       lite: null,         auth: false },
-        { tool: "discover_commerce_tools",  price: "free",       lite: null,         auth: false },
+        { tool: "get_install_manifest",     price: "free",       lite: null,         auth: false },
         { tool: "discover_agentic_purchasing_needs",price: "free",       lite: null,         auth: false },
         { tool: "sca_exemption_decision",           price: "free",       lite: null,         auth: false },
         { tool: "grade_compliance",                 price: "free",       lite: null,         auth: false },

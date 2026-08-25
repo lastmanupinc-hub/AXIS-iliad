@@ -201,9 +201,9 @@ export function ForAgentsPage() {
         <h2>Your {TOOL_COUNT} MCP Tools (all available at /mcp)</h2>
         <ul>
           <li>analyze_repo, analyze_files</li>
-          <li>list_programs, get_snapshot, get_artifact</li>
+          <li>list_programs, get_snapshot, delete_snapshot, get_artifact</li>
           <li>prepare_agentic_purchasing (recommended first tool), prepare_agentic_purchasing_preview</li>
-          <li>discover_agentic_purchasing_needs, discover_commerce_tools, search_and_discover_tools</li>
+          <li>discover_agentic_purchasing_needs, get_install_manifest, search_and_discover_tools</li>
           <li>discover_estate_tools (free — sibling AXIS properties: PAI'D payments, AXIS Foundry 3D generation, and more)</li>
           <li>closer, deploy</li>
           <li>improve_my_agent_with_axis</li>

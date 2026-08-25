@@ -523,7 +523,7 @@ describe("GET /for-agents", () => {
     // the 14 hand-curated entries (e.g. iliad_web_research's "$0.01/page")
     // have their own separate, deliberately-unit-suffixed convention and
     // are out of scope for this fix.
-    const curatedNames = new Set(["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits"]);
+    const curatedNames = new Set(["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "delete_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "get_install_manifest", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits"]);
     for (const t of tools) {
       if (t.x_payment && !curatedNames.has(t.name)) {
         expect(Number.isNaN(Number(t.x_payment.price_usd))).toBe(false);

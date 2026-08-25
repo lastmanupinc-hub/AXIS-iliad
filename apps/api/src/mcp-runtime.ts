@@ -177,7 +177,7 @@ export type MeteredMcpTool =
 
 // Runtime companion to the type above — TS unions erase at compile time, so any
 // code that needs to ask "is this tool name genuinely metered" (e.g. computing an
-// honest per-tool price for discover_commerce_tools) needs an actual array.
+// honest per-tool price for get_install_manifest) needs an actual array.
 //
 // H-Phase-A cycle 4: an array literal here is NOT actually exhaustiveness-checked
 // against MeteredMcpTool — TS happily accepts an array missing a union member, so

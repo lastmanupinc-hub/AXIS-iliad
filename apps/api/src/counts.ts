@@ -44,7 +44,7 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
-export const MCP_TOOL_COUNT = 43;
+export const MCP_TOOL_COUNT = 44; // +1: delete_snapshot (Glama coherence review, 2026-08-25 — the missing MCP-layer delete for snapshots)
 export const ENDPOINT_COUNT = 178; // +2 admin-page-reachability fix: POST + DELETE /v1/admin/session (HttpOnly admin-elevation cookie login/logout)
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */

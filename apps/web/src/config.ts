@@ -69,8 +69,13 @@ export const ARTIFACT_COUNT = 152; // +3 app_41: .vale.ini + styles/AXIS/Forbidd
  */
 export const FREE_FILE_COUNT = 16;
 
-/** Public MCP tools (= MCP_TOOL_COUNT). */
-export const TOOL_COUNT = 38;
+/**
+ * Human-webapp-facing tool count — MCP_TOOL_COUNT (apps/api/src/counts.ts)
+ * MINUS the estate-flagged planned-capability stubs (est_02/est_03), which
+ * this comment used to (incorrectly) claim were equal. Guarded by
+ * count-honesty.test.ts's nonEstateToolCount() against the real registry.
+ */
+export const TOOL_COUNT = 39; // +1: delete_snapshot (Glama coherence review, 2026-08-25)
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
 export const ENDPOINT_COUNT = 178;

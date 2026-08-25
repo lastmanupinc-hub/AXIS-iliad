@@ -176,7 +176,7 @@ Protocol `2025-03-26`, Streamable HTTP. Live-probed 2026-07-27: `tools/list` ret
 | `iliad_transactional_email` | `gated(external)` | `RESEND_API_KEY` is `sync: false` |
 
 **Free tools** (17, all `shipped`): `list_programs`, `get_snapshot`, `get_artifact`,
-`prepare_agentic_purchasing_preview`, `search_and_discover_tools`, `discover_commerce_tools`,
+`prepare_agentic_purchasing_preview`, `search_and_discover_tools`, `get_install_manifest`,
 `discover_agentic_purchasing_needs`, `improve_my_agent_with_axis`, `get_referral_code`,
 `get_referral_credits`, `ping_payment`, `sca_exemption_decision`, `grade_compliance`,
 `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness`,

@@ -76,6 +76,7 @@ import {
   runCheckReferralCredits,
   runListPrograms,
   runGetSnapshot,
+  runDeleteSnapshot,
   runGetArtifact,
   runCloser,
   runDeploy,
@@ -193,7 +194,12 @@ type RpcResponse = RpcSuccess | RpcError;
 
 const LEGACY_TOOL_ALIASES: Record<string, string> = {
   prepare_for_agentic_purchasing: "prepare_agentic_purchasing",
-  discover_agentic_commerce_tools: "discover_commerce_tools",
+  discover_agentic_commerce_tools: "get_install_manifest",
+  // discover_commerce_tools was itself the canonical name until 2026-08-25
+  // (Glama coherence review — the name claimed "commerce tools" but returned
+  // generic install/onboarding metadata). Kept working via this same
+  // mechanism, same precedent as the rename above.
+  discover_commerce_tools: "get_install_manifest",
   check_referral_credits: "get_referral_credits",
 };
 
@@ -394,6 +400,9 @@ export async function dispatch(
           case "get_snapshot":
             text = await runGetSnapshot(toolArgs, req);
             break;
+          case "delete_snapshot":
+            text = await runDeleteSnapshot(toolArgs, req);
+            break;
           case "get_artifact":
             text = await runGetArtifact(toolArgs, req);
             break;
@@ -412,7 +421,10 @@ export async function dispatch(
           case "search_and_discover_tools":
             text = runSearchTools(toolArgs);
             break;
-          case "discover_commerce_tools":
+          case "get_install_manifest":
+            // Function name predates two renames (discover_agentic_commerce_tools ->
+            // discover_commerce_tools -> get_install_manifest); both old names
+            // still work via LEGACY_TOOL_ALIASES/normalizeToolName above.
             text = runDiscoverAgenticCommerceTools();
             break;
           case "ping_payment":

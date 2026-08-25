@@ -319,13 +319,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns the full 43-tool catalog (build-not-redact catalog honesty)", async () => {
+  it("returns the full 44-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
-    expect(tools.length).toBe(43);
+    expect(tools.length).toBe(44);
     expect(tools.length).toBe(MCP_TOOLS.length);
     // No marketing payload injected into the result
     expect(result.incentives).toBeUndefined();
@@ -413,9 +413,11 @@ describe("POST /mcp — tools/list", () => {
   // removes an R2 object; iliad_web_search's `delete_namespace` wipes an
   // entire namespace's indexed corpus in one call) — misrepresenting the
   // real risk to any client/orchestrator that uses this hint to decide
-  // whether to ask for confirmation before invoking a tool.
-  it("marks the 2 genuinely destructive tools destructiveHint:true, and leaves every other tool false", async () => {
-    const destructiveByDesign = new Set(["iliad_object_storage", "iliad_web_search"]);
+  // whether to ask for confirmation before invoking a tool. delete_snapshot
+  // (2026-08-25, Glama coherence review) is the 3rd — same shape, permanently
+  // removes a snapshot and everything derived from it.
+  it("marks the 3 genuinely destructive tools destructiveHint:true, and leaves every other tool false", async () => {
+    const destructiveByDesign = new Set(["iliad_object_storage", "iliad_web_search", "delete_snapshot"]);
     for (const tool of MCP_TOOLS as Array<Record<string, unknown>>) {
       const annotations = tool.annotations as Record<string, unknown>;
       const expected = destructiveByDesign.has(tool.name as string);
@@ -892,6 +894,139 @@ describe("POST /mcp — tools/call get_snapshot", () => {
     expect(result.isError).toBe(true);
     const content = result.content as Array<{ text: string }>;
     expect(content[0].text).toContain("not found");
+  });
+});
+
+// Glama coherence review (2026-08-25): the MCP layer had get_snapshot with no
+// delete counterpart, even though REST already had DELETE /v1/snapshots/:id.
+// Own account/snapshots (never the shared suite fixtures above) so these
+// genuinely destructive calls can't disturb any other test in this file.
+describe("POST /mcp — tools/call delete_snapshot", () => {
+  let ownedApiKey = "";
+  let ownedAccountId = "";
+  let anonSnapshotForDelete = "";
+  let ownedSnapshotForDelete = "";
+  let otherAccountApiKey = "";
+
+  beforeAll(async () => {
+    const account = await createAccount("Delete Snapshot Suite", "delete-snapshot-suite@test.com", "delete-suite");
+    ownedAccountId = account.account_id;
+    ownedApiKey = (await createApiKey(ownedAccountId, "delete-suite-key")).rawKey;
+    const otherAccount = await createAccount("Delete Snapshot Other", "delete-snapshot-other@test.com", "delete-other");
+    otherAccountApiKey = (await createApiKey(otherAccount.account_id, "delete-other-key")).rawKey;
+
+    const manifest = { project_name: "delete-test", project_type: "library", frameworks: [], goals: [], requested_outputs: [] };
+    anonSnapshotForDelete = (await createSnapshot({ input_method: "api_submission", manifest, files: [] }, undefined)).snapshot_id;
+    ownedSnapshotForDelete = (await createSnapshot({ input_method: "api_submission", manifest, files: [] }, ownedAccountId)).snapshot_id;
+  });
+
+  it("deletes an anonymous snapshot with no auth required", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 900001,
+      method: "tools/call",
+      params: { name: "delete_snapshot", arguments: { snapshot_id: anonSnapshotForDelete } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed).toEqual({ deleted: true, snapshot_id: anonSnapshotForDelete });
+
+    // RED-PROOF: the delete actually happened, not just a claimed response —
+    // get_snapshot on the same id must now fail.
+    const getR = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 900002,
+      method: "tools/call",
+      params: { name: "get_snapshot", arguments: { snapshot_id: anonSnapshotForDelete } },
+    });
+    const getResult = (getR.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(getResult.isError).toBe(true);
+  });
+
+  it("deletes an owned snapshot when the matching account's key is used", async () => {
+    const r = await post(
+      "/mcp",
+      {
+        jsonrpc: "2.0",
+        id: 900003,
+        method: "tools/call",
+        params: { name: "delete_snapshot", arguments: { snapshot_id: ownedSnapshotForDelete } },
+      },
+      ownedApiKey,
+    );
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ text: string }>;
+    expect(JSON.parse(content[0].text)).toEqual({ deleted: true, snapshot_id: ownedSnapshotForDelete });
+  });
+
+  it("returns isError:true when deleting an owned snapshot without auth — same not-found framing as get_snapshot, never leaking existence", async () => {
+    const anotherOwned = (await createSnapshot(
+      { input_method: "api_submission", manifest: { project_name: "delete-noauth", project_type: "library", frameworks: [], goals: [], requested_outputs: [] }, files: [] },
+      ownedAccountId,
+    )).snapshot_id;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 900004,
+      method: "tools/call",
+      params: { name: "delete_snapshot", arguments: { snapshot_id: anotherOwned } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ text: string }>;
+    expect(content[0].text).toContain("not found");
+
+    // RED-PROOF: it must genuinely still exist — a mismatched caller learning
+    // nothing is only honest if the snapshot really wasn't touched.
+    const getR = await post(
+      "/mcp",
+      { jsonrpc: "2.0", id: 900005, method: "tools/call", params: { name: "get_snapshot", arguments: { snapshot_id: anotherOwned } } },
+      ownedApiKey,
+    );
+    const getResult = (getR.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(getResult.isError).toBe(false);
+  });
+
+  it("returns isError:true when a DIFFERENT account's key is used — cannot delete someone else's snapshot", async () => {
+    const targetOwned = (await createSnapshot(
+      { input_method: "api_submission", manifest: { project_name: "delete-wrong-owner", project_type: "library", frameworks: [], goals: [], requested_outputs: [] }, files: [] },
+      ownedAccountId,
+    )).snapshot_id;
+    const r = await post(
+      "/mcp",
+      { jsonrpc: "2.0", id: 900006, method: "tools/call", params: { name: "delete_snapshot", arguments: { snapshot_id: targetOwned } } },
+      otherAccountApiKey,
+    );
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ text: string }>;
+    expect(content[0].text).toContain("not found");
+  });
+
+  it("returns isError:true for a nonexistent snapshot_id", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 900007,
+      method: "tools/call",
+      params: { name: "delete_snapshot", arguments: { snapshot_id: "nonexistent-id" } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+  });
+
+  it("returns isError:true when snapshot_id is missing", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 900008,
+      method: "tools/call",
+      params: { name: "delete_snapshot", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ text: string }>;
+    expect(content[0].text).toContain("snapshot_id");
   });
 });
 
@@ -1698,9 +1833,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 43-tool catalog (build-not-redact)", async () => {
+  it("tools array exposes the full 44-tool catalog (build-not-redact)", async () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(43);
+    expect(tools).toHaveLength(44);
     expect(tools).toHaveLength(MCP_TOOLS.length);
     const allNames = new Set(MCP_TOOLS.map(t => t.name));
     for (const t of tools) {
@@ -1775,11 +1910,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 43 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+  it("body contains 44 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(43);
+    expect(tools).toHaveLength(44);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1814,8 +1949,10 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.axis_iliad).toBeDefined();
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
-    // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
-    expect(parsed.tools.length).toBe(43);
+    // get_install_manifest (called here via its discover_commerce_tools legacy
+    // alias — proves LEGACY_TOOL_ALIASES still routes correctly) mirrors the
+    // full advertised catalog (build-not-redact).
+    expect(parsed.tools.length).toBe(44);
   });
 
   it("includes free_tools array", async () => {
@@ -1829,7 +1966,10 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const content = result.content as Array<{ type: string; text: string }>;
     const parsed = JSON.parse(content[0].text);
     expect(Array.isArray(parsed.free_tools)).toBe(true);
-    expect(parsed.free_tools).toContain("discover_commerce_tools");
+    // Renamed 2026-08-25 — the catalog now advertises the canonical name; the
+    // old name still WORKS as a call (this whole describe block calls it that
+    // way) but no longer appears in the free_tools listing itself.
+    expect(parsed.free_tools).toContain("get_install_manifest");
   });
 
   it("includes install section with platform configs", async () => {
@@ -1860,7 +2000,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(43);
+    expect(parsed.shareable_manifest.tools).toBe(44);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe(API_VERSION);
   });
@@ -1913,7 +2053,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
 
   it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
-    expect(names).toContain("discover_commerce_tools");
+    expect(names).toContain("get_install_manifest");
   });
 });
 

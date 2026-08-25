@@ -3324,6 +3324,88 @@ project_begin:
         # STILL NOT DONE: GitHub Sponsors/.github/FUNDING.yml — needs the owner's
         # actual platform + handle, genuinely can't be guessed.
 
+      - id: "mcp_coherence_01_glama_review"
+        description: "MCP server coherence: fix Glama review findings (2026-08-25) — B grade, three concrete claims. Owner-directed, ad-hoc (not pre-queued)."
+        roi_score: 65
+        roi_reason: "canonical_coherence 4 (a misnamed public tool + a real CRUD gap on the live MCP surface a real reviewer already flagged); usability_without_lowering_ceiling 3."
+        severity: MEDIUM
+        source_file: "apps/api/src/mcp-tools.ts"
+        completion_status: complete  # SHIPPED 2026-08-25.
+        # Grama's raw claim ("29 tools") was stale/wrong — verified 43 real (computed
+        # MCP_TOOLS.length, not trusted) before responding. Investigated the 3
+        # qualitative claims against the real code rather than reacting to the grade:
+        # (1) "overlap between research/analysis and commerce tools" — mostly not real;
+        # ONE genuine culprit found: discover_commerce_tools's NAME claimed "commerce
+        # tools" but its actual output (install/pricing/onboarding metadata) has nothing
+        # commerce-specific in it, creating exactly the overlap-with-
+        # discover_agentic_purchasing_needs impression a reviewer would get from names
+        # alone. (2) "consider splitting into multiple servers" — assessed, not acted on:
+        # the single-server "one call replaces 10" pitch is the actual product thesis,
+        # and Glama's own coherence praise (consistent naming, iliad_ prefix) is a
+        # property of the CURRENT single-server design, not despite it. Recorded as a
+        # deliberate non-action, not a missed one. (3) "missing update/delete for
+        # snapshots" — real and checkable: DELETE /v1/snapshots/:id existed at REST with
+        # ZERO MCP-layer equivalent (only get_snapshot existed). Fixed both:
+        # DELIVERED: (a) delete_snapshot — new MCP tool, mirrors get_snapshot's exact
+        # conditional-auth semantics (runGetSnapshot/runDeleteSnapshot share the same
+        # anonymous-freely-deletable / owned-requires-matching-account pattern,
+        # same not-found-not-401 framing so a mismatched caller learns nothing).
+        # destructiveHint:true (3rd genuinely destructive tool alongside
+        # iliad_object_storage/iliad_web_search). 6 dedicated new tests incl. 2 RED-PROOFs
+        # (delete actually happened — get_snapshot on the same id fails after; a
+        # no-auth-declined delete leaves the snapshot genuinely untouched — get_snapshot
+        # still succeeds after), using a fully isolated account/snapshots (never the
+        # shared suite fixtures other tests in mcp-server.test.ts depend on).
+        # (b) discover_commerce_tools -> get_install_manifest — renamed to accurately
+        # describe what it returns, using the SAME LEGACY_TOOL_ALIASES mechanism this
+        # codebase already had precedent for (2 prior renames: prepare_for_agentic_
+        # purchasing->prepare_agentic_purchasing, discover_agentic_commerce_tools->
+        # discover_commerce_tools itself) — the old name still works via
+        # normalizeToolName, zero breaking change for any existing caller/registry
+        # that already indexed it by the old name.
+        # CASCADE (wide — this touches the PUBLIC MCP tool surface, treated with the
+        # same rigor as every prior count-cascade this session): MCP_TOOL_COUNT 43->44,
+        # apps/web/src/config.ts TOOL_COUNT 38->39 (also fixed a WRONG pre-existing
+        # comment claiming TOOL_COUNT == MCP_TOOL_COUNT — it's actually MCP_TOOL_COUNT
+        # minus the 5 estate-flagged planned stubs, confirmed by direct computation).
+        # Renamed/added across: FREE_TOOL_NAMES, NON_FREE_TOOLS_NOT_REQUIRING_AUTH,
+        # tool_selection_guide, system_prompt_snippet, the /for-agents hand-curated
+        # list + pricing table (handlers.ts), ForAgentsPage.tsx's human-facing list,
+        # README.md's free-tools line (caught live by count-honesty.test.ts, not by my
+        # own grep — the guard did its job), docs/PLATFORM_TREE.md's free-tools list,
+        # LAUNCH_CLAIMS.yaml's mcp_tool_count claim. server.json (the OFFICIAL MCP
+        # registry manifest submitted upstream — see the registry-update note below)
+        # also fixed: tools 43->44, the free_tools array renamed, a pre-existing "149
+        # structured artifacts" staleness in its description corrected to 152 (found in
+        # passing, unrelated to this fix but directly adjacent), and a UTF-8 mojibake
+        # in its title ("â€”" -> "—", a double-encoded em-dash) fixed.
+        # LEFT ALONE, correctly (historical narrative, not live claims, matching this
+        # session's own established discipline): begin.yaml's own past-tense comments,
+        # HARDEN_POLISH_LOOP.md's cycle log, V1_LAUNCH_TODO.md's explicitly-labeled
+        # "tool catalog at v1 launch (15 tools)" point-in-time snapshot,
+        # docs/ESTATE_FEDERATION_STRATEGY.md's quoted-claim excerpt.
+        # NAMED BUT NOT FIXED (found in passing, genuinely separate from this
+        # candidate's scope): docs/PROGRAM_PORTFOLIO.md was ALSO stale on generators
+        # (149) and endpoints (175) independent of this fix — corrected those two
+        # mechanically (152/178, the already-established canonical numbers) alongside
+        # the tools fix since I was already there, but explicitly flagged its OWN
+        # separate "2 free programs (search, obsidian)" claim as unverified in this
+        # pass — that phrasing looks wrong (LAUNCH_CLAIMS.yaml says search+skills+debug)
+        # but confirming/fixing it is a different investigation, not smuggled in here.
+        # VERIFIED: full battery re-run after every fix (not just once at the end) —
+        # 412/412 across 10 test files on the final pass (mcp-server.test.ts,
+        # mcp-commerce-tools.test.ts, agent-discovery.test.ts,
+        # closer-deploy-metering.test.ts, x402-onboarding-cta.test.ts, count-honesty,
+        # counts-consistency, count-surface-coverage, launch-claims,
+        # strategic-docs-honesty). tsc clean on apps/api. Not yet deployed/live-probed
+        # as of this ledger entry — see the session's next action.
+        # NEXT (owner-directed, not yet done): push updates to Glama, Smithery, and any
+        # other MCP registry locations once this ships and deploys — investigation
+        # in progress, see the session transcript for what's actually possible
+        # (most third-party directories re-crawl a live /mcp endpoint or the official
+        # registry rather than accepting a direct push; server.json IS the artifact
+        # that feeds the official io.modelcontextprotocol.io registry specifically).
+
   highest_roi_definition:
     meaning: >
       The next valid move inside the project boundary that most increases durable

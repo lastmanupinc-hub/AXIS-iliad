@@ -55,8 +55,8 @@ describe("WO-13 registration", () => {
     expect(rep.annotations.readOnlyHint).toBe(false);
   });
 
-  it("MCP_TOOL_COUNT === MCP_TOOLS.length === 43 (WO-13 + WO-08 + WO-14 network tokenization + x402 onboarding ping_payment + est_01 discover_estate_tools + est_03's 5 Foundry Wave-1 stubs)", () => {
-    expect(MCP_TOOLS.length).toBe(43);
+  it("MCP_TOOL_COUNT === MCP_TOOLS.length === 44 (WO-13 + WO-08 + WO-14 network tokenization + x402 onboarding ping_payment + est_01 discover_estate_tools + est_03's 5 Foundry Wave-1 stubs + delete_snapshot)", () => {
+    expect(MCP_TOOLS.length).toBe(44);
     expect(MCP_TOOL_COUNT).toBe(MCP_TOOLS.length);
   });
 
@@ -331,7 +331,7 @@ describe("discovery surfaces advertise the new free tools", () => {
       expect(entry.auth_required).toBe(false);
     }
     expect(parsed.shareable_manifest.free_tools).toContain("sca_exemption_decision");
-    expect(parsed.shareable_manifest.tools).toBe(43);
+    expect(parsed.shareable_manifest.tools).toBe(44);
   });
 
   // H-Phase-A cycle 6: auth_required used to be computed as simply `!free`,
