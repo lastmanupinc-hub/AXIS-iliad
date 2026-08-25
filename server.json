@@ -1,12 +1,12 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.lastmanupinc-hub/axis-iliad",
-  "title": "Axis Iliad — Codebase Intelligence For Agentic Commerce",
-  "description": "Analyze any repository and get 152 structured artifacts across 21 programs: AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, MCP configs, AP2/UCP/Visa commerce hardening, negotiation rules, and purchasing-readiness guidance for autonomous agents.",
+  "name": "io.github.lastmanupinc-hub/axis-toolbox",
+  "title": "Axis Iliad - Codebase Intelligence For Agentic Commerce",
+  "description": "Codebase intelligence for agents: 152 structured artifacts across 21 programs, one call.",
   "version": "0.5.3",
   "websiteUrl": "https://axis-api-6c7z.onrender.com/for-agents",
   "repository": {
-    "url": "https://github.com/lastmanupinc-hub/axis-iliad",
+    "url": "https://github.com/lastmanupinc-hub/AXIS-iliad",
     "source": "github"
   },
   "remotes": [
