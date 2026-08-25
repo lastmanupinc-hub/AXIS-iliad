@@ -216,10 +216,15 @@ describe("GET /.well-known/glama.json", () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains mcp endpoint and description", async () => {
-    expect(typeof json.mcp_endpoint).toBe("string");
-    expect(String(json.mcp_endpoint)).toContain("/v1/mcp");
-    expect(typeof json.description).toBe("string");
+  // Glama's directory marked this connector unhealthy because the old shape
+  // (name/slug/description/mcp_endpoint) never matched their claim schema —
+  // no $schema, no maintainers, so they had no way to verify ownership.
+  it("matches Glama's connector-claim schema exactly ($schema + maintainers)", async () => {
+    expect(json["$schema"]).toBe("https://glama.ai/mcp/schemas/connector.json");
+    expect(Array.isArray(json.maintainers)).toBe(true);
+    const maintainers = json.maintainers as Array<{ email?: string }>;
+    expect(maintainers.length).toBeGreaterThan(0);
+    expect(maintainers[0].email).toBe("support@jonathanarvay.com");
   });
 });
 

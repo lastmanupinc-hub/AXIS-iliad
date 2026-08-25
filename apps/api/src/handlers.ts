@@ -4325,19 +4325,21 @@ export async function handleProbeIntent(
   });
 }
 
-// ─── GET /.well-known/glama.json  -  Glama registry hint ─────────────
+// ─── GET /.well-known/glama.json  -  Glama connector-claim proof ──────
+// Glama's directory marked this connector unhealthy because this file never
+// matched their claim schema — it returned an unrelated custom shape with no
+// $schema and no maintainers field, so Glama had no way to verify ownership.
+// This is the exact shape their claim flow requires: $schema + maintainers.
+// Keep it minimal and byte-faithful to what they specify — do not add fields
+// speculatively; an unrecognized shape is what broke this the first time.
 
 export function handleGlamaJson(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   sendJSON(res, 200, {
-    name: "Axis' Iliad",
-    slug: "axis-iliad",
-    description: `Deterministic MCP server for ${ARTIFACT_COUNT} artifacts across ${PROGRAM_COUNT} programs`,
-    mcp_endpoint: "https://axis-api-6c7z.onrender.com/v1/mcp",
-    docs_url: "https://axis-api-6c7z.onrender.com/v1/docs.md",
-    website: "https://axis-api-6c7z.onrender.com",
+    "$schema": "https://glama.ai/mcp/schemas/connector.json",
+    maintainers: [{ email: "support@jonathanarvay.com" }],
   });
   return Promise.resolve();
 }
