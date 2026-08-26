@@ -82,7 +82,7 @@ const PROGRAM_DOCS: ProgramDoc[] = [
   {
     name: "pitch", label: "Axis Pitch", icon: "pitch", category: "Growth & Content",
     promise: "A pitch deck that argues from runtime evidence",
-    description: "Truth-first deck: every figure measured from the repo; docs numbers audited on the Truth slide, never repeated as facts. Slide art prompts derived per repo.",
+    description: "Truth-first deck on the evidence-based consensus skeleton (Problem → Solution → Traction → Model → Market → Team → Ask): figures measured from the repo, owner-input slots labeled instead of invented, docs numbers audited on the honest-audit slide. Renders to .pptx as a clean investor deck or annotated diligence copy.",
     tier: "pro", generatorCount: 3,
     endpoints: ["POST /v1/pitch/generate"],
     outputFiles: ["pitch-deck.md", "pitch-deck.json", "slide-art-prompts.json"],

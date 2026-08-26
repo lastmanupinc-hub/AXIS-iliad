@@ -49,13 +49,44 @@ describe("renderPitchDeckPptx — produces a real, openable .pptx", () => {
     expect(slide2).toContain("Lines of code: 50000");
   });
 
-  it("attaches real speaker notes as a notesSlide per slide", async () => {
-    const result = await renderPitchDeckPptx(deck());
+  it("annotated variant attaches real speaker notes as a notesSlide per slide", async () => {
+    const result = await renderPitchDeckPptx(deck(), { variant: "annotated" });
     const zip = await JSZip.loadAsync(result.buffer);
     const notes1 = await zip.files["ppt/notesSlides/notesSlide1.xml"].async("string");
     const notes2 = await zip.files["ppt/notesSlides/notesSlide2.xml"].async("string");
     expect(notes1).toContain("Notes for slide 1");
     expect(notes2).toContain("Notes for slide 2");
+  });
+
+  it("clean variant (the default) carries NO speaker-notes content and NO provenance footers — the investor deck explains itself", async () => {
+    const result = await renderPitchDeckPptx(deck());
+    expect(result.variant).toBe("clean");
+    const zip = await JSZip.loadAsync(result.buffer);
+    // pptxgenjs may emit empty notesSlide scaffolding; what must NOT exist is
+    // our actual notes text or any provenance annotation, anywhere in the zip.
+    for (const name of Object.keys(zip.files).filter((f) => f.endsWith(".xml"))) {
+      const xml = await zip.files[name].async("string");
+      expect(xml, `${name} leaked notes text into the clean deck`).not.toContain("Notes for slide");
+      expect(xml, `${name} leaked a provenance footer into the clean deck`).not.toContain("provenance:");
+    }
+  });
+
+  it("annotated variant renders a per-slide provenance footer, defaulting v1 payloads (no provenance field) to measured", async () => {
+    const result = await renderPitchDeckPptx(deck(), { variant: "annotated" });
+    expect(result.variant).toBe("annotated");
+    const zip = await JSZip.loadAsync(result.buffer);
+    const slide1 = await zip.files["ppt/slides/slide1.xml"].async("string");
+    expect(slide1).toContain("provenance: measured");
+  });
+
+  it("annotated variant renders a v2 slide's own provenance type, not a hardcoded label", async () => {
+    const v2 = deck({
+      slides: [{ n: 1, title: "Team", bullets: ["OWNER INPUT REQUIRED — who builds this."], speaker_notes: "n", art: "team", provenance: "owner_input" }],
+    });
+    const result = await renderPitchDeckPptx(v2, { variant: "annotated" });
+    const zip = await JSZip.loadAsync(result.buffer);
+    const slide1 = await zip.files["ppt/slides/slide1.xml"].async("string");
+    expect(slide1).toContain("provenance: owner_input");
   });
 
   it("reports slides_total matching the input slide count", async () => {

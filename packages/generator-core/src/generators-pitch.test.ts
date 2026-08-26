@@ -115,14 +115,24 @@ describe("pitch — truth-first deck", () => {
       prompts: Record<string, string>;
       style_contract: { negative: string };
     };
-    expect(Object.keys(art.prompts).sort()).toEqual(["ask", "engineering", "evidence", "title", "truth"]);
+    expect(Object.keys(art.prompts).sort()).toEqual(["ask", "market", "model", "problem", "solution", "team", "title", "traction", "truth"]);
     for (const p of Object.values(art.prompts)) {
       expect(p).toContain("No words");
       expect(p).toContain("no logos");
       expect(p).toContain("no fake user interfaces");
     }
-    // Derived from this repo's facts: the evidence slide encodes the route count.
-    expect(art.prompts.evidence).toContain("3 accent points");
+    // Derived from this repo's facts: the solution slide encodes the route count.
+    expect(art.prompts.solution).toContain("3 accent points");
+  });
+
+  it("every slide's art key has a matching art prompt — no slide can render background-less by omission", () => {
+    const json = JSON.parse(generatePitchDeckJson(ctxFixture(), []).content) as {
+      slides: Array<{ art: string }>;
+    };
+    const art = JSON.parse(generateSlideArtPrompts(ctxFixture()).content) as { prompts: Record<string, string> };
+    for (const s of json.slides) {
+      expect(art.prompts[s.art], `slide art key "${s.art}" missing from slide-art-prompts.json`).toBeDefined();
+    }
   });
 
   it("is deterministic — identical output for identical input", () => {
@@ -130,6 +140,126 @@ describe("pitch — truth-first deck", () => {
     const b = generatePitchDeck(ctxFixture(), LYING_README).content;
     expect(a).toBe(b);
     expect(a).not.toContain("2026-01-01"); // generated_at must not leak (Watch-diff lesson)
+  });
+});
+
+describe("evidence-skeleton structure (v2) — the consensus skeleton, provenance-typed", () => {
+  it("emits the full consensus skeleton in order: thesis-first title through the ask", () => {
+    const json = JSON.parse(generatePitchDeckJson(ctxFixture(), []).content) as {
+      slides: Array<{ n: number; title: string }>;
+    };
+    expect(json.slides.map((s) => s.title)).toEqual([
+      "acme-api",
+      "The problem",
+      "The solution — measured",
+      "Traction — attested, never invented",
+      "Business model",
+      "Market — bottom-up only",
+      "Team",
+      "The honest audit — docs vs. code, gaps included",
+      "The ask",
+    ]);
+    expect(json.slides.map((s) => s.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it("every slide carries a provenance type, and owner-input slides declare their fields", () => {
+    const json = JSON.parse(generatePitchDeckJson(ctxFixture(), []).content) as {
+      slides: Array<{ title: string; provenance: string; owner_inputs?: string[] }>;
+      owner_inputs: Array<{ slide: number; fields: string[] }>;
+    };
+    for (const s of json.slides) {
+      expect(["measured", "owner_input", "mixed"], `${s.title} has invalid provenance`).toContain(s.provenance);
+      if (s.provenance !== "measured") {
+        expect(s.owner_inputs?.length, `${s.title} is ${s.provenance} but declares no owner_inputs`).toBeGreaterThan(0);
+      }
+    }
+    // The aggregate manifest matches the per-slide declarations.
+    const declared = json.slides.filter((s) => (s.owner_inputs ?? []).length > 0).length;
+    expect(json.owner_inputs.length).toBe(declared);
+  });
+
+  it("RED-PROOF: owner-input placeholder text NEVER contains a digit — a placeholder that smuggles an invented number is the exact defect this program refuses", () => {
+    const json = JSON.parse(generatePitchDeckJson(ctxFixture(), []).content) as {
+      slides: Array<{ title: string; bullets: string[] }>;
+    };
+    for (const s of json.slides) {
+      for (const b of s.bullets.filter((x) => x.startsWith("OWNER INPUT REQUIRED"))) {
+        expect(b, `placeholder on "${s.title}" contains a digit: ${b}`).not.toMatch(/\d/);
+      }
+    }
+  });
+
+  it("no top-down TAM: the market slide is policy + owner input, with no market number anywhere on it", () => {
+    const deck = JSON.parse(generatePitchDeckJson(ctxFixture(), LYING_README).content) as {
+      slides: Array<{ title: string; bullets: string[]; provenance: string }>;
+    };
+    const market = deck.slides.find((s) => s.title.startsWith("Market"));
+    expect(market).toBeDefined();
+    expect(market!.provenance).toBe("owner_input");
+    for (const b of market!.bullets) expect(b, `market slide carries a number: ${b}`).not.toMatch(/\d/);
+  });
+
+  it("business model: detects a payment dependency as evidence of a rail, never as evidence of a price", () => {
+    const ctx = ctxFixture();
+    (ctx.dependency_graph as { external_dependencies: Array<{ name: string }> }).external_dependencies = [
+      { name: "stripe" },
+      { name: "express" },
+    ];
+    const json = JSON.parse(generatePitchDeckJson(ctx, []).content) as {
+      slides: Array<{ title: string; bullets: string[] }>;
+    };
+    const model = json.slides.find((s) => s.title === "Business model")!;
+    expect(model.bullets[0]).toContain("stripe");
+    expect(model.bullets[0]).not.toContain("express");
+    // The detection bullet asserts a PATH exists — it must never state a price.
+    expect(model.bullets[0]).not.toMatch(/\$|price[sd]? at|per (month|run|call)/i);
+  });
+
+  it("RED-PROOF: payment detection never false-positives on lookalike names or dev-only dependencies", () => {
+    const ctx = ctxFixture();
+    (ctx.dependency_graph as { external_dependencies: Array<{ name: string; type?: string }> }).external_dependencies = [
+      { name: "squarify" },                        // treemap layout, not Square
+      { name: "paddlejs" },                        // Baidu ML framework, not Paddle billing
+      { name: "striped-background" },              // contains "stripe" as a substring only
+      { name: "stripe", type: "development" },     // real SDK but a test mock — dev-only
+    ];
+    const json = JSON.parse(generatePitchDeckJson(ctx, []).content) as { slides: Array<{ title: string; bullets: string[] }> };
+    const model = json.slides.find((s) => s.title === "Business model")!;
+    expect(model.bullets[0]).toContain("No payment integration detected");
+  });
+
+  it("payment detection still matches scoped and delimiter-prefixed real SDK names", () => {
+    const ctx = ctxFixture();
+    (ctx.dependency_graph as { external_dependencies: Array<{ name: string; type?: string }> }).external_dependencies = [
+      { name: "@stripe/stripe-js", type: "production" },
+      { name: "paypal-rest-sdk" },
+    ];
+    const json = JSON.parse(generatePitchDeckJson(ctx, []).content) as { slides: Array<{ title: string; bullets: string[] }> };
+    const model = json.slides.find((s) => s.title === "Business model")!;
+    expect(model.bullets[0]).toContain("@stripe/stripe-js");
+    expect(model.bullets[0]).toContain("paypal-rest-sdk");
+  });
+
+  it("the markdown renders the per-slide provenance its own header promises", () => {
+    const deck = generatePitchDeck(ctxFixture(), []).content;
+    // Every slide carries a provenance line; owner-input slides name their fields.
+    expect(deck).toContain("**Provenance:** measured");
+    expect(deck).toContain("**Provenance:** owner_input — owner inputs: problem_statement, current_alternatives");
+    expect((deck.match(/\*\*Provenance:\*\*/g) ?? []).length).toBe(9);
+  });
+
+  it("the repo's self-description renders in quoted-claim typography, never as a bare fact", () => {
+    const deck = generatePitchDeck(ctxFixture(), []).content;
+    expect(deck).toContain('"Invoice API for small businesses"');
+  });
+
+  it("the honest audit slide keeps both halves: engineering reality AND the docs-vs-code diff", () => {
+    const deck = generatePitchDeck(ctxFixture(), LYING_README).content;
+    // Engineering reality (was slide 3) and the claims audit (was slide 4)
+    // now live on one signature slide — both must survive the merge.
+    expect(deck).toContain("The honest audit");
+    expect(deck).toContain("Test files found: 0");
+    expect(deck).toContain('claims "500 endpoints"');
   });
 });
 

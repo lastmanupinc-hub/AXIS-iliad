@@ -1493,13 +1493,29 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // than in the PROGRAM_ENDPOINTS loop below.
       "/v1/pitch/render": {
         post: {
-          summary: "Render a snapshot's generated pitch deck to a real .pptx file",
+          summary: "Render a snapshot's generated pitch deck to a real .pptx file (clean investor deck or annotated diligence copy)",
           operationId: "pitchRender",
           tags: ["Programs"],
           security: [{ apiKey: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["snapshot_id"],
+                  properties: {
+                    snapshot_id: { type: "string", description: "Snapshot whose generated pitch-deck.json to render" },
+                    variant: { type: "string", enum: ["clean", "annotated"], description: 'Which of the two documents to render: "clean" (default) is the investor deck — no speaker notes, no provenance annotations; "annotated" is the diligence copy with speaker notes and per-slide provenance footers' },
+                    render_backgrounds: { type: "boolean", description: "Opt-in, best-effort AI slide backgrounds (one xAI call per distinct slide art key; slides fall back to a solid background on any failure)" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "PowerPoint (.pptx) binary of the rendered deck" },
-            400: { description: "Missing or invalid snapshot_id" },
+            200: { description: "PowerPoint (.pptx) binary of the rendered deck; X-Axis-Variant echoes which document was produced" },
+            400: { description: "Missing/invalid snapshot_id, or variant not one of clean|annotated" },
             402: { description: "The pitch program is not enabled on this account" },
             404: { description: "Snapshot not found, or it has no pitch-deck.json artifact" },
             500: { description: "Stored pitch-deck.json is malformed or has no slides" },

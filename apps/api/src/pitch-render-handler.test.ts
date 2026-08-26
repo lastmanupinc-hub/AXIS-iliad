@@ -165,6 +165,41 @@ describe("POST /v1/pitch/render", () => {
     expect(r.headers["x-axis-slides-total"]).toBe("2");
     // render_backgrounds defaulted false — no xAI call attempted, so no slide gets real art.
     expect(r.headers["x-axis-slides-with-art"]).toBe("");
+    // variant defaulted "clean" — the investor deck, and the header says which document this is.
+    expect(r.headers["x-axis-variant"]).toBe("clean");
+    // Clean deck: the fixture's speaker-notes text must not appear anywhere in the file.
+    for (const name of Object.keys(zip.files).filter((f) => f.endsWith(".xml"))) {
+      const xml = await zip.files[name].async("string");
+      expect(xml, `${name} leaked notes into the clean deck`).not.toContain("Notes 1.");
+    }
+  });
+
+  it('variant:"annotated" produces the diligence copy — speaker notes present, header echoes the variant, filename marks the document', async () => {
+    const account = await createAccount("Pitch Render G", `pitch-render-g-${Math.random()}@test.com`, "paid");
+    const key = (await createApiKey(account.account_id, "k")).rawKey;
+    await enableProgram(account.account_id, "pitch");
+    const snapshotId = await makeSnapshotWithDeck(account.account_id);
+
+    const r = await post("/v1/pitch/render", { snapshot_id: snapshotId, variant: "annotated" }, key);
+    expect(r.status).toBe(200);
+    expect(r.headers["x-axis-variant"]).toBe("annotated");
+    expect(String(r.headers["content-disposition"])).toContain("-annotated.pptx");
+    const zip = await JSZip.loadAsync(r.buffer);
+    const notes1 = await zip.files["ppt/notesSlides/notesSlide1.xml"].async("string");
+    expect(notes1).toContain("Notes 1.");
+  });
+
+  it("rejects an unrecognized variant with 400 — sending the wrong document to an investor is the failure this parameter prevents", async () => {
+    const account = await createAccount("Pitch Render H", `pitch-render-h-${Math.random()}@test.com`, "paid");
+    const key = (await createApiKey(account.account_id, "k")).rawKey;
+    await enableProgram(account.account_id, "pitch");
+    const snapshotId = await makeSnapshotWithDeck(account.account_id);
+    const r = await post("/v1/pitch/render", { snapshot_id: snapshotId, variant: "draft" }, key);
+    expect(r.status).toBe(400);
+    expect((r.json as { error?: string } | undefined)?.error).toMatch(/clean.*annotated/i);
+    // An explicit null is a caller mistake, not a request for the default.
+    const rNull = await post("/v1/pitch/render", { snapshot_id: snapshotId, variant: null }, key);
+    expect(rNull.status).toBe(400);
   });
 
   it("returns 500 with a clear message when the stored pitch-deck.json is corrupted, rather than crashing opaquely", async () => {

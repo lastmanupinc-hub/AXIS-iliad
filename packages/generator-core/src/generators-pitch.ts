@@ -9,7 +9,7 @@
 // THE RULE, inherited from every honesty guard in this codebase: a number
 // appears on a slide only if the analyzer measured it. Anything sourced from
 // README/marketing prose is labeled a claim and diffed against measurement on
-// the Truth Assessment slide. Where evidence is missing, the slide SAYS SO —
+// the honest-audit slide. Where evidence is missing, the slide SAYS SO —
 // "unverified" is a first-class value here, because an investor deck that
 // hides the absence of tests is the defect, not the feature.
 //
@@ -167,6 +167,30 @@ function auditDocClaims(ctx: ContextMap, files?: SourceFile[]): DocClaim[] {
 }
 
 // ─── Slide construction ─────────────────────────────────────────────────────
+//
+// STRUCTURE (v2, 2026-08-26): the deck follows the evidence-based consensus
+// skeleton derived from a primary-source research pass over the fundraising
+// canon (YC partner guidance, VC-firm outlines, peer-reviewed pitching
+// studies, and the DocSend read-telemetry series) — see the owner's research
+// synthesis "The Deck Canon on Trial". The findings this structure encodes:
+//   * Seven slots recur across every prescriptive primary source:
+//     Problem → Solution → Traction → Business model → Market → Team → Ask.
+//     A deck must PARSE as a deck to its only audience (median investor read
+//     is ~3 minutes, front-loaded, falling yearly).
+//   * The title slide opens with the investment thesis (attention peaks in
+//     the first minute — spend it on what must be believed, never on team).
+//   * No top-down TAM, ever — bottom-up logic or an honest placeholder.
+//   * Preparedness beats polish in the peer-reviewed literature, and
+//     polish-picked startups underperform post-funding — so the audit slide
+//     stays, as the deck's signature, not an apology.
+// A repo cannot testify to a business: team, market volume, pricing, and the
+// ask are NOT derivable from code. Those slots render as unmistakable
+// OWNER INPUT REQUIRED placeholders — labeled, never silently filled with
+// invented numbers. The honesty rule is unchanged: measured, attested, or
+// absent-and-said-so.
+
+/** Where a slide's content comes from — the deck's provenance typography. */
+type SlideProvenance = "measured" | "owner_input" | "mixed";
 
 interface Slide {
   n: number;
@@ -175,7 +199,15 @@ interface Slide {
   speaker_notes: string;
   /** Key into slide-art-prompts.json. */
   art: string;
+  provenance: SlideProvenance;
+  /** For owner_input/mixed slides: the named fields the founder must supply. */
+  owner_inputs?: string[];
 }
+
+/** Prefix every founder-supplied slot carries — unmistakable on a projector,
+ * unmissable in review. A deck presented with one of these still visible is
+ * unfinished by design, not embarrassing by accident. */
+const OWNER_INPUT = "OWNER INPUT REQUIRED — ";
 
 function honestOneLiner(ctx: ContextMap): { text: string; source: string } {
   const d = ctx.project_identity?.description?.trim();
@@ -193,64 +225,169 @@ function buildSlides(ctx: ContextMap, files?: SourceFile[]): { slides: Slide[]; 
   const one = honestOneLiner(ctx);
   const testFiles = countTestFiles(ctx);
   const hotspots = (ctx.dependency_graph?.hotspots ?? []).slice(0, 5);
+  const routeCount = displayRoutes(ctx.routes ?? []).length;
 
   const contradicted = claims.filter((c) => c.verdict === "contradicts");
   const unverifiable = claims.filter((c) => c.verdict === "unverifiable");
+
+  // Capability facts belong on the Solution slide; verification facts (tests,
+  // CI) belong on the audit slide — measuredFacts() keeps both for the JSON.
+  const solutionFacts = facts.filter((f) => f.label !== "Test frameworks" && f.label !== "CI");
+  const verificationFacts = facts.filter((f) => f.label === "Test frameworks" || f.label === "CI");
+
+  // Monetization evidence: payment SDKs visible in the dependency graph.
+  // Detection only — pricing is never invented from a package name.
+  // PRECISION RULES (adversarial review, 2026-08-26): the first draft used a
+  // bare substring regex with no dep-type check, which false-positived on
+  // "squarify" (a treemap library), "paddlejs" (Baidu's ML framework), and any
+  // devDependency payment mock — planting a false business assertion in the
+  // slide's measured slot. Now: known SDK names match only as the whole
+  // package name, a scoped prefix (@stripe/…), or a delimiter-separated
+  // prefix (paypal-rest-sdk), and development-only dependencies never count.
+  const PAYMENT_SDK_NAMES = ["stripe", "braintree", "paypal", "razorpay", "adyen", "mollie", "square", "squareup", "paddle", "lemonsqueezy"];
+  const isPaymentSdkName = (raw: string): boolean => {
+    const n = raw.toLowerCase();
+    return PAYMENT_SDK_NAMES.some((p) => n === p || n.startsWith(`@${p}/`) || n.startsWith(`${p}-`) || n.startsWith(`${p}.`) || n.startsWith(`${p}/`));
+  };
+  const paymentDeps = ((ctx.dependency_graph?.external_dependencies ?? []) as Array<{ name?: string; type?: string }>)
+    .filter((d) => d.type !== "development")
+    .map((d) => String(d.name ?? ""))
+    .filter(isPaymentSdkName)
+    .slice(0, 5);
 
   const slides: Slide[] = [];
 
   slides.push({
     n: 1,
     title: id?.name ?? "Untitled project",
-    bullets: [one.text, `Primary language: ${id?.primary_language ?? "unknown"}`],
-    speaker_notes: `One-liner source: ${one.source}. Nothing on this deck is aspirational copy — every number was measured from the repository at analysis time.`,
+    bullets: [
+      // The one-liner is the repo's own self-description — a CLAIM, not a
+      // measurement, so it renders in the deck's quoted-claim typography
+      // (adversarial review, 2026-08-26: unquoted, it was the one channel a
+      // marketing number could enter a slide as if it were a bare fact; the
+      // absence statement is the analyzer's own finding and stays unquoted).
+      one.source.startsWith("absent") ? one.text : `"${one.text}"`,
+      `Primary language: ${id?.primary_language ?? "unknown"}`,
+      `${OWNER_INPUT}the investment thesis: the two or three things an investor must believe to want to own this. State them up front — the audit slide is what earns them.`,
+    ],
+    speaker_notes: `One-liner source: ${one.source}. Open with the thesis, not the team — investor attention peaks in the first minute. Nothing on this deck is aspirational copy — every number was measured from the repository at analysis time.`,
     art: "title",
+    provenance: "mixed",
+    owner_inputs: ["investment_thesis"],
   });
 
   slides.push({
     n: 2,
-    title: "What exists — measured",
-    bullets: facts.map((f) => `${f.label}: ${f.value}`),
-    speaker_notes: `Each figure cites its analyzer field: ${facts.map((f) => `${f.label}←${f.source}`).join("; ")}.`,
-    art: "evidence",
+    title: "The problem",
+    bullets: [
+      `${OWNER_INPUT}the customer pain this exists to remove, stated concretely enough that an investor can retell it.`,
+      `${OWNER_INPUT}how that customer copes today, and what the coping costs them.`,
+    ],
+    speaker_notes:
+      "The one slot every prescriptive primary source agrees on. A repository cannot testify to a customer's pain — this is founder knowledge, and inventing it here would be the exact defect this program exists to refuse.",
+    art: "problem",
+    provenance: "owner_input",
+    owner_inputs: ["problem_statement", "current_alternatives"],
   });
 
   slides.push({
     n: 3,
-    title: "Engineering reality",
-    bullets: [
-      `Test files found: ${testFiles}`,
-      `Architecture separation score: ${ctx.architecture_signals?.separation_score ?? "n/a"}`,
-      ...(hotspots.length
-        ? [`Highest-coupling files: ${hotspots.map((h) => h.path).join(", ")}`]
-        : []),
-      ...warnings.map((w) => `⚠ ${w}`),
-    ],
-    speaker_notes:
-      "This slide is deliberately unflattering where the evidence is. An investor who finds the gap after the deck is worse than one who sees it on the deck.",
-    art: "engineering",
+    title: "The solution — measured",
+    bullets: solutionFacts.map((f) => `${f.label}: ${f.value}`),
+    speaker_notes: `What demonstrably exists in the repository. Each figure cites its analyzer field: ${solutionFacts.map((f) => `${f.label}←${f.source}`).join("; ")}.`,
+    art: "solution",
+    provenance: "measured",
   });
 
-  const truthBullets: string[] = [];
+  slides.push({
+    n: 4,
+    title: "Traction — attested, never invented",
+    bullets: [
+      ...(routeCount > 0
+        ? [`A live service surface exists in code: ${routeCount} HTTP routes. Code proves capability, not adoption — the distinction stays on the slide.`]
+        : []),
+      `${OWNER_INPUT}usage, revenue, customers, pilots — attach real numbers with their source, or state pre-revenue plainly. The analyzer cannot measure adoption, and this deck does not fill that gap with copy.`,
+    ],
+    speaker_notes:
+      "Read-telemetry across thousands of decks puts traction among the highest-scrutiny sections — and time spent on a weak traction slide is skepticism, not interest. An honest 'pre-revenue' outperforms an inflated metric that dies in diligence.",
+    art: "traction",
+    provenance: "mixed",
+    owner_inputs: ["traction_metrics"],
+  });
+
+  slides.push({
+    n: 5,
+    title: "Business model",
+    bullets: [
+      paymentDeps.length > 0
+        ? `Payment SDK present in production dependencies: ${paymentDeps.join(", ")} — a payments rail is wired in code.`
+        : "No payment integration detected in the codebase — monetization is not yet wired.",
+      `${OWNER_INPUT}pricing, unit economics, who pays and for what. Detection above is evidence a rail exists, never evidence of a price.`,
+    ],
+    speaker_notes:
+      "Funded decks place the business model early and investors spend real read-time on it. The measured half is only whether a payment rail exists in the dependency graph; everything about price is founder input.",
+    art: "model",
+    provenance: "mixed",
+    owner_inputs: ["pricing_model"],
+  });
+
+  slides.push({
+    n: 6,
+    title: "Market — bottom-up only",
+    bullets: [
+      "POLICY — no top-down TAM appears on this deck. A percent-of-a-market-report number is noise on a market-changing product, and sophisticated readers price it as such.",
+      `${OWNER_INPUT}the bottom-up case: real price × reachable buyers × honest conversion, each factor named with its source. If a factor is unknown, say unknown — that is a diligence conversation, not a slide gap.`,
+    ],
+    speaker_notes:
+      "The most-attacked slide in the fundraising canon: the most famous funded deck of its era missed its own TAM by well over an order of magnitude and got funded anyway. Bottom-up or nothing.",
+    art: "market",
+    provenance: "owner_input",
+    owner_inputs: ["bottom_up_market"],
+  });
+
+  slides.push({
+    n: 7,
+    title: "Team",
+    bullets: [
+      `${OWNER_INPUT}who builds this, with the evidence they can — shipped work beats titles.`,
+      `${OWNER_INPUT}what this raise changes about the team. If there is a gap, price it as the thing the round buys — a named gap is a plan, a hidden one is a diligence finding.`,
+    ],
+    speaker_notes:
+      "Investors rank team above product, model, and market in the survey data — but a repository cannot testify to the people. Placement is contested across the primary sources; what is not contested is that the slide must exist and must be concrete.",
+    art: "team",
+    provenance: "owner_input",
+    owner_inputs: ["team", "round_unblocks"],
+  });
+
+  const auditBullets: string[] = [
+    `Test files found: ${testFiles}`,
+    ...verificationFacts.map((f) => `${f.label}: ${f.value}`),
+    `Architecture separation score: ${ctx.architecture_signals?.separation_score ?? "n/a"}`,
+    ...(hotspots.length
+      ? [`Highest-coupling files: ${hotspots.map((h) => h.path).join(", ")}`]
+      : []),
+    ...warnings.map((w) => `⚠ ${w}`),
+  ];
   if (claims.length === 0) {
-    truthBullets.push("No numeric claims found in README/docs to audit.");
+    auditBullets.push("No numeric claims found in README/docs to audit.");
   } else {
-    truthBullets.push(`${claims.length} numeric claims found in docs; ${contradicted.length} contradict measurement, ${unverifiable.length} cannot be verified from code.`);
-    truthBullets.push(`Audit rules: on a fully-scanned repo, measurements are exact and contradictions run both directions; on a capped scan they are floors, and a contradiction is declared only where docs UNDERSTATE what provably exists. Unit mismatches (test cases vs test files) are never accusations.`);
+    auditBullets.push(`${claims.length} numeric claims found in docs; ${contradicted.length} contradict measurement, ${unverifiable.length} cannot be verified from code.`);
+    auditBullets.push(`Audit rules: on a fully-scanned repo, measurements are exact and contradictions run both directions; on a capped scan they are floors, and a contradiction is declared only where docs UNDERSTATE what provably exists. Unit mismatches (test cases vs test files) are never accusations.`);
     for (const c of contradicted.slice(0, 6)) {
-      truthBullets.push(`✗ ${c.file} claims "${c.quote}" — measured ${c.measured}.`);
+      auditBullets.push(`✗ ${c.file} claims "${c.quote}" — measured ${c.measured}.`);
     }
     for (const c of unverifiable.slice(0, 4)) {
-      truthBullets.push(`? "${c.quote}" (${c.file}) — not verifiable from the codebase; treat as marketing until evidenced.`);
+      auditBullets.push(`? "${c.quote}" (${c.file}) — not verifiable from the codebase; treat as marketing until evidenced.`);
     }
   }
   slides.push({
-    n: 4,
-    title: "Truth assessment — docs vs. measurement",
-    bullets: truthBullets,
+    n: 8,
+    title: "The honest audit — docs vs. code, gaps included",
+    bullets: auditBullets,
     speaker_notes:
-      "The deck's own docs-vs-code diff. Contradictions are stated with both numbers; unverifiable claims are named as such rather than repeated as facts. This slide is the reason to trust the other slides.",
+      "The deck's signature: engineering reality and the docs-vs-code diff, stated by the deck before diligence finds them. Deliberately unflattering where the evidence is — preparedness, not polish, is what predicts funding in the peer-reviewed literature, and this slide is the reason to trust the other slides.",
     art: "truth",
+    provenance: "measured",
   });
 
   const gaps: string[] = [];
@@ -259,12 +396,17 @@ function buildSlides(ctx: ContextMap, files?: SourceFile[]): { slides: Slide[]; 
   if ((ctx.routes ?? []).length === 0 && (ctx.entry_points ?? []).length > 0) gaps.push("Runnable code without a service surface — distribution is the open question.");
   if (contradicted.length > 0) gaps.push(`${contradicted.length} doc claims contradict the code — fix the docs before anyone else runs this audit.`);
   slides.push({
-    n: 5,
-    title: "The honest ask",
-    bullets: gaps.length ? gaps : ["Evidence shows a working baseline; the roadmap is a product decision, not an engineering rescue."],
+    n: 9,
+    title: "The ask",
+    bullets: [
+      ...(gaps.length ? gaps : ["Evidence shows a working baseline; the roadmap is a product decision, not an engineering rescue."]),
+      `${OWNER_INPUT}amount, runway, and the milestones it buys — sized bottom-up from an operating plan, never a round-number default. Valuation terms belong in conversation, not on a slide.`,
+    ],
     speaker_notes:
-      "Derived from measured gaps only. No invented TAM, no hockey stick — those belong to the owner, stated in their own voice, not fabricated by a generator.",
+      "Milestones derive from measured gaps only. No invented TAM, no hockey stick — those belong to the owner, stated in their own voice, not fabricated by a generator.",
     art: "ask",
+    provenance: "mixed",
+    owner_inputs: ["raise_amount", "milestones"],
   });
 
   return { slides, claims };
@@ -277,10 +419,18 @@ export function generatePitchDeck(ctx: ContextMap, files?: SourceFile[]): Genera
   const lines: string[] = [];
   lines.push(`# ${mdText(ctx.project_identity?.name ?? "Untitled")} — pitch deck`);
   lines.push("");
-  lines.push("> Every number on these slides was **measured from the repository**.");
-  lines.push("> Numbers found in docs/marketing prose appear only on the Truth Assessment");
-  lines.push("> slide, labeled as claims and diffed against measurement. Where evidence is");
-  lines.push("> absent, the slide says so — this deck does not fill gaps with copy.");
+  lines.push("> **This is the annotated diligence copy** — speaker notes, per-slide provenance,");
+  lines.push("> and the full claims-audit appendix. The clean investor deck (no notes, no");
+  lines.push("> annotations) renders from the same data via `POST /v1/pitch/render` with");
+  lines.push('> `"variant": "clean"` — two documents, one truth.');
+  lines.push(">");
+  lines.push("> Structure: the evidence-based consensus skeleton (Problem → Solution →");
+  lines.push("> Traction → Model → Market → Team → Ask), thesis-first, bottom-up market only.");
+  lines.push("> Every number on these slides was **measured from the repository**; slots a");
+  lines.push("> repo cannot testify to (team, market volume, pricing, the ask) carry");
+  lines.push("> unmistakable `OWNER INPUT REQUIRED` placeholders instead of invented copy.");
+  lines.push("> Docs/marketing numbers appear only on the audit slide, labeled as claims and");
+  lines.push("> diffed against measurement. Where evidence is absent, the slide says so.");
   lines.push("");
   for (const s of slides) {
     lines.push(`---`);
@@ -288,6 +438,12 @@ export function generatePitchDeck(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push(`## Slide ${s.n} — ${mdText(s.title)}`);
     lines.push("");
     for (const b of s.bullets) lines.push(`- ${mdInline(b)}`);
+    lines.push("");
+    // The header promises "per-slide provenance" — so the md renders it
+    // (adversarial review, 2026-08-26: the first draft promised it and only
+    // the JSON carried it — an md/json divergence in a program whose whole
+    // contract is that its documents never misstate themselves).
+    lines.push(`**Provenance:** ${s.provenance}${s.owner_inputs?.length ? ` — owner inputs: ${s.owner_inputs.join(", ")}` : ""}`);
     lines.push("");
     lines.push(`**Speaker notes:** ${mdText(s.speaker_notes)}`);
     lines.push("");
@@ -313,7 +469,7 @@ export function generatePitchDeck(ctx: ContextMap, files?: SourceFile[]): Genera
     content: `${lines.join("\n")}\n`,
     content_type: "text/markdown",
     program: "pitch",
-    description: "Truth-first pitch deck: every figure measured from the repo; docs numbers audited on the Truth slide, never repeated as facts.",
+    description: "Truth-first pitch deck (annotated diligence copy): evidence-based consensus skeleton, every figure measured from the repo, owner-input slots labeled instead of invented; docs numbers audited on the audit slide, never repeated as facts.",
   };
 }
 
@@ -321,8 +477,23 @@ export function generatePitchDeckJson(ctx: ContextMap, files?: SourceFile[]): Ge
   const { slides, claims } = buildSlides(ctx, files);
   const payload = {
     project: ctx.project_identity?.name ?? null,
+    structure: "evidence_first_v2",
     honesty_contract:
-      "Slide figures are measured from the repository. Doc-sourced numbers appear only in claims_audit with a verdict. Absent evidence is stated as absent.",
+      "Slide figures are measured from the repository. Doc-sourced numbers appear only in claims_audit with a verdict. Slots a repo cannot testify to carry OWNER INPUT REQUIRED placeholders — never invented copy. Absent evidence is stated as absent.",
+    // Everything the founder must supply before this deck is presentable,
+    // aggregated so an agent (or a form) can fill the slots programmatically.
+    owner_inputs: slides
+      .filter((s) => (s.owner_inputs ?? []).length > 0)
+      .map((s) => ({ slide: s.n, title: s.title, fields: s.owner_inputs })),
+    // The two-document contract: this JSON is the single source; the renderer
+    // produces both documents from it.
+    render_contract: {
+      endpoint: "POST /v1/pitch/render",
+      variants: {
+        clean: "investor-facing .pptx — no speaker notes, no provenance annotations; the deck's context must explain itself",
+        annotated: "diligence copy — speaker notes attached and per-slide provenance footers rendered",
+      },
+    },
     slides,
     claims_audit: claims,
     facts: measuredFacts(ctx),
@@ -332,7 +503,7 @@ export function generatePitchDeckJson(ctx: ContextMap, files?: SourceFile[]): Ge
     content: `${JSON.stringify(payload, null, 2)}\n`,
     content_type: "application/json",
     program: "pitch",
-    description: "Machine-readable deck: slides, per-fact analyzer sources, and the docs-vs-measurement claims audit.",
+    description: "Machine-readable deck: evidence-skeleton slides with per-slide provenance, the owner-input manifest, per-fact analyzer sources, and the docs-vs-measurement claims audit.",
   };
 }
 
@@ -345,7 +516,7 @@ export function generateSlideArtPrompts(ctx: ContextMap, _files?: SourceFile[]):
   const routes = (ctx.routes ?? []).length;
   const models = (ctx.domain_models ?? []).length;
 
-  // One global style clause so all five backgrounds read as one deck, plus the
+  // One global style clause so every slide background reads as one deck, plus the
   // hard negative constraints: backgrounds must carry NO text (slide text is
   // overlaid later) and must not fake product UI.
   const STYLE =
@@ -354,10 +525,16 @@ export function generateSlideArtPrompts(ctx: ContextMap, _files?: SourceFile[]):
   const NEGATIVE =
     "No words, no letters, no numbers, no logos, no watermarks, no fake user interfaces, no screenshots, no people.";
 
+  // One key per evidence-skeleton slide (v2). Keys must cover every Slide.art
+  // buildSlides() emits — the renderer looks backgrounds up by this key.
   const prompts: Record<string, string> = {
     title: `${STYLE} Motif: a faint constellation resolving into one bright node — a codebase becoming a product. Subject hint: ${langs}. ${NEGATIVE}`,
-    evidence: `${STYLE} Motif: a precise measurement grid, fine ruled lines with ${Math.max(routes, 1)} accent points arranged in rows — data measured, not imagined. ${NEGATIVE}`,
-    engineering: `${STYLE} Motif: structural cross-section, load-bearing beams with visible joints${models > 0 ? `, ${Math.min(models, 12)} junction plates` : ""} — engineering shown honestly, including the unfinished edge. ${NEGATIVE}`,
+    problem: `${STYLE} Motif: a knot of tangled lines with one taut thread pulled clear of the tangle — the pain isolated from the noise. ${NEGATIVE}`,
+    solution: `${STYLE} Motif: a precise measurement grid, fine ruled lines with ${Math.max(routes, 1)} accent points arranged in rows — data measured, not imagined. ${NEGATIVE}`,
+    traction: `${STYLE} Motif: a sparse trail of footprints crossing an open field, one honest path, no crowd painted in — adoption as it is, not as wished. ${NEGATIVE}`,
+    model: `${STYLE} Motif: two gears of different sizes meshing at one clean contact point — value exchanged at a single honest interface. ${NEGATIVE}`,
+    market: `${STYLE} Motif: concentric rings built outward from individually visible dots at the center — a market counted from the bottom up, never sketched from the top down. ${NEGATIVE}`,
+    team: `${STYLE} Motif: a single load-bearing column with fresh scaffolding anchored beside it${models > 0 ? `, ${Math.min(models, 12)} junction plates at the joints` : ""} — what stands today and what the build adds next. ${NEGATIVE}`,
     truth: `${STYLE} Motif: two translucent layers being compared, one slightly offset from the other, with the mismatched edge highlighted — claims laid over evidence. ${NEGATIVE}`,
     ask: `${STYLE} Motif: an unfinished bridge span, gap clearly visible, scaffolding ready — the honest gap between present and next. ${NEGATIVE}`,
   };
@@ -367,7 +544,7 @@ export function generateSlideArtPrompts(ctx: ContextMap, _files?: SourceFile[]):
     content: `${JSON.stringify(
       {
         project: id?.name ?? null,
-        renderer: "xAI image generation via POST /v1/pitch/backgrounds (runtime, requires XAI_API_KEY server-side) or scripts/pitch-backgrounds.mjs",
+        renderer: "xAI image generation via POST /v1/pitch/render with render_backgrounds:true (runtime, requires XAI_API_KEY server-side) or scripts/pitch-backgrounds.mjs",
         style_contract: { base: STYLE, negative: NEGATIVE },
         prompts,
       },

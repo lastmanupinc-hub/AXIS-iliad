@@ -6,8 +6,9 @@
 // The runtime half of the pitch program: the prompts file is deterministic
 // generator output; this turns each prompt into a PNG. Degrades loudly — a
 // failed slide is reported and skipped, never silently blank. Exit 1 only when
-// EVERY requested slide failed (a deck with 4/5 backgrounds ships; 0/5 means
-// the pipeline is broken and the operator must know).
+// EVERY requested slide failed (a deck with most backgrounds ships; zero means
+// the pipeline is broken and the operator must know). Key-agnostic: renders
+// whatever keys the prompts file carries (9 since the evidence-skeleton v2).
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 

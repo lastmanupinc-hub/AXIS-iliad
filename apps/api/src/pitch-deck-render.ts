@@ -47,12 +47,29 @@ export interface PitchSlide {
   bullets: string[];
   speaker_notes: string;
   art: string;
+  /** v2 payloads carry per-slide provenance; absent on decks generated before
+   * the evidence-skeleton restructure — treated as "measured" (the only kind
+   * of slide v1 produced). */
+  provenance?: "measured" | "owner_input" | "mixed";
 }
 
 export interface PitchDeckPayload {
   project: string | null;
   slides: PitchSlide[];
 }
+
+/**
+ * The two-document contract (owner directive, 2026-08-26): one deterministic
+ * pitch-deck.json, two rendered documents.
+ *   "clean"     — the investor deck: no speaker notes, no provenance
+ *                 annotations. The deck's context must explain itself; a
+ *                 slide narrating its own credibility is a slide that
+ *                 doesn't trust itself. Sourcing lives in the data room.
+ *   "annotated" — the diligence copy: speaker notes attached and a small
+ *                 per-slide provenance footer rendered, so the second,
+ *                 slower reader can trace every figure.
+ */
+export type PitchRenderVariant = "clean" | "annotated";
 
 /** Matches slide-art-prompts.json's own STYLE contract (generators-pitch.ts) so a deck with mixed real/fallback backgrounds still reads as one system. */
 const BG_BASE = "0F172A"; // dark slate
@@ -64,8 +81,10 @@ const LAYOUT_W = 13.333;
 const LAYOUT_H = 7.5;
 
 export interface RenderPitchDeckOptions {
-  /** Rendered background PNG/JPEG bytes keyed by the slide's `art` field (e.g. "title", "evidence"). Slides with no entry here get the solid fallback background. */
+  /** Rendered background PNG/JPEG bytes keyed by the slide's `art` field (e.g. "title", "solution"). Slides with no entry here get the solid fallback background. */
   backgrounds?: Record<string, Buffer>;
+  /** Which of the two documents to render — defaults to "clean" (the investor deck). */
+  variant?: PitchRenderVariant;
 }
 
 export interface RenderPitchDeckResult {
@@ -73,6 +92,8 @@ export interface RenderPitchDeckResult {
   /** Slide numbers that got a real rendered background, for the caller to report honestly (never silently claim every slide has AI art when some fell back). */
   slides_with_art: number[];
   slides_total: number;
+  /** Which document was rendered, echoed so callers/report headers never guess. */
+  variant: PitchRenderVariant;
 }
 
 /**
@@ -85,6 +106,7 @@ export async function renderPitchDeckPptx(
   options: RenderPitchDeckOptions = {},
 ): Promise<RenderPitchDeckResult> {
   const backgrounds = options.backgrounds ?? {};
+  const variant: PitchRenderVariant = options.variant ?? "clean";
   const PptxGenJS = await loadPptxGenJS();
   const pptx = new PptxGenJS();
   pptx.defineLayout({ name: "AXIS_WIDE", width: LAYOUT_W, height: LAYOUT_H });
@@ -122,6 +144,10 @@ export async function renderPitchDeckPptx(
           x: 0.6, y: 1.5, w: LAYOUT_W - 1.2, h: LAYOUT_H - 2.4,
           fontSize: 16, color: TEXT_SECONDARY, fontFace: "Arial",
           valign: "top", lineSpacingMultiple: 1.3,
+          // The merged audit slide can legitimately carry many bullets (facts +
+          // warnings + claims diff); shrink-to-fit keeps a dense slide legible
+          // instead of silently overflowing the fixed text box.
+          fit: "shrink",
         },
       );
     }
@@ -131,7 +157,17 @@ export async function renderPitchDeckPptx(
       fontSize: 10, color: TEXT_SECONDARY, align: "right",
     });
 
-    if (s.speaker_notes) slide.addNotes(s.speaker_notes);
+    // Annotated (diligence) copy only: speaker notes + a provenance footer.
+    // The clean investor deck carries neither — a slide narrating its own
+    // credibility is a slide that doesn't trust itself (owner directive);
+    // sourcing lives in this variant and the data room instead.
+    if (variant === "annotated") {
+      slide.addText(`provenance: ${s.provenance ?? "measured"}`, {
+        x: 0.6, y: LAYOUT_H - 0.5, w: 4, h: 0.35,
+        fontSize: 9, italic: true, color: TEXT_SECONDARY,
+      });
+      if (s.speaker_notes) slide.addNotes(s.speaker_notes);
+    }
   }
 
   const arrayBuffer = await pptx.write({ outputType: "arraybuffer" });
@@ -139,5 +175,6 @@ export async function renderPitchDeckPptx(
     buffer: Buffer.from(arrayBuffer as ArrayBuffer),
     slides_with_art: slidesWithArt,
     slides_total: deck.slides.length,
+    variant,
   };
 }
