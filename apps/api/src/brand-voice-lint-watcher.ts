@@ -100,7 +100,10 @@ export function realRunVale(valeBinaryPath: string): RunVale {
       return runValeSubprocess(valeBinaryPath, configPath, stylesDir, inputPath, lines, dir);
     } catch (err) {
       rmSync(dir, { recursive: true, force: true });
-      return Promise.reject(err);
+      // Reject with a real Error: `err` is `unknown` in a catch, and rejecting
+      // with a non-Error loses the stack and breaks `instanceof Error` handling
+      // in every caller (@typescript-eslint/prefer-promise-reject-errors).
+      return Promise.reject(err instanceof Error ? err : new Error(String(err)));
     }
   };
 }
@@ -146,10 +149,14 @@ async function runValeSubprocess(
     return findings
       .filter((f) => typeof f.Line === "number")
       .map((f) => ({
-        check: String(f.Check ?? ""),
-        message: String(f.Message ?? ""),
-        severity: String(f.Severity ?? ""),
-        match: String(f.Match ?? ""),
+        // Vale's JSON is untrusted at the type level (Record<string, unknown>).
+        // Bare String() on a nested object yields "[object Object]", which
+        // would then be posted verbatim into a PR review comment. Take the
+        // value only when it is genuinely a string.
+        check: typeof f.Check === "string" ? f.Check : "",
+        message: typeof f.Message === "string" ? f.Message : "",
+        severity: typeof f.Severity === "string" ? f.Severity : "",
+        match: typeof f.Match === "string" ? f.Match : "",
         line: f.Line as number,
       }));
   } finally {

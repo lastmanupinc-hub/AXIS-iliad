@@ -111,6 +111,22 @@ export interface DebugPostmortemResult {
 // whitespace, break HTML-comment delimiters, neutralize backticks — identity
 // on clean single-line input.
 
+/**
+ * Coerce an untrusted Sentry JSON field to a string ONLY when it is genuinely
+ * a primitive, else null.
+ *
+ * Bare `String(unknown)` produced "[object Object]" whenever Sentry sent a
+ * nested object where a scalar was expected — and that string then landed
+ * verbatim in a generated postmortem draft as the incident title, culprit, or
+ * frame function. A missing field (null) is honest; "[object Object]" is not.
+ * (@typescript-eslint/no-base-to-string was flagging exactly this.)
+ */
+function primitiveToString(v: unknown): string | null {
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "bigint" || typeof v === "boolean") return String(v);
+  return null;
+}
+
 export function sanitizeIncidentText(s: string | null | undefined): string {
   return String(s ?? "")
     .replace(/\s+/g, " ")
@@ -381,13 +397,13 @@ export async function realFetchSentryIncident(
 
   return {
     issue_id,
-    title: String(issue.title ?? "Untitled incident"),
-    culprit: issue.culprit != null ? String(issue.culprit) : null,
-    level: issue.level != null ? String(issue.level) : null,
-    count: issue.count != null ? String(issue.count) : null,
-    first_seen: issue.firstSeen != null ? String(issue.firstSeen) : null,
-    last_seen: issue.lastSeen != null ? String(issue.lastSeen) : null,
-    permalink: issue.permalink != null ? String(issue.permalink) : null,
+    title: primitiveToString(issue.title) ?? "Untitled incident",
+    culprit: primitiveToString(issue.culprit),
+    level: primitiveToString(issue.level),
+    count: primitiveToString(issue.count),
+    first_seen: primitiveToString(issue.firstSeen),
+    last_seen: primitiveToString(issue.lastSeen),
+    permalink: primitiveToString(issue.permalink),
     frames: extractFrames(event),
   };
 }
@@ -408,11 +424,16 @@ export function extractFrames(event: Record<string, unknown>): SentryFrame[] {
     : [];
 
   const frames: SentryFrame[] = rawFrames
-    .filter((f) => typeof f.filename === "string" && (f.filename as string).length > 0)
+    .filter((f): f is Record<string, unknown> & { filename: string } =>
+      typeof f.filename === "string" && f.filename.length > 0)
     .map((f) => ({
-      path: String(f.filename),
-      line: typeof f.lineNo === "number" ? (f.lineNo as number) : typeof f.lineno === "number" ? (f.lineno as number) : null,
-      function: f.function != null ? String(f.function) : null,
+      // `f.filename` is narrowed to string by the type predicate above, so the
+      // String()/`as string` casts that were here are gone — they were both
+      // unnecessary and (for f.function) capable of yielding "[object Object]"
+      // into a postmortem report.
+      path: f.filename,
+      line: typeof f.lineNo === "number" ? f.lineNo : typeof f.lineno === "number" ? f.lineno : null,
+      function: primitiveToString(f.function),
     }));
   // Sentry orders frames outermost-first; the crash site is last. Reverse so
   // the most diagnostic frames lead, and prefer in-app when flagged.

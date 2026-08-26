@@ -54,7 +54,14 @@ function decrypt(encoded: string): string {
   const key = getEncryptionKey();
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
-  return decipher.update(encrypted) + decipher.final("utf-8");
+  // Concat the raw buffers and decode ONCE. The previous
+  // `decipher.update(encrypted) + decipher.final("utf-8")` relied on Buffer's
+  // implicit toString() for the first half, which decodes that chunk
+  // independently — a multi-byte UTF-8 character straddling the update/final
+  // boundary would be corrupted. Decoding the whole plaintext in one pass
+  // cannot split a character. (Also what @typescript-eslint/restrict-plus-operands
+  // was flagging: Buffer + string is an implicit, lossy coercion.)
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf-8");
 }
 
 // ─── Types ──────────────────────────────────────────────────────

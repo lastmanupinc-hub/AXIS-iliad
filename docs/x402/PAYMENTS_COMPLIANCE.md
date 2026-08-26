@@ -36,8 +36,19 @@ financial institutions. The card rail screens payers as a side effect of the
 banking chain; the bare on-chain rail does not. Current mitigations, all
 factual:
 
-1. **Micro-transaction amounts** ($0.005–$2.50/call) make Iliad a poor
-   laundering or sanctions-evasion vehicle.
+1. **Small per-call amounts** ($0.01–$250.00/call). Every standard-mode and
+   lite-mode price is ≤ $0.50; only four engineer-mode prices exceed $1.00
+   ($5.00 `iliad_hygiene`, $25.00 `analyze_repo`, $25.00 `analyze_files`,
+   $250.00 `prepare_agentic_purchasing`). Engineer mode is reachable by any
+   caller via `X-Agent-Mode: engineer` and settles on the same rails, so the
+   $250.00 ceiling is real, not theoretical. This still makes Iliad a poor
+   laundering or sanctions-evasion vehicle — moving meaningful value takes
+   thousands of discrete tool calls, each individually logged against a named
+   account and each producing a deterministic artifact — but the argument
+   rests on that audit trail and on per-call volume, NOT on the amounts being
+   trivially small. (Corrected 2026-08-25: this read "$0.005–$2.50/call",
+   understating the real ceiling by 100×. The floor was a stale half-cent
+   price the schema cannot even store; the ceiling predated engineer mode.)
 2. **USDC is centrally issued** — Circle blacklists sanctioned addresses at
    the token-contract level (a meaningful, not complete, backstop).
 3. **Off-ramp KYC** — converting received USDC to fiat goes through an

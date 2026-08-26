@@ -1,6 +1,11 @@
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
 export { GENERATOR_PROGRAMS, PROGRAM_ORDER, PROGRAM_OUTPUT_COUNTS } from "./program-manifest.js";
+// Free tier is an ARTIFACT-level axis (see program-manifest.ts). Exported so
+// apps/api's REST and MCP layers import the SAME set instead of each building a
+// private copy from TIER_LIMITS — the twin-divergence class this repo keeps
+// re-litigating (handlers.ts and mcp-tool-impls.ts each had their own).
+export { FREE_GENERATORS, FREE_GENERATOR_COUNT, PROGRAM_FREE_COUNTS, isFreeGenerator, isGatedArtifact, isPaidArtifact } from "./program-manifest.js";
 export { verifyGeneratedFiles } from "./verify-harness.js";
 export type { ProgramVerifyResult, VerifyEvidence } from "./verify-harness.js";
 export { PRODUCT_REGISTRY, PRODUCT_IDS, productIdForProgram, getProduct } from "./product-registry.js";

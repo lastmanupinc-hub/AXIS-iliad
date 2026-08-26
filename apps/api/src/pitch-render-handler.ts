@@ -41,7 +41,7 @@ export async function handlePitchRender(req: IncomingMessage, res: ServerRespons
   const raw = await readBody(req);
   let body: Record<string, unknown>;
   try {
-    body = JSON.parse(raw);
+    body = JSON.parse(raw) as Record<string, unknown>;
   } catch {
     sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
     return;

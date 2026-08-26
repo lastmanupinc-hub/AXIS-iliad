@@ -387,7 +387,7 @@ export async function handleAdminSessionLogin(
   }
   let body: { admin_key?: unknown };
   try {
-    body = JSON.parse(await readBody(req));
+    body = JSON.parse(await readBody(req)) as { admin_key?: unknown };
   } catch {
     sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
     return;
@@ -406,14 +406,18 @@ export async function handleAdminSessionLogin(
   sendJSON(res, 200, { ok: true });
 }
 
-/** DELETE /v1/admin/session — clear the admin-elevation cookie. */
-export async function handleAdminSessionLogout(
+/** DELETE /v1/admin/session — clear the admin-elevation cookie.
+ *  Not `async`: it awaits nothing (clearing a cookie is two header writes),
+ *  and the router only needs a Promise-returning handler — same shape as
+ *  handleGlamaJson and the other synchronous handlers in handlers.ts. */
+export function handleAdminSessionLogout(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Set-Cookie", adminCookie("", 0, getOAuthConfig().webAppUrl));
   sendJSON(res, 200, { ok: true });
+  return Promise.resolve();
 }
 
 /**

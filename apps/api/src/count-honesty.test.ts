@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TOTAL_GENERATORS, TOTAL_PROGRAMS, GENERATOR_PROGRAMS } from "@axis/generator-core";
+import { TOTAL_GENERATORS, TOTAL_PROGRAMS, GENERATOR_PROGRAMS, isFreeGenerator, FREE_GENERATOR_COUNT } from "@axis/generator-core";
 import { TIER_LIMITS } from "@axis/snapshots";
 import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
 import { deriveMcpToolCatalog } from "./mcp-tool-impls.js";
@@ -291,8 +291,16 @@ describe("web config.ts is the single source and matches the code (WO-F5)", () =
     expect(webConfigConst("ENDPOINT_COUNT")).toBe(ENDPOINT_COUNT);
   });
 
-  it("web FREE_PROGRAM_COUNT equals the free tier's program list", () => {
-    expect(webConfigConst("FREE_PROGRAM_COUNT")).toBe(TIER_LIMITS.free.programs.length);
+  // Free tier is ARTIFACT-level: every program ships free artifacts, so this
+  // is now "programs that have a free tier" (all of them) rather than a count
+  // of wholly-free programs. Derived from FREE_GENERATORS, not from
+  // TIER_LIMITS.free.programs — that list is the ENTITLEMENT catalog and is a
+  // deliberately separate axis now.
+  it("web FREE_PROGRAM_COUNT equals the number of programs with a free artifact", () => {
+    const programsWithFree = new Set(
+      Object.entries(GENERATOR_PROGRAMS).filter(([path]) => isFreeGenerator(path)).map(([, program]) => program),
+    );
+    expect(webConfigConst("FREE_PROGRAM_COUNT")).toBe(programsWithFree.size);
   });
 
   // H-Phase-A cycle 16: ExamplesPage.tsx hand-typed "12 files" for the free tier (real:
@@ -300,9 +308,8 @@ describe("web config.ts is the single source and matches the code (WO-F5)", () =
   // separate 16-vs-17-program error) — plus named a file, copilot-instructions.md, that
   // doesn't exist in GENERATOR_PROGRAMS at all. FREE_FILE_COUNT is now pinned here
   // against the real manifest so neither side of that split can drift again.
-  it("web FREE_FILE_COUNT equals the real artifact count of the free-tier programs", () => {
-    const freePrograms = new Set(TIER_LIMITS.free.programs);
-    const realFreeFileCount = Object.values(GENERATOR_PROGRAMS).filter((p) => freePrograms.has(p)).length;
+  it("web FREE_FILE_COUNT equals the real free artifact count", () => {
+    const realFreeFileCount = Object.keys(GENERATOR_PROGRAMS).filter((path) => isFreeGenerator(path)).length;
     expect(webConfigConst("FREE_FILE_COUNT")).toBe(realFreeFileCount);
   });
 
@@ -342,14 +349,33 @@ describe("pinned program totals in leaf packages match TOTAL_PROGRAMS (WO-F5)", 
     for (const n of ns) expect(n).toBe(TOTAL_PROGRAMS);
   });
 
-  it("@axis/mpp lite copy (\"N of M programs\") is current", () => {
+  // Lite mode is retired (2026-08-25), so the "(N of M programs)" scope claim
+  // no longer appears in analyze_repo/analyze_files' lite copy — zero rows is
+  // now the expected state, not a broken scan. Any row that DOES survive is
+  // still checked, so a reintroduced scope claim can't go stale silently.
+  it("@axis/mpp lite copy (\"N of M programs\"), where it still exists, is current", () => {
     const src = readFileSync(join(ROOT, "packages", "mpp", "src", "index.ts"), "utf8");
-    const rows = [...src.matchAll(/\((\d+) of (\d+) programs\)/g)];
-    expect(rows.length).toBeGreaterThan(0);
-    for (const m of rows) {
+    for (const m of src.matchAll(/\((\d+) of (\d+) programs\)/g)) {
       expect(Number(m[1])).toBe(TIER_LIMITS.free.programs.length);
       expect(Number(m[2])).toBe(TOTAL_PROGRAMS);
     }
+  });
+
+  // The free-artifact count is a published number (LAUNCH_CLAIMS.yaml
+  // free_tier_generators) that no extractor guards — count-extractors.ts's
+  // GENERATOR_FLOOR of 95 makes a "47 artifacts free" claim invisible to every
+  // corpus scan. This pins it directly so 47 cannot drift the way 16 did.
+  it("FREE_GENERATOR_COUNT equals the real free artifact count", () => {
+    const real = Object.keys(GENERATOR_PROGRAMS).filter((path) => isFreeGenerator(path)).length;
+    expect(FREE_GENERATOR_COUNT).toBe(real);
+  });
+
+  it("every program has at least one free artifact (the free tier's core promise)", () => {
+    const withFree = new Set(
+      Object.entries(GENERATOR_PROGRAMS).filter(([path]) => isFreeGenerator(path)).map(([, program]) => program),
+    );
+    const missing = [...new Set(Object.values(GENERATOR_PROGRAMS))].filter((p) => !withFree.has(p));
+    expect(missing, `programs with no free artifact: ${missing.join(", ")}`).toEqual([]);
   });
 
   // H-Phase-A cycle 14: this "enumerate all N programs" phrasing is a

@@ -9,7 +9,7 @@ import {
 } from "../api.ts";
 import { SectionHeader, StatTile, Pill, CodeBlock, Callout, Skeleton } from "../components/primitives/index.ts";
 import { ProbeIntentDemo } from "../components/ProbeIntentDemo.tsx";
-import { FREE_PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
+import { PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
 // ─── PlaygroundPage (WO-P15) ──────────────────────────────────────────────
 // Public, no login required ("#playground"). A fuller standalone version of
@@ -246,8 +246,8 @@ export function PlaygroundPage({ loggedIn, onRequireLogin }: Props) {
           {!loggedIn && (
             <Callout tone="success" title={`Sign up to unlock ${PRO_PROGRAM_COUNT} more programs`}>
               <p className="mb-3">
-                This ran the {FREE_PROGRAM_COUNT} free programs. Create a free account to run all{" "}
-                {FREE_PROGRAM_COUNT + PRO_PROGRAM_COUNT} and keep this as a saved project.
+                This ran the free artifacts of every program. Create a free account to run all{" "}
+                {PROGRAM_COUNT} programs in full and keep this as a saved project.
               </p>
               <button type="button" className="btn btn-primary" onClick={onRequireLogin}>Sign up free</button>
             </Callout>

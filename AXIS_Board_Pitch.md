@@ -351,7 +351,7 @@ These programs are permanently free. They solve universal developer problems and
 │                  └──────────────┘    └───────────────┘  │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤
-│  REST API (178 endpoints) · Web UI · CLI · OAuth        │
+│  REST API (179 endpoints) · Web UI · CLI · OAuth        │
 │  Neon PG · Webhooks · Email · Rate Limits · Metering    │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -397,8 +397,8 @@ These programs are permanently free. They solve universal developer problems and
 
 | Tier | Price | Programs | Target |
 |------|-------|----------|--------|
-| **Free** | $0 | Search, Skills, Debug | Individual developers |
-| **Pro** | $29/seat/month | All 21 programs | Teams, startups |
+| **Free** | $0 | Free artifacts from all 21 programs | Individual developers |
+| **Pro** | $99/month | All 21 programs, all artifacts | Teams, startups |
 | **Enterprise** | Custom | All + SSO + audit + SLA | Companies with AI governance requirements |
 
 ### Revenue Projections (Conservative)

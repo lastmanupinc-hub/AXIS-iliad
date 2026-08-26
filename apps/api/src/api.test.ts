@@ -305,7 +305,12 @@ describe("API integration", () => {
     expect(data.program).toBe("brand");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "brand")).toBe(true);
-    expect(files.length).toBe(5);
+    // 8 since app_41 added .vale.ini + styles/AXIS/{ForbiddenPatterns,
+    // PreferredTerms}.yml. Kept HARDCODED on purpose — see the note on the seo
+    // assertion above: these counts are a tripwire for silently-added
+    // generators, and deriving them from PROGRAM_OUTPUT_COUNTS is wrong for
+    // the programs whose endpoint returns a subset of the manifest.
+    expect(files.length).toBe(8);
   });
 
   it("POST /v1/superpowers/generate returns superpowers files", async () => {
@@ -426,37 +431,40 @@ describe("API integration", () => {
     const r3 = await request(TEST_PORT, "POST", "/v1/debug/analyze", {});
     expect(r3.status).toBe(400);
 
-    // Pro programs without auth: reject with 401
+    // Artifact-level free tier: every program ships free artifacts, so an
+    // anonymous caller is no longer rejected outright. A request missing
+    // snapshot_id is now a plain 400 (the actual defect) rather than a 401 —
+    // auth is not what is wrong with these requests any more.
     const r4 = await request(TEST_PORT, "POST", "/v1/frontend/audit", {});
-    expect(r4.status).toBe(401);
+    expect(r4.status).toBe(400);
     const r5 = await request(TEST_PORT, "POST", "/v1/seo/analyze", {});
-    expect(r5.status).toBe(401);
+    expect(r5.status).toBe(400);
     const r6 = await request(TEST_PORT, "POST", "/v1/optimization/analyze", {});
-    expect(r6.status).toBe(401);
+    expect(r6.status).toBe(400);
     const r7 = await request(TEST_PORT, "POST", "/v1/theme/generate", {});
-    expect(r7.status).toBe(401);
+    expect(r7.status).toBe(400);
     const r8 = await request(TEST_PORT, "POST", "/v1/brand/generate", {});
-    expect(r8.status).toBe(401);
+    expect(r8.status).toBe(400);
     const r9 = await request(TEST_PORT, "POST", "/v1/superpowers/generate", {});
-    expect(r9.status).toBe(401);
+    expect(r9.status).toBe(400);
     const r10 = await request(TEST_PORT, "POST", "/v1/marketing/generate", {});
-    expect(r10.status).toBe(401);
+    expect(r10.status).toBe(400);
     const r11 = await request(TEST_PORT, "POST", "/v1/notebook/generate", {});
-    expect(r11.status).toBe(401);
+    expect(r11.status).toBe(400);
     const r12 = await request(TEST_PORT, "POST", "/v1/obsidian/analyze", {});
-    expect(r12.status).toBe(401);
+    expect(r12.status).toBe(400);
     const r13 = await request(TEST_PORT, "POST", "/v1/mcp/provision", {});
-    expect(r13.status).toBe(401);
+    expect(r13.status).toBe(400);
     const r14 = await request(TEST_PORT, "POST", "/v1/artifacts/generate", {});
-    expect(r14.status).toBe(401);
+    expect(r14.status).toBe(400);
     const r15 = await request(TEST_PORT, "POST", "/v1/remotion/generate", {});
-    expect(r15.status).toBe(401);
+    expect(r15.status).toBe(400);
     const r16 = await request(TEST_PORT, "POST", "/v1/canvas/generate", {});
-    expect(r16.status).toBe(401);
+    expect(r16.status).toBe(400);
     const r17 = await request(TEST_PORT, "POST", "/v1/algorithmic/generate", {});
-    expect(r17.status).toBe(401);
+    expect(r17.status).toBe(400);
     const r18 = await request(TEST_PORT, "POST", "/v1/agentic-purchasing/generate", {});
-    expect(r18.status).toBe(401);
+    expect(r18.status).toBe(400);
 
     // Pro programs with auth: reject with 400 (missing snapshot_id)
     const r19 = await request(TEST_PORT, "POST", "/v1/frontend/audit", {}, suiteApiKey);

@@ -6,7 +6,7 @@
 **Category**: AI Development Intelligence Platform
 **Tagline**: The operating system for AI-native development
 **Owner**: Last Man Up Inc.
-**Model**: Freemium SaaS — Free tier (3 programs, 16 generators) → Paid tiers (21 programs, 152 generators; Starter $29 / Pro $99 / Growth $299 per month)
+**Model**: Freemium SaaS — Free tier (47 generators across all 21 programs) → Paid tiers (152 generators; Starter $29 / Pro $99 / Growth $299 per month)
 
 ---
 
@@ -75,7 +75,7 @@
 | Retention | Monthly active (2+ snapshots) | 40% |
 
 ### Free Tier Strategy
-The free tier is the product's moat. It delivers genuine value (Search + Debug + Skills = 16 generators) so users experience the output quality before paying. The free outputs include AGENTS.md and CLAUDE.md — files that make their AI tools immediately better. This creates a reference point: "If the free tier does this, what does Pro unlock?"
+The free tier is the product's moat. Every program ships a genuinely useful artifact free (47 generators in total), so users see the real output of every program before paying — and each response names exactly what it withheld, so "what does paying get me?" has a visible answer rather than an imagined one. The free outputs include AGENTS.md and CLAUDE.md — files that make their AI tools immediately better. This creates a reference point: "If the free tier does this, what does Pro unlock?"
 
 ---
 

@@ -12,6 +12,7 @@ import { resetRateLimits } from "./rate-limiter.js";
 import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
 import { getPricingTier } from "./mpp.js";
 import { API_VERSION } from "./counts.js";
+import { isPaidArtifact, FREE_GENERATOR_COUNT, TOTAL_GENERATORS } from "@axis/generator-core";
 
 let server: Server;
 let TEST_PORT: number;
@@ -601,7 +602,9 @@ describe("POST /mcp — tools/call analyze_files", () => {
     expect(parsed.status).toBe("ready");
     expect(Array.isArray(parsed.artifacts)).toBe(true);
     expect(parsed.artifact_count).toBeGreaterThan(0);
-    expect(parsed.snapshot_summary.pro_unlock).toContain("15 more programs");
+    // Derived now — the old literal hardcoded a stale "15 more programs".
+    expect(parsed.snapshot_summary.pro_unlock).toContain(String(TOTAL_GENERATORS - FREE_GENERATOR_COUNT));
+    expect(parsed.snapshot_summary.pro_unlock).not.toContain("15 more programs");
     snapshotId = parsed.snapshot_id; // save for subsequent tests
   });
 
@@ -644,19 +647,15 @@ describe("POST /mcp — tools/call analyze_files", () => {
     expect(parsed.artifact_count).toBeGreaterThan(0);
     const programsExecuted = parsed.programs_executed as string[];
     expect(programsExecuted.length).toBeGreaterThan(0);
-    // At least the 3 free programs must run. Cross-cutting meta-artifacts
-    // ("quality", "begin", ...) that aren't part of the 20 counted generator
-    // programs the lite promise scopes "3 of 20" against are allowed to
-    // appear regardless of mode -- what must NEVER appear is any of the
-    // OTHER 17 real, non-free generator programs (seo, optimization, theme,
-    // brand, marketing, ...): that's the exact leak this fix closes.
+    // Lite is RETIRED and resolves to the free artifact set, so the check is
+    // now ARTIFACT-level. Programs are the WRONG unit here: lite legitimately
+    // runs paid programs (theme, brand, ...) because each has free artifacts.
+    // What must never appear is a PAID ARTIFACT — the same leak the old
+    // program-level assertion was protecting, expressed at the right grain.
     expect(programsExecuted).toEqual(expect.arrayContaining(["search", "skills", "debug"]));
-    const nonFreeGeneratorPrograms = ALL_PROGRAMS.filter(
-      (p) => !["search", "skills", "debug"].includes(p),
-    );
-    for (const program of programsExecuted) {
-      expect(nonFreeGeneratorPrograms).not.toContain(program);
-    }
+    const artifactPaths = (parsed.artifacts as Array<{ path: string }>).map((a) => a.path);
+    const paidLeaked = artifactPaths.filter((p) => isPaidArtifact(p));
+    expect(paidLeaked, `lite returned paid artifacts: ${paidLeaked.join(", ")}`).toEqual([]);
   });
 
   it("returns isError:true when project_name is missing", async () => {
@@ -1608,6 +1607,20 @@ describe("runSearchTools — no query returns all programs", () => {
       expect(Array.isArray(r.all_artifacts)).toBe(true);
       expect(typeof r.example_call).toBe("string");
     }
+  });
+
+  // RED-PROOF (harden/polish pass, 2026-08-25): `Array.isArray` above passes
+  // even for an EMPTY tags array — exactly how PROGRAM_CAPABILITY_TAGS silently
+  // shipped with pitch/deploy missing (mcp-tool-impls.ts's own `?? []` fallback
+  // never threw, it just made those two programs unfindable by any thematic
+  // keyword search, only by an exact program-name or filename match). This
+  // would have caught it.
+  it("RED-PROOF: every program has at least one capability tag — no program is keyword-search-invisible", async () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    const empty = (parsed.results as Array<{ program: string; capability_tags: string[] }>)
+      .filter((r) => r.capability_tags.length === 0)
+      .map((r) => r.program);
+    expect(empty, `programs with zero capability tags (keyword-search-invisible): ${empty.join(", ")}`).toEqual([]);
   });
 
   it("free programs (search, skills, debug) have tier free", async () => {

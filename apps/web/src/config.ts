@@ -43,31 +43,37 @@ export const DOCS_API_BASE: string = import.meta.env.VITE_API_URL || PROD_API_BA
 /** Distinct programs in the catalog (= TOTAL_PROGRAMS). */
 export const PROGRAM_COUNT = 21;
 
-/** Always-free programs: Search, Skills, Debug. */
-export const FREE_PROGRAM_COUNT = 3;
+/**
+ * Programs that have a free tier. The free tier is ARTIFACT-level as of
+ * 2026-08-25 — every program ships free artifacts and withholds the rest — so
+ * this is now the full program count, not a count of wholly-free programs.
+ * Guarded by count-honesty.test.ts against FREE_GENERATORS.
+ */
+export const FREE_PROGRAM_COUNT = 21;
 
 /**
- * Program ids in the always-free tier — mirrors `TIER_LIMITS.free.programs`
- * in `@axis/snapshots`. Anonymous `POST /v1/analyze` calls must restrict
- * `programs` to (a subset of) this list or the server 401s (AUTH_REQUIRED)
- * rather than silently defaulting to the full paid bundle.
+ * Programs that are free in FULL (no withheld artifacts) — the original three.
+ * Kept as a distinct constant because anonymous `POST /v1/analyze` callers who
+ * want a complete program (rather than each program's free subset) still want
+ * exactly these. Every OTHER program is now partially free too.
  */
 export const FREE_PROGRAM_NAMES = ["search", "skills", "debug"] as const;
 
-/** Paid programs (derived — never pin separately). */
-export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
+/** Programs with artifacts behind payment (derived — never pin separately). */
+export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_NAMES.length;
 
 /** Generated artifacts per full run (= TOTAL_GENERATORS). */
 export const ARTIFACT_COUNT = 152; // +3 app_41: .vale.ini + styles/AXIS/ForbiddenPatterns.yml + styles/AXIS/PreferredTerms.yml (brand)
 
 /**
- * Artifacts produced by the FREE_PROGRAM_NAMES programs alone (search+skills+debug) —
- * mirrors packages/generator-core/src/program-manifest.ts's GENERATOR_PROGRAMS, which
- * apps/web can't import directly (it's a Node-only package). Guarded against drift by
- * count-honesty.test.ts in apps/api (H-Phase-A cycle 16 — ExamplesPage.tsx previously
- * hand-typed 12/89 here, both wrong, plus a reference to a file that doesn't exist).
+ * Artifacts available with no payment, across ALL 21 programs — mirrors
+ * FREE_GENERATORS in packages/generator-core/src/program-manifest.ts, which
+ * apps/web can't import directly (it's a Node-only package). Guarded against
+ * drift by count-honesty.test.ts in apps/api (H-Phase-A cycle 16 —
+ * ExamplesPage.tsx previously hand-typed 12/89 here, both wrong, plus a
+ * reference to a file that doesn't exist).
  */
-export const FREE_FILE_COUNT = 16;
+export const FREE_FILE_COUNT = 47;
 
 /**
  * Human-webapp-facing tool count — MCP_TOOL_COUNT (apps/api/src/counts.ts)
@@ -78,4 +84,4 @@ export const FREE_FILE_COUNT = 16;
 export const TOOL_COUNT = 39; // +1: delete_snapshot (Glama coherence review, 2026-08-25)
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
-export const ENDPOINT_COUNT = 178;
+export const ENDPOINT_COUNT = 179;

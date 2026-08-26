@@ -323,8 +323,10 @@ export const MCP_TOOLS = [
         programs: { type: "array", items: { type: "object" } },
         total_programs: { type: "number" },
         total_generators: { type: "number" },
-        free_programs: { type: "array", items: { type: "string" } },
-        pro_programs: { type: "array", items: { type: "string" } },
+        free_programs: { type: "array", items: { type: "string" }, description: "Programs that are free IN FULL (no artifact behind payment)." },
+        pro_programs: { type: "array", items: { type: "string" }, description: "Programs with at least one artifact behind payment — each still ships free artifacts too." },
+        programs_with_free_artifacts: { type: "array", items: { type: "string" }, description: "Programs that ship at least one free artifact — every program does." },
+        free_artifact_count: { type: "number", description: "Total artifacts available with no payment, across all programs." },
       },
       required: ["programs", "total_programs", "total_generators", "free_programs", "pro_programs"],
     },
@@ -340,7 +342,7 @@ export const MCP_TOOLS = [
   {
     name: "get_snapshot",
     description:
-      "Retrieve status and the full artifact listing for a prior analysis by snapshot_id. Use this to re-enumerate artifact paths without re-running analysis. Snapshots created with an API key are scoped to that same account — pass the same Authorization: Bearer <api_key> used to create it, or retrieval fails with a not-found error. Only anonymous (never-authenticated) snapshots are freely retrievable by any caller. The response's content_discarded_at is non-null if the owning account's web session has since logged out — source content is gone (closer/deploy/skills/search_index calls on this snapshot will fail with content_discarded until it's re-uploaded), though this call itself still succeeds and generated artifacts remain listable.",
+      "Retrieve status and the full artifact listing for a prior analysis by snapshot_id. Use this to re-enumerate artifact paths without re-running analysis. Snapshots created with an API key are scoped to that same account — pass the same Authorization: Bearer <api_key> used to create it, or retrieval fails with a not-found error. Only anonymous (never-authenticated) snapshots are freely retrievable by any caller. The response's content_discarded_at is non-null if the owning account's web session has since logged out — source content is gone (closer/deploy/skills/search_index calls on this snapshot will fail with content_discarded until it's re-uploaded), though this call itself still succeeds and generated artifacts remain listable. Use delete_snapshot to permanently remove a snapshot you no longer need.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],
@@ -1377,8 +1379,13 @@ export const MCP_TOOLS = [
   // Both heavy parsers loaded via dynamic import so the API boot
   // stays fast and tests don't pay the load cost unless they
   // actually parse something. No third-party API, no per-page fee.
-  // Empty PLANNED_CAPABILITIES after this lands — every advertised
-  // tool serves a real implementation.
+  // Found stale on a harden/polish pass (2026-08-25): this comment used to
+  // say "Empty PLANNED_CAPABILITIES after this lands — every advertised tool
+  // serves a real implementation," true at the time this landed but no
+  // longer — est_03 (2026-08-22) added 5 real, still-open Foundry Wave-1
+  // stubs (axis_validate/axis_inspect/axis_compare/axis_manifest_verify/
+  // roblox_compliance_check, defined above via foundryStub()). See the
+  // "Planned-capability stubs" block further down for their real status.
   {
     name: "iliad_document_parsing",
     description:

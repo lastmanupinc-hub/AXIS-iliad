@@ -52,7 +52,8 @@ import {
 import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier, SnapshotRecord, TierLimits } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY, buildEstateManifest } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, gradeCompliance, programsForProduct, PRODUCT_REGISTRY, buildEstateManifest, isFreeGenerator, isPaidArtifact, GENERATOR_PROGRAMS } from "@axis/generator-core";
+import { buildFreeTierUpsell, buildNarrowedUpsell, PRO_UNLOCK_NOTE } from "./free-tier-upsell.js";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
@@ -353,30 +354,22 @@ function oversizedUploadGuidance(
 }
 
 export function makeProgramHandler(program: string, defaultOutputs: string[]) {
-  const isPro = !FREE_PROGRAMS.has(program);
-
   return async function (req: IncomingMessage, res: ServerResponse): Promise<void> {
-    // Authn gate for pro programs, resolved up front so unauthenticated callers are rejected
-    // before any request body is read (avoids leaking snapshot existence to anonymous callers).
-    let auth: Awaited<ReturnType<typeof resolveAuth>> | null = null;
+    // Free tier is now ARTIFACT-level, not program-level: every program ships
+    // some free artifacts, so NO program 401s an anonymous caller outright.
+    // Auth is still resolved before the body is read (it decides the default
+    // output set), which preserves the original ordering defence — nothing
+    // snapshot-specific is consulted until after the tenancy checks below.
+    const auth = await resolveAuth(req);
+    // Unpaid = anonymous, or a free-tier account that did not explicitly ask
+    // for paid artifacts. Generation always runs the FULL requested set (that
+    // is where each withheld artifact's real description comes from); the
+    // narrowing happens at DELIVERY, below. Charging is skipped entirely for
+    // unpaid callers, so nothing is billed for output they don't receive.
+    const unpaidCaller = !auth.account || auth.account.tier === "free";
     let enabled = false;
-    if (isPro) {
-      auth = await resolveAuth(req);
-
-      // Require authentication for pro programs
-      if (auth.anonymous || !auth.account) {
-        sendError(res, 401, ErrorCode.AUTH_REQUIRED, `${program} requires authentication. Include Authorization: Bearer <api_key>`);
-        return;
-      }
-
-      // Check if program is enabled for this account
+    if (auth.account) {
       enabled = await isProgramEnabled(auth.account.account_id, program);
-      if (!enabled) {
-        await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
-          reason: `program_not_enabled:${program}`,
-          source: "program_handler",
-        });
-      }
     }
 
     const raw = await readBody(req);
@@ -408,6 +401,31 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     }
 
     const requestedOutputs = (rawOutputs as string[] | undefined) ?? defaultOutputs;
+    // Charge only for artifacts that are actually paid AND actually
+    // deliverable to this caller. A free-only request never charges, never
+    // requires auth, and is served to anyone.
+    //
+    // An unpaid caller asking for paid artifacts is NARROWED, not rejected:
+    // generation still runs the full set (that is where each withheld
+    // artifact's real `description` comes from — there is no static
+    // path→description map in the repo), but only the free artifacts are
+    // delivered and persisted, and the rest are named in the upsell block.
+    const paidRequested = requestedOutputs.filter(o => !isFreeGenerator(o));
+    // A free-tier account keeps its per-call payment path, but must opt in
+    // EXPLICITLY by naming paid artifacts in `outputs` — defaulting a free
+    // account into a charge is what produced 402s nobody converted on. An
+    // anonymous caller can never be charged (no account to bill), so it is
+    // always narrowed rather than rejected.
+    const explicitPaidRequest = rawOutputs !== undefined && paidRequested.length > 0;
+    const needsPayment = paidRequested.length > 0
+      && !!auth.account
+      && (!unpaidCaller || explicitPaidRequest);
+    if (needsPayment && auth.account && !enabled) {
+      await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
+        reason: `program_not_enabled:${program}`,
+        source: "program_handler",
+      });
+    }
     const snapshot = await getSnapshot(snapshotId);
     // Tenancy: an owned snapshot is only readable by its owner. Without this, any caller
     // could pass another account's snapshot_id and receive generated artifacts that embed
@@ -432,7 +450,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     // recordUsageBestEffort despite already having charged — any future fallible addition here
     // would silently strand a real charge with no compensation-ledger record.
     let chargedAmountCents: number | null = null;
-    if (isPro && auth?.account) {
+    if (needsPayment && auth.account) {
       const budget = parseAgentBudget(req);
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier(program);
@@ -470,8 +488,8 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
 
       const programFiles = result.files.filter(f => f.program === program);
 
-      // Record usage for authenticated pro program calls
-      if (isPro) {
+      // Record usage for charged calls
+      if (needsPayment) {
         const usageAuth = await resolveAuth(req);
         if (usageAuth.account) {
           await recordUsageBestEffort(
@@ -485,12 +503,27 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
         }
       }
 
+      // An unpaid caller receives only this program's free artifacts, plus a
+      // block naming every artifact withheld and what it costs — the whole
+      // point of the split: "would you pay for more?" is unanswerable unless
+      // the caller can see what "more" is. A caller who paid gets everything
+      // and no upsell (buildFreeTierUpsell returns undefined when nothing was
+      // withheld, so the key is simply absent).
+      const paidThisCall = needsPayment && chargedAmountCents !== null;
+      // isPaidArtifact, not !isFreeGenerator — see its docblock. Artifacts
+      // appended after generation (quality report, program funnel, the
+      // begin.yaml/continuation.yaml loop files) are not registry entries and
+      // must keep reaching free callers exactly as they always did.
+      const deliveredFiles = paidThisCall ? programFiles : programFiles.filter(f => !isPaidArtifact(f.path));
+      const upsell = paidThisCall ? undefined : buildFreeTierUpsell(programFiles, program);
+
       sendJSON(res, 200, {
         snapshot_id: snapshotId,
         program,
-        files: programFiles,
+        files: deliveredFiles,
         skipped: result.skipped,
-        ...(isPro ? { trial: buildTrialNotice(true) } : {}),
+        ...(upsell ? { free_tier: upsell } : {}),
+        ...(needsPayment ? { trial: buildTrialNotice(true) } : {}),
       });
     } catch (err) {
       log("error", "program_generation_failed", {
@@ -630,19 +663,21 @@ export async function handleCreateSnapshot(
     const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
-      // Determine if the user is requesting ONLY free programs.
+      // Determine if the user is requesting ONLY free ARTIFACTS.
       // If so, skip the MPP charge — return a clear 429 without payment flow.
-      const requestedProgramsFromOutputs = new Set<string>();
-      for (const output of manifest.requested_outputs) {
-        for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
-          if (outputs.includes(output)) requestedProgramsFromOutputs.add(program);
-        }
-      }
-      const onlyFreePrograms = requestedProgramsFromOutputs.size === 0 ||
-        [...requestedProgramsFromOutputs].every(p => FREE_PROGRAMS.has(p));
+      //
+      // Artifact-level, not program-level: under the old program-level test a
+      // request naming outputs from all 21 programs could still classify as
+      // "free-only" (every program now has free artifacts) and skip quota
+      // entirely. Testing the requested outputs directly is both correct and
+      // cheaper — no outputs→programs reverse mapping. An empty/unrecognised
+      // set stays "free-only", preserving the previous size === 0 behaviour
+      // for output names outside PROGRAM_OUTPUTS (search/skills outputs).
+      const onlyFreeArtifacts = manifest.requested_outputs.length === 0 ||
+        manifest.requested_outputs.every(o => isFreeGenerator(o));
 
-      if (onlyFreePrograms) {
-        // Free-program-only requests bypass quota entirely — free programs are always available
+      if (onlyFreeArtifacts) {
+        // Free-artifact-only requests bypass quota entirely — free artifacts are always available
       } else {
         await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
         const budget = parseAgentBudget(req);
@@ -673,15 +708,22 @@ export async function handleCreateSnapshot(
     // File count/size caps already enforced ABOVE the charge (validate-first).
     const limits = preLimits;
 
-    // Enforce program entitlements — reject if free-tier user requests pro outputs
+    // Enforce program entitlements — reject only for PAID artifacts the
+    // account isn't entitled to.
+    //
+    // Artifact-level, not program-level. Under the old test a request for
+    // ANY output of a non-entitled program was blocked — which now 402s the
+    // FREE artifacts every program ships (a free-tier account asking for
+    // frontend-rules.md got charged for "frontend"), defeating the free tier
+    // on this endpoint entirely. Entitlement itself stays program-scoped
+    // (isProgramEnabled / TIER_LIMITS.free.programs are the catalog); what
+    // changes is that a free artifact is never blocked in the first place.
     const allowedPrograms = new Set(limits.programs.length > 0 ? limits.programs : ALL_PROGRAMS as unknown as string[]);
     const requestedPro = new Set<string>();
     for (const output of manifest.requested_outputs) {
-      for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
-        if (outputs.includes(output) && !allowedPrograms.has(program)) {
-          requestedPro.add(program);
-        }
-      }
+      if (!isPaidArtifact(output)) continue;
+      const program = GENERATOR_PROGRAMS[output];
+      if (program && !allowedPrograms.has(program)) requestedPro.add(program);
     }
     if (requestedPro.size > 0 && !paidForThisCall) {
       const proList = [...requestedPro].sort();
@@ -699,7 +741,7 @@ export async function handleCreateSnapshot(
       });
 
       if (mppResult === null) {
-        const paymentMessage = `Free tier includes 3 programs (search, skills, debug). Upgrade to Pro to unlock: ${proList.join(", ")}.`;
+        const paymentMessage = `Every program has free artifacts; these need payment for their remaining ones: ${proList.join(", ")}.`;
         // MPP not configured — return 402 with negotiation data
         sendError(res, 402, ErrorCode.TIER_REQUIRED,
           paymentMessage,
@@ -735,13 +777,14 @@ export async function handleCreateSnapshot(
     // Anonymous users get free-tier program limits
     const freeLimits = TIER_LIMITS.free;
     const anonAllowed = new Set(freeLimits.programs);
+    // Artifact-level (see the authenticated twin above): an anonymous caller
+    // asking only for FREE artifacts is served, whichever programs they belong
+    // to. Only genuinely paid artifacts reach the 402 below.
     const anonPro = new Set<string>();
     for (const output of manifest.requested_outputs) {
-      for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
-        if (outputs.includes(output) && !anonAllowed.has(program)) {
-          anonPro.add(program);
-        }
-      }
+      if (!isPaidArtifact(output)) continue;
+      const program = GENERATOR_PROGRAMS[output];
+      if (program && !anonAllowed.has(program)) anonPro.add(program);
     }
     // Found during the free-trial design review: this branch never calls
     // chargeWithDiscounts (unlike the two authenticated branches above, which
@@ -755,7 +798,7 @@ export async function handleCreateSnapshot(
       const pricing = getPricingTier("analyze_repo");
       const mode = resolveAgentMode(req);
       const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-      const paymentMessage = `Free tier includes 3 programs (search, skills, debug). Sign up or upgrade to Pro to unlock: ${proList.join(", ")}.`;
+      const paymentMessage = `Every program has free artifacts; sign up or upgrade to unlock the rest of: ${proList.join(", ")}.`;
       sendError(res, 402, ErrorCode.TIER_REQUIRED,
         paymentMessage,
         {
@@ -1913,16 +1956,14 @@ export async function handleAnalyze(
     ? ALL_PROGRAMS.filter(program => !FREE_PROGRAMS.has(program))
     : requestedPrograms.filter(program => !FREE_PROGRAMS.has(program));
 
-  if (requestedPaidPrograms.length > 0 && !auth.account) {
-    sendError(
-      res,
-      401,
-      ErrorCode.AUTH_REQUIRED,
-      "Full AXIS analysis requires authentication. Use list_programs, search_and_discover_tools, or request only free programs (search, skills, debug) to stay on the free path.",
-      { requested_paid_programs: requestedPaidPrograms },
-    );
-    return;
-  }
+  // Anonymous callers are NARROWED, not rejected. Under the artifact-level
+  // free tier every program has free artifacts, so the old 401 (fired whenever
+  // the request touched any paid program) would now reject essentially every
+  // anonymous call — including the free path it was telling callers to use.
+  // An anonymous caller instead receives each requested program's free
+  // artifacts plus a block naming what was withheld; nothing paid is generated
+  // for them, so nothing is charged.
+  const anonymousNarrowed = !auth.account && requestedPaidPrograms.length > 0;
 
   // H-Phase-A cycle 21: tracks the actual amount charged (if any), across
   // whichever branch below fires it, so the post-charge pipeline's catch
@@ -2049,21 +2090,24 @@ export async function handleAnalyze(
   const skillsOutputs = !requestedPrograms || requestedPrograms.includes("skills")
     ? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md", "model-cascade.md"]
     : [];
-  // lite_description promise (@axis/mpp PRICING_TIERS.analyze_repo/analyze_files):
-  // "search/skills/debug programs only (3 of 20 programs)". The MCP path
-  // (mcp-tool-impls.ts's restrictGeneratorsForLiteMode) already enforces this;
-  // this REST twin charges the lite price via `mode` below but never restricted
-  // the actual output set until now (H-Phase-A cycle 2). skillsOutputs above
-  // already covers the search+skills half of the free set unconditionally —
-  // only the PROGRAM_OUTPUTS side (which includes "debug", the third free
-  // program, alongside all 17 paid ones) needs the lite gate.
+  // Output-set narrowing. Two independent reasons to restrict to free
+  // artifacts, both now expressed artifact-level rather than program-level:
+  //   - lite: RETIRED (owner decision 2026-08-25) — resolves to the free set
+  //     at no charge, since the free tier now delivers strictly more than
+  //     lite ever did. Header stays accepted-but-inert.
+  //   - anonymousNarrowed: an unauthenticated caller who asked for paid
+  //     programs gets each one's free artifacts instead of a 401.
+  // skillsOutputs is filtered too — it was added unconditionally, bypassing
+  // the old lite gate entirely, which under artifact-level gating would hand
+  // out paid skills artifacts for free.
   const lite = resolveAgentMode(req) === "lite";
+  const freeOnly = lite || anonymousNarrowed;
   const allOutputs = [
     ...skillsOutputs,
     ...Object.entries(PROGRAM_OUTPUTS)
-      .filter(([prog]) => (!requestedPrograms || requestedPrograms.includes(prog)) && (!lite || FREE_PROGRAMS.has(prog)))
+      .filter(([prog]) => !requestedPrograms || requestedPrograms.includes(prog))
       .flatMap(([, outputs]) => outputs),
-  ];
+  ].filter(o => !freeOnly || isFreeGenerator(o));
 
   const input: SnapshotInput = {
     input_method: inputMethod,
@@ -2139,13 +2183,19 @@ export async function handleAnalyze(
 
     const nextSteps = buildNextSteps(generated.files);
 
+    // An anonymous/narrowed caller received only free artifacts — name what
+    // was withheld so "would you pay for more?" is answerable. The paid set
+    // was never generated for them, so the list is derived from the program
+    // manifest rather than from `generated.files`.
+    const analyzeUpsell = freeOnly ? buildNarrowedUpsell(requestedPrograms) : undefined;
     sendJSON(res, 201, {
       snapshot_id: snapshot.snapshot_id,
       project_id: snapshot.project_id,
       status: "ready",
       snapshot_summary: {
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).",
+        pro_unlock: PRO_UNLOCK_NOTE,
       },
+      ...(analyzeUpsell ? { free_tier: analyzeUpsell } : {}),
       analysis: {
         project_name: projectName,
         language: contextMap.project_identity.primary_language,
@@ -2923,7 +2973,7 @@ export function handleX402WellKnown(
       ...priceEntry(tool),
     })),
     accepted_payment_schemes: paymentRecipient ? ["mppx/tempo", "mppx/stripe"] : ["mppx/stripe"],
-    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one on every call for a nominal $0.005, and is not gated by account state or deployment config. For the programs/utilities listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
+    how_to_pay: "The one deterministic way to see a real negotiation body is ping_payment (tools/call, no credential needed) — it always returns one on every call for a nominal $0.01, and is not gated by account state or deployment config. For the programs/utilities listed above, a real 402 negotiation body only fires when ALL of: (1) the caller authenticates with X-Axis-Key, (2) the account has exhausted any plan credits (an overage, not the first call), (3) the target deployment has in-band settlement enabled (this production deployment does; a local/dev instance may not by default), and (4) the specific tool/args resolve to a guaranteed-billable case rather than a free or runtime-metered one. Short of all four, the call still succeeds or fails on its own terms (auth error, free op, or plan-credit metering) without a 402. Retry a real challenge with Authorization: Payment <credential> and X-Axis-Key: <api_key>.",
     agent_card: "GET /.well-known/agent-card.json — MCP-focused agent discovery card (name, skills, capabilities).",
     wire_protocol_note: "Iliad speaks the mppx/PaymentAuth wire protocol (WWW-Authenticate: Payment / Authorization: Payment / Payment-Receipt headers) — NOT x402.org's v1 (X-PAYMENT body/header) or v2 (PAYMENT-SIGNATURE header) conventions. See contract_doc for the full wire comparison.",
     contract_doc: "https://github.com/lastmanupinc-hub/AXIS-iliad/blob/main/docs/x402/CONTRACT.md",
@@ -2963,7 +3013,7 @@ export function handleAgentCard(
       schemes: ["bearer"],
       header: "Authorization: Bearer <api_key>",
       obtain: "POST /v1/accounts",
-      note: "Free discovery tools (search_and_discover_tools, list_programs, and others) require no authentication at all. ping_payment is also reachable anonymously but is no longer free — it costs $0.005.",
+      note: "Free discovery tools (search_and_discover_tools, list_programs, and others) require no authentication at all. ping_payment is also reachable anonymously but is no longer free — it costs $0.01.",
     },
     defaultInputModes: ["application/json"],
     defaultOutputModes: ["application/json"],
@@ -3146,8 +3196,8 @@ Sibling AXIS properties (payments, 3D generation, and more), agent-callable thro
 
 ## Programs (${PROGRAM_COUNT} total)
 
-Free tier: search (AGENTS.md, .cursorrules, CLAUDE.md, symbol-index), skills, debug
-Pro tier: frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer
+Free artifacts: every program ships some, with no auth and no payment (search, skills and debug are free in full)
+Paid artifacts: each other program's remaining artifacts — per-run payment or a paid plan
 
 ## Agentic Commerce
 
@@ -3169,7 +3219,7 @@ When integrating with Axis' Iliad as an LLM agent:
 - Always use POST /v1/analyze as the primary entry point for codebase analysis.
 - Prefer MCP transport (POST /mcp) over REST when your runtime supports Model Context Protocol.
 - Do NOT embed API keys in generated artifacts or share them in client-side code.
-- Free programs (search, skills, debug) never require auth or payment. Do not prompt for auth when calling only free programs.
+- Every program has free artifacts that never require auth or payment. Do not prompt for auth when a call requests only free artifacts.
 - For paid programs, handle 402 responses by reading the negotiation body: it includes pricing, budget headers, lite-mode alternatives, and free fallbacks.
 - When receiving a 429 (quota exceeded), retry after the window resets or switch to free-only programs.
 - Paid responses include a referral_token tied to the opt-in referral usage-credit program. The free get_referral_code and get_referral_credits tools report referral status.

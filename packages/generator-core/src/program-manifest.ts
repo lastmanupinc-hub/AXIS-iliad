@@ -179,3 +179,147 @@ export const PROGRAM_OUTPUT_COUNTS: Readonly<Record<string, number>> = (() => {
 export function bundleOutputs(programs: readonly string[]): number {
   return programs.reduce((sum, p) => sum + (PROGRAM_OUTPUT_COUNTS[p] ?? 0), 0);
 }
+
+// ─── Free tier — which ARTIFACTS are free, not which PROGRAMS ─────────────
+//
+// Replaces the old program-level free tier (search/skills/debug wholly free,
+// the other 18 programs wholly invisible until paid). Every program now ships
+// a genuinely useful free artifact, and every paid response names what it
+// withheld — a caller can only answer "would you pay for more?" if they can
+// see what "more" is.
+//
+// Keyed by OUTPUT PATH deliberately. REGISTRY keys ≡ GENERATOR_PROGRAMS keys ≡
+// the emitted GeneratedFile.path (generate.ts resolves ALIASES to canonical
+// paths BEFORE dispatch), so one predicate serves both "filter the outputs a
+// caller requested" and "filter the files we just generated". A `tier` field on
+// GENERATOR_PROGRAMS' values would instead break the six Object.values/entries
+// call sites that assume a string, and a `tier` on GeneratedFile would trip
+// validateGeneratedFile and touch ~152 generator functions.
+//
+// This is a SEPARATE AXIS from TIER_LIMITS.free.programs, which stays exactly
+// as it is: that list is also the entitlement catalog read by isProgramEnabled,
+// so widening it would silently grant free accounts every program.
+//
+// Selection rule — "hero asset free, depth paid": the free pick is the single
+// most immediately useful artifact of each program (the thing a caller came
+// for), not a stub and not merely the rules document. search/skills/debug keep
+// ALL their artifacts free — they are the proven funnel and a published claim,
+// and clawing back existing free value is the one move that loses the users we
+// have. context-map.json / repo-profile.yaml / architecture-summary.md are
+// force-added to every run by generate.ts; all three are `search`, so they are
+// free by construction rather than by special case.
+export const FREE_GENERATORS: ReadonlySet<string> = new Set<string>([
+  // ── search (6/6 free) ──
+  "context-map.json",
+  "repo-profile.yaml",
+  "architecture-summary.md",
+  "dependency-hotspots.md",
+  "symbol-index.json",
+  "repo-run-stats.json",
+  // ── skills (6/6 free) ──
+  "AGENTS.md",
+  "CLAUDE.md",
+  ".cursorrules",
+  "workflow-pack.md",
+  "policy-pack.md",
+  "model-cascade.md",
+  // ── debug (4/4 free) ──
+  "debug-playbook.md",
+  "incident-template.md",
+  "tracing-rules.md",
+  "root-cause-checklist.md",
+  // ── mcp (3/19) ──
+  "mcp-config.json",
+  "mcp/README.md",
+  "protocol-spec.md",
+  // ── closer (3/16) ──
+  "Dockerfile",
+  "packaging/README.md",
+  "DISTRIBUTABLE.md",
+  // ── deploy (3/13) ──
+  "deploy/Dockerfile",
+  "deploy/render.yaml",
+  "deploy/docker-compose.dev.yml",
+  // ── artifacts (3/11) ──
+  "artifact-spec.md",
+  "prd.md",
+  "design.md",
+  // ── superpowers (2/10) ──
+  "superpower-pack.md",
+  "refactor-checklist.md",
+  // ── brand (2/8) ──
+  "brand-guidelines.md",
+  "voice-and-tone.md",
+  // ── seo (2/6) ──
+  "seo-rules.md",
+  "meta-tag-audit.json",
+  // ── canvas (2/6) ──
+  "brand-board.md",
+  "asset-guidelines.md",
+  // ── agentic-purchasing (2/6) ──
+  "agent-purchasing-playbook.md",
+  "checkout-flow.md",
+  // ── theme (1/5) ──
+  "design-tokens.json",
+  // ── marketing (1/5) ──
+  "campaign-brief.md",
+  // ── notebook (1/5) ──
+  "notebook-summary.md",
+  // ── obsidian (1/5) ──
+  "obsidian-skill-pack.md",
+  // ── remotion (1/5) ──
+  "storyboard.md",
+  // ── algorithmic (1/5) ──
+  "generative-sketch.ts",
+  // ── frontend (1/4) ──
+  "frontend-rules.md",
+  // ── optimization (1/4) ──
+  "optimization-rules.md",
+  // ── pitch (1/3) ──
+  "pitch-deck.md",
+]);
+
+/** Free artifact count — derived from FREE_GENERATORS so it cannot drift. */
+export const FREE_GENERATOR_COUNT = FREE_GENERATORS.size;
+
+/** program → number of its artifacts that are free (derived, cannot drift). */
+export const PROGRAM_FREE_COUNTS: Readonly<Record<string, number>> = (() => {
+  const counts: Record<string, number> = {};
+  for (const program of Object.values(GENERATOR_PROGRAMS)) counts[program] = counts[program] ?? 0;
+  for (const path of FREE_GENERATORS) {
+    const program = GENERATOR_PROGRAMS[path];
+    if (program) counts[program] = (counts[program] ?? 0) + 1;
+  }
+  return counts;
+})();
+
+/** True when this output path is deliverable without payment. */
+export function isFreeGenerator(path: string): boolean {
+  return FREE_GENERATORS.has(path);
+}
+
+/**
+ * True when this path is a REGISTRY artifact — i.e. something the free/paid
+ * split actually governs.
+ *
+ * Several artifacts are appended AFTER generation and are not registry
+ * entries: the package-quality report, the program-funnel recommendation, and
+ * the autonomy-loop files (begin.yaml / continuation.yaml) that carry the
+ * self-propagating "continue the loop" contract. They were always emitted
+ * regardless of tier, so they must not be swept into the paid set merely by
+ * being absent from FREE_GENERATORS — a free caller would otherwise lose the
+ * loop files, and the upsell would advertise artifacts that have no price.
+ *
+ * Callers gate on `isGatedArtifact(p) && !isFreeGenerator(p)` to mean "paid",
+ * rather than on `!isFreeGenerator(p)` alone. Keeping this separate from
+ * isFreeGenerator also keeps that predicate strict: a mistyped path stays
+ * paid-by-default rather than silently becoming free.
+ */
+export function isGatedArtifact(path: string): boolean {
+  return path in GENERATOR_PROGRAMS;
+}
+
+/** True when this artifact requires payment (registry artifact, not free). */
+export function isPaidArtifact(path: string): boolean {
+  return isGatedArtifact(path) && !FREE_GENERATORS.has(path);
+}

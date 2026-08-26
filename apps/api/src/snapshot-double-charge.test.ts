@@ -101,7 +101,11 @@ describe("POST /v1/snapshots — over-quota AND pro-program request charges exac
           project_type: "web_application",
           frameworks: ["react"],
           goals: ["test"],
-          requested_outputs: ["seo-rules.md"],
+          // Must be a PAID artifact. seo-rules.md became one of the free
+          // artifacts every program ships, and a free-only request never
+          // charges at all — which would make this double-charge guard pass
+          // vacuously (0 charges) instead of proving exactly one fired.
+          requested_outputs: ["schema-recommendations.json"],
         },
         files: [{ path: "package.json", content: '{"name":"x"}' }],
       },

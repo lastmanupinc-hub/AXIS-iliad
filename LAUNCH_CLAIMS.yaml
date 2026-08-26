@@ -25,11 +25,11 @@ claims:
     verified_at: "2026-07-02"
 
   - id: endpoint_count
-    text: "178 REST endpoints"
-    value: 178
+    text: "179 REST endpoints"
+    value: 179
     source: "apps/api/src/counts.ts ENDPOINT_COUNT (guarded by counts-consistency.test.ts)"
     status: verified
-    verified_at: "2026-08-24"
+    verified_at: "2026-08-25"
 
   - id: mcp_tool_count
     text: "44 MCP tools"
@@ -52,19 +52,24 @@ claims:
     status: verified
     verified_at: "2026-07-02"
 
+  # Free tier became ARTIFACT-level (2026-08-25): every program ships a free
+  # "hero" artifact and withholds the rest, instead of 3 programs being wholly
+  # free and 18 wholly invisible. Both claims now derive from FREE_GENERATORS
+  # (packages/generator-core/src/program-manifest.ts) rather than from a
+  # hardcoded program list — the thing that let the old "16" go stale.
   - id: free_programs
-    text: "3 programs free (Search, Skills, Debug)"
-    value: 3
-    source: "apps/api/src/openapi.ts free_programs list"
+    text: "every program has a free tier (21 of 21)"
+    value: 21
+    source: "distinct programs among listAvailableGenerators() filtered by isFreeGenerator() — @axis/generator-core"
     status: verified
-    verified_at: "2026-07-02"
+    verified_at: "2026-08-25"
 
   - id: free_tier_generators
-    text: "16 generators in the free tier (Search + Skills + Debug)"
-    value: 16
-    source: "listAvailableGenerators() from @axis/generator-core, filtered to program in {search,skills,debug}"
+    text: "47 artifacts free across all 21 programs"
+    value: 47
+    source: "listAvailableGenerators() from @axis/generator-core filtered by isFreeGenerator() (FREE_GENERATORS)"
     status: verified
-    verified_at: "2026-07-14"
+    verified_at: "2026-08-25"
 
   - id: determinism_test_count
     text: "3 byte-identical determinism tests"

@@ -16,6 +16,7 @@ import {
   PURCHASING_READINESS_WEIGHTS,
 } from "./handlers.js";
 import { MCP_TOOLS, dispatch } from "./mcp-server.js";
+import { MCP_TOOL_COUNT } from "./counts.js";
 import { runPreparePurchasing } from "./mcp-tool-impls.js";
 
 // ─── HTTP helper ─────────────────────────────────────────────────
@@ -590,8 +591,14 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(tool!.description).toContain("dispute");
   });
 
-  it("MCP_TOOLS array contains the full 43-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
-    expect(MCP_TOOLS.length).toBe(43);
+  // DERIVED, not pinned. This assertion hardcoded 43 and went red the moment
+  // delete_snapshot was added (commit a75ef56, the Glama coherence review),
+  // which bumped counts.ts to 44 but could not know about this literal.
+  // counts-consistency.test.ts already guards MCP_TOOL_COUNT against the live
+  // MCP_TOOLS array, so deferring to it here keeps one source of truth and
+  // stops this test from breaking on every legitimate tool addition.
+  it("MCP_TOOLS array contains the full advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+    expect(MCP_TOOLS.length).toBe(MCP_TOOL_COUNT);
   });
 });
 

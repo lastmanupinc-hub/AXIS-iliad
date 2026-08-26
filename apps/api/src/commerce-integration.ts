@@ -10,6 +10,18 @@
 import type { ContextMap } from "@axis/context-engine";
 import type { CommerceSignals } from "@axis/generator-core";
 
+/**
+ * Default price (in cents) stamped into the x402 endpoint AXIS generates FOR
+ * THE CUSTOMER. This is the customer's own asking price on their own endpoint,
+ * wired to their own PAI'D account -- it is NOT an AXIS price and must never be
+ * sourced from @axis/mpp's PRICING_TIERS (that table prices AXIS's own tools).
+ * $1.00 is a neutral, obviously-placeholder default the customer is expected to
+ * change; it ships as `export const PRICE_CENTS` in their generated source, so
+ * it is editable in one place on their side too. Named here rather than passed
+ * as a bare literal at the call site so it is greppable and documented.
+ */
+export const GENERATED_ENDPOINT_DEFAULT_PRICE_CENTS = 100;
+
 export interface CommerceArtifact {
   path: string;
   content: string;

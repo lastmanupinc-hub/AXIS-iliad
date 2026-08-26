@@ -3,7 +3,7 @@ import { getStats, type ApiStats } from "../api.ts";
 import { LiveDemoTeaser } from "../components/LiveDemoTeaser.tsx";
 import { StatTile, formatCompact } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
+import { ARTIFACT_COUNT, FREE_FILE_COUNT, PROGRAM_COUNT } from "../config.ts";
 import type { PageId } from "../routes.tsx";
 
 // ─── HomePage (WO-P1) ────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export function HomePage({ onAnalyze, onRequireLogin, onNavigate }: Props) {
         <p className="upload-hero-sub">
           Point Axis&apos; Iliad at a GitHub URL and get {ARTIFACT_COUNT} structured AI artifacts back — AGENTS.md,
           CLAUDE.md, .cursorrules, MCP configs, SEO rules, brand guidelines, debug playbooks, and more — across{" "}
-          {PROGRAM_COUNT} programs. {FREE_PROGRAM_COUNT} of them are free, no account required.
+          {PROGRAM_COUNT} programs. Every one ships free artifacts — {FREE_FILE_COUNT} of them, no account required.
         </p>
         <div className="flex" style={{ justifyContent: "center", marginBottom: 20 }}>
           <button type="button" className="btn btn-primary btn-lg" onClick={onAnalyze}>
@@ -90,7 +90,7 @@ export function HomePage({ onAnalyze, onRequireLogin, onNavigate }: Props) {
 
       {/* ── Programs listing ──────────────────────────────────── */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{PROGRAM_COUNT} Programs — {FREE_PROGRAM_COUNT} free · {PRO_PROGRAM_COUNT} pro</p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{PROGRAM_COUNT} Programs — {FREE_FILE_COUNT} artifacts free · {ARTIFACT_COUNT - FREE_FILE_COUNT} paid</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
           {PROGRAM_BADGES.map(({ name, free }) => (
             <span key={name} className={`badge ${free ? "badge-green" : "badge-accent"}`} style={{ fontSize: "0.78rem" }}>
@@ -139,7 +139,7 @@ Upload or point at any codebase — get ${ARTIFACT_COUNT} generated artifacts.
       <div className="card text-center" style={{ padding: "28px 24px" }}>
         <h2 style={{ fontSize: "1.25rem", marginBottom: 8 }}>Ready to see your own repo?</h2>
         <p className="text-muted mb-4">
-          Free tier: {FREE_PROGRAM_COUNT} programs, no signup. Upgrade any time to unlock all {PROGRAM_COUNT}.
+          Free tier: {FREE_FILE_COUNT} artifacts across all {PROGRAM_COUNT} programs, no signup. Upgrade any time for the remaining {ARTIFACT_COUNT - FREE_FILE_COUNT}.
         </p>
         <button type="button" className="btn btn-primary" onClick={onAnalyze}>
           Analyze your repo

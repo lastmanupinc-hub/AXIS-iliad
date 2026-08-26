@@ -1,6 +1,7 @@
 // ─── OpenAPI 3.1 Specification for Axis' Iliad API ─────────────
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { isFreeTrialActive, getTrialWindow } from "@axis/snapshots";
+import { FREE_GENERATOR_COUNT } from "@axis/generator-core";
 
 export interface OpenApiSpec {
   openapi: string;
@@ -389,10 +390,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
           summary: "Analyze a codebase — one call returns all AI context files with adoption hints",
           description:
             `Analyze any GitHub repo or uploaded codebase and return ${ARTIFACT_COUNT} structured AI artifacts across ${PROGRAM_COUNT} programs (AGENTS.md, CLAUDE.md, .cursorrules, MCP config, brand guidelines, debug playbooks, etc.). ` +
-            "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.50 per-call MPP credit. " +
+            `Free callers receive ${FREE_GENERATOR_COUNT} artifacts — every program ships some, and search/skills/debug are free in full. Each program's remaining artifacts require a paid plan or a $0.50 per-call MPP credit. ` +
             "If the caller lacks access, the server returns HTTP 402 with a machine-readable payment body containing payment_url, checkout_url, and retry_after_payment instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request — no extra steps. " +
-            "Pass X-Agent-Budget header to negotiate lite mode ($0.15, 3 programs). Pass X-Agent-Mode: lite explicitly. " +
+            "X-Agent-Mode: lite is RETIRED — it now returns the free artifact set at no charge; use the free tier instead. Pass X-Agent-Budget to negotiate budget. " +
             "Response headers on every authenticated call: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Credits-Balance, X-Axis-Request-Cost.",
           operationId: "analyze",
           tags: ["Analyze"],
@@ -400,8 +401,9 @@ export function buildOpenApiSpec(): OpenApiSpec {
             model: "stripe_x402",
             price_usd: "0.50",
             lite_price_usd: "0.15",
-            free_programs: ["search", "skills", "debug"],
-            description: "Returns HTTP 402 for free-tier callers requesting paid programs. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
+            free_artifact_count: FREE_GENERATOR_COUNT,
+            free_programs_note: "every program ships free artifacts; search/skills/debug are free in full",
+            description: "Returns HTTP 402 only when a caller explicitly requests paid artifacts it cannot pay for; an unpaid caller is otherwise narrowed to the free artifact set rather than rejected. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
             budget_header: "X-Agent-Budget: {\"budget_per_run_cents\": 50, \"spending_window\": \"per_call\"}",
             lite_mode_header: "X-Agent-Mode: lite",
             retry_pattern: "Re-send original request with same API key after payment — no extra steps.",
@@ -1484,6 +1486,25 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/admin/rest-usage": {
         get: { summary: "Admin: REST program usage metrics (cross-account)", operationId: "getAdminRestUsage", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "REST program usage metrics" }, 403: { description: "Admin access required" } } },
+      },
+      // POST /v1/pitch/render — renders an EXISTING snapshot's already-generated
+      // pitch-deck.json into a real .pptx binary. Not a program-generate endpoint
+      // (it produces a file, not artifacts), so it is declared standalone rather
+      // than in the PROGRAM_ENDPOINTS loop below.
+      "/v1/pitch/render": {
+        post: {
+          summary: "Render a snapshot's generated pitch deck to a real .pptx file",
+          operationId: "pitchRender",
+          tags: ["Programs"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "PowerPoint (.pptx) binary of the rendered deck" },
+            400: { description: "Missing or invalid snapshot_id" },
+            402: { description: "The pitch program is not enabled on this account" },
+            404: { description: "Snapshot not found, or it has no pitch-deck.json artifact" },
+            500: { description: "Stored pitch-deck.json is malformed or has no slides" },
+          },
+        },
       },
       "/v1/admin/session": {
         post: {

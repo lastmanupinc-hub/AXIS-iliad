@@ -60,7 +60,11 @@ function decrypt(encoded: string): string {
   const key = getEncryptionKey();
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
-  return decipher.update(encrypted) + decipher.final("utf-8");
+  // Concat the raw buffers and decode ONCE — see the identical fix in
+  // provider-credential-store.ts. `update(...) + final("utf-8")` decoded the
+  // first chunk independently via Buffer's implicit toString(), corrupting any
+  // multi-byte UTF-8 character that straddled the chunk boundary.
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf-8");
 }
 
 // ─── Types ──────────────────────────────────────────────────────

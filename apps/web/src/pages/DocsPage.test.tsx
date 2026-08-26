@@ -12,7 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { DocsPage } from "./DocsPage.tsx";
-import { FREE_PROGRAM_COUNT, PRO_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
+import { FREE_PROGRAM_NAMES, PRO_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
 
 /** Fetch stub routed by URL substring: [match, body, status?][] (first hit
  *  wins — the convention established by McpPage.test.tsx). */
@@ -123,7 +123,7 @@ describe("DocsPage — Programs tab (regression: PROGRAM_DOCS drift)", () => {
     render(<DocsPage onNavigate={noop} />);
     fireEvent.click(screen.getByRole("tab", { name: /Programs/ }));
 
-    expect(screen.getByText(`${FREE_PROGRAM_COUNT} programs`)).toBeTruthy();
+    expect(screen.getByText(`${FREE_PROGRAM_NAMES.length} programs`)).toBeTruthy();
     expect(screen.getByText(`${PRO_PROGRAM_COUNT} programs`)).toBeTruthy();
   });
 

@@ -63,9 +63,9 @@
 
 ### Conversion Funnel
 1. **Discovery** → GitHub/Community posts
-2. **Interest** → Try free tier (3 programs)
+2. **Interest** → Try free tier (free artifacts from every program)
 3. **Trial** → Use web UI or CLI
-4. **Conversion** → Upgrade to Pro ($29/month)
+4. **Conversion** → Upgrade to Pro ($99/month)
 
 ## 🎯 FIRST TRIAL USER TARGETS
 

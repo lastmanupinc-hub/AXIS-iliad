@@ -162,6 +162,11 @@ export const ENV_SPEC: EnvSpec[] = [
   // process.env read in this codebase is undocumented)
   { key: "VITEST", required: false, type: "boolean", description: "Set automatically by the vitest test runner (not meant to be set manually). Gates test-only code paths, e.g. skipping boot migrations and signal-handler registration during tests." },
   { key: "AXIS_ENABLE_TEST_LOGS", required: false, type: "boolean", default: "false", description: "When running under vitest (VITEST=true), runtime log output is suppressed by default; set to \"1\" to re-enable it for debugging a specific test run." },
+  // Declared here to close the ENV_SPEC-coverage gap left by app_41 (commit
+  // f2ec938), which added the read in brand-voice-lint-watcher.ts without a
+  // matching spec entry — env.test.ts has been red on main since. This only
+  // declares what the code already reads; it changes no behaviour.
+  { key: "AXIS_VALE_BINARY_PATH", required: false, type: "string", default: "vale", description: "Path to the Vale prose-linter binary used by the brand-voice PR linter. Unset ⇒ \"vale\" is resolved from PATH; the linter degrades gracefully when the binary is absent." },
 ];
 
 export interface ValidationError {

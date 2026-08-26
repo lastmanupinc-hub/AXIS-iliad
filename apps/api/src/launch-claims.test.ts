@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { PLAN_CATALOG, MARKETED_TIERS } from "@axis/snapshots";
-import { listAvailableGenerators } from "@axis/generator-core";
+import { listAvailableGenerators, isFreeGenerator } from "@axis/generator-core";
 
 // apps/api/src -> repo root
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -218,7 +218,6 @@ describe("LAUNCH_CLAIMS.yaml registry vs live constants", () => {
   // anyone adds a test, which trains people to bump the number rather than
   // question it. Everything else is EXACT.
   it("every claim marked verified has a live derivation, and matches it", () => {
-    const freeSet = new Set(["search", "skills", "debug"]);
     const testFileCount = countTestFiles(ROOT);
 
     const DERIVATIONS: Record<string, { mode: "exact" | "floor"; derive: () => unknown }> = {
@@ -227,10 +226,17 @@ describe("LAUNCH_CLAIMS.yaml registry vs live constants", () => {
       endpoint_count: { mode: "exact", derive: () => ENDPOINT_COUNT },
       mcp_tool_count: { mode: "exact", derive: () => MCP_TOOL_COUNT },
       api_version: { mode: "exact", derive: () => API_VERSION },
-      free_programs: { mode: "exact", derive: () => freeSet.size },
+      // Free tier is ARTIFACT-level: every program ships free artifacts, so
+      // "programs with a free tier" is now the program count itself, and the
+      // artifact count derives from FREE_GENERATORS rather than from a
+      // hardcoded program list (which is what let the old 16 go stale).
+      free_programs: {
+        mode: "exact",
+        derive: () => new Set(listAvailableGenerators().filter((g) => isFreeGenerator(g.path)).map((g) => g.program)).size,
+      },
       free_tier_generators: {
         mode: "exact",
-        derive: () => listAvailableGenerators().filter((g) => freeSet.has(g.program)).length,
+        derive: () => listAvailableGenerators().filter((g) => isFreeGenerator(g.path)).length,
       },
       determinism_test_count: {
         mode: "exact",

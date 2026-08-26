@@ -101,7 +101,10 @@ function proSnapshot(projectName?: string) {
       project_type: "saas_web_app",
       frameworks: ["react"],
       goals: ["test"],
-      requested_outputs: ["frontend-rules.md"],
+      // ui-audit.md, not frontend-rules.md: the latter is now one of the
+      // FREE artifacts every program ships, so it no longer exercises a paid
+      // path at all. This helper exists to trip the PAID gate.
+      requested_outputs: ["ui-audit.md"],
     },
     files: [{ path: "index.ts", content: "export const x = 1;", size: 20 }],
   };

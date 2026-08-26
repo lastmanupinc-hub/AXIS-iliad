@@ -248,4 +248,28 @@ describe("Other marketed-price mentions drift guard vs MARKETED_TIERS (no DB)", 
       expect(page, `PlansPage.tsx missing "${creditsLabel}"`).toContain(creditsLabel);
     }
   });
+
+  // The monthly values above were guarded; the ANNUAL ones next to them were
+  // not, so 27840/95040/287040 were free to drift out of step with the 20%-off
+  // formula that PLAN_CATALOG derives (funnel-types.ts annualPriceCents). They
+  // happened to be correct -- nothing was checking. This closes that gap: the
+  // fallback shown to a user whose /v1/plans fetch failed must match what the
+  // API would have returned.
+  it("PlansPage.tsx's fallback ANNUAL prices match the 20%-off derivation", () => {
+    const page = readFileSync(join(ROOT, "apps", "web", "src", "pages", "PlansPage.tsx"), "utf8");
+    for (const t of MARKETED_TIERS) {
+      if (t.price_monthly_cents <= 0) continue;
+      const expectedAnnual = Math.round(t.price_monthly_cents * 12 * 0.8);
+      // String.raw so the \s and \d survive into the RegExp: inside a plain
+      // template literal `\s` collapses to `s`, which silently turned this
+      // into /price_annual_cents:s*27840/ and failed on the space after the
+      // colon. Caught only because the red-then-green check ran.
+      const found = new RegExp(String.raw`price_annual_cents:\s*` + expectedAnnual + String.raw`(?!\d)`).test(page);
+      expect(
+        found,
+        `PlansPage.tsx fallback for ${t.plan_id} should carry price_annual_cents: ${expectedAnnual} ` +
+          `(12 x ${t.price_monthly_cents} at 20% off)`,
+      ).toBe(true);
+    }
+  });
 });

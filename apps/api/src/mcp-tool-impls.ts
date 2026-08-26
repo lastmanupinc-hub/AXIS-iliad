@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import { resolveAuth } from "./billing.js";
 import { log } from "./logger.js";
+import { PRO_UNLOCK_NOTE } from "./free-tier-upsell.js";
 import { presignR2Url, presignR2List, presignR2Copy, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
   upsertVectors,
@@ -106,7 +107,7 @@ import {
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, detectCommerceSignals, buildEstateManifest } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, detectCommerceSignals, buildEstateManifest, isFreeGenerator, FREE_GENERATOR_COUNT } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 // Commerce engines exposed as free MCP tools (WO-13) — the SAME functions the
 // generators call, not re-implementations.
@@ -137,7 +138,7 @@ import {
 import { runSpecificityPass } from "./living-architecture.js";
 import { appendQualityArtifacts, appendAutonomyLoop, appendProgramFunnel, appendMemoryWeave, MEMORY_WEAVE_LIMIT, type WovenMemoryEntry } from "@axis/generator-core";
 import { llmDesignVerdict } from "./design-judge.js";
-import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
+import { buildCommerceIntegrationBundle, GENERATED_ENDPOINT_DEFAULT_PRICE_CENTS } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
 import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
@@ -1516,20 +1517,31 @@ const MCP_FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
 
 /**
  * analyze_repo/analyze_files' lite_description promise (@axis/mpp
- * PRICING_TIERS): "search/skills/debug programs only (3 of 20 programs)".
- * Restricts the generator list BEFORE requested_outputs is built, so a lite
- * call never generates (and is never billed the standard price for) more
- * than the 3 free programs' artifacts — regardless of how many programs the
- * caller's account has enabled (H-Phase-A cycle 1: this was previously
+ * PRICING_TIERS). Restricts the generator list BEFORE requested_outputs is
+ * built, so a lite call never generates (and is never billed the standard
+ * price for) more than lite's artifact set — regardless of how many programs
+ * the caller's account has enabled (H-Phase-A cycle 1: this was previously
  * unenforced, so a Suite/all-programs-enabled account paying the lite price
  * still received the full standard-mode bundle).
+ *
+ * LITE IS RETIRED (owner decision, 2026-08-25). It existed to be the cheap way
+ * to evaluate output; the artifact-level free tier now does that job for $0
+ * and delivers MORE than lite ever did (47 artifacts vs the 16 of
+ * search/skills/debug). Keeping lite sellable would have meant charging $0.15
+ * for strictly less than free.
+ *
+ * Lite therefore resolves to exactly the free artifact set: a caller who still
+ * sends `X-Agent-Mode: lite` gets the free tier rather than an error, and the
+ * free-only result means no charge fires. The header stays accepted-but-inert
+ * so no existing integration breaks. Removing the header, lite-caps.ts, and
+ * the lite_cents pricing fields is a separate follow-up (200+ references).
  */
-function restrictGeneratorsForLiteMode<T extends { program: string }>(
+function restrictGeneratorsForLiteMode<T extends { program: string; path: string }>(
   generators: readonly T[],
   req: IncomingMessage,
 ): T[] {
   if (resolveAgentMode(req) !== "lite") return generators as T[];
-  return generators.filter((g) => MCP_FREE_PROGRAMS.has(g.program));
+  return generators.filter((g) => isFreeGenerator(g.path));
 }
 
 /** Per-file content size limit (5 MB) — prevents oversized payloads. */
@@ -2046,7 +2058,7 @@ export async function runAnalyzeFiles(
         // above), so reaching this point already guarantees a paid/suite account —
         // "free-tier" can no longer legitimately appear here.
         mode: resolveAgentMode(req) === "lite" ? "lite" : "full-access",
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).",
+        pro_unlock: PRO_UNLOCK_NOTE,
       },
       programs_executed: [...programs],
       artifact_count: generated.files.length,
@@ -2183,7 +2195,7 @@ export async function runAnalyzeRepo(
         // above), so reaching this point already guarantees a paid/suite account —
         // "free-tier" can no longer legitimately appear here.
         mode: resolveAgentMode(req) === "lite" ? "lite" : "full-access",
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).",
+        pro_unlock: PRO_UNLOCK_NOTE,
       },
       programs_executed: [...programs],
       artifact_count: generated.files.length,
@@ -2264,6 +2276,13 @@ const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
   debug:                ["debug", "error", "troubleshoot", "breakpoints", "logs", "postmortem"],
   frontend:             ["ui", "components", "react", "vue", "css", "html", "audit"],
   seo:                  ["seo", "meta", "robots", "sitemap", "structured-data", "opengraph"],
+  // Found on a harden/polish pass over program descriptions (2026-08-25): pitch
+  // and deploy were entirely missing from this map, falling through to `?? []`
+  // (mcp-tool-impls.ts's own runSearchTools) — findable only by an exact
+  // program-name or artifact-filename substring match, unlike every other
+  // program's 5-10 thematic tags. Grounded in each program's REAL generator
+  // outputs (program-manifest.ts's GENERATOR_PROGRAMS), not invented.
+  pitch:                ["pitch", "deck", "presentation", "slides", "investor", "fundraising", "narrative"],
   optimization:         ["performance", "speed", "caching", "bundle", "optimize", "metrics"],
   theme:                ["design", "colors", "typography", "tokens", "palette", "figma"],
   brand:                ["brand", "identity", "logo", "voice", "style", "guidelines"],
@@ -2278,6 +2297,7 @@ const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
   algorithmic:          ["algorithm", "data-structure", "complexity", "sorting", "trees", "graphs"],
   "agentic-purchasing": ["purchasing", "commerce", "stripe", "checkout", "payment", "ap2", "visa", "ucp", "negotiation", "mandate"],
   closer:               ["packaging", "marketplace", "ship", "release", "certification", "attestation", "distributable", "go-to-market"],
+  deploy:               ["deploy", "docker", "dockerfile", "render", "cloudflare", "wrangler", "hosting", "ci-cd", "containers"],
 };
 
 const PROGRAM_ENDPOINTS: Record<string, string> = {
@@ -2509,7 +2529,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       search_and_discover_tools: "Use for keyword routing to the best program.",
       get_install_manifest: "Use for install and ecosystem onboarding metadata.",
       discover_agentic_purchasing_needs: "Use for commerce-specific intent to workflow mapping.",
-      ping_payment: "Use to learn the x402 payment loop for $0.005 before paying real money for a metered tool.",
+      ping_payment: "Use to learn the x402 payment loop for $0.01 before paying real money for a metered tool.",
     },
     install: {
       mcp_endpoint: AXIS_MCP_ENDPOINT,
@@ -2533,7 +2553,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },
-    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: get_install_manifest (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop for $0.005, near-zero risk.`,
+    system_prompt_snippet: `You have access to Axis' Iliad (MCP: ${AXIS_MCP_ENDPOINT}). Before working on any unfamiliar codebase, call analyze_repo. Before purchasing decisions, call prepare_agentic_purchasing. Free discovery: get_install_manifest (no auth). New to paying AXIS? Call ping_payment first — it exercises the real x402 loop for $0.01, near-zero risk.`,
     first_action: "Call search_and_discover_tools with q=<your keyword> — free, no auth needed.",
   }, null, 2);
 }
@@ -2599,9 +2619,14 @@ export async function runImproveMyAgent(
   }
   /* v8 ignore stop */
 
-  // Run free-tier analysis only (search, skills, debug)
+  // Run free-tier analysis only. ARTIFACT-level, not program-level: this tool
+  // is deliberately never charged (see the free-by-design note on its handler),
+  // so a program-level filter here would hand out every newly-paid artifact of
+  // search/skills/debug-adjacent programs for $0 the moment the free tier
+  // became artifact-level — exactly the leak class this tool's own $0 design
+  // note exists to prevent.
   const generators = listAvailableGenerators();
-  const freeOutputs = generators.filter(g => MCP_FREE_PROGRAMS.has(g.program)).map(g => g.path);
+  const freeOutputs = generators.filter(g => isFreeGenerator(g.path)).map(g => g.path);
   const manifest: SnapshotManifest = {
     project_name,
     project_type: "agent_improvement",
@@ -2995,12 +3020,23 @@ export function runListPrograms(): string {
     programMap.set(g.program, list);
   }
 
-  const programs = Array.from(programMap.entries()).map(([name, outputs]) => ({
-    name,
-    tier: MCP_FREE_PROGRAMS.has(name) ? "free" : "pro",
-    generator_count: outputs.length,
-    outputs,
-  }));
+  // The free tier is artifact-level, so a binary per-program tier is no longer
+  // truthful: every program has free artifacts AND (bar the original three)
+  // paid ones. `tier` is kept for wire compatibility — "free" now means free
+  // IN FULL, "mixed" means partly free — and the honest detail lives in the
+  // free/paid output split, which is what a caller actually needs to decide.
+  const programs = Array.from(programMap.entries()).map(([name, outputs]) => {
+    const free_outputs = outputs.filter(isFreeGenerator);
+    const paid_outputs = outputs.filter((o) => !isFreeGenerator(o));
+    return {
+      name,
+      tier: paid_outputs.length === 0 ? "free" : "mixed",
+      generator_count: outputs.length,
+      free_outputs,
+      paid_outputs,
+      outputs,
+    };
+  });
 
   return JSON.stringify(
     {
@@ -3013,8 +3049,14 @@ export function runListPrograms(): string {
       programs,
       total_programs: programs.length,
       total_generators: generators.length,
-      free_programs: programs.filter(p => p.tier === "free").map(p => p.name),
-      pro_programs: programs.filter(p => p.tier === "pro").map(p => p.name),
+      // Wire-compatible meanings under the artifact-level free tier:
+      // free_programs = free IN FULL; pro_programs = has artifacts behind
+      // payment (which is now most of them, each still partly free).
+      // programs_with_free_artifacts is the honest headline — every program.
+      free_programs: programs.filter(p => p.paid_outputs.length === 0).map(p => p.name),
+      pro_programs: programs.filter(p => p.paid_outputs.length > 0).map(p => p.name),
+      programs_with_free_artifacts: programs.filter(p => p.free_outputs.length > 0).map(p => p.name),
+      free_artifact_count: FREE_GENERATOR_COUNT,
     },
     null,
     2,
@@ -3664,7 +3706,7 @@ export async function runPreparePurchasing(
   const engineerArtifacts: string[] = [];
   if (agentMode === "engineer") {
     const signals = detectCommerceSignals(snapshot.files);
-    for (const a of buildCommerceIntegrationBundle(ctxMap, signals, 100)) {
+    for (const a of buildCommerceIntegrationBundle(ctxMap, signals, GENERATED_ENDPOINT_DEFAULT_PRICE_CENTS)) {
       if (artifactsMap[a.path] === undefined) {
         artifactsMap[a.path] = a.content;
         engineerArtifacts.push(a.path);
@@ -4126,7 +4168,7 @@ export async function decideInbandGate(
   }
 }
 
-// ─── x402 onboarding program, Phase 1 — ping_payment: a $0.005 near-zero-risk payment-flow probe ──
+// ─── x402 onboarding program, Phase 1 — ping_payment: a $0.01 near-zero-risk payment-flow probe ──
 //
 // Always $0, on every call, for every caller (including anonymous). Never
 // touches a real payment rail (mppx/Stripe/Tempo, or the PAI'D wallet) — a

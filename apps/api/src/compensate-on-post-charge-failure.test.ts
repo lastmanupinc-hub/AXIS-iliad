@@ -137,9 +137,10 @@ describe("POST /v1/snapshots — compensates a charge that already fired before 
     expect(before.owed_cents).toBe(0);
 
     armThrow = true;
-    // "seo-rules.md" is a pro-only output — the "onlyFreePrograms" bypass
-    // (which skips the charge entirely for a free-program-only request)
-    // must NOT apply here, so the quota-exceeded charge actually fires.
+    // The request must contain a PAID artifact — the free-artifact bypass
+    // (which skips the charge entirely for a free-only request) must NOT
+    // apply here, or the quota-exceeded charge never fires and there is
+    // nothing to compensate.
     const r = await req(
       "/v1/snapshots",
       {
@@ -148,7 +149,10 @@ describe("POST /v1/snapshots — compensates a charge that already fired before 
           project_type: "web_application",
           frameworks: ["react"],
           goals: ["test"],
-          requested_outputs: ["seo-rules.md"],
+          // schema-recommendations.json, not seo-rules.md: the latter is now
+          // one of seo free artifacts, which never fires a charge — and this
+          // test needs a charge to have fired in order to compensate it.
+          requested_outputs: ["schema-recommendations.json"],
         },
         files: [{ path: "package.json", content: '{"name":"x"}' }],
       },
@@ -265,9 +269,17 @@ describe("makeProgramHandler (POST /v1/<program>/analyze) — the SAME shape, gu
     const before = await getCompensationSummary(acct.account_id);
 
     armGenerateThrow = true;
-    // "seo" is a pro-only program for a free-tier account — trips the
-    // entitlement-charge branch (consumeFreeCall mocked true lets it settle).
-    const r = await req("/v1/seo/analyze", { snapshot_id: snapshotId }, rawKey);
+    // Under the artifact-level free tier a free-tier account defaults to seo's
+    // FREE artifacts and is NOT charged, so the charge branch this test exists
+    // to guard is only reached by explicitly requesting a PAID artifact —
+    // which is exactly how a free-tier account opts into per-call payment now.
+    // schema-recommendations.json is one of seo's paid artifacts
+    // (seo-rules.md / meta-tag-audit.json are the free ones).
+    const r = await req(
+      "/v1/seo/analyze",
+      { snapshot_id: snapshotId, outputs: ["schema-recommendations.json"] },
+      rawKey,
+    );
 
     expect(r.status).toBe(500);
     expect(typeof r.data.compensation_entry_id).toBe("string");

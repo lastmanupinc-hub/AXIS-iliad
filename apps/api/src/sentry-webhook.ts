@@ -48,6 +48,19 @@ export function verifySentrySignature(rawBody: string, sigHeader: string | undef
  * neither field can be found — an unextractable payload is answered
  * handled:false, never enqueued.
  */
+/**
+ * Coerce an untrusted webhook field to a string ONLY when it is genuinely a
+ * primitive. Bare `String(unknown)` silently produced "[object Object]" for a
+ * nested object, which would then flow onward as a real issue_id/project_slug
+ * and match nothing — a garbage identifier is worse than no identifier.
+ * (This is what @typescript-eslint/no-base-to-string was flagging.)
+ */
+function primitiveToString(v: unknown): string | undefined {
+  if (typeof v === "string") return v || undefined;
+  if (typeof v === "number" || typeof v === "bigint" || typeof v === "boolean") return String(v);
+  return undefined;
+}
+
 export function extractSentryIncidentRef(body: unknown): { issue_id: string; project_slug: string } | null {
   if (typeof body !== "object" || body === null) return null;
   const b = body as Record<string, unknown>;
@@ -57,15 +70,17 @@ export function extractSentryIncidentRef(body: unknown): { issue_id: string; pro
   const issue = data && typeof data.issue === "object" && data.issue !== null ? (data.issue as Record<string, unknown>) : undefined;
   if (issue && issue.id != null) {
     const project = typeof issue.project === "object" && issue.project !== null ? (issue.project as Record<string, unknown>) : undefined;
-    const slug = project && project.slug != null ? String(project.slug) : undefined;
-    if (slug) return { issue_id: String(issue.id), project_slug: slug };
+    const slug = project ? primitiveToString(project.slug) : undefined;
+    const issueId = primitiveToString(issue.id);
+    if (slug && issueId) return { issue_id: issueId, project_slug: slug };
   }
 
   // Shape 2: event alert — data.event.{issue_id, project_slug | project}
   const event = data && typeof data.event === "object" && data.event !== null ? (data.event as Record<string, unknown>) : undefined;
   if (event && event.issue_id != null) {
-    const slug = event.project_slug != null ? String(event.project_slug) : event.project != null ? String(event.project) : undefined;
-    if (slug) return { issue_id: String(event.issue_id), project_slug: slug };
+    const slug = primitiveToString(event.project_slug) ?? primitiveToString(event.project);
+    const issueId = primitiveToString(event.issue_id);
+    if (slug && issueId) return { issue_id: issueId, project_slug: slug };
   }
 
   return null;
@@ -77,7 +92,9 @@ export interface SentryWebhookDeps {
     account_id: string,
     product_id: string,
     repo_full_name: string,
-  ) => Promise<unknown | undefined>;
+    // `unknown` already includes undefined — `unknown | undefined` collapses
+    // to `unknown` and only obscured that "absent" is a real outcome here.
+  ) => Promise<unknown>;
   enqueue: (payload: {
     account_id: string;
     product_id: string;

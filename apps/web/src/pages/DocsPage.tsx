@@ -5,7 +5,7 @@ import { getOpenApiSpec, getMcpManifest, getErrorCodes, apiErrorDetails, type Op
 import { Callout, CodeBlock, Skeleton, TableWrap } from "../components/primitives/index.ts";
 import { useTabList } from "../useTabList.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT, DOCS_API_BASE } from "../config.ts";
+import { ARTIFACT_COUNT, FREE_FILE_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT, DOCS_API_BASE } from "../config.ts";
 
 type DocSection = "overview" | "programs" | "api" | "outputs" | "cli" | "mcp" | "errors" | "examples";
 
@@ -368,8 +368,8 @@ function OverviewSection() {
             <div className="stat-label">Generators</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">{FREE_PROGRAM_COUNT} Free</div>
-            <div className="stat-label">{PRO_PROGRAM_COUNT} Pro</div>
+            <div className="stat-value">{FREE_FILE_COUNT} Free</div>
+            <div className="stat-label">{ARTIFACT_COUNT - FREE_FILE_COUNT} Paid</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div className="stat-value">{PROGRAM_CATEGORY_COUNT}</div>
@@ -529,7 +529,7 @@ function ProgramsSection({
     <div className="stagger">
       <div className="card">
         <div className="flex-between" style={{ marginBottom: 12 }}>
-          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Free Programs</h2>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Free In Full</h2>
           <span className="badge badge-green">{free.length} programs</span>
         </div>
         {free.map((p) => (
@@ -544,7 +544,7 @@ function ProgramsSection({
 
       <div className="card">
         <div className="flex-between" style={{ marginBottom: 12 }}>
-          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Pro Programs</h2>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Partly Free — Paid Artifacts Available</h2>
           <span className="badge badge-accent">{pro.length} programs</span>
         </div>
         {pro.map((p) => (

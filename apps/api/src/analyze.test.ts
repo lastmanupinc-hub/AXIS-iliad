@@ -7,6 +7,7 @@ import { createServer, type Server } from "node:http";
 import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
+import { isPaidArtifact, FREE_GENERATOR_COUNT, TOTAL_GENERATORS } from "@axis/generator-core";
 import { MCP_TOOLS } from "./mcp-tools.js";
 import {
   handleAnalyze,
@@ -300,11 +301,23 @@ describe("POST /v1/analyze — validation", () => {
     expect([201, 401]).toContain(r.status);
   });
 
-  it("gates full-bundle analysis for anonymous callers", async () => {
+  // Free tier is artifact-level: an anonymous caller is NARROWED to the free
+  // artifacts rather than rejected (every program has some), so the old 401 is
+  // gone. What still must hold — and is the security property that 401 was
+  // really protecting — is that NOT ONE paid artifact comes back.
+  it("narrows full-bundle analysis for anonymous callers, leaking no paid artifact", async () => {
     const r = await req("POST", "/v1/analyze", { files: minFiles });
-    expect(r.status).toBe(401);
+    expect(r.status).toBe(201);
     const data = r.data as Record<string, unknown>;
-    expect(data.error_code).toBe("AUTH_REQUIRED");
+    const files = data.files as Array<{ path: string }>;
+    expect(files.length).toBeGreaterThan(0);
+    const paidLeaked = files.map(f => f.path).filter(p => isPaidArtifact(p));
+    expect(paidLeaked, `anonymous caller received paid artifacts: ${paidLeaked.join(", ")}`).toEqual([]);
+    // ...and is told what it did not get, with a price.
+    const upsell = data.free_tier as { withheld_count: number; unlock: { per_call_usd: string } } | undefined;
+    expect(upsell).toBeDefined();
+    expect(upsell!.withheld_count).toBeGreaterThan(0);
+    expect(upsell!.unlock.per_call_usd).toMatch(/^\d+\.\d{2}$/);
   });
 
   it("rejects an oversized anonymous request (file count) BEFORE generation runs", async () => {
@@ -539,22 +552,30 @@ describe("POST /v1/analyze — programs filter", () => {
     expect((data.files as unknown[]).length).toBe(0);
   });
 
-  it("suite tier can request the full 86-artifact bundle", async () => {
+  it("suite tier can request the full bundle", async () => {
     const r = await req("POST", "/v1/analyze", { files: minFiles }, suiteApiKey);
     expect(r.status).toBe(201);
     const data = r.data as Record<string, unknown>;
     expect((data.total_files as number)).toBeGreaterThan(20);
-    expect((data.snapshot_summary as Record<string, unknown>).pro_unlock).toContain("15 more programs");
+    // pro_unlock's counts are DERIVED now (the old literal hardcoded a stale
+    // "15 more programs" that had already drifted past the real count).
+    const proUnlock = (data.snapshot_summary as Record<string, unknown>).pro_unlock as string;
+    expect(proUnlock).toContain(String(TOTAL_GENERATORS - FREE_GENERATOR_COUNT));
+    expect(proUnlock).not.toContain("15 more programs");
   });
 
-  // ─── Lite mode restricts output to the 3 free programs (H-Phase-A cycle 2) ──
+  // ─── Lite mode is RETIRED (owner decision 2026-08-25) ──────────────────
   //
-  // lite_description promises "search/skills/debug programs only (3 of 20
-  // programs)". The MCP twin (analyze_repo/analyze_files) already enforces
-  // this (H-Phase-A cycle 1); this REST endpoint used X-Agent-Mode only to
-  // pick the CHARGE amount, never to restrict the actual output — a
-  // fully-entitled account paying the lite price still got the full bundle.
-  it("lite mode restricts output to search/skills/debug even for a fully-entitled account", async () => {
+  // It existed to be the cheap way to evaluate output; the artifact-level free
+  // tier now does that job for $0 and returns MORE than lite ever did, so
+  // selling lite would mean charging for something free. It resolves to the
+  // free artifact set and the header stays accepted-but-inert.
+  //
+  // Note this is an ARTIFACT-level assertion now: lite legitimately returns
+  // artifacts belonging to paid programs (theme's design-tokens.json, brand's
+  // brand-guidelines.md, ...) because those specific artifacts are free.
+  // Asserting on programs, as this test used to, would now be wrong.
+  it("lite mode returns exactly the free artifact set, even for a fully-entitled account", async () => {
     const r = await req(
       "POST",
       "/v1/analyze",
@@ -564,13 +585,10 @@ describe("POST /v1/analyze — programs filter", () => {
     );
     expect(r.status).toBe(201);
     const data = r.data as Record<string, unknown>;
-    const files = data.files as Array<{ program: string }>;
-    const programs = new Set(files.map(f => f.program));
-    expect(programs.size).toBeGreaterThan(0);
-    const nonFreePrograms = Object.keys(PROGRAM_OUTPUTS).filter(p => p !== "debug");
-    for (const program of programs) {
-      expect(nonFreePrograms).not.toContain(program);
-    }
+    const paths = (data.files as Array<{ path: string }>).map(f => f.path);
+    expect(paths.length).toBeGreaterThan(0);
+    const paid = paths.filter(p => isPaidArtifact(p));
+    expect(paid, `lite returned paid artifacts: ${paid.join(", ")}`).toEqual([]);
   });
 });
 
@@ -643,11 +661,16 @@ describe("POST /v1/analyze — product_id (spoke_06)", () => {
     expect(data.error_code).toBe("INVALID_FORMAT");
   });
 
-  it("resolving to a PAID product still requires authentication — product_id is not a bypass", async () => {
+  it("resolving to a PAID product is not a bypass — anonymous gets only that product's FREE artifacts", async () => {
+    // Previously a flat 401. Under the artifact-level free tier the caller is
+    // narrowed instead, so the anti-bypass property is now "no paid artifact
+    // comes back" rather than "the request is refused" — a stronger check,
+    // since it verifies the delivered payload rather than the status code.
     const r = await req("POST", "/v1/analyze", { files: minFiles, product_id: "theme" });
-    expect(r.status).toBe(401);
+    expect(r.status).toBe(201);
     const data = r.data as Record<string, unknown>;
-    expect(data.error_code).toBe("AUTH_REQUIRED");
+    const paidLeaked = (data.files as Array<{ path: string }>).map(f => f.path).filter(p => isPaidArtifact(p));
+    expect(paidLeaked, `product_id bypass leaked: ${paidLeaked.join(", ")}`).toEqual([]);
   });
 
   it("resolving to a FREE product needs no authentication", async () => {

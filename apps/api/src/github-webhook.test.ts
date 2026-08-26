@@ -40,6 +40,12 @@ vi.mock("./github.js", () => ({
 }));
 
 vi.mock("@axis/snapshots", () => ({
+  // Free trial: defensive-only — this suite's webhook/watch-queue paths don't
+  // touch any charging function (verified: no reference anywhere in
+  // webhook/watcher files to a real charge function), so isFreeTrialActive
+  // should never actually be called here. Present so a future addition to
+  // this mock's call graph can't crash on it being simply undefined.
+  isFreeTrialActive: vi.fn(() => false),
   createSnapshot: vi.fn(async (input: { manifest: { project_name: string; project_type?: string }; files: Array<{ path: string; content: string; size: number }> }) => {
     const project_id = input.manifest.project_name;
     const list = watchtowerState.snapshotsByProject.get(project_id) ?? [];

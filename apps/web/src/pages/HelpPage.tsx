@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Icon } from "../components/AxisIcons";
 import { useTabList } from "../useTabList.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
+import { PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
 type HelpSection = "getting-started" | "upload" | "programs" | "dashboard" | "account" | "troubleshooting";
 
@@ -22,7 +22,7 @@ const GETTING_STARTED_STEPS: Step[] = [
   { number: 1, title: "Sign In", description: "Click Sign In and continue with GitHub or Google — one click, no password. Your session is a secure HttpOnly cookie; you never handle a key to log in.", icon: "user" },
   { number: 2, title: "Upload Your Project", description: "Head to the Analyze page. Drag and drop a folder, upload a ZIP file, or paste a GitHub repository URL. Axis will scan all source files.", icon: "upload" },
   { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the project page. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
-  { number: 4, title: "Run Programs", description: `Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get ${FREE_PROGRAM_COUNT} programs; upgrade for all ${PROGRAM_COUNT}.`, icon: "programs" },
+  { number: 4, title: "Run Programs", description: `Switch to the Programs tab and click any program card to generate tailored output files. Every program ships free artifacts; upgrade to unlock each one’s remaining artifacts.`, icon: "programs" },
   { number: 5, title: "Download or Search", description: "Use the Artifacts tab to search, preview, copy, and download output, or export everything as a ZIP. The Search tab lets you query your indexed snapshot.", icon: "download" },
 ];
 
@@ -37,7 +37,7 @@ const TROUBLESHOOTING: TroubleshootItem[] = [
   { problem: "API shows red dot in the status bar", solution: "The API server isn't running. Start it with `pnpm dev` in the apps/api directory. Make sure port 4000 is available." },
   { problem: "\"Unauthorized\" error on program run", solution: "Your API key may be missing or invalid. Go to Settings, check your key, or create a new one. Keys must start with axis_." },
   { problem: "Dashboard won't load after upload", solution: "The upload may have failed silently. Check the browser console for errors. Try re-uploading with a smaller project first." },
-  { problem: "Programs show as locked", solution: `You're on the Free tier which includes ${FREE_PROGRAM_COUNT} programs. Upgrade to Starter, Pro, or Growth to unlock all ${PROGRAM_COUNT} programs.` },
+  { problem: "Some artifacts show as locked", solution: `You're on the Free tier, which includes free artifacts from every one of the ${PROGRAM_COUNT} programs. Upgrade to Starter, Pro, or Growth to unlock each program's remaining artifacts.` },
   { problem: "ZIP upload fails", solution: "Ensure the ZIP file isn't corrupted and contains source files. Maximum recommended size is 50MB. Very large repos should use GitHub URL instead." },
   { problem: "Search returns no results", solution: "You need to build the search index first. Go to the Search tab and click 'Index Snapshot' before running queries." },
   { problem: "Slow analysis for large repo", solution: "Large repositories take longer to scan. Consider uploading only the relevant source directories instead of the entire project root." },
@@ -589,7 +589,7 @@ function AccountGuideSection() {
       <div className="card">
         <h2 style={{ marginBottom: 12, fontSize: "1rem", fontWeight: 600 }}>Upgrading Your Plan</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7 }}>
-          Visit the Plans page to compare tiers. The Free plan includes {FREE_PROGRAM_COUNT} core programs and 10
+          Visit the Plans page to compare tiers. The Free plan includes free artifacts from every program and 10
           snapshots per month. Starter unlocks all {PROGRAM_COUNT} programs with 75,000 monthly credits,
           Pro includes 300,000 credits, and Growth includes 1,200,000 credits.
         </p>

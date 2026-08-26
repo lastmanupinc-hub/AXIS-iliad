@@ -31,7 +31,7 @@ x402 contract: [`docs/x402/CONTRACT.md`](docs/x402/CONTRACT.md)
 
 ## Try it in 30 seconds — no signup required
 
-Three programs are **completely free** with no API key:
+Every program ships free artifacts with no API key — 47 of the 152 in total. Three programs are free in full:
 
 ```bash
 # 1. Get an API key (free tier, instant)
@@ -50,7 +50,7 @@ curl https://axis-api-6c7z.onrender.com/v1/projects/PROJECT_ID/export \
   -H 'Authorization: Bearer YOUR_API_KEY' -o artifacts.zip
 ```
 
-**Free tier includes:** Search (context maps), Skills (AGENTS.md, CLAUDE.md, .cursorrules), Debug (playbooks, incident templates). Pro unlocks all 21 programs.
+**Free tier includes:** 47 artifacts spanning all 21 programs — Search (context maps), Skills (AGENTS.md, CLAUDE.md, .cursorrules) and Debug (playbooks, incident templates) in full, plus each other program's headline artifact (design tokens, Dockerfile, MCP config, brand guidelines, ...). Paying unlocks each program's remaining artifacts.
 
 ---
 
@@ -122,7 +122,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 }
 ```
 
-**Free MCP tools** (no auth needed): `list_programs`, `search_and_discover_tools`, `get_install_manifest`, `discover_agentic_purchasing_needs`, `prepare_agentic_purchasing_preview`, `discover_estate_tools` (sibling AXIS properties — payments, 3D generation, and more), plus the deterministic commerce decision engines: `sca_exemption_decision`, `grade_compliance`, `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness` (evidence-capture readiness — not a dispute-win prediction). Five more are estate-flagged planned-capability stubs (Foundry Wave-1, honest redirects to Foundry's own MCP endpoint until an Iliad-hosted proxy ships): `axis_validate`, `axis_inspect`, `axis_compare`, `axis_manifest_verify`, `roblox_compliance_check`. `get_referral_code`, `get_referral_credits`, and `iliad_network_tokenization` are also free (no charge) but, unlike the tools above, **do require auth**. `ping_payment` is not free — it costs $0.005 and exercises the real x402 payment loop, the cheapest paid call in the catalog.
+**Free MCP tools** (no auth needed): `list_programs`, `search_and_discover_tools`, `get_install_manifest`, `discover_agentic_purchasing_needs`, `prepare_agentic_purchasing_preview`, `discover_estate_tools` (sibling AXIS properties — payments, 3D generation, and more), plus the deterministic commerce decision engines: `sca_exemption_decision`, `grade_compliance`, `assemble_ce3_evidence`, `build_ap2_mandate`, `score_dispute_readiness` (evidence-capture readiness — not a dispute-win prediction). Five more are estate-flagged planned-capability stubs (Foundry Wave-1, honest redirects to Foundry's own MCP endpoint until an Iliad-hosted proxy ships): `axis_validate`, `axis_inspect`, `axis_compare`, `axis_manifest_verify`, `roblox_compliance_check`. `get_referral_code`, `get_referral_credits`, and `iliad_network_tokenization` are also free (no charge) but, unlike the tools above, **do require auth**. `ping_payment` is not free — it costs $0.01 and exercises the real x402 payment loop, the cheapest paid call in the catalog.
 
 ---
 
@@ -130,7 +130,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 
 | Tier | Price | Programs |
 |------|-------|----------|
-| **Free** | $0 | Search, Skills, Debug |
+| **Free** | $0 | 47 artifacts across all 21 programs (Search, Skills, Debug in full) |
 | **Pro** | $0.50 / run | All 21 programs, 152 artifacts |
 | **Lite mode** | $0.15–$0.25 / run | Top-gap summary, reduced output |
 
@@ -184,7 +184,7 @@ Requires: Docker 20.10+ or Docker Desktop
 ```
 axis-iliad/
 ├── apps/
-│   ├── api/          → Zero-dependency HTTP server (port 4000, 178 endpoints)
+│   ├── api/          → Zero-dependency HTTP server (port 4000, 179 endpoints)
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/
