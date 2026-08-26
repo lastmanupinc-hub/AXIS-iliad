@@ -390,7 +390,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           summary: "Analyze a codebase — one call returns all AI context files with adoption hints",
           description:
             `Analyze any GitHub repo or uploaded codebase and return ${ARTIFACT_COUNT} structured AI artifacts across ${PROGRAM_COUNT} programs (AGENTS.md, CLAUDE.md, .cursorrules, MCP config, brand guidelines, debug playbooks, etc.). ` +
-            `Free callers receive ${FREE_GENERATOR_COUNT} artifacts — every program ships some, and search/skills/debug are free in full. Each program's remaining artifacts require a paid plan or a $0.50 per-call MPP credit. ` +
+            `Free callers receive ${FREE_GENERATOR_COUNT} artifacts — every program ships some, and search/skills/debug are free in full. Each program's remaining artifacts require a paid plan or a per-call MPP credit ($3.00 for a full analyze run). ` +
             "If the caller lacks access, the server returns HTTP 402 with a machine-readable payment body containing payment_url, checkout_url, and retry_after_payment instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request — no extra steps. " +
             "X-Agent-Mode: lite is RETIRED — it now returns the free artifact set at no charge; use the free tier instead. Pass X-Agent-Budget to negotiate budget. " +
@@ -399,8 +399,8 @@ export function buildOpenApiSpec(): OpenApiSpec {
           tags: ["Analyze"],
           "x-payment": {
             model: "stripe_x402",
-            price_usd: "0.50",
-            lite_price_usd: "0.15",
+            price_usd: "3.00",
+            lite_price_usd: "0.00",
             free_artifact_count: FREE_GENERATOR_COUNT,
             free_programs_note: "every program ships free artifacts; search/skills/debug are free in full",
             description: "Returns HTTP 402 only when a caller explicitly requests paid artifacts it cannot pay for; an unpaid caller is otherwise narrowed to the free artifact set rather than rejected. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
@@ -419,7 +419,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
                 type: "object",
                 properties: {
                   error: { type: "string", example: "Payment Required" },
-                  price: { type: "string", example: "0.50" },
+                  price: { type: "string", example: "3.00" },
                   currency: { type: "string", example: "USD" },
                   payment_url: { type: "string", description: "AXIS billing page for the caller's account (PAI'D-hosted, not a Stripe-hosted URL)" },
                   checkout_url: { type: "string", description: "AXIS billing page, deep-linked to the Pro plan's PAI'D checkout section (PAI'D-hosted, not a direct Stripe checkout URL)" },
@@ -440,14 +440,14 @@ export function buildOpenApiSpec(): OpenApiSpec {
           summary: "Generate agentic purchasing readiness assessment — AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
           description:
             "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence requirements, SCA exemption paths, and autonomous checkout rules." +
-            "Requires Pro tier or $0.50 MPP credit. HTTP 402 returned for free-tier callers with payment_url and retry instructions. " +
+            "Requires Pro tier or a $3.00 MPP credit. HTTP 402 returned for free-tier callers with payment_url and retry instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402, present checkout_url or pay autonomously. (3) Retry after payment.",
           operationId: "prepareForAgenticPurchasing",
           tags: ["Analyze", "Agentic Commerce"],
           "x-payment": {
             model: "stripe_x402",
-            price_usd: "0.50",
-            lite_price_usd: "0.25",
+            price_usd: "3.00",
+            lite_price_usd: "1.00",
             description: "Returns HTTP 402 for free-tier callers. Body contains payment_url, checkout_url, and retry_after_payment.",
           },
           requestBody: jsonBody(ref("AnalyzeRequest")),
@@ -1507,6 +1507,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
                   properties: {
                     snapshot_id: { type: "string", description: "Snapshot whose generated pitch-deck.json to render" },
                     variant: { type: "string", enum: ["clean", "annotated"], description: 'Which of the two documents to render: "clean" (default) is the investor deck — no speaker notes, no provenance annotations; "annotated" is the diligence copy with speaker notes and per-slide provenance footers' },
+                    artifact: { type: "string", enum: ["generated", "composed"], description: 'Which stored deck to render: "generated" (default, the deterministic deck) or "composed" (the inference-filled sibling written by POST /v1/pitch/compose)' },
                     render_backgrounds: { type: "boolean", description: "Opt-in, best-effort AI slide backgrounds (one xAI call per distinct slide art key; slides fall back to a solid background on any failure)" },
                   },
                 },
@@ -1519,6 +1520,36 @@ export function buildOpenApiSpec(): OpenApiSpec {
             402: { description: "The pitch program is not enabled on this account" },
             404: { description: "Snapshot not found, or it has no pitch-deck.json artifact" },
             500: { description: "Stored pitch-deck.json is malformed or has no slides" },
+          },
+        },
+      },
+      "/v1/pitch/compose": {
+        post: {
+          summary: "Fill the generated pitch deck's owner-input slots with citation-oracle-verified inference from the snapshot's own documents (draft-over-ask)",
+          operationId: "pitchCompose",
+          tags: ["Programs"],
+          security: [{ apiKey: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["snapshot_id"],
+                  properties: {
+                    snapshot_id: { type: "string", description: "Snapshot whose generated pitch-deck.json to compose from" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Compose report. composed:true persists pitch-deck-composed.json (render via /v1/pitch/render with artifact:\"composed\"); composed:false with a labeled reason when no local model is configured — nothing is fabricated" },
+            400: { description: "Missing or invalid snapshot_id" },
+            402: { description: "The pitch program is not enabled on this account" },
+            404: { description: "Snapshot not found, or it has no pitch-deck.json artifact" },
+            410: { description: "Source content was discarded after web logout — the citation oracle has nothing to verify against" },
+            500: { description: "Stored pitch-deck.json is malformed" },
           },
         },
       },

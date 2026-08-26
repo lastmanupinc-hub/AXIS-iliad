@@ -2666,13 +2666,13 @@ export async function handlePreparePurchasing(
       project_id: snapshot.project_id,
       status: "ready",
       upgrade_offer: {
-        agent_conversion_message: `This codebase has ${score}% of the AXIS agentic-commerce artifact coverage. Upgrade to Pro for the full hardening bundle + $0.15 lite mode option.`,
+        agent_conversion_message: `This codebase has ${score}% of the AXIS agentic-commerce artifact coverage. Upgrade to Pro for the full hardening bundle.`,
         // H-Phase-A cycle 9: "$99/month" implied recurring billing — PAI'D's
         // checkout is a single one-time charge (no recurring billing exists
         // yet), so Pro costs $99 once.
         plan: "$99 once (Pro, one-time — not a recurring subscription)",
-        standard_run: "$0.50/run",
-        lite_from: "$0.15/run",
+        standard_run: `$${formatCents(getPricingTier("analyze_repo").standard_cents)}/run`,
+        lite_from: `$${formatCents(METERED_LITE_CENTS_RANGE.min)}/run`,
       },
       purchasing_readiness_score: score,
       code_readiness: codeReadiness,
@@ -3320,7 +3320,7 @@ export function handleRobotsTxt(
     "# Axis' Iliad MCP server (io.github.lastmanupinc-hub/axis-iliad)",
     "# Primary tool: prepare_agentic_purchasing",
     "# Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)",
-    "# Pay-per-run: $0.50 for full-suite analyze via Stripe MPP",
+    `# Pay-per-run: $${formatCents(getPricingTier("analyze_repo").standard_cents)} for full-suite analyze via Stripe MPP`,
     "# Full documentation: https://iliad.trustfabric.ai/for-agents",
     "# Security: https://iliad.trustfabric.ai/.well-known/security.txt",
     "",
@@ -3664,8 +3664,8 @@ export function handleForAgents(
   }
 
   const PAYMENT_META = {
-    price_usd: "0.50",
-    lite_price_usd: "0.15",
+    price_usd: formatCents(getPricingTier("analyze_repo").standard_cents),
+    lite_price_usd: formatCents(METERED_LITE_CENTS_RANGE.min),
     flow: "Call → 402 with payment_url/checkout_url → pay at checkout_url → retry identical request",
     on_402: "Parse response body: present checkout_url to user OR use autonomous payment if authorized. After payment, re-send original request unchanged.",
     budget_header: 'X-Agent-Budget: {"budget_per_run_cents":50,"spending_window":"per_call"}',
@@ -3674,12 +3674,12 @@ export function handleForAgents(
   };
 
   const allTools = [
-      { name: "analyze_repo",                   auth: true,  x_payment: { ...PAYMENT_META, price_usd: "0.50" }, description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid ($0.50/run) and private repos require a stored GitHub token. If you receive a 402, present the checkout_url to the user or pay autonomously, then retry.` },
-      { name: "analyze_files",                  auth: true,  x_payment: { ...PAYMENT_META, price_usd: "0.50" }, description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry.` },
+      { name: "analyze_repo",                   auth: true,  x_payment: { ...PAYMENT_META, price_usd: formatCents(getPricingTier("analyze_repo").standard_cents) }, description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid ($${formatCents(getPricingTier("analyze_repo").standard_cents)}/run) and private repos require a stored GitHub token. If you receive a 402, present the checkout_url to the user or pay autonomously, then retry.` },
+      { name: "analyze_files",                  auth: true,  x_payment: { ...PAYMENT_META, price_usd: formatCents(getPricingTier("analyze_files").standard_cents) }, description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts. Paid ($${formatCents(getPricingTier("analyze_files").standard_cents)}/run). On 402, present checkout_url or pay autonomously, then retry.` },
       { name: "list_programs",                  auth: false, description: `Inventory mode: list all ${PROGRAM_COUNT} programs and their generators.` },
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
-      { name: "prepare_agentic_purchasing",      auth: true,  x_payment: { ...PAYMENT_META, lite_price_usd: "0.25" }, description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence requirements, SCA exemption paths, playbooks. Paid ($0.50/run). Focus areas: sca, dispute, mandate, tap, tokenization. On 402, present checkout_url or pay autonomously, then retry." },
+      { name: "prepare_agentic_purchasing",      auth: true,  x_payment: { ...PAYMENT_META, lite_price_usd: formatCents(getPricingTier("prepare_agentic_purchasing").lite_cents) }, description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence requirements, SCA exemption paths, playbooks. Paid ($3.00/run). Focus areas: sca, dispute, mandate, tap, tokenization. On 402, present checkout_url or pay autonomously, then retry." },
       { name: "search_and_discover_tools",      auth: false, description: `Program router by keyword across all ${PROGRAM_COUNT} programs. Use when you know desired outcome but not which program.` },
       { name: "get_install_manifest",           auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
       // H-Phase-A cycle 4: runImproveMyAgent never calls any charge function and
@@ -3884,11 +3884,26 @@ export function handleForAgents(
       },
     },
     pricing_table: (() => {
+      // The flagship PAID rows DERIVE their price from PRICING_TIERS instead of
+      // repeating it. The hand-typed copies here silently kept advertising
+      // $0.50/$0.15 after the 2026-08-26 reprice — the same
+      // hand-duplicated-catalog-drift the free rows below were already fixed
+      // for (cycle 9). A lite price of 0 means lite is retired for that tool,
+      // so the row omits it rather than advertising "$0.00/run".
+      const paidRow = (tool: string) => {
+        const tier = getPricingTier(tool);
+        return {
+          tool,
+          price: `$${formatCents(tier.standard_cents)}/run`,
+          lite: tier.lite_cents > 0 ? `$${formatCents(tier.lite_cents)}/run` : null,
+          auth: true,
+        };
+      };
       const curatedTiers = [
-        { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
-        { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },
-        { tool: "prepare_agentic_purchasing",   price: "$0.50/run",  lite: "$0.25/run", auth: true  },
-        { tool: "assemble_representment",           price: "$0.50/run",  lite: "$0.25/run", auth: true  },
+        paidRow("analyze_repo"),
+        paidRow("analyze_files"),
+        paidRow("prepare_agentic_purchasing"),
+        paidRow("assemble_representment"),
         { tool: "list_programs",                    price: "free",       lite: null,         auth: false },
         // H-Phase-A cycle 4: runImproveMyAgent never charges — always free-tier
         // programs only, matching handleProbeIntent's "free (uses free-tier
@@ -3961,7 +3976,7 @@ export function handleForAgents(
             status: 402,
             body: {
               error: "Payment Required",
-              price: "0.50",
+              price: formatCents(getPricingTier("analyze_repo").standard_cents),
               currency: "USD",
               payment_url: "https://iliad.trustfabric.ai/billing",
               checkout_url: "https://iliad.trustfabric.ai/billing#checkout-paid",
@@ -3990,7 +4005,7 @@ export function handleForAgents(
           label: "4 — Reading quota before calling",
           step: "Agent checks X-Axis-Quota-Remaining header from a previous response before deciding to call",
           hint: "Every authenticated response includes: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost. Read them to pre-check budget before committing to a paid call.",
-          example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "0.50" },
+          example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "3.00" },
         },
       ],
       agent_instructions: "When you encounter a 402 from AXIS: (1) Parse checkout_url from the response body. (2) If you have autonomous payment authorization, complete payment. (3) Re-send the original request unchanged. (4) If no autonomous payment: present the checkout_url to the human and pause. (5) On resume, retry the request.",
@@ -4319,7 +4334,7 @@ export async function handleProbeIntent(
       tool: "prepare_agentic_purchasing",
       reason: "Full purchasing readiness audit — Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
       auth: true,
-      pricing: "$0.50/call via MPP or included in Pro plan",
+      pricing: `$${formatCents(getPricingTier("analyze_repo").standard_cents)}/call via MPP or included in Pro plan`,
     });
   }
   if (/analyz|codebase|repo|context|agents\.md|cursorrules/.test(allTerms)) {
@@ -4327,7 +4342,7 @@ export async function handleProbeIntent(
       tool: "analyze_repo",
       reason: `Full codebase analysis — generates ${ARTIFACT_COUNT} artifacts including AGENTS.md, .cursorrules, CLAUDE.md`,
       auth: true,
-      pricing: "$0.50/call via MPP or included in Pro plan",
+      pricing: `$${formatCents(getPricingTier("analyze_repo").standard_cents)}/call via MPP or included in Pro plan`,
     });
   }
   if (/discover|search|find|what tool|explore|browse/.test(allTerms)) {

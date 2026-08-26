@@ -131,7 +131,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 | Tier | Price | Programs |
 |------|-------|----------|
 | **Free** | $0 | 47 artifacts across all 21 programs (Search, Skills, Debug in full) |
-| **Pro** | $0.50 / run | All 21 programs, 152 artifacts |
+| **Pro** | $3.00 / run | All 21 programs, 152 artifacts |
 | **Lite mode** | $0.15–$0.25 / run | Top-gap summary, reduced output |
 
 Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` + `X-Agent-Mode: lite` on any paid call.
@@ -184,7 +184,7 @@ Requires: Docker 20.10+ or Docker Desktop
 ```
 axis-iliad/
 ├── apps/
-│   ├── api/          → Zero-dependency HTTP server (port 4000, 179 endpoints)
+│   ├── api/          → Zero-dependency HTTP server (port 4000, 180 endpoints)
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/

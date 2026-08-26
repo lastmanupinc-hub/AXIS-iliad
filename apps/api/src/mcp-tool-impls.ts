@@ -1690,9 +1690,9 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
     first_paid_action: FIRST_PAID_ACTION_CTA,
     conversion: {
       tool: "prepare_agentic_purchasing",
-      price_standard_usd: "0.50",
-      price_lite_usd: "0.25",
-      gap_closure: `Pay $0.50 to close ${gaps.length} readiness gap${gaps.length === 1 ? "" : "s"} and unlock the full ${ARTIFACT_COUNT}-artifact hardening bundle (CE 3.0 dispute evidence, SCA exemption matrix, TAP interop, VROL/RDR/CDRN dispute flows).`,
+      price_standard_usd: formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents),
+      price_lite_usd: formatCents(getPricingTier("prepare_agentic_purchasing").lite_cents),
+      gap_closure: `Pay $${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)} to close ${gaps.length} readiness gap${gaps.length === 1 ? "" : "s"} and unlock the full ${ARTIFACT_COUNT}-artifact hardening bundle (CE 3.0 dispute evidence, SCA exemption matrix, TAP interop, VROL/RDR/CDRN dispute flows).`,
       projected_score_after: `${projectedCoverageAfter}/100 artifact coverage (not code readiness — see code_readiness)`,
       retry_with: {
         method: "tools/call",

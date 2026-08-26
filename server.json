@@ -83,8 +83,8 @@
       ],
       "pricing": {
         "free_tier": true,
-        "standard_cents_per_run": 50,
-        "lite_cents_per_run": 15,
+        "standard_cents_per_run": 300,
+        "lite_cents_per_run": 0,
         "budget_header": "X-Agent-Budget"
       },
       "discovery": {

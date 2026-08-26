@@ -377,11 +377,28 @@ describe("contract: PRICING_TIERS lite_description pins the enforcement table", 
   });
 
   it("iliad_web_research: copy claims no behavioral difference, and the table imposes none", () => {
-    expect(liteDesc("iliad_web_research")).toMatch(/same markdown output as standard/);
+    expect(liteDesc("iliad_web_research")).toMatch(/no discount here/);
     const args = { url: "https://example.com" };
     const out = applyLiteCaps("iliad_web_research", "lite", args);
     expect(out.rejection).toBeUndefined();
     expect(out.args).toBe(args);
+  });
+
+  // A lite price BELOW standard is only honest if lite actually delivers less.
+  // These three imposed no cap and reduced no scope (their own copy said so),
+  // so their lite price was a standing 50%-off coupon any agent could claim by
+  // sending one header — which made the "standard" price fiction. Priced equal
+  // now; this fails if a discount is reintroduced without a real cap.
+  it("no tool discounts lite without imposing a cap or reducing scope", () => {
+    for (const tool of ["closer", "deploy", "iliad_web_research"] as const) {
+      const tier = PRICING_TIERS[tool];
+      const untouched = applyLiteCaps(tool, "lite", { url: "https://example.com" });
+      expect(untouched.rejection, `${tool} imposes no lite cap`).toBeUndefined();
+      expect(
+        tier.lite_cents,
+        `${tool} imposes no lite cap, so lite must not undercut standard`,
+      ).toBe(tier.standard_cents);
+    }
   });
 });
 

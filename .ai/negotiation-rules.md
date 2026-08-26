@@ -27,7 +27,8 @@ Where `commerce_signal_bonus` = detected_providers × 0.15 + (has_sca ? 0.10 : 0
 
 ## Cost Considerations
 
-AXIS pro programs are priced per call ($0.50 standard, $0.15–$0.25 lite mode). Whether a
+AXIS pro programs are priced per call by work performed — $1.00 for a single-bundle
+program (closer, deploy), $3.00 for a full multi-program analysis. Whether a
 purchase is worthwhile depends on your task, your context budget, and the alternatives
 available to you. AXIS does not publish savings or ROI guarantees — measure cost and
 output quality on your own workload.

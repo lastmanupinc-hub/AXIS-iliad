@@ -65,6 +65,14 @@ const AP2_DEMO_INTENT: IntentMandate = {
   expires_at: "2026-01-08T00:00:00.000Z",
 };
 
+// The AP2/TAP/UCP demo mandates quote the REAL prepare_agentic_purchasing
+// standard price. All four amounts (cart line, cart total, payment, settlement)
+// must agree or the sample is internally inconsistent — one constant, never four
+// literals. generator-core cannot import @axis/mpp (monorepo dependency
+// direction), so this is pinned here and asserted against PRICING_TIERS by
+// apps/api/src/mpp.test.ts, which can see both.
+const AP2_DEMO_PRICE_USD = "3.00";
+
 const AP2_DEMO_CART: CartMandate = {
   kind: "cart",
   version: "ap2/1",
@@ -76,10 +84,10 @@ const AP2_DEMO_CART: CartMandate = {
       sku: "program-agentic-purchasing",
       name: "AXIS agentic-purchasing program",
       quantity: 1,
-      unit_price: { currency: "USD", value: "0.50" },
+      unit_price: { currency: "USD", value: AP2_DEMO_PRICE_USD },
     },
   ],
-  total: { currency: "USD", value: "0.50" },
+  total: { currency: "USD", value: AP2_DEMO_PRICE_USD },
   created_at: "2026-01-01T00:01:00.000Z",
 };
 
@@ -89,7 +97,7 @@ const AP2_DEMO_PAYMENT: PaymentMandate = {
   id: "payment_axis_demo_001",
   cart_ref: AP2_DEMO_CART.id,
   method: { type: "token", token_ref: "tok_axis_demo_001" },
-  amount: { currency: "USD", value: "0.50" },
+  amount: { currency: "USD", value: AP2_DEMO_PRICE_USD },
   created_at: "2026-01-01T00:02:00.000Z",
 };
 
@@ -110,7 +118,7 @@ const UCP_DEMO_SETTLEMENT: UcpSettlementMessage = {
   settlement_id: "settlement_axis_demo_001",
   payment_ref: AP2_DEMO_PAYMENT.id,
   clearing_system: "VISA_NET",
-  amount: { currency: "USD", value: "0.50" },
+  amount: { currency: "USD", value: AP2_DEMO_PRICE_USD },
   value_date: "2026-01-02",
   settlement_finality: "final",
 };
@@ -1789,7 +1797,8 @@ Where \`commerce_signal_bonus\` = detected_providers × 0.15 + (has_sca ? 0.10 :
 
 ## Cost Considerations
 
-AXIS pro programs are priced per call ($0.50 standard, $0.15–$0.25 lite mode). Whether a
+AXIS pro programs are priced per call by work performed — $1.00 for a single-bundle
+program (closer, deploy), $3.00 for a full multi-program analysis. Whether a
 purchase is worthwhile depends on your task, your context budget, and the alternatives
 available to you. AXIS does not publish savings or ROI guarantees — measure cost and
 output quality on your own workload.

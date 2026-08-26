@@ -235,7 +235,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode, $25 engineer per repo. Engineer mode (X-Agent-Mode: engineer — Living Architecture) adds a verified LLM specificity pass: a living-architecture.md whose every architectural claim is grounded in the repo's extracted facts or dropped. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
+      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $3.00 standard, $25 engineer per repo. Lite mode is retired — it now returns the free artifact set at no charge. Engineer mode (X-Agent-Mode: engineer — Living Architecture) adds a verified LLM specificity pass: a living-architecture.md whose every architectural claim is grounded in the repo's extracted facts or dropped. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
     inputSchema: {
       type: "object",
       required: ["github_url"],
@@ -259,7 +259,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_files",
     description:
-      `Analyze source files directly and generate the full ${ARTIFACT_COUNT}-artifact AXIS bundle without using GitHub. Returns snapshot_id plus artifact listing; use this for local, generated, or unsaved code. Requires Authorization: Bearer <api_key>. Pricing: $0.50 standard, $0.15 lite budget mode, $25 engineer per run (same tiers as analyze_repo). Can return authentication, quota, payment-required, file-limit, or validation errors. Use analyze_repo for GitHub URLs or improve_my_agent_with_axis for recommendation-first agent hardening.`,
+      `Analyze source files directly and generate the full ${ARTIFACT_COUNT}-artifact AXIS bundle without using GitHub. Returns snapshot_id plus artifact listing; use this for local, generated, or unsaved code. Requires Authorization: Bearer <api_key>. Pricing: $3.00 standard, $25 engineer per run (same tiers as analyze_repo). Lite mode is retired — it now returns the free artifact set at no charge. Can return authentication, quota, payment-required, file-limit, or validation errors. Use analyze_repo for GitHub URLs or improve_my_agent_with_axis for recommendation-first agent hardening.`,
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -474,7 +474,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Pricing: $0.50 standard, $0.25 lite budget mode, $250 engineer per run. Lite mode returns the readiness score + top 3 gaps only, with an artifacts_note pointing at standard mode for the full artifact bundle — it does NOT include the artifacts themselves. Standard and engineer modes return the full bundle. focus_areas is recorded and echoed back in the response for the caller's own bookkeeping; it does not filter which artifacts are generated. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration) also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Pricing: $3.00 standard, $1.00 lite budget mode, $250 engineer per run. Lite mode returns the readiness score + top 3 gaps only, with an artifacts_note pointing at standard mode for the full artifact bundle — it does NOT include the artifacts themselves. Standard and engineer modes return the full bundle. focus_areas is recorded and echoed back in the response for the caller's own bookkeeping; it does not filter which artifacts are generated. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration) also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -561,7 +561,7 @@ export const MCP_TOOLS = [
   {
     name: "closer",
     description:
-      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell. Requires Authorization: Bearer <api_key> on an ALREADY-PAID Starter/Pro/Growth (or suite) account. Unlike most metered AXIS tools, a free-tier account cannot unlock this per call with an MPP payment credential — there is no pay-per-call path here, only 'upgrade at iliad.trustfabric.ai/billing'. Once unlocked, billed $0.50 standard, $0.25 lite budget mode per call from the account's plan credits.",
+      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell. Requires Authorization: Bearer <api_key> on an ALREADY-PAID Starter/Pro/Growth (or suite) account. Unlike most metered AXIS tools, a free-tier account cannot unlock this per call with an MPP payment credential — there is no pay-per-call path here, only 'upgrade at iliad.trustfabric.ai/billing'. Once unlocked, billed $1.00 per call from the account's plan credits. Lite mode carries no discount here — the bundle is identical in both modes.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],
@@ -620,7 +620,7 @@ export const MCP_TOOLS = [
   {
     name: "deploy",
     description:
-      "Generate a zero-pipeline-minutes deploy bundle: stack-aware Dockerfile, .dockerignore, dev compose, render.yaml (Render existing-image), wrangler.pages.toml + wrangler.containers.toml + worker.ts (Cloudflare), bash/PowerShell push scripts, and a qualification report. The project builds locally in VSCode, pushes images to GHCR or via wrangler, and Render/Cloudflare just pulls — no GitHub Actions minutes, no Render build pipeline minutes, no CF build minutes. Requires Authorization: Bearer <api_key> on an ALREADY-PAID Starter/Pro/Growth (or suite) account. Unlike most metered AXIS tools, a free-tier account cannot unlock this per call with an MPP payment credential — there is no pay-per-call path here, only 'upgrade at iliad.trustfabric.ai/billing'. Once unlocked, billed $0.50 standard, $0.25 lite budget mode per call from the account's plan credits.",
+      "Generate a zero-pipeline-minutes deploy bundle: stack-aware Dockerfile, .dockerignore, dev compose, render.yaml (Render existing-image), wrangler.pages.toml + wrangler.containers.toml + worker.ts (Cloudflare), bash/PowerShell push scripts, and a qualification report. The project builds locally in VSCode, pushes images to GHCR or via wrangler, and Render/Cloudflare just pulls — no GitHub Actions minutes, no Render build pipeline minutes, no CF build minutes. Requires Authorization: Bearer <api_key> on an ALREADY-PAID Starter/Pro/Growth (or suite) account. Unlike most metered AXIS tools, a free-tier account cannot unlock this per call with an MPP payment credential — there is no pay-per-call path here, only 'upgrade at iliad.trustfabric.ai/billing'. Once unlocked, billed $1.00 per call from the account's plan credits. Lite mode carries no discount here — the bundle is identical in both modes.",
     inputSchema: {
       type: "object",
       properties: {
@@ -728,7 +728,7 @@ export const MCP_TOOLS = [
       {
         name: "Get the install manifest",
         input: {},
-        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":44}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$3.00/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":44}}',
       },
     ],
   },
@@ -768,7 +768,7 @@ export const MCP_TOOLS = [
   {
     name: "improve_my_agent_with_axis",
     description:
-      "Analyze an agent codebase and return a prioritized AXIS hardening plan. Requires Authorization: Bearer <api_key> but has no usage charge on any tier — free and unmetered, unlike most AXIS tools. This creates a snapshot and may return auth, quota, file-limit, or validation errors. Example: pass your agent source files to see missing AGENTS.md, CLAUDE.md, and MCP config gaps. Use this when you want recommendations and missing-context detection. Use analyze_files instead when you want the full artifact bundle directly (paid: $0.50 standard, $0.15 lite).",
+      "Analyze an agent codebase and return a prioritized AXIS hardening plan. Requires Authorization: Bearer <api_key> but has no usage charge on any tier — free and unmetered, unlike most AXIS tools. This creates a snapshot and may return auth, quota, file-limit, or validation errors. Example: pass your agent source files to see missing AGENTS.md, CLAUDE.md, and MCP config gaps. Use this when you want recommendations and missing-context detection. Use analyze_files instead when you want the full artifact bundle directly (paid: $3.00 standard).",
     inputSchema: {
       type: "object",
       required: ["project_name", "files"],
@@ -949,7 +949,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research",
     description:
-      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of scraping, and is not billed. Use iliad_web_research_crawl for crawling multiple pages or link following. To make a scraped page searchable later, index it with iliad_web_search.",
+      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 per page. Lite mode carries no discount here — the markdown output is identical in both modes. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of scraping, and is not billed. Use iliad_web_research_crawl for crawling multiple pages or link following. To make a scraped page searchable later, index it with iliad_web_search.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -1974,7 +1974,7 @@ export const MCP_TOOLS = [
   {
     name: "assemble_representment",
     description:
-      "Turn a webhook-ingested dispute (charge.dispute.* events persist DisputeRecords server-side) into a Stripe representment: qualifies CE 3.0 priors from your supplied transaction history (assembleCe3), builds the Stripe `evidence` hash (buildStripeRepresentment), walks the dispute state machine (needs_response → evidence_assembling → evidence_submitted) with a full transition ledger, and — when submit=true and Stripe is configured — submits the evidence through the live Stripe disputes API. Requires Authorization: Bearer <api_key>; metered ($0.50 standard, $0.25 lite) through the standard authorize/capture path — a failed assembly never charges. Returns {dispute, evidence, ce3, ce3_eligible, submitted, disclaimer}. HONESTY: the dispute lifecycle is LIVE on the Stripe rail only; VROL/RDR/CDRN (Verifi/Ethoca) is integration-ready code gated on acquirer provisioning (AXIS_ENABLE_VROL) and never fakes a submission. AXIS does not publish win-rate estimates.",
+      "Turn a webhook-ingested dispute (charge.dispute.* events persist DisputeRecords server-side) into a Stripe representment: qualifies CE 3.0 priors from your supplied transaction history (assembleCe3), builds the Stripe `evidence` hash (buildStripeRepresentment), walks the dispute state machine (needs_response → evidence_assembling → evidence_submitted) with a full transition ledger, and — when submit=true and Stripe is configured — submits the evidence through the live Stripe disputes API. Requires Authorization: Bearer <api_key>; metered ($1.00 standard, $0.50 lite) through the standard authorize/capture path — a failed assembly never charges. Returns {dispute, evidence, ce3, ce3_eligible, submitted, disclaimer}. HONESTY: the dispute lifecycle is LIVE on the Stripe rail only; VROL/RDR/CDRN (Verifi/Ethoca) is integration-ready code gated on acquirer provisioning (AXIS_ENABLE_VROL) and never fakes a submission. AXIS does not publish win-rate estimates.",
     inputSchema: {
       type: "object" as const,
       required: ["dispute_id"],

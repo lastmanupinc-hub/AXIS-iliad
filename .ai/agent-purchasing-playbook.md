@@ -211,7 +211,7 @@ Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature
 Signed sample Cart mandate, referencing the Intent above (`encodeMandate` output):
 
 ```json
-{"created_at":"2026-01-01T00:01:00.000Z","id":"cart_axis_demo_001","intent_ref":"intent_axis_demo_001","items":[{"name":"AXIS agentic-purchasing program","quantity":1,"sku":"program-agentic-purchasing","unit_price":{"currency":"USD","value":"0.50"}}],"kind":"cart","merchant_id":"AXIS_ILIAD","total":{"currency":"USD","value":"0.50"},"version":"ap2/1"}
+{"created_at":"2026-01-01T00:01:00.000Z","id":"cart_axis_demo_001","intent_ref":"intent_axis_demo_001","items":[{"name":"AXIS agentic-purchasing program","quantity":1,"sku":"program-agentic-purchasing","unit_price":{"currency":"USD","value":"3.00"}}],"kind":"cart","merchant_id":"AXIS_ILIAD","total":{"currency":"USD","value":"3.00"},"version":"ap2/1"}
 ```
 
 Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=1xvPMSTZ8YVDGtuhXzQJS4w5…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
@@ -219,7 +219,7 @@ Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature
 Signed sample Payment mandate, referencing the Cart above (`encodeMandate` output):
 
 ```json
-{"amount":{"currency":"USD","value":"0.50"},"cart_ref":"cart_axis_demo_001","created_at":"2026-01-01T00:02:00.000Z","id":"payment_axis_demo_001","kind":"payment","method":{"token_ref":"tok_axis_demo_001","type":"token"},"version":"ap2/1"}
+{"amount":{"currency":"USD","value":"3.00"},"cart_ref":"cart_axis_demo_001","created_at":"2026-01-01T00:02:00.000Z","id":"payment_axis_demo_001","kind":"payment","method":{"token_ref":"tok_axis_demo_001","type":"token"},"version":"ap2/1"}
 ```
 
 Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=Lfr9NKl6Lgvws-5BTiO1erm3…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true
@@ -229,7 +229,7 @@ Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature
 Signed sample UCP settlement message (`encodeUcpMessage` output):
 
 ```json
-{"amount":{"currency":"USD","value":"0.50"},"clearing_system":"VISA_NET","kind":"ucp.settlement","payment_ref":"payment_axis_demo_001","settlement_finality":"final","settlement_id":"settlement_axis_demo_001","value_date":"2026-01-02","version":"ucp/1"}
+{"amount":{"currency":"USD","value":"3.00"},"clearing_system":"VISA_NET","kind":"ucp.settlement","payment_ref":"payment_axis_demo_001","settlement_finality":"final","settlement_id":"settlement_axis_demo_001","value_date":"2026-01-02","version":"ucp/1"}
 ```
 
 Signature (detached JWS, alg=EdDSA): `protected=eyJhbGciOiJFZERTQSJ9` `signature=ME1w0jm4uzZZF_DlZaCaMRhF…` `public_key=MCowBQYDK2VwAyEAlwlnemiD…` — verify() valid: ✅ true

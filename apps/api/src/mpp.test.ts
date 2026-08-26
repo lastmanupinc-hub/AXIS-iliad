@@ -6,6 +6,7 @@ import http from "node:http";
 import { chargeMpp, resetMppxCache } from "./mpp.js";
 import { resolveAgentMode, priceForMode, getPricingTier, build402NegotiationBody, PRICING_TIERS, computeLargeBodySurchargeCents, LARGE_BODY_SURCHARGE_FREE_CAP_BYTES, LARGE_BODY_SURCHARGE_HARD_CEILING_BYTES } from "./mpp.js";
 import { resolveAuth } from "./billing.js";
+import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
 import { ErrorCode } from "./logger.js";
 import { resetTestDb } from "@axis/snapshots";
 
@@ -489,5 +490,36 @@ describe("PRICING_TIERS — no tool prices at a fractional cent", () => {
       }
     }
     expect(fractional, `fractional-cent prices found: ${fractional.join(", ")}`).toEqual([]);
+  });
+});
+
+// ─── Every metered tool must carry an EXPLICIT price ────────────────
+// getPricingTier() falls back to PRICING_TIERS.default ($0.50) for any tool
+// with no entry of its own. That fallback is silent: a newly-metered tool
+// ships billing real money at a price nobody chose, and nothing fails. This
+// is the guard the 2026-08-26 reprice added — the default stays as a runtime
+// safety net (throwing in a live charge path would be worse), but it can no
+// longer be reached by a REGISTERED metered tool without CI saying so.
+describe("PRICING_TIERS covers every metered tool explicitly", () => {
+  it("no metered tool silently inherits PRICING_TIERS.default", () => {
+    const inheriting = METERED_MCP_TOOLS.filter((t) => PRICING_TIERS[t] === undefined);
+    expect(
+      inheriting,
+      `these metered tools have no PRICING_TIERS entry and would silently bill at the ` +
+        `$${(PRICING_TIERS.default.standard_cents / 100).toFixed(2)} default: ${inheriting.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("the flagship programs are priced above the single-bundle tools (work performed, not a flat rate)", () => {
+    const std = (t: string) => getPricingTier(t).standard_cents;
+    // analyze_* spans all 21 programs; closer/deploy are one bundle each.
+    expect(std("analyze_repo")).toBeGreaterThan(std("closer"));
+    expect(std("analyze_files")).toBeGreaterThan(std("deploy"));
+    // and every flagship must beat the default, or the default is doing the pricing
+    for (const t of ["analyze_repo", "analyze_files", "prepare_agentic_purchasing"]) {
+      expect(std(t), `${t} must be priced above the generic default`).toBeGreaterThan(
+        PRICING_TIERS.default.standard_cents,
+      );
+    }
   });
 });

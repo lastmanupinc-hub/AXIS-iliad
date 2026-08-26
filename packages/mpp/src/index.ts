@@ -109,39 +109,39 @@ export interface Build402Options {
 export const PRICING_TIERS: Record<string, PricingTier> = {
   prepare_agentic_purchasing: {
     tool: "prepare_agentic_purchasing",
-    standard_cents: 50,
-    lite_cents: 25,
+    standard_cents: 300,
+    lite_cents: 100,
     lite_description: "Lite mode: purchasing readiness score + top 3 gaps only (no full artifact bundle)",
     engineer_cents: 25000,
     engineer_description: "Engineer mode (Commerce Integration): a deployable x402/AP2/PAI'D endpoint + runnable sandbox test + schema-validatable CE 3.0 pack + transparent dispute-readiness score — a working integration, not just a score.",
   },
   analyze_repo: {
     tool: "analyze_repo",
-    standard_cents: 50,
-    lite_cents: 15,
+    standard_cents: 300,
+    lite_cents: 0,
     lite_description: "Lite mode is RETIRED — it now returns exactly the free artifact set at no charge. Use the free tier instead; it delivers more than lite ever did.",
     engineer_cents: 2500,
     engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
   analyze_files: {
     tool: "analyze_files",
-    standard_cents: 50,
-    lite_cents: 15,
+    standard_cents: 300,
+    lite_cents: 0,
     lite_description: "Lite mode is RETIRED — it now returns exactly the free artifact set at no charge. Use the free tier instead; it delivers more than lite ever did.",
     engineer_cents: 2500,
     engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
   closer: {
     tool: "closer",
-    standard_cents: 50,
-    lite_cents: 25,
-    lite_description: "Lite mode: reduced per-call price (packaging bundle scope unchanged)",
+    standard_cents: 100,
+    lite_cents: 100,
+    lite_description: "Lite mode offers no discount here: the packaging bundle is identical in both modes, so a lower lite price would just be a standing coupon. Priced the same as standard.",
   },
   deploy: {
     tool: "deploy",
-    standard_cents: 50,
-    lite_cents: 25,
-    lite_description: "Lite mode: reduced per-call price (deploy bundle scope unchanged)",
+    standard_cents: 100,
+    lite_cents: 100,
+    lite_description: "Lite mode offers no discount here: the deploy bundle is identical in both modes, so a lower lite price would just be a standing coupon. Priced the same as standard.",
   },
   // H-Phase-A cycle 10: removed a dead improve_my_agent_with_axis entry here
   // (standard_cents: 50, lite_cents: 20) — that tool is unconditionally free
@@ -156,16 +156,16 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   // pure compute, the optional Stripe submission is the caller's own account.
   assemble_representment: {
     tool: "assemble_representment",
-    standard_cents: 50,
-    lite_cents: 25,
+    standard_cents: 100,
+    lite_cents: 50,
     lite_description: "Lite mode: CE 3.0 qualification + evidence hash only (no auto-submit to the Stripe disputes API)",
   },
   // Phase 1: Firecrawl web research proxy (per-page pricing)
   iliad_web_research: {
     tool: "iliad_web_research",
     standard_cents: 10,
-    lite_cents: 5,
-    lite_description: "Lite mode: same markdown output as standard, at the lower price.",
+    lite_cents: 10,
+    lite_description: "Lite mode offers no discount here: the markdown output is identical in both modes (no enforced cap in lite-caps.ts), so a lower lite price would just be a standing coupon. Priced the same as standard.",
   },
   iliad_web_research_crawl: {
     tool: "iliad_web_research_crawl",
