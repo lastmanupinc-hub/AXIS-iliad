@@ -49,8 +49,9 @@ export interface PitchSlide {
   art: string;
   /** v2 payloads carry per-slide provenance; absent on decks generated before
    * the evidence-skeleton restructure — treated as "measured" (the only kind
-   * of slide v1 produced). */
-  provenance?: "measured" | "owner_input" | "mixed";
+   * of slide v1 produced). "inferred" is emitted by the compose pass
+   * (pitch-compose.ts): citation-oracle-verified inference, never invention. */
+  provenance?: "measured" | "owner_input" | "mixed" | "inferred";
 }
 
 export interface PitchDeckPayload {

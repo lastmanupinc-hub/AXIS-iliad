@@ -196,8 +196,13 @@ function auditDocClaims(ctx: ContextMap, files?: SourceFile[]): DocClaim[] {
 // invented numbers. The honesty rule is unchanged: measured, attested, or
 // absent-and-said-so.
 
-/** Where a slide's content comes from — the deck's provenance typography. */
-type SlideProvenance = "measured" | "owner_input" | "mixed";
+/** Where a slide's content comes from — the deck's provenance typography.
+ * The deterministic generator emits only the first three; "inferred" is
+ * reserved for the runtime compose pass (apps/api pitch-compose.ts), which
+ * fills owner-input slots with citation-oracle-verified inference under the
+ * draft-over-ask doctrine (owner directive, 2026-08-26). It is part of this
+ * contract so composed decks remain valid payloads of the same schema. */
+type SlideProvenance = "measured" | "owner_input" | "mixed" | "inferred";
 
 interface Slide {
   n: number;
@@ -500,6 +505,7 @@ export function generatePitchDeckJson(ctx: ContextMap, files?: SourceFile[]): Ge
         clean: "investor-facing .pptx — no speaker notes, no provenance annotations; the deck's context must explain itself",
         annotated: "diligence copy — speaker notes attached and per-slide provenance footers rendered",
       },
+      compose: "POST /v1/pitch/compose fills the OWNER INPUT REQUIRED slots with citation-oracle-verified inference from this snapshot's own documents (provenance: inferred), persisting pitch-deck-composed.json — renderable with artifact:\"composed\". Draft-over-ask: a labeled wrong draft invites correction; a blank slot invites nothing.",
     },
     slides,
     claims_audit: claims,

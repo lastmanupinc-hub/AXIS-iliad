@@ -131,6 +131,7 @@ import { handleSentryWebhook } from "./sentry-webhook.js";
 import { handleSaveSentryConnection, handleListSentryConnections, handleDeleteSentryConnection } from "./sentry.js";
 import { handleSaveProviderCredential, handleListProviderCredentials, handleDeleteProviderCredential } from "./provider-key.js";
 import { handlePitchRender } from "./pitch-render-handler.js";
+import { handlePitchCompose } from "./pitch-compose-handler.js";
 import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
@@ -217,6 +218,9 @@ router.post("/v1/frontend/audit", handleFrontendAudit);
 router.post("/v1/seo/analyze", handleSeoAnalyze);
 router.post("/v1/pitch/generate", handlePitchGenerate);
 router.post("/v1/pitch/render", handlePitchRender);
+// Wrapped: the router passes route params as a third argument, which would
+// collide with the handler's optional test-injection completion override.
+router.post("/v1/pitch/compose", (req, res) => handlePitchCompose(req, res));
 router.post("/v1/optimization/analyze", handleOptimizationAnalyze);
 router.post("/v1/theme/generate", handleThemeGenerate);
 router.post("/v1/brand/generate", handleBrandGenerate);

@@ -68,6 +68,16 @@ export async function handlePitchRender(req: IncomingMessage, res: ServerRespons
   }
   const variant: PitchRenderVariant = rawVariant;
 
+  // Which stored deck to render: the deterministic generated deck (default)
+  // or the compose pass's inference-filled sibling (pitch-deck-composed.json,
+  // written by POST /v1/pitch/compose under the draft-over-ask doctrine).
+  const rawArtifact = body.artifact === undefined ? "generated" : body.artifact;
+  if (rawArtifact !== "generated" && rawArtifact !== "composed") {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, 'artifact must be "generated" (default) or "composed" (the inference-filled deck from POST /v1/pitch/compose)');
+    return;
+  }
+  const artifactPath = rawArtifact === "composed" ? "pitch-deck-composed.json" : PITCH_DECK_ARTIFACT_PATH;
+
   const snapshot = await getSnapshot(snapshotId);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
@@ -87,9 +97,11 @@ export async function handlePitchRender(req: IncomingMessage, res: ServerRespons
   }
 
   const generated = (await getGeneratorResult(snapshotId)) as GeneratorResult | undefined;
-  const deckFile = generated?.files.find((f) => f.path === PITCH_DECK_ARTIFACT_PATH);
+  const deckFile = generated?.files.find((f) => f.path === artifactPath);
   if (!deckFile) {
-    sendError(res, 404, ErrorCode.NOT_FOUND, `No ${PITCH_DECK_ARTIFACT_PATH} artifact on this snapshot — call POST /v1/pitch/generate first.`);
+    sendError(res, 404, ErrorCode.NOT_FOUND, rawArtifact === "composed"
+      ? `No pitch-deck-composed.json artifact on this snapshot — call POST /v1/pitch/compose first.`
+      : `No ${PITCH_DECK_ARTIFACT_PATH} artifact on this snapshot — call POST /v1/pitch/generate first.`);
     return;
   }
 
