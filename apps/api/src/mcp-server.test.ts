@@ -446,7 +446,7 @@ describe("POST /mcp — tools/list", () => {
     expect(analyzeRepo).toBeDefined();
     expect(analyzeRepo!.description).toContain("snapshot_id plus an artifacts listing");
     expect(analyzeRepo!.description).toContain("Use this when the source of truth is a GitHub repo URL");
-    expect(analyzeRepo!.description).toContain("$0.50 standard, $0.15 lite budget mode");
+    expect(analyzeRepo!.description).toContain("$3.00 standard, $25 engineer per repo");
     expect(analyzeRepo!.description).toContain("authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors");
   });
 });
@@ -569,7 +569,7 @@ describe("POST /mcp — tools/call analyze_files", () => {
     const content = result.content as Array<{ text: string }>;
     const parsed = JSON.parse(content[0].text);
     expect(parsed.error).toBe("Payment Required");
-    expect(parsed.price).toBe("0.50");
+    expect(parsed.price).toBe("3.00");
     expect(parsed.referral_token).toBeTruthy();
   });
 

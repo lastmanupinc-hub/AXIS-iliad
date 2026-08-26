@@ -127,20 +127,20 @@ describe("getPricingTier", () => {
   it("returns correct tier for prepare_agentic_purchasing", async () => {
     const tier = getPricingTier("prepare_agentic_purchasing");
     expect(tier.tool).toBe("prepare_agentic_purchasing");
-    expect(tier.standard_cents).toBe(50);
-    expect(tier.lite_cents).toBe(25);
+    expect(tier.standard_cents).toBe(300);
+    expect(tier.lite_cents).toBe(100);
   });
 
   it("returns correct tier for analyze_repo", async () => {
     const tier = getPricingTier("analyze_repo");
-    expect(tier.standard_cents).toBe(50);
-    expect(tier.lite_cents).toBe(15);
+    expect(tier.standard_cents).toBe(300);
+    expect(tier.lite_cents).toBe(0); // lite retired -> free artifact set
   });
 
   it("returns correct tier for analyze_files", async () => {
     const tier = getPricingTier("analyze_files");
-    expect(tier.standard_cents).toBe(50);
-    expect(tier.lite_cents).toBe(15);
+    expect(tier.standard_cents).toBe(300);
+    expect(tier.lite_cents).toBe(0); // lite retired -> free artifact set
   });
 
   // H-Phase-A cycle 10: improve_my_agent_with_axis's own PRICING_TIERS row
@@ -343,57 +343,73 @@ describe("getPricingTier", () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("negotiatePrice", () => {
+  // These exercise the negotiation BANDS (standard / lite / reject), so they
+  // must run against a tool that still HAS all three. analyze_repo no longer
+  // does: its lite tier was retired to $0.00 (it returns the free artifact
+  // set), which collapses the reject band — every budget is affordable. Using
+  // it here would silently delete reject-band coverage rather than test it.
+  // prepare_agentic_purchasing keeps a real spread: $3.00 standard / $1.00 lite.
   it("returns standard pricing when no budget_per_run_cents set", async () => {
-    const result = negotiatePrice({}, "analyze_repo");
-    expect(result.amount_cents).toBe(50);
+    const result = negotiatePrice({}, "prepare_agentic_purchasing");
+    expect(result.amount_cents).toBe(300);
     expect(result.mode).toBe("standard");
     expect(result.accepted).toBe(true);
   });
 
   it("returns standard when budget >= standard price", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 100 }, "analyze_repo");
-    expect(result.amount_cents).toBe(50);
+    const result = negotiatePrice({ budget_per_run_cents: 500 }, "prepare_agentic_purchasing");
+    expect(result.amount_cents).toBe(300);
     expect(result.mode).toBe("standard");
     expect(result.accepted).toBe(true);
   });
 
   it("returns standard when budget exactly equals standard price", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 50 }, "analyze_repo");
-    expect(result.amount_cents).toBe(50);
+    const result = negotiatePrice({ budget_per_run_cents: 300 }, "prepare_agentic_purchasing");
+    expect(result.amount_cents).toBe(300);
     expect(result.mode).toBe("standard");
     expect(result.accepted).toBe(true);
   });
 
   it("returns lite when budget is between lite and standard", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 30 }, "analyze_repo");
-    expect(result.amount_cents).toBe(15);
+    const result = negotiatePrice({ budget_per_run_cents: 200 }, "prepare_agentic_purchasing");
+    expect(result.amount_cents).toBe(100);
     expect(result.mode).toBe("lite");
     expect(result.accepted).toBe(true);
   });
 
   it("returns lite exactly at lite price", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 15 }, "analyze_repo");
-    expect(result.amount_cents).toBe(15);
+    const result = negotiatePrice({ budget_per_run_cents: 100 }, "prepare_agentic_purchasing");
+    expect(result.amount_cents).toBe(100);
     expect(result.mode).toBe("lite");
     expect(result.accepted).toBe(true);
   });
 
   it("rejects when budget below lite price", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 5 }, "analyze_repo");
+    const result = negotiatePrice({ budget_per_run_cents: 50 }, "prepare_agentic_purchasing");
     expect(result.accepted).toBe(false);
     expect(result.mode).toBe("lite");
-    expect(result.amount_cents).toBe(15);
+    expect(result.amount_cents).toBe(100);
     expect(result.reason).toContain("Minimum price");
   });
 
   it("rejects zero budget", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 0 }, "analyze_repo");
+    const result = negotiatePrice({ budget_per_run_cents: 0 }, "prepare_agentic_purchasing");
     expect(result.accepted).toBe(false);
   });
 
+  // The flip side of the reprice, pinned deliberately: for a tool whose lite
+  // is retired to $0.00, a zero budget is ACCEPTED rather than rejected — the
+  // caller is steered to the free artifact set instead of a 402 dead end.
+  it("accepts a zero budget for a tool whose lite tier is retired to free", async () => {
+    const result = negotiatePrice({ budget_per_run_cents: 0 }, "analyze_repo");
+    expect(result.accepted).toBe(true);
+    expect(result.mode).toBe("lite");
+    expect(result.amount_cents).toBe(0);
+  });
+
   it("uses tool-specific lite pricing for prepare_agentic_purchasing", async () => {
-    const result = negotiatePrice({ budget_per_run_cents: 30 }, "prepare_agentic_purchasing");
-    expect(result.amount_cents).toBe(25);
+    const result = negotiatePrice({ budget_per_run_cents: 200 }, "prepare_agentic_purchasing");
+    expect(result.amount_cents).toBe(100);
     expect(result.mode).toBe("lite");
     expect(result.accepted).toBe(true);
   });
@@ -417,28 +433,28 @@ describe("build402NegotiationBody", () => {
     const pricing = body.pricing as Record<string, unknown>;
     const standard = pricing.standard as Record<string, unknown>;
     const lite = pricing.lite as Record<string, unknown>;
-    expect(standard.amount_cents).toBe(50);
-    expect(lite.amount_cents).toBe(15);
+    expect(standard.amount_cents).toBe(300);
+    expect(lite.amount_cents).toBe(0); // lite retired -> free artifact set
   });
 
   it("returns default negotiation when no budget provided", async () => {
     const body = build402NegotiationBody("analyze_repo");
     const negotiation = body.negotiation as Record<string, unknown>;
-    expect(negotiation.amount_cents).toBe(50);
+    expect(negotiation.amount_cents).toBe(300);
     expect(negotiation.mode).toBe("standard");
     expect(negotiation.accepted).toBe(true);
   });
 
   it("returns negotiated result when budget provided", async () => {
-    const body = build402NegotiationBody("analyze_repo", { budget_per_run_cents: 20 });
+    const body = build402NegotiationBody("prepare_agentic_purchasing", { budget_per_run_cents: 200 });
     const negotiation = body.negotiation as Record<string, unknown>;
-    expect(negotiation.amount_cents).toBe(15);
+    expect(negotiation.amount_cents).toBe(100);
     expect(negotiation.mode).toBe("lite");
     expect(negotiation.accepted).toBe(true);
   });
 
   it("returns rejection when budget too low", async () => {
-    const body = build402NegotiationBody("analyze_repo", { budget_per_run_cents: 5 });
+    const body = build402NegotiationBody("prepare_agentic_purchasing", { budget_per_run_cents: 50 });
     const negotiation = body.negotiation as Record<string, unknown>;
     expect(negotiation.accepted).toBe(false);
   });
@@ -466,7 +482,7 @@ describe("build402NegotiationBody", () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     expect(String(body.agent_message)).toContain("Retry with an MPP credential");
     const nextStep = body.next_step as Record<string, unknown>;
-    expect(String(nextStep.immediate)).toContain("Pay $0.50");
+    expect(String(nextStep.immediate)).toContain("Pay $3.00");
     // H-Phase-A cycle 5: Pro grants a finite 300,000 monthly credit
     // allowance, billed as metered overage beyond that — never "unlimited."
     expect(String(nextStep.upgrade_path)).not.toContain("unlimited");
@@ -485,19 +501,19 @@ describe("build402NegotiationBody", () => {
     });
     expect(body.error).toBe("Payment Required");
     expect(body.message).toBe("Paid full-bundle analyze required");
-    expect(body.price).toBe("0.50");
+    expect(body.price).toBe("3.00");
     expect(body.currency).toBe("USD");
     expect(Array.isArray(body.accepted_payment_schemes)).toBe(true);
     expect(body.referral_token).toBe("ref_test_123");
     const x402 = body.x402 as Record<string, unknown>;
     expect(x402.asset).toBe("USDC");
-    expect(x402.amount).toBe("500000");
+    expect(x402.amount).toBe("3000000"); // USDC 6dp: $3.00
   });
 
   it("switch_lite action contains dollar amount", async () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     const actions = body.actions as Record<string, string>;
-    expect(actions.switch_lite).toContain("$0.25");
+    expect(actions.switch_lite).toContain("$1.00");
   });
 
   // ─── Token-first rail ordering + explicit per-rail economics ─────
@@ -520,9 +536,10 @@ describe("build402NegotiationBody", () => {
       expect(rails[0]!.asset).toBe("USDC");
       expect(rails[0]!.network).toBe("tempo");
       expect(rails[0]!.preferred).toBe(true);
-      expect(rails[0]!.price_usd).toBe("0.50");
-      expect(rails[0]!.lite_price_usd).toBe("0.15");
-      expect(String(rails[0]!.summary)).toBe("USDC on tempo @ $0.50 per analyze_repo call ($0.15 lite)");
+      expect(rails[0]!.price_usd).toBe("3.00");
+      expect(rails[0]!.lite_price_usd).toBe("0.00");
+      // lite is retired for analyze_repo, so the summary must NOT read "($0.00 lite)"
+      expect(String(rails[0]!.summary)).toBe("USDC on tempo @ $3.00 per analyze_repo call (lite retired — returns the free artifact set at no charge)");
       expect(String(rails[0]!.chargeback_exposure)).toContain("none");
 
       const stripeRail = rails.find(r => r.scheme === "mppx/stripe")!;

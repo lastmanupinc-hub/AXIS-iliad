@@ -362,9 +362,9 @@ describe("POST /v1/analyze — validation", () => {
     // message always wins over the negotiation body's generic "Payment
     // Required" constant — the old clobbering bug this test used to encode
     // as "correct"). `message` carries the same text as an explicit alias.
-    expect(data.error).toBe(`analyze_repo requires $0.50 MPP credit (or Pro tier). This returns the full ${ARTIFACT_COUNT}-artifact AXIS bundle. Upgrade at iliad.trustfabric.ai/billing.`);
+    expect(data.error).toBe(`analyze_repo requires $3.00 MPP credit (or Pro tier). This returns the full ${ARTIFACT_COUNT}-artifact AXIS bundle. Upgrade at iliad.trustfabric.ai/billing.`);
     expect(data.message).toBe(data.error);
-    expect(data.price).toBe("0.50");
+    expect(data.price).toBe("3.00");
     expect(data.referral_token).toBeTruthy();
     expect(typeof data.upgrade_url).toBe("string");
   });

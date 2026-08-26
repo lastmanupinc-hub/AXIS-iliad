@@ -107,8 +107,8 @@ describe("METERED_MCP_TOOLS / PRICING_TIERS — closer and deploy are genuinely 
   it("both tools have an explicit PRICING_TIERS entry (not just the default fallback)", () => {
     expect(PRICING_TIERS.closer).toBeDefined();
     expect(PRICING_TIERS.deploy).toBeDefined();
-    expect(PRICING_TIERS.closer.standard_cents).toBe(50);
-    expect(PRICING_TIERS.deploy.standard_cents).toBe(50);
+    expect(PRICING_TIERS.closer.standard_cents).toBe(100);
+    expect(PRICING_TIERS.deploy.standard_cents).toBe(100);
   });
 });
 

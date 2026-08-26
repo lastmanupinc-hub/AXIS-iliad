@@ -254,6 +254,6 @@ describe("Quota-exceeded guardrails — prepare_agentic_purchasing", () => {
     const parsed = JSON.parse(result.text);
     expect(parsed.error).toBe("Payment Required");
     expect(parsed.blocked_programs).toBeInstanceOf(Array);
-    expect(parsed.price).toBe("0.50");
+    expect(parsed.price).toBe("3.00");
   });
 });

@@ -464,7 +464,17 @@ export function build402NegotiationBody(
     : ["mppx/stripe"];
   const preferredPaymentScheme = paymentRecipient ? usdcScheme : "mppx/stripe";
   const standardUsd = (tier.standard_cents / 100).toFixed(2);
+
   const liteUsd = (tier.lite_cents / 100).toFixed(2);
+  // A lite price of 0 means lite is RETIRED for this tool (it returns the free
+  // artifact set), and lite == standard means lite carries no discount. Neither
+  // should render as "($0.00 lite)" — that advertises a paid tier costing nothing.
+  const liteSuffix =
+    tier.lite_cents === 0
+      ? " (lite retired — returns the free artifact set at no charge)"
+      : tier.lite_cents === tier.standard_cents
+        ? " (lite priced the same — identical output)"
+        : ` ($${liteUsd} lite)`;
   // Per-rail economics, stated explicitly so an agent can evaluate rails
   // without human help. The AGENT-FACING price is identical on every rail
   // (the listed price is all-in — AXIS adds no per-rail surcharge, and per
@@ -487,7 +497,7 @@ export function build402NegotiationBody(
             network: paymentNetwork,
             price_usd: standardUsd,
             lite_price_usd: liteUsd,
-            summary: `USDC on ${paymentNetwork} @ $${standardUsd} per ${tool} call ($${liteUsd} lite)`,
+            summary: `USDC on ${paymentNetwork} @ $${standardUsd} per ${tool} call${liteSuffix}`,
             settlement: "on-chain, deterministic finality in seconds",
             intermediaries: "none — direct to recipient address",
             chargeback_exposure: "none (on-chain settlement is final)",
@@ -504,7 +514,7 @@ export function build402NegotiationBody(
       network: "card",
       price_usd: standardUsd,
       lite_price_usd: liteUsd,
-      summary: `Card/Link via Stripe @ $${standardUsd} per ${tool} call ($${liteUsd} lite)`,
+      summary: `Card/Link via Stripe @ $${standardUsd} per ${tool} call${liteSuffix}`,
       settlement: "card-network authorization + capture",
       intermediaries: "card network + issuing bank",
       chargeback_exposure: "standard card-network dispute rules apply",
@@ -567,11 +577,25 @@ export function build402NegotiationBody(
     actions: {
       accept: "Retry with MPP payment credential at the negotiated amount",
       counter: "Re-send with X-Agent-Budget header: {budget_per_run_cents, spending_window}",
-      switch_lite: `Re-send with X-Agent-Mode: lite to get reduced output at $${(tier.lite_cents / 100).toFixed(2)}`,
+      // A tool whose lite price is 0 has RETIRED lite (analyze_repo/analyze_files:
+      // lite now returns the free artifact set). Advertising "pay $0.00" as a
+      // payment option is incoherent — point at the free tier instead, which is
+      // what the caller actually gets.
+      switch_lite:
+        tier.lite_cents === 0
+          ? "Lite mode is retired for this tool — re-send with X-Agent-Mode: lite to receive the FREE artifact set at no charge"
+          : tier.lite_cents === tier.standard_cents
+            ? "Lite mode carries no discount for this tool — the output is identical to standard"
+            : `Re-send with X-Agent-Mode: lite to get reduced output at $${(tier.lite_cents / 100).toFixed(2)}`,
       get_free: "Call discover_commerce_tools or discover_agentic_purchasing_needs (no auth, no cost)",
     },
     next_step: {
-      immediate: `Pay $${(tier.standard_cents / 100).toFixed(2)} for the full ${tool} run, or switch to lite at $${(tier.lite_cents / 100).toFixed(2)} if the budget is tighter.`,
+      immediate:
+        tier.lite_cents === 0
+          ? `Pay $${(tier.standard_cents / 100).toFixed(2)} for the full ${tool} run, or send X-Agent-Mode: lite for the free artifact set at no charge.`
+          : tier.lite_cents === tier.standard_cents
+            ? `Pay $${(tier.standard_cents / 100).toFixed(2)} for the ${tool} run — lite is priced the same for this tool.`
+            : `Pay $${(tier.standard_cents / 100).toFixed(2)} for the full ${tool} run, or switch to lite at $${(tier.lite_cents / 100).toFixed(2)} if the budget is tighter.`,
       retry_headers: {
         budget: 'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}',
         lite: "X-Agent-Mode: lite",
