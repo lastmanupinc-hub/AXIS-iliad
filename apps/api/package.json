@@ -27,6 +27,7 @@
     "mppx": "^0.5.12",
     "node-llama-cpp": "^3.19.1",
     "pdfjs-dist": "^6.2.108",
+    "pptxgenjs": "^4.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "sharp": "^0.34.2",
@@ -36,6 +37,7 @@
     "@types/dockerode": "^4.0.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
+    "jszip": "^3.10.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.0"
   }
