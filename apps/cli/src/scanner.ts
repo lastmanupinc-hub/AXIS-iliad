@@ -182,7 +182,15 @@ export function scanDirectory(root: string): ScanResult {
       // content read) and competes for whatever budget survives the walk.
       // Plain source may not eat into the DOC_RESERVE — past that line it
       // defers too, behind the audit docs it would otherwise starve.
-      const admitNow = isManifest || isRootConfig || (SOURCE_EXTENSIONS.has(ext) && files.length < MAX_FILES - DOC_RESERVE);
+      //
+      // CI workflow files are manifest-class evidence, not generic YAML: they
+      // are few, tiny, and the SOLE input to ci_platform detection. Deferred,
+      // they starve on any source-rich repo at the cap — the Avatar Foundry
+      // dogfood (2026-08-26) produced "CI: none detected" against 5 real
+      // workflow files because every deferred slot went to source overflow.
+      const normalizedDir = dir.replace(/\\/g, "/");
+      const isCiConfig = /\/\.github\/workflows$|\/\.circleci$/.test(normalizedDir);
+      const admitNow = isManifest || isRootConfig || isCiConfig || (SOURCE_EXTENSIONS.has(ext) && files.length < MAX_FILES - DOC_RESERVE);
       if (!admitNow) {
         if (deferred.length < MAX_FILES * 2) deferred.push(fullPath);
         else skipped++;

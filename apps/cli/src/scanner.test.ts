@@ -73,6 +73,29 @@ describe("scanDirectory — breadth across sibling directories", () => {
 
 });
 
+describe("scanDirectory — CI workflows survive the cap (Avatar Foundry dogfood, 2026-08-26)", () => {
+  it("RED-PROOF: .github/workflows YAML is admitted on a source-SATURATED repo — ci_platform detection cannot go dark at the cap", () => {
+    // The real failure: Avatar Foundry's scan (500 source files, cap hit)
+    // deferred every workflow yml behind source overflow, so the tree carried
+    // ZERO .github files and the pitch deck printed "CI: none detected"
+    // against 5 real workflow files. Fixture must SATURATE the cap with
+    // source, or it passes under the old defer-everything-yml behavior too.
+    const root = makeTempRepo();
+    makeFiles(join(root, "engine", "core"), 300, "core");
+    makeFiles(join(root, "engine", "pipeline"), 300, "pipe");
+    mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+    writeFileSync(join(root, ".github", "workflows", "ci.yml"), "name: CI\non: [push]\njobs: {}\n");
+    writeFileSync(join(root, ".github", "workflows", "release.yml"), "name: Release\non: [push]\njobs: {}\n");
+
+    const result = scanDirectory(root);
+    const workflowFiles = result.files.filter((f) => f.path.startsWith(".github/workflows/"));
+    expect(workflowFiles.map((f) => f.path).sort()).toEqual([
+      ".github/workflows/ci.yml",
+      ".github/workflows/release.yml",
+    ]);
+  }, 20_000);
+});
+
 describe("scanDirectory — unchanged behavior (regression guard)", () => {
   it("skips SKIP_DIRS entries entirely", () => {
     const root = makeTempRepo();

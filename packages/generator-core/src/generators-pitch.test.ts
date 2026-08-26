@@ -253,6 +253,18 @@ describe("evidence-skeleton structure (v2) — the consensus skeleton, provenanc
     expect(deck).toContain('"Invoice API for small businesses"');
   });
 
+  it("RED-PROOF (Avatar Foundry dogfood): pytest's test_*.py PREFIX convention counts as test files", () => {
+    const ctx = ctxFixture();
+    (ctx.structure as { file_tree_summary: Array<{ path: string; type: string; language: string; loc: number; role: string }> }).file_tree_summary = [
+      { path: "tests/test_pipeline.py", type: "file", language: "Python", loc: 100, role: "test" },
+      { path: "engine/test_export.py", type: "file", language: "Python", loc: 80, role: "test" },
+      { path: "engine/contest_entry.py", type: "file", language: "Python", loc: 50, role: "source" }, // contains "test_" mid-word — must NOT count
+      { path: "src/index.ts", type: "file", language: "TypeScript", loc: 300, role: "source" },
+    ];
+    const deck = generatePitchDeck(ctx, []).content;
+    expect(deck).toContain("Test files found: 2");
+  });
+
   it("the honest audit slide keeps both halves: engineering reality AND the docs-vs-code diff", () => {
     const deck = generatePitchDeck(ctxFixture(), LYING_README).content;
     // Engineering reality (was slide 3) and the claims audit (was slide 4)

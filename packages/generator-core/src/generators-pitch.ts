@@ -82,10 +82,17 @@ function measuredFacts(ctx: ContextMap): Fact[] {
   return facts;
 }
 
-/** Count test files the scan actually saw — evidence, not a docs claim. */
+/** Count test files the scan actually saw — evidence, not a docs claim.
+ *
+ * Conventions covered: suffix (`*.test.ts`, `*.spec.js`, `*_test.go`) AND
+ * pytest's PREFIX convention (`test_*.py`). The prefix form was missing until
+ * the Avatar Foundry dogfood (2026-08-26) caught the deck printing
+ * "Test files found: 0" on a repo whose scanned tree contained 459
+ * `test_*.py` files — a false, unflattering measurement from the program
+ * whose whole contract is measured truth. Found by generating, not review. */
 function countTestFiles(ctx: ContextMap): number {
   return (ctx.structure?.file_tree_summary ?? []).filter((f) =>
-    /\.(test|spec)\.[a-z]+$|_test\.[a-z]+$/i.test(String(f.path ?? "")),
+    /\.(test|spec)\.[a-z]+$|_test\.[a-z]+$|(^|\/)test_[^/]+\.py$/i.test(String(f.path ?? "")),
   ).length;
 }
 
