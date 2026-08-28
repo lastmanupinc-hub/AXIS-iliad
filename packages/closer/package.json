@@ -1,0 +1,29 @@
+{
+  "name": "@axis/closer",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Revenue operating system for AXIS programs — event-sourced sales pipeline that derives stage and next action from facts instead of storing a board. Identify → qualify → decision maker → contact → meeting → live → revenue.",
+  "keywords": ["pipeline", "revenue", "sales", "crm", "prospecting", "axis"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lastmanupinc-hub/axis-iliad.git",
+    "directory": "packages/closer"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo skipped — run vitest from root"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

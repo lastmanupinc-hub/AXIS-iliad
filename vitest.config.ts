@@ -62,6 +62,7 @@ const PURE_PROJECT_INCLUDE = [
   "packages/agentic-compliance/src/**/*.test.ts",
   "packages/sdk/src/**/*.test.ts",
   "packages/paid-client/src/**/*.test.ts",
+  "packages/closer/src/**/*.test.ts",
   "apps/web/src/**/*.test.{ts,tsx}",
   "apps/cli/src/**/*.test.ts",
 ];
