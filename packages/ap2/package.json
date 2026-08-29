@@ -33,7 +33,7 @@
     "test": "echo skipped — run vitest from root"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.3.0",
     "typescript": "^5.7.0"
   }
 }
