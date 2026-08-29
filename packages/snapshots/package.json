@@ -35,12 +35,12 @@
     "test": "echo skipped — run vitest from root"
   },
   "dependencies": {
-    "pg": "^8.22.0",
-    "pg-boss": "12.26.4"
+    "pg": "^8.23.0",
+    "pg-boss": "12.28.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/pg": "^8.20.4",
+    "@types/pg": "^8.23.1",
     "typescript": "^5.7.0"
   }
 }
