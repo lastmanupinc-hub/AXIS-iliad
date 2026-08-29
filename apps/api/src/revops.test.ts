@@ -11,6 +11,7 @@ import {
   handleGetProspect,
   handleTodayQueue,
   handleFunnel,
+  handleScanProspect,
 } from "./revops.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -64,6 +65,7 @@ beforeAll(async () => {
   router.get("/v1/revops/prospects/:prospect_id", handleGetProspect);
   router.get("/v1/revops/today", handleTodayQueue);
   router.get("/v1/revops/funnel", handleFunnel);
+  router.post("/v1/revops/prospects/:prospect_id/scan", handleScanProspect);
   const ts = await startTestServer(router);
   server = ts.server;
   testPort = ts.port;
@@ -278,5 +280,68 @@ describe("revops routes: today queue and funnel", () => {
     const r = await req("GET", "/v1/revops/today?limit=2", undefined, adminKey);
     expect(r.status).toBe(200);
     expect((r.data as any).queue.length).toBeLessThanOrEqual(2);
+  });
+});
+
+// ─── Scan: the compliance behaviour is the part that must hold ───────────
+
+describe("revops routes: web scan refusals", () => {
+  it("requires admin", async () => {
+    const r = await req("POST", "/v1/revops/prospects/prs_x/scan", {}, regularKey);
+    expect(r.status).toBe(403);
+  });
+
+  it("400s a prospect with no website", async () => {
+    const created = await req(
+      "POST",
+      "/v1/revops/prospects",
+      { legal_name: "No Website Co", source_id: "seed" },
+      adminKey,
+    );
+    const id = (created.data as any).prospect.prospect_id as string;
+    const r = await req("POST", `/v1/revops/prospects/${id}/scan`, {}, adminKey);
+    expect(r.status).toBe(400);
+  });
+
+  it("REFUSES a non-HTTPS site as policy (200 ok:false), not as an error", async () => {
+    const created = await req(
+      "POST",
+      "/v1/revops/prospects",
+      { legal_name: "Insecure Co", website: "http://insecure.example", source_id: "seed" },
+      adminKey,
+    );
+    const id = (created.data as any).prospect.prospect_id as string;
+    const r = await req("POST", `/v1/revops/prospects/${id}/scan`, {}, adminKey);
+    // A deliberate compliance decision must not look like a bug.
+    expect(r.status).toBe(200);
+    expect((r.data as any).ok).toBe(false);
+    expect((r.data as any).code).toBe("NOT_HTTPS");
+  });
+
+  it("REFUSES a private/loopback host (SSRF guard)", async () => {
+    const created = await req(
+      "POST",
+      "/v1/revops/prospects",
+      { legal_name: "Localhost Co", website: "https://127.0.0.1/", source_id: "seed" },
+      adminKey,
+    );
+    const id = (created.data as any).prospect.prospect_id as string;
+    const r = await req("POST", `/v1/revops/prospects/${id}/scan`, {}, adminKey);
+    expect(r.status).toBe(200);
+    expect((r.data as any).ok).toBe(false);
+    // Without this guard an admin endpoint becomes an SSRF probe of our own infra.
+    expect((r.data as any).code).toBe("PRIVATE_HOST");
+  });
+
+  it("REFUSES cloud metadata by IP", async () => {
+    const created = await req(
+      "POST",
+      "/v1/revops/prospects",
+      { legal_name: "Metadata Co", website: "https://169.254.169.254/latest/meta-data/", source_id: "seed" },
+      adminKey,
+    );
+    const id = (created.data as any).prospect.prospect_id as string;
+    const r = await req("POST", `/v1/revops/prospects/${id}/scan`, {}, adminKey);
+    expect((r.data as any).code).toBe("PRIVATE_HOST");
   });
 });

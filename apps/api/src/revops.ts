@@ -39,6 +39,7 @@ import {
   type ProspectRecord,
   type ProspectFacts,
 } from "@axis/revops";
+import { enrichFromWeb } from "./revops-ingest.js";
 import { requireAdmin } from "./admin.js";
 import { readBody, sendError, sendJSON } from "./router.js";
 import { ErrorCode } from "./logger.js";
@@ -317,5 +318,75 @@ export async function handleFunnel(req: IncomingMessage, res: ServerResponse): P
     // The same text the CLI and any dashboard print, computed in one place so
     // three surfaces can never disagree about the numbers.
     summary: funnelSummary(f),
+  });
+}
+
+// ─── POST /v1/revops/prospects/:id/scan — enrich from the merchant's site ──
+//
+// Fetches the prospect's OWN public homepage (robots-respecting, rate-limited,
+// SSRF-guarded — see revops-ingest.ts) and turns what it finds into facts and
+// signals. This is the automated half of "identify → qualify": a scan can move
+// a prospect from IDENTIFIED to QUALIFIED with no human typing anything.
+//
+// A refusal (robots.txt, private host, non-HTTPS) is returned as 200 with
+// ok:false, not an error status. It is a POLICY outcome, not a failure — the
+// caller wants to record "we chose not to fetch this and why", and a 4xx would
+// make a deliberate compliance decision look like a bug.
+export async function handleScanProspect(
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+): Promise<void> {
+  const prospect_id = params.prospect_id ?? "";
+  if (!(await requireAdmin(req, res))) return;
+
+  const stored = await getProspect(prospect_id);
+  if (!stored) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Prospect not found");
+    return;
+  }
+  if (!stored.website) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "Prospect has no website to scan");
+    return;
+  }
+
+  const facts = stored.facts as ProspectFacts;
+  const result = await enrichFromWeb(stored.website, facts.current_processors);
+
+  if (!result.ok) {
+    sendJSON(res, 200, { ok: false, code: result.code, reason: result.reason });
+    return;
+  }
+
+  // Persist what we observed: facts merge onto the prospect, signals become
+  // events. Each signal carries the page URL as evidence so any score derived
+  // from it stays auditable back to what we actually saw.
+  if (Object.keys(result.facts).length > 0) {
+    await enrichProspect(prospect_id, result.facts, "web-scan");
+  }
+  for (const kind of result.signals) {
+    await appendEvent(
+      prospect_id,
+      "signal",
+      { kind, evidence_url: result.page.url, note: result.evidence.join("; ") },
+      "web-scan",
+    );
+  }
+
+  const events = await listEvents(prospect_id);
+  const refreshed = await getProspect(prospect_id);
+  const evaluated = evaluate(toRecord({ prospect: refreshed!, events }), new Date());
+
+  sendJSON(res, 200, {
+    ok: true,
+    scanned_url: result.page.url,
+    http_status: result.page.status,
+    facts_learned: result.facts,
+    signals_recorded: result.signals,
+    evidence: result.evidence,
+    stage: evaluated.state.stage,
+    score: evaluated.score.score,
+    next_action: evaluated.next,
+    qualification: qualify(refreshed!.facts as ProspectFacts),
   });
 }

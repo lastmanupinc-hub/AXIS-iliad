@@ -59,3 +59,19 @@ export {
   type EvaluatedProspect,
   type FunnelCounts,
 } from "./pipeline.js";
+
+export {
+  fingerprintPage,
+  hasAgeGate,
+  detectStackChange,
+  type PageSnapshot,
+  type FingerprintResult,
+} from "./fingerprint.js";
+
+export {
+  parseRobots,
+  isAllowed,
+  ROBOTS_ABSENT,
+  type RobotsRules,
+  type RobotsDecision,
+} from "./robots.js";

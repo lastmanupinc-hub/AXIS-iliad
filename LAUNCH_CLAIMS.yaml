@@ -25,8 +25,8 @@ claims:
     verified_at: "2026-07-02"
 
   - id: endpoint_count
-    text: "186 REST endpoints"
-    value: 186
+    text: "187 REST endpoints"
+    value: 187
     source: "apps/api/src/counts.ts ENDPOINT_COUNT (guarded by counts-consistency.test.ts)"
     status: verified
     verified_at: "2026-08-26"

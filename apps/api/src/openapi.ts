@@ -1299,8 +1299,8 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/revops/prospects": {
         post: {
           summary: "Admin: ingest a prospect (dedups on website)",
-          operationId: "closerCreateProspect",
-          tags: ["Closer"],
+          operationId: "revopsCreateProspect",
+          tags: ["RevOps"],
           security: [{ apiKey: [] }],
           responses: {
             200: { description: "Prospect (existing one returned when the website already exists)" },
@@ -1313,8 +1313,8 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/revops/prospects/{prospect_id}": {
         get: {
           summary: "Admin: get a prospect with derived stage, score and next action",
-          operationId: "closerGetProspect",
-          tags: ["Closer"],
+          operationId: "revopsGetProspect",
+          tags: ["RevOps"],
           security: [{ apiKey: [] }],
           responses: {
             200: { description: "Prospect, events, derived state and next action" },
@@ -1325,8 +1325,8 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
         patch: {
           summary: "Admin: merge enrichment facts into a prospect",
-          operationId: "closerEnrichProspect",
-          tags: ["Closer"],
+          operationId: "revopsEnrichProspect",
+          tags: ["RevOps"],
           security: [{ apiKey: [] }],
           responses: {
             200: { description: "Updated prospect" },
@@ -1340,8 +1340,8 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/revops/prospects/{prospect_id}/events": {
         post: {
           summary: "Admin: append a pipeline fact (stage advances on its own)",
-          operationId: "closerAppendEvent",
-          tags: ["Closer"],
+          operationId: "revopsAppendEvent",
+          tags: ["RevOps"],
           security: [{ apiKey: [] }],
           responses: {
             201: { description: "Event, plus the resulting derived state and next action" },
@@ -1352,11 +1352,29 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/revops/prospects/{prospect_id}/scan": {
+        post: {
+          summary: "Admin: enrich a prospect from its own public website (robots-respecting)",
+          operationId: "revopsScanProspect",
+          tags: ["RevOps"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: {
+              description:
+                "ok:true with facts learned, signals recorded and derived state; ok:false with a policy code (ROBOTS_DISALLOWED, PRIVATE_HOST, NOT_HTTPS, FETCH_FAILED, NOT_HTML) when the fetch was declined",
+            },
+            400: { description: "Prospect has no website to scan" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+            404: { description: "Prospect not found" },
+          },
+        },
+      },
       "/v1/revops/today": {
         get: {
           summary: "Admin: today's ranked work queue (what to do next)",
-          operationId: "closerTodayQueue",
-          tags: ["Closer"],
+          operationId: "revopsTodayQueue",
+          tags: ["RevOps"],
           security: [{ apiKey: [] }],
           responses: {
             200: { description: "Due actions, ranked; `truncated` flags an incomplete load" },
@@ -1368,8 +1386,8 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/revops/funnel": {
         get: {
           summary: "Admin: funnel counts by stage, plus a rendered summary",
-          operationId: "closerFunnel",
-          tags: ["Closer"],
+          operationId: "revopsFunnel",
+          tags: ["RevOps"],
           security: [{ apiKey: [] }],
           responses: {
             200: { description: "Cumulative reached/current counts, terminals, hot and due-today" },

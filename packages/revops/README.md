@@ -109,10 +109,42 @@ Every function that depends on time takes `now: Date` as a parameter. Nothing
 calls `Date.now()` internally, so the whole engine is deterministic and
 testable — and a queue built at 09:00 can be reproduced exactly at 17:00.
 
+## Web enrichment
+
+`POST /v1/revops/prospects/:id/scan` fetches a prospect's own public homepage
+and turns what it finds into facts and signals — a scan can move a prospect
+from IDENTIFIED to QUALIFIED with nobody typing anything.
+
+The intelligence is pure (`fingerprint.ts`, tested against fixtures, no
+network); the fetching lives in `apps/api/src/revops-ingest.ts` and enforces,
+non-optionally:
+
+1. **robots.txt honored on every host**, parsed per RFC 9309 (longest-match,
+   Allow-beats-Disallow, `*`/`$` wildcards, agent-specific groups beating the
+   wildcard). Present-but-unparseable **refuses** — we never resolve our own
+   ambiguity in our own favour.
+2. **An identifying User-Agent with a contact URL.** No browser impersonation.
+3. **Per-host rate limiting**, honoring `Crawl-delay` when the site sets one.
+4. **Timeout + 2 MB response cap.**
+5. **HTTPS only, public hosts only** — a DNS-resolving SSRF guard, so an admin
+   endpoint cannot be pointed at `127.0.0.1` or cloud metadata.
+
+A refusal returns `200 {ok:false, code}` rather than a 4xx: declining to fetch
+is a *policy outcome*, and a 4xx would make a deliberate compliance decision
+look like a bug.
+
+**Scope boundary — this detects technology and business facts, never people.**
+No email harvesting, no name extraction, anywhere. Decision-maker discovery
+stays a human step: it is the legally fraught part, and hand-researched
+contacts convert better than scraped ones. `decision_maker` is only ever set
+by an operator.
+
 ## Status
 
-The engine is complete and tested (30 tests). Still to land:
+Engine, persistence, API and web enrichment are complete and tested
+(30 engine + 25 fingerprint/robots + 11 store + 16 route tests).
 
-- Postgres persistence (migration v47: `closer_prospects`, `closer_events`)
-- `/v1/closer/*` API routes in `apps/api` so PAI'D can call it
-- Public-source ingestion adapters for the IDENTIFIED stage
+Still open: **discovery** — where the initial list of company names comes
+from. Scanning enriches a prospect you already have; it does not find new
+ones. That needs its own source adapters (public registries, open datasets)
+and its own per-source compliance review.

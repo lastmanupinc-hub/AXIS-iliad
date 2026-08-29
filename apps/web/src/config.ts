@@ -84,4 +84,4 @@ export const FREE_FILE_COUNT = 47;
 export const TOOL_COUNT = 39; // +1: delete_snapshot (Glama coherence review, 2026-08-25)
 
 /** REST endpoints on the API surface (= ENDPOINT_COUNT). */
-export const ENDPOINT_COUNT = 186;
+export const ENDPOINT_COUNT = 187;

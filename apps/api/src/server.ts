@@ -142,6 +142,7 @@ import {
   handleGetProspect,
   handleTodayQueue,
   handleFunnel,
+  handleScanProspect,
 } from "./revops.js";
 import { validateEnv } from "./env.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
@@ -197,6 +198,7 @@ router.post("/v1/revops/prospects/:prospect_id/events", handleAppendEvent);
 router.patch("/v1/revops/prospects/:prospect_id", handleEnrichProspect);
 router.get("/v1/revops/prospects/:prospect_id", handleGetProspect);
 router.get("/v1/revops/today", handleTodayQueue);
+router.post("/v1/revops/prospects/:prospect_id/scan", handleScanProspect);
 router.get("/v1/revops/funnel", handleFunnel);
 
 // OpenAPI docs
