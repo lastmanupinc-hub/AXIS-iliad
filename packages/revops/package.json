@@ -1,5 +1,5 @@
 {
-  "name": "@axis/closer",
+  "name": "@axis/revops",
   "version": "0.1.0",
   "type": "module",
   "description": "Revenue operating system for AXIS programs — event-sourced sales pipeline that derives stage and next action from facts instead of storing a board. Identify → qualify → decision maker → contact → meeting → live → revenue.",
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/lastmanupinc-hub/axis-iliad.git",
-    "directory": "packages/closer"
+    "directory": "packages/revops"
   },
   "exports": {
     ".": {

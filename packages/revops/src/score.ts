@@ -14,7 +14,7 @@
 // Every output carries its reasons. An unexplainable score is one nobody
 // trusts, and one nobody can debug when the queue looks wrong.
 
-import type { CloserEvent, ProspectFacts, SignalKind, SignalPayload } from "./types.js";
+import type { RevOpsEvent, ProspectFacts, SignalKind, SignalPayload } from "./types.js";
 
 export interface QualifyResult {
   readonly qualified: boolean;
@@ -158,7 +158,7 @@ export interface ScoreResult {
  */
 export function score(
   facts: ProspectFacts,
-  events: readonly CloserEvent[],
+  events: readonly RevOpsEvent[],
   now: Date,
 ): ScoreResult {
   const reasons: string[] = [];

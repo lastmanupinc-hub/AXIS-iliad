@@ -8,7 +8,7 @@ import {
   qualify,
   score,
   todayQueue,
-  type CloserEvent,
+  type RevOpsEvent,
   type ProspectRecord,
   type Prospect,
 } from "./index.js";
@@ -18,10 +18,10 @@ const NOW = new Date("2026-03-10T12:00:00.000Z");
 let seq = 0;
 function ev(
   prospect_id: string,
-  type: CloserEvent["type"],
+  type: RevOpsEvent["type"],
   at: string,
   payload?: Record<string, unknown>,
-): CloserEvent {
+): RevOpsEvent {
   return { seq: ++seq, prospect_id, type, at, payload };
 }
 
@@ -360,7 +360,7 @@ describe("derived-state invariants", () => {
 
   it("appending one fact advances the pipeline with no other write", () => {
     const p = prospect("i2", { vertical: "cbd", est_monthly_volume: 9_000_000 });
-    const before: CloserEvent[] = [
+    const before: RevOpsEvent[] = [
       ev("i2", "qualified", "2026-03-02T00:00:00Z"),
       ev("i2", "decision_maker_found", "2026-03-02T00:00:00Z"),
       ev("i2", "contact_verified", "2026-03-02T00:00:00Z"),

@@ -8,7 +8,7 @@ import {
   getProspect,
   listEvents,
   loadPipeline,
-} from "./closer-store.js";
+} from "./revops-store.js";
 
 // Exercises migration v47 against real Postgres — the tables, the dedup index,
 // and the identity `seq` column all have to actually exist for these to pass.

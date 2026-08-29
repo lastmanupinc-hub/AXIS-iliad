@@ -1,11 +1,11 @@
-// @axis/closer — the revenue operating system shared by AXIS programs.
+// @axis/revops — the revenue operating system shared by AXIS programs.
 //
 // Not a CRM: no stage is stored, so no board is maintained. Callers append
 // facts; stage and next action are derived on read.
 //
 // Typical use (PAI'D merchant acquisition):
 //
-//   import { evaluate, todayQueue, funnel, funnelSummary } from "@axis/closer";
+//   import { evaluate, todayQueue, funnel, funnelSummary } from "@axis/revops";
 //
 //   const queue = todayQueue(records, new Date(), { limit: 10 });
 //   for (const item of queue) {
@@ -16,8 +16,8 @@ export {
   type Stage,
   type TerminalState,
   type PipelineState,
-  type CloserEvent,
-  type CloserEventType,
+  type RevOpsEvent,
+  type RevOpsEventType,
   type Prospect,
   type ProspectFacts,
   type DecisionMaker,

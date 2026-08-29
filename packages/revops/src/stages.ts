@@ -11,7 +11,7 @@
 // satisfied condition), because the meeting is the stronger evidence.
 
 import {
-  type CloserEvent,
+  type RevOpsEvent,
   type PipelineState,
   type RepliedPayload,
   type SnoozedPayload,
@@ -39,11 +39,11 @@ export interface DerivedState {
 }
 
 /** Sort by seq, which is authoritative — timestamps can collide or skew. */
-function ordered(events: readonly CloserEvent[]): CloserEvent[] {
+function ordered(events: readonly RevOpsEvent[]): RevOpsEvent[] {
   return [...events].sort((a, b) => a.seq - b.seq);
 }
 
-function has(events: readonly CloserEvent[], type: string): boolean {
+function has(events: readonly RevOpsEvent[], type: string): boolean {
   return events.some((e) => e.type === type);
 }
 
@@ -57,7 +57,7 @@ function has(events: readonly CloserEvent[], type: string): boolean {
  * chain would make the pipeline lie whenever reality skipped a step — the most
  * common way funnel data rots.
  */
-const ENTRY: Record<Stage, (e: readonly CloserEvent[]) => boolean> = {
+const ENTRY: Record<Stage, (e: readonly RevOpsEvent[]) => boolean> = {
   IDENTIFIED: () => true, // existing at all == identified
   QUALIFIED: (e) => has(e, "qualified"),
   DECISION_MAKER_FOUND: (e) => has(e, "decision_maker_found"),
@@ -81,7 +81,7 @@ const ENTRY: Record<Stage, (e: readonly CloserEvent[]) => boolean> = {
  * A `reopened` event clears `lost` and any snooze, but NEVER clears an
  * opt-out: honoring "stop contacting me" is not a business decision.
  */
-export function deriveState(events: readonly CloserEvent[]): DerivedState {
+export function deriveState(events: readonly RevOpsEvent[]): DerivedState {
   const evs = ordered(events);
 
   let stage: Stage = "IDENTIFIED";
@@ -161,6 +161,6 @@ export function snoozeExpired(state: DerivedState, now: Date): boolean {
 }
 
 /** Convenience for funnel math and tests. */
-export function reachedStage(events: readonly CloserEvent[], stage: Stage): boolean {
+export function reachedStage(events: readonly RevOpsEvent[], stage: Stage): boolean {
   return stageRank(deriveState(events).stage) >= stageRank(stage);
 }

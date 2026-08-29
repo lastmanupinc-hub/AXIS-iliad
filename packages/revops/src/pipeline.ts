@@ -10,7 +10,7 @@ import { deriveState, snoozeExpired, type DerivedState } from "./stages.js";
 import { nextAction, type Cadence, DEFAULT_CADENCE } from "./next-action.js";
 import { score, type ScoreResult } from "./score.js";
 import {
-  type CloserEvent,
+  type RevOpsEvent,
   type NextAction,
   type PipelineState,
   type Prospect,
@@ -22,7 +22,7 @@ import {
 /** A prospect plus its full event log — the unit every view operates on. */
 export interface ProspectRecord {
   readonly prospect: Prospect;
-  readonly events: readonly CloserEvent[];
+  readonly events: readonly RevOpsEvent[];
 }
 
 export interface EvaluatedProspect {

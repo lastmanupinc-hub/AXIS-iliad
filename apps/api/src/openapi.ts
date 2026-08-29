@@ -1292,6 +1292,93 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
+      // ── Closer (revenue pipeline) ──
+      // Admin-only throughout: these hold prospect PII and targeting intel.
+      // Note there is no "set stage" operation, by design — stage is derived
+      // from the event log, so the only write is appending a fact.
+      "/v1/revops/prospects": {
+        post: {
+          summary: "Admin: ingest a prospect (dedups on website)",
+          operationId: "closerCreateProspect",
+          tags: ["Closer"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Prospect (existing one returned when the website already exists)" },
+            400: { description: "legal_name and source_id are required" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+          },
+        },
+      },
+      "/v1/revops/prospects/{prospect_id}": {
+        get: {
+          summary: "Admin: get a prospect with derived stage, score and next action",
+          operationId: "closerGetProspect",
+          tags: ["Closer"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Prospect, events, derived state and next action" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+            404: { description: "Prospect not found" },
+          },
+        },
+        patch: {
+          summary: "Admin: merge enrichment facts into a prospect",
+          operationId: "closerEnrichProspect",
+          tags: ["Closer"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Updated prospect" },
+            400: { description: "facts object is required" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+            404: { description: "Prospect not found" },
+          },
+        },
+      },
+      "/v1/revops/prospects/{prospect_id}/events": {
+        post: {
+          summary: "Admin: append a pipeline fact (stage advances on its own)",
+          operationId: "closerAppendEvent",
+          tags: ["Closer"],
+          security: [{ apiKey: [] }],
+          responses: {
+            201: { description: "Event, plus the resulting derived state and next action" },
+            400: { description: "Unsupported event type" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+            404: { description: "Prospect not found" },
+          },
+        },
+      },
+      "/v1/revops/today": {
+        get: {
+          summary: "Admin: today's ranked work queue (what to do next)",
+          operationId: "closerTodayQueue",
+          tags: ["Closer"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Due actions, ranked; `truncated` flags an incomplete load" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+          },
+        },
+      },
+      "/v1/revops/funnel": {
+        get: {
+          summary: "Admin: funnel counts by stage, plus a rendered summary",
+          operationId: "closerFunnel",
+          tags: ["Closer"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Cumulative reached/current counts, terminals, hot and due-today" },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
+          },
+        },
+      },
+
       // ── OAuth ──
       "/v1/auth/github": {
         get: {

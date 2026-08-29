@@ -393,13 +393,13 @@ export {
 } from "./mcp-usage-store.js";
 
 // Closer — revenue pipeline persistence (pg-schema.ts v47). Facts only: no
-// stage/next_action is stored, both are derived by @axis/closer on read.
+// stage/next_action is stored, both are derived by @axis/revops on read.
 export type {
   StoredProspect,
   StoredEvent,
   ProspectWithEvents,
   CreateProspectInput,
-} from "./closer-store.js";
+} from "./revops-store.js";
 export {
   createProspect,
   getProspect,
@@ -408,4 +408,4 @@ export {
   listEvents,
   loadPipeline,
   countProspects,
-} from "./closer-store.js";
+} from "./revops-store.js";

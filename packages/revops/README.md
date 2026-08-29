@@ -1,4 +1,4 @@
-# @axis/closer
+# @axis/revops
 
 A revenue operating system for AXIS programs. Not a CRM.
 
@@ -36,7 +36,7 @@ Consequences that fall out for free:
 ## The product is the queue, not the board
 
 ```ts
-import { todayQueue, funnel, funnelSummary } from "@axis/closer";
+import { todayQueue, funnel, funnelSummary } from "@axis/revops";
 
 const q = todayQueue(records, new Date(), { limit: 8 });
 for (const item of q) {

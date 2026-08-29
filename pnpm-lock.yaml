@@ -65,6 +65,9 @@ importers:
       '@axis/repo-parser':
         specifier: workspace:*
         version: link:../../packages/repo-parser
+      '@axis/revops':
+        specifier: workspace:*
+        version: link:../../packages/revops
       '@axis/snapshots':
         specifier: workspace:*
         version: link:../../packages/snapshots
@@ -194,15 +197,6 @@ importers:
         specifier: ^5.7.0
         version: 5.7.3
 
-  packages/closer:
-    devDependencies:
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.17
-      typescript:
-        specifier: ^5.7.0
-        version: 5.7.3
-
   packages/context-engine:
     dependencies:
       '@axis/repo-parser':
@@ -283,6 +277,15 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+
+  packages/revops:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.7.0
+        version: 5.7.3
 
   packages/sdk:
     devDependencies:

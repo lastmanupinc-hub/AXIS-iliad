@@ -1,4 +1,4 @@
-// The Closer — shared revenue-pipeline engine for AXIS programs.
+// @axis/revops — shared revenue-pipeline engine for AXIS programs.
 //
 // DESIGN RULE #1 (why this is not a CRM): nothing in this package stores a
 // stage. `stage` is DERIVED from an append-only event log every time it is
@@ -80,7 +80,7 @@ export function stageRank(stage: Stage): number {
  * Deliberately absent: any "set_stage" / "move_to" event. Adding one would
  * reintroduce hand-maintained state and defeat the whole design.
  */
-export type CloserEventType =
+export type RevOpsEventType =
   /** Ingested from a source. Always the first event. */
   | "identified"
   /** Facts attached (firmographics, tech stack, volume proxy). Repeatable. */
@@ -118,11 +118,11 @@ export type CloserEventType =
   /** Human override: bring a terminal/dormant prospect back into the queue. */
   | "reopened";
 
-export interface CloserEvent {
+export interface RevOpsEvent {
   /** Monotonic per prospect. Ties are broken by this, not by timestamp. */
   readonly seq: number;
   readonly prospect_id: string;
-  readonly type: CloserEventType;
+  readonly type: RevOpsEventType;
   /** ISO 8601 UTC. */
   readonly at: string;
   /** Free-form, type-specific. See the payload interfaces below. */

@@ -1,18 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "./pg.js";
 
-// ─── @axis/closer persistence ────────────────────────────────────
+// ─── @axis/revops persistence ────────────────────────────────────
 //
-// Storage for the revenue pipeline. See packages/closer/README.md for the
+// Storage for the revenue pipeline. See packages/revops/README.md for the
 // design; the one rule that matters here is that this layer stores FACTS ONLY.
 //
 // There is no stage column and no next_action column, and there must never be
-// one. Stage is a fold over closer_events and next_action is a function of that
-// fold (packages/closer). If either were persisted, a write path could set them
+// one. Stage is a fold over revops_events and next_action is a function of that
+// fold (packages/revops). If either were persisted, a write path could set them
 // inconsistently with the events and the pipeline would start lying — which is
 // precisely the CRM failure mode this exists to avoid.
 //
-// This module intentionally does NOT import @axis/closer. Persistence stays a
+// This module intentionally does NOT import @axis/revops. Persistence stays a
 // dumb fact store; all derivation lives in the engine, which the API layer
 // composes. That keeps the engine free of I/O and this free of policy.
 
@@ -35,7 +35,7 @@ export interface EventRow {
   actor: string | null;
 }
 
-/** Hydrated shapes — JSON parsed, matching @axis/closer's Prospect/CloserEvent. */
+/** Hydrated shapes — JSON parsed, matching @axis/revops's Prospect/RevOpsEvent. */
 export interface StoredProspect {
   prospect_id: string;
   legal_name: string;
@@ -65,7 +65,7 @@ function parseJson(raw: string | null | undefined, where: string): Record<string
     const v = JSON.parse(raw) as unknown;
     return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
   } catch {
-    console.warn(`[closer-store] malformed JSON in ${where} — treating as {}`);
+    console.warn(`[revops-store] malformed JSON in ${where} — treating as {}`);
     return {};
   }
 }
@@ -76,7 +76,7 @@ function hydrateProspect(r: ProspectRow): StoredProspect {
     legal_name: r.legal_name,
     website: r.website ?? undefined,
     source_id: r.source_id,
-    facts: parseJson(r.facts, `closer_prospects.facts (${r.prospect_id})`),
+    facts: parseJson(r.facts, `revops_prospects.facts (${r.prospect_id})`),
     created_at: r.created_at,
   };
 }
@@ -87,7 +87,7 @@ function hydrateEvent(r: EventRow): StoredEvent {
     prospect_id: r.prospect_id,
     type: r.type,
     at: r.at,
-    payload: parseJson(r.payload, `closer_events.payload (seq ${r.seq})`),
+    payload: parseJson(r.payload, `revops_events.payload (seq ${r.seq})`),
     actor: r.actor ?? undefined,
   };
 }
@@ -118,7 +118,7 @@ export async function createProspect(input: CreateProspectInput): Promise<Stored
 
   if (input.website) {
     const existing = await sql.one<ProspectRow>(
-      `SELECT * FROM closer_prospects WHERE lower(website) = lower(?)`,
+      `SELECT * FROM revops_prospects WHERE lower(website) = lower(?)`,
       [input.website],
     );
     if (existing) return hydrateProspect(existing);
@@ -129,12 +129,12 @@ export async function createProspect(input: CreateProspectInput): Promise<Stored
 
   return await sql.tx(async (client) => {
     const res = await client.query<ProspectRow>(
-      `INSERT INTO closer_prospects (prospect_id, legal_name, website, source_id, facts, created_at)
+      `INSERT INTO revops_prospects (prospect_id, legal_name, website, source_id, facts, created_at)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [prospect_id, input.legal_name, input.website ?? null, input.source_id, facts, now],
     );
     await client.query(
-      `INSERT INTO closer_events (prospect_id, type, at, payload, actor)
+      `INSERT INTO revops_events (prospect_id, type, at, payload, actor)
        VALUES ($1, 'identified', $2, $3, $4)`,
       [prospect_id, now, JSON.stringify({ source_id: input.source_id }), input.source_id],
     );
@@ -144,7 +144,7 @@ export async function createProspect(input: CreateProspectInput): Promise<Stored
 
 export async function getProspect(prospect_id: string): Promise<StoredProspect | undefined> {
   const r = await sql.one<ProspectRow>(
-    `SELECT * FROM closer_prospects WHERE prospect_id = ?`,
+    `SELECT * FROM revops_prospects WHERE prospect_id = ?`,
     [prospect_id],
   );
   return r ? hydrateProspect(r) : undefined;
@@ -170,11 +170,11 @@ export async function enrichProspect(
 
   return await sql.tx(async (client) => {
     const res = await client.query<ProspectRow>(
-      `UPDATE closer_prospects SET facts = $1 WHERE prospect_id = $2 RETURNING *`,
+      `UPDATE revops_prospects SET facts = $1 WHERE prospect_id = $2 RETURNING *`,
       [JSON.stringify(merged), prospect_id],
     );
     await client.query(
-      `INSERT INTO closer_events (prospect_id, type, at, payload, actor)
+      `INSERT INTO revops_events (prospect_id, type, at, payload, actor)
        VALUES ($1, 'enriched', $2, $3, $4)`,
       [prospect_id, now, JSON.stringify({ keys: Object.keys(facts) }), actor ?? null],
     );
@@ -198,7 +198,7 @@ export async function appendEvent(
   at?: string,
 ): Promise<StoredEvent> {
   const res = await sql.one<EventRow>(
-    `INSERT INTO closer_events (prospect_id, type, at, payload, actor)
+    `INSERT INTO revops_events (prospect_id, type, at, payload, actor)
      VALUES (?, ?, ?, ?, ?) RETURNING *`,
     [prospect_id, type, at ?? new Date().toISOString(), JSON.stringify(payload ?? {}), actor ?? null],
   );
@@ -207,7 +207,7 @@ export async function appendEvent(
 
 export async function listEvents(prospect_id: string): Promise<StoredEvent[]> {
   const rows = await sql.many<EventRow>(
-    `SELECT * FROM closer_events WHERE prospect_id = ? ORDER BY seq ASC`,
+    `SELECT * FROM revops_events WHERE prospect_id = ? ORDER BY seq ASC`,
     [prospect_id],
   );
   return rows.map(hydrateEvent);
@@ -236,7 +236,7 @@ export async function loadPipeline(
   limit = 5000,
 ): Promise<{ records: ProspectWithEvents[]; truncated: boolean }> {
   const prospects = await sql.many<ProspectRow>(
-    `SELECT * FROM closer_prospects ORDER BY created_at ASC LIMIT ?`,
+    `SELECT * FROM revops_prospects ORDER BY created_at ASC LIMIT ?`,
     [limit + 1],
   );
   const truncated = prospects.length > limit;
@@ -246,7 +246,7 @@ export async function loadPipeline(
   const ids = page.map((p) => p.prospect_id);
   const placeholders = ids.map(() => "?").join(", ");
   const events = await sql.many<EventRow>(
-    `SELECT * FROM closer_events WHERE prospect_id IN (${placeholders}) ORDER BY prospect_id, seq ASC`,
+    `SELECT * FROM revops_events WHERE prospect_id IN (${placeholders}) ORDER BY prospect_id, seq ASC`,
     ids,
   );
 
@@ -269,6 +269,6 @@ export async function loadPipeline(
 
 /** Count prospects — cheap enough to call alongside a truncated load. */
 export async function countProspects(): Promise<number> {
-  const r = await sql.one<{ n: string }>(`SELECT COUNT(*) AS n FROM closer_prospects`);
+  const r = await sql.one<{ n: string }>(`SELECT COUNT(*) AS n FROM revops_prospects`);
   return r ? Number(r.n) : 0;
 }
