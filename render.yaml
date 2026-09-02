@@ -1,4 +1,13 @@
-# ─── Axis' Iliad — Render Blueprint ─────────────────────────────
+# ─── Axis' Iliad — Render Blueprint (DECOMMISSIONED 2026-08-31/09-01) ────
+#
+# This is no longer the live deploy path. The estate migrated off Render to
+# Fly.io around 2026-08-31/09-01; every service on this Render account
+# (including axis-api below) is now suspended for billing as part of that
+# migration, not an incident. Live production deploys through
+# `.github/workflows/ci.yml`'s `deploy-api-fly` job (flyctl → the
+# `axis-api-iliad` Fly app) on every push to main. Kept here for history and
+# as a documented rollback path, not as a description of current behavior —
+# the autoDeploy/push-equals-deploy notes below describe the OLD path.
 #
 # Deploy:  Connect this repo on Render → auto-detects render.yaml
 # Docs:    https://docs.render.com/blueprint-spec
