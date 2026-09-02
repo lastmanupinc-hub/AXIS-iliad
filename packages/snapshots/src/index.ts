@@ -391,3 +391,21 @@ export {
   getMcpUsageNewVsReturning,
   getRecentMcpUsage,
 } from "./mcp-usage-store.js";
+
+// Closer — revenue pipeline persistence (pg-schema.ts v47). Facts only: no
+// stage/next_action is stored, both are derived by @axis/revops on read.
+export type {
+  StoredProspect,
+  StoredEvent,
+  ProspectWithEvents,
+  CreateProspectInput,
+} from "./revops-store.js";
+export {
+  createProspect,
+  getProspect,
+  enrichProspect,
+  appendEvent,
+  listEvents,
+  loadPipeline,
+  countProspects,
+} from "./revops-store.js";

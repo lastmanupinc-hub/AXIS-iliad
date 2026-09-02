@@ -17,6 +17,7 @@
     "@axis/mpp": "workspace:*",
     "@axis/paid-client": "workspace:*",
     "@axis/repo-parser": "workspace:*",
+    "@axis/revops": "workspace:*",
     "@axis/snapshots": "workspace:*",
     "@napi-rs/canvas": "^1.0.3",
     "dockerode": "^5.0.1",

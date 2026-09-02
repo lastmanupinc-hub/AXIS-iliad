@@ -917,6 +917,55 @@ CREATE INDEX IF NOT EXISTS idx_provider_credentials_account ON provider_credenti
 CREATE INDEX IF NOT EXISTS idx_provider_credentials_account_provider ON provider_credentials(account_id, provider);
 CREATE INDEX IF NOT EXISTS idx_provider_credentials_repo ON provider_credentials(repo_full_name);`,
   },
+  {
+    // @axis/revops — the revenue pipeline (see packages/revops/README.md).
+    //
+    // TWO TABLES, and the split is the whole design. `revops_prospects` holds
+    // durable identity + enriched facts; `revops_events` is an APPEND-ONLY log
+    // of things that actually happened. There is deliberately NO `stage`
+    // column anywhere: stage and next_action are derived from the event log on
+    // read (packages/revops/src/stages.ts). Adding a stage column here would
+    // let stored state drift from the events and turn this back into a CRM.
+    //
+    // `seq` is BIGINT GENERATED ALWAYS AS IDENTITY so ordering is authoritative
+    // and independent of `at` — timestamps collide and skew across ingesters,
+    // and the fold in deriveState() sorts by seq for exactly that reason.
+    // Mirrors the funnel_events_seq_tiebreaker precedent in v28.
+    //
+    // No FK to accounts: prospects are OUR sales targets, not Iliad accounts.
+    // A prospect only becomes an account if we actually close them, and that
+    // link (if ever needed) belongs in facts, not a constraint that would make
+    // ingestion depend on account creation.
+    version: 47,
+    name: "closer_pipeline",
+    sql: `CREATE TABLE IF NOT EXISTS revops_prospects (
+  prospect_id TEXT PRIMARY KEY,
+  legal_name TEXT NOT NULL,
+  website TEXT,
+  source_id TEXT NOT NULL,
+  facts TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_revops_prospects_source ON revops_prospects(source_id);
+CREATE INDEX IF NOT EXISTS idx_revops_prospects_created ON revops_prospects(created_at);
+-- Dedup guard: the same company ingested twice from public sources must not
+-- become two prospects that both get contacted. Website is the strongest cheap
+-- key; partial so rows without one are still allowed.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_revops_prospects_website
+  ON revops_prospects(lower(website)) WHERE website IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS revops_events (
+  seq BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  prospect_id TEXT NOT NULL REFERENCES revops_prospects(prospect_id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  at TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  actor TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_revops_events_prospect ON revops_events(prospect_id, seq);
+CREATE INDEX IF NOT EXISTS idx_revops_events_type ON revops_events(type);
+CREATE INDEX IF NOT EXISTS idx_revops_events_at ON revops_events(at);`,
+  },
 ];
 
 /**

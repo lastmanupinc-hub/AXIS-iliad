@@ -45,7 +45,7 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
 export const MCP_TOOL_COUNT = 44; // +1: delete_snapshot (Glama coherence review, 2026-08-25 — the missing MCP-layer delete for snapshots)
-export const ENDPOINT_COUNT = 180; // +1: POST /v1/pitch/compose (draft-over-ask: citation-oracle-verified inference fills the deck's owner-input slots)
+export const ENDPOINT_COUNT = 187; // +7: /v1/revops/* revenue pipeline (prospects CRUD, events, scan, today queue, funnel)
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */
 export const API_VERSION = "0.5.3";

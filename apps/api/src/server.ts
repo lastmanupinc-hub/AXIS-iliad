@@ -135,6 +135,15 @@ import { handlePitchCompose } from "./pitch-compose-handler.js";
 import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
+import {
+  handleCreateProspect,
+  handleEnrichProspect,
+  handleAppendEvent,
+  handleGetProspect,
+  handleTodayQueue,
+  handleFunnel,
+  handleScanProspect,
+} from "./revops.js";
 import { validateEnv } from "./env.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
@@ -180,6 +189,17 @@ router.get("/performance/reputation", handlePerformanceReputation);
 // Database maintenance
 router.get("/v1/db/stats", handleDbStats);
 router.post("/v1/db/maintenance", handleDbMaintenance);
+
+// Closer — revenue pipeline (admin-only; holds prospect PII + targeting intel).
+// Route order matters: the more specific /events path is registered before the
+// bare /:prospect_id so it cannot be shadowed.
+router.post("/v1/revops/prospects", handleCreateProspect);
+router.post("/v1/revops/prospects/:prospect_id/events", handleAppendEvent);
+router.patch("/v1/revops/prospects/:prospect_id", handleEnrichProspect);
+router.get("/v1/revops/prospects/:prospect_id", handleGetProspect);
+router.get("/v1/revops/today", handleTodayQueue);
+router.post("/v1/revops/prospects/:prospect_id/scan", handleScanProspect);
+router.get("/v1/revops/funnel", handleFunnel);
 
 // OpenAPI docs
 router.get("/v1/docs", async (_req, res) => {
