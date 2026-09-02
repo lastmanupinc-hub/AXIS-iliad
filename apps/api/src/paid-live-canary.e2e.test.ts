@@ -20,13 +20,12 @@
  *     complete payment, which this test never does. Worst case: one or two
  *     abandoned "open" session rows on PAI'D's side.
  *   - Test 2 (wallet-debit idempotency) is LOW risk, not zero: per
- *     docs/MCP_PAID_ACCESS_DESIGN.md's own investigation of the PAI'D Go
- *     source, wallet debit is "a pure internal ledger" write (an int64
- *     Postgres column) — it never calls a real payment provider (Stripe /
- *     Plaid / Circle), so no card is ever charged and "FC" here is not
- *     realized money. It DOES write one real, permanent transaction row
- *     into PAI'D's live production database — IF the wallet exists (see
- *     2026-07-21 finding below; today it usually does not for a fresh id).
+ *     docs/MCP_PAID_ACCESS_DESIGN.md, a wallet debit does not itself select
+ *     or move money across a payment rail (Stripe / Plaid / Circle), so no
+ *     card is ever charged and "FC" here is not realized money. It DOES
+ *     write one real, permanent transaction row into PAI'D's live
+ *     production database — IF the wallet exists (see 2026-07-21 finding
+ *     below; today it usually does not for a fresh id).
  *   - Gated exactly like live-settlement.e2e.test.ts: `describe.skip` unless
  *     PAI'D credentials are present, so it never runs in default `pnpm
  *     test` or CI, and never produces a false green.

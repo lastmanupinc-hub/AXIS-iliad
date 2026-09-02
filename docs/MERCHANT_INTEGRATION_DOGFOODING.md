@@ -4,7 +4,7 @@ A repeatable process for validating that Iliad's **agentic‑commerce / payment 
 
 **Why this exists.** These artifacts are consumed by autonomous agents that *act* on them — an agent reads "provider X supports network tokenization ✅" or "per‑session cap $50,000" and behaves accordingly. A fabricated or ungrounded claim is not a cosmetic bug; it is a correctness/integrity failure that can cause an agent to attempt an unsupported flow or over‑spend. The only reliable way to catch this is to **run the real generator against a real merchant codebase and check what it actually emits** — deterministic tests on synthetic fixtures don't reveal fabrication.
 
-Use it for: every new merchant integration, every change to a commerce/payment generator, and before enabling paid MCP access for a merchant. The worked example throughout is the **agentic‑purchasing generator validated against the PAI'D `no-fate-payment-engine` Go backend**.
+Use it for: every new merchant integration, every change to a commerce/payment generator, and before enabling paid MCP access for a merchant. The worked example throughout is the **agentic‑purchasing generator validated against PAI'D's own Go backend**.
 
 ---
 
@@ -106,7 +106,7 @@ Anything short of that ships a document an agent could act on incorrectly — tr
 
 ## Worked example (2026‑07‑01)
 
-**Artifact:** agentic‑purchasing playbook + negotiation rules. **Test bed:** PAI'D `no-fate-payment-engine/go-backend` (180 provider‑referencing Go files).
+**Artifact:** agentic‑purchasing playbook + negotiation rules. **Test bed:** PAI'D's own Go backend.
 
 - **Found:** `stripe/adyen → "✅ Supported"`, `stripe → "single/recurring/setup"`, per‑brand caps (`$50,000/$10,000/$5,000`), and a `+5` art11 score just for detecting stripe/adyen — all fabricated, untethered from the repo.
 - **Fixed:** `detectProviderEvidence()` scans the files referencing each provider and reports what's actually there. Caps → "set per policy". Score → `has_mandate_management`.

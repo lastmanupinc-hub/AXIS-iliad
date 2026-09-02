@@ -3606,13 +3606,43 @@ export function handleChangelog(
 // files verbatim, so an agent crawling this repo/API discovers the same loop
 // (and can `begin` on axis-iliad itself) without cloning the repo first. -----
 
+// 2026-09-02 security fix: `inter_repo_ticket_system` is a live, file-based inbox
+// where a sibling repo (PAI'D, Foundry, ...) answers a ticket IN PLACE — its
+// `provider_reply` text has already carried another repo's internal file paths,
+// architecture notes, and quoted engineer replies (see e.g. the estate-federation
+// ticket). That's the right thing for the *local* file (this loop's own tooling
+// reads it directly, same-machine, no network hop), but wrong to hand to every
+// unauthenticated caller of this public endpoint. Strip the block before it goes
+// over HTTP; the on-disk file and every local consumer (the begin-loop CLI, other
+// repos' file-based tickets) are completely untouched — this only changes what
+// this one route serves.
+function redactInterRepoTicketSystem(yaml: string): string {
+  const header = yaml.match(/^( +)inter_repo_ticket_system:[ \t]*\r?\n/m);
+  if (!header || header.index === undefined) return yaml; // marker absent (e.g. continuation.yaml) -- serve as-is
+  const indent = header[1];
+  const blockStart = header.index;
+  const afterHeader = blockStart + header[0].length;
+  const rest = yaml.slice(afterHeader);
+  // The block ends at the next line holding a sibling key at the SAME indent.
+  const sibling = rest.match(new RegExp(`^${indent}[A-Za-z_][\\w]*:`, "m"));
+  const blockEnd = sibling && sibling.index !== undefined ? afterHeader + sibling.index : yaml.length;
+  const stub =
+    `${indent}inter_repo_ticket_system:\n` +
+    `${indent}  # [redacted for public HTTP serving -- see /docs or the repo's own\n` +
+    `${indent}  #  begin.yaml for full content] a ticket's provider_reply can quote\n` +
+    `${indent}  #  another repo's internal implementation detail once answered in\n` +
+    `${indent}  #  place; that's appropriate for local, same-machine tooling but not\n` +
+    `${indent}  #  for an unauthenticated public endpoint.\n`;
+  return yaml.slice(0, blockStart) + stub + yaml.slice(blockEnd);
+}
+
 export function handleBeginYaml(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   let body: string;
   try {
-    body = readFileSync(new URL("../../../begin.yaml", import.meta.url), "utf-8");
+    body = redactInterRepoTicketSystem(readFileSync(new URL("../../../begin.yaml", import.meta.url), "utf-8"));
   } catch (err) {
     log("error", "begin_yaml_read_failed", { error: err instanceof Error ? err.message : String(err) });
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "begin.yaml temporarily unavailable");
@@ -3629,7 +3659,7 @@ export function handleContinuationYaml(
 ): Promise<void> {
   let body: string;
   try {
-    body = readFileSync(new URL("../../../continuation.yaml", import.meta.url), "utf-8");
+    body = redactInterRepoTicketSystem(readFileSync(new URL("../../../continuation.yaml", import.meta.url), "utf-8"));
   } catch (err) {
     log("error", "continuation_yaml_read_failed", { error: err instanceof Error ? err.message : String(err) });
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "continuation.yaml temporarily unavailable");

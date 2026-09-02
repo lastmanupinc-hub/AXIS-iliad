@@ -111,20 +111,19 @@ first real paid call demonstrates the loop immediately) is **not implemented**
 
 ## Circle / W3S key-network mismatch guard — OUT OF SCOPE for this repo
 
-The strategy this phase implements from named `usdc_settlement_autoprovision.go`
-and `config.go` under a `go-backend/` tree, and a `CIRCLE_DEFAULT_BLOCKCHAIN`
+The strategy this phase implements describes a `CIRCLE_DEFAULT_BLOCKCHAIN`
 config check refusing a LIVE key against a testnet (or vice versa) before
-calling Circle's W3S API. **Neither `go-backend/` nor any Circle/W3S client
-code exists anywhere in this repository** (`axis-iliad` / AXIS Toolbox) —
-confirmed by search. PAI'D's own Go backend (a separate repository,
-`paid-pr34/go-backend`, per the WO-04 investigation recorded in
-`docs/MCP_PAID_ACCESS_DESIGN.md`) does have a real multi-rail `internal/
-provider` package including a `circle_w3s.go` adapter — that is very likely
-where the referenced files and the `156006` Circle error code actually belong.
+calling Circle's W3S API. **No Circle/W3S client code, and no Go backend of
+any kind, exists anywhere in this repository** (`axis-iliad` / AXIS Toolbox)
+— confirmed by search. That guard belongs in PAI'D's own separate repository
+(*redacted 2026-09-02: this section previously named PAI'D's internal file
+paths and a Circle error code — see `docs/MCP_PAID_ACCESS_DESIGN.md` for the
+current, redacted summary of what that investigation found*) — it is not
+something this repo can or should implement.
 This repo's own on-chain rail is Tempo/USDC via `mppx` (`TEMPO_RECIPIENT_ADDRESS`
 / `TEMPO_TESTNET` in `mpp.ts`), not Circle — there is no equivalent
 mainnet/testnet key-mismatch class of bug possible here today, since Tempo's
 network selection is a single boolean env var read server-side, never a
 caller-supplied key whose "live-ness" could disagree with it. Building Circle
 guard code in this repository would not close the gap the strategy describes;
-it would need to happen in PAI'D's own repo, against its own Go config layer.
+it would need to happen in PAI'D's own repo, against its own config layer.

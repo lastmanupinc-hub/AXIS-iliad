@@ -75,10 +75,31 @@ describe("GET /begin.yaml", () => {
     expect(String(headers["content-type"])).toContain("application/yaml");
   });
 
-  it("body is exactly the repo-root begin.yaml — no duplicated/hand-typed copy to drift", () => {
+  it("body matches the repo-root begin.yaml outside the redacted block", () => {
     const onDisk = readFileSync(new URL("../../../begin.yaml", import.meta.url), "utf-8");
-    expect(body).toBe(onDisk);
     expect(body).toContain("project_begin:");
+    // Content before the ticket system (required_read_order etc.) is untouched.
+    expect(body.slice(0, 200)).toBe(onDisk.slice(0, 200));
+    // Content after the ticket block (optimization_policy onward) is untouched.
+    const tail = onDisk.slice(onDisk.indexOf("\n  optimization_policy:"));
+    expect(body).toContain(tail);
+  });
+
+  it("2026-09-02: redacts inter_repo_ticket_system before serving over HTTP", () => {
+    const onDisk = readFileSync(new URL("../../../begin.yaml", import.meta.url), "utf-8");
+    // The on-disk file, on this branch, genuinely carries a sibling repo's
+    // internal engineering detail inside a ticket's provider_reply -- prove
+    // the served copy is shorter (something was actually stripped) and that
+    // the specific leaky markers are gone, not just that a stub was appended.
+    expect(body.length).toBeLessThan(onDisk.length);
+    expect(onDisk).toContain("provider_reply:"); // sanity: the thing we're redacting really exists on disk
+    expect(body).not.toContain("provider_reply:");
+    expect(onDisk).toContain("_tiered_generate_price"); // sanity: Foundry's internal pricing fn really is on disk
+    expect(body).not.toContain("_tiered_generate_price");
+    // The key itself and a visible reason survive -- this is a redaction, not
+    // a silent truncation an agent could mistake for the whole file.
+    expect(body).toContain("inter_repo_ticket_system:");
+    expect(body).toContain("[redacted for public HTTP serving");
   });
 });
 
@@ -104,6 +125,10 @@ describe("GET /continuation.yaml", () => {
 
   it("body is exactly the repo-root continuation.yaml — no duplicated/hand-typed copy to drift", () => {
     const onDisk = readFileSync(new URL("../../../continuation.yaml", import.meta.url), "utf-8");
+    // continuation.yaml carries no inter_repo_ticket_system marker (it's the
+    // terminal, historical queue -- see begin.yaml's own supersedes note), so
+    // this also proves redactInterRepoTicketSystem's marker-absent path is a
+    // true no-op rather than accidentally mangling an unrelated file.
     expect(body).toBe(onDisk);
   });
 });

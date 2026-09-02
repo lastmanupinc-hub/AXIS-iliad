@@ -16,26 +16,24 @@ to `chargeMpp`, `handlers.ts`, or `mcp-server.ts` call signatures. See
 ## The seam already exists
 Every metered MCP tool call already runs `authorize → work → capture` (`mcp-runtime.ts`): `authorizeMcpToolCredits()` is a read‑only pre‑auth (previews included vs overage); `captureMcpToolCredits()` is the single post‑**success** debit. The original Phase 0 draft proposed wiring PAI'D there; WO-04 instead wired it into `settleOverageCash` (above) — the same 17 metered tools are covered because *all* of them, and the REST surface, resolve their overage through that one shared function. MCP `Idempotency-Key` replay already short‑circuits before dispatch.
 
-## PAI'D `/v1/credit_wallet` contract (verified against the Go backend source, WO-04)
+## PAI'D `/v1/credit_wallet` contract (WO-04)
 Relative to `PAID_API_BASE_URL` (the `/v1` root, same base `/checkout/sessions` uses).
-Routes confirmed in `paid-pr34/go-backend/internal/app/tfapp/routes.go` (handlers in
-`internal/trustfabric/http/handlers/tf_handler.go`, `GetWallet`/`TopUpWallet`/`DebitWallet`):
 - `GET  /trust-fabric/billing/wallet/{developer_id}` → `{balance_fc, lifetime_fc, tier, status}` (auto‑provisions a free 60‑FC wallet).
 - `POST /trust-fabric/billing/wallet/{developer_id}/debit` `{amount_fc, product_code, reason, reference_type, reference_id}` → `{balance_fc, transaction}`; **HTTP 402** `{error:"insufficient_credits", balance_fc, required_fc, shortfall_fc, upgrade_options}` when short.
 - `POST .../top-up` and `GET .../transactions` also available. Units: integer FC, **$1 = 1 FC**. Auth: `Bearer PAID_API_KEY`.
 
-**⚠ Important finding (WO-04 investigation):** on the PAI'D side, this wallet is a
-**pure internal ledger** — `DebitWallet`/`TopUpWallet`/`GetWallet` only read/write an
-`int64 BalanceFC` column in Postgres. None of them call into PAI'D's own
-`internal/provider` package (which DOES have real `stripe.go`, `plaid.go`,
-`circle_w3s.go`, `dwolla.go`, `fednow.go`, `sepa.go`, `swift.go`, `paypal.go`, `solana.go`,
-`usdc.go` adapters plus a `ProviderRegistry` for connect/health-check/capability-gating).
-Debiting FC does not itself select or move money across **any** rail — Stripe, Plaid, and
-Circle are all equally uninvolved in this endpoint today. "PAI'D → PAI'D's Stripe →
-founder settlement" describes the **separate** `/checkout/sessions` hosted-checkout flow
-(already used for subscriptions/credit-packs); it is not what a wallet debit does. See
-"Multi-rail selection" below for the closest thing PAI'D has to a rail selector, and why
-it doesn't change this conclusion yet.
+**⚠ Important finding (WO-04 investigation, redacted 2026-09-02):** this section
+previously walked through PAI'D's private backend implementation — specific internal
+file paths and an architectural read of how the wallet debit relates to PAI'D's payment
+rails — sourced from reading PAI'D's own private repo. That's appropriate detail for an
+internal design doc shared between the two teams; it isn't appropriate to publish in a
+public repo, since it characterizes a sibling product's internals rather than Iliad's
+own. The one fact Iliad's own integration code actually depends on, stated without the
+internals: **a wallet debit here does not itself guarantee money moved across a specific
+payment rail** — plan Iliad's own retry/reconciliation logic accordingly, and treat
+"debited the FC wallet" and "settled real money" as two separate claims until PAI'D's own
+docs say otherwise. See "Multi-rail selection" below for what that means for the rail
+question specifically.
 
 ## Source‑of‑truth decision: **bridge, not replace**
 The local `usage_credit_*` ledger stays the **quota/display** layer (drives plan allowance + the `_usage` block); the PAI'D wallet becomes the **authoritative money** layer. If they disagree, **PAI'D balance wins** for spend. Persistence‑credits (a separate, currently‑unwired subsystem) is untouched here.
@@ -61,43 +59,26 @@ The local `usage_credit_*` ledger stays the **quota/display** layer (drives plan
 7. **Payment-Receipt header parity:** the mppx-200 path sets a `Payment-Receipt` header; the enforce-200 path (as shipped) does not. An agent that hard-depends on that header for its own record-keeping sees different behaviour in enforce vs off/read/shadow. Flagged, not fixed in WO-04 (non-blocking per the WO's verify verdict).
 
 ## Multi-rail selection (Stripe + Plaid + Circle) — investigated for WO-04, not built
-The STRATEGIC CONTEXT for WO-04 asked whether PAI'D's own Go backend already exposes a
-rail/provider selector before assuming Plaid/Circle are Iliad-side work. Findings from
-reading `paid-pr34/go-backend` directly:
-- PAI'D's `internal/provider/` package genuinely is multi-rail: `stripe.go`, `plaid.go`,
-  `circle_w3s.go`, `circle_notification.go`, `dwolla.go`, `fednow.go`, `sepa.go`, `swift.go`,
-  `paypal.go`, `solana.go`, `usdc.go`, `cctp.go`, plus a `ProviderRegistry`
-  (register → connect → health-check → capability-gate; "NO FATE: capabilities only
-  exist when CONNECTED").
-- PAI'D also has a merchant-facing preference CRUD surface —
-  `internal/http/handlers/merchant_provider_preference_handler.go` — exposing
-  `GET/PUT/DELETE /v1/merchants/:id/provider-preferences/:provider_id` with a
-  `preferred_rail` bool, `fallback_order`, `timeout_seconds`, `environment`, and
-  free-form `metadata` per `provider_id`. This looks exactly like the rail selector the
-  strategic context asked about.
-- **However:** grepping the whole Go backend shows `MerchantProviderPreference` is
-  referenced ONLY by its own handler/model/repository/route-registration — **nothing in
-  the charge-execution path (the FC wallet debit, `TopUpWallet`, or the provider
-  registry's `Connect`/`GetProvider`) ever reads it.** It is a preference-storage stub
-  with no consumer today, not a live selector.
-- **Net finding:** PAI'D is architecturally multi-rail-capable, and even has a
-  plausible-looking per-merchant rail-preference API — but the specific FC-wallet debit
-  endpoint this WO integrates with doesn't call `internal/provider` at all (see the
-  contract section above), and the preference API isn't wired to anything that does. So
-  today, debiting the wallet doesn't select Stripe, Plaid, or Circle — it just moves a
-  number in a ledger. This is a **PAI'D-side gap**, not something blocked by missing
-  Plaid/Circle SDK code in Iliad's repo (there genuinely is none, and building
-  speculative Plaid/Circle clients here would not close this gap — the gap is on the
-  other side of the wire).
-- **Fast-follow seam** (tracked, not built in WO-04): once PAI'D's `DebitWallet` (or a
-  new top-up/funding path) reads a merchant's `provider-preferences` row and dispatches
-  through a *connected* `ProviderRegistry` entry, Iliad's job becomes selecting/reading
-  that preference via a new PAI'D API call — plausibly a small addition, but it is not
-  "trivially the same shape as `debitPaidWallet`" because it requires new PAI'D-side
-  wiring (reading the preference in the wallet handlers) that does not exist yet, and a
-  provider actually `Connect()`-ed with real Stripe/Plaid/Circle credentials, which is
-  also unverified. Foundry's own `paid_client.py` (a separate Python service) needs the
-  equivalent Iliad-side wiring as its own follow-on WO once this seam is real.
+The STRATEGIC CONTEXT for WO-04 asked whether PAI'D already exposes a rail/provider
+selector before assuming Plaid/Circle are Iliad-side work. **(Redacted 2026-09-02: this
+section previously detailed PAI'D's private backend package structure and named specific
+internal source files — appropriate for a cross-team design conversation, not for a
+public repo. Restated at the level Iliad's own integration actually needs.)**
+- PAI'D is architecturally multi-rail (Stripe/Plaid/Circle and others), gated behind its
+  own connect/health-check flow — a provider only participates once actually connected.
+- PAI'D also exposes a merchant-level rail-preference API that looks, from the outside,
+  like a selector — but as of this investigation, the FC-wallet debit endpoint this WO
+  integrates with does not consult it. **Net finding for Iliad's own planning purposes:**
+  debiting the wallet today does not select a specific payment rail; treat it purely as a
+  ledger operation, not a rail-selection or settlement guarantee, until PAI'D's own public
+  docs say otherwise. This is a PAI'D-side question to raise with PAI'D directly, not
+  something addressable from Iliad's repo — there is no missing Plaid/Circle SDK code to
+  write here.
+- **Fast-follow seam** (tracked, not built in WO-04): if PAI'D's wallet debit is later
+  wired to honor a merchant's rail preference, Iliad's own follow-on work is selecting/
+  reading that preference via a new PAI'D API call once PAI'D confirms the seam is live —
+  coordinate with PAI'D's team before building against it. Foundry's own PAI'D client
+  needs the equivalent follow-on once this seam is real.
 
 ## Must dogfood before enforce
 Run Phase 1/2 against **live PAI'D** with the owner's own account: confirm wallet provisioning, the base path, auth, FC amounts, and that shadow debits match the local ledger — per `MERCHANT_INTEGRATION_DOGFOODING.md`. Only then flip `enforce` on an allowlist — and only once the FC top-up funding gate above is closed.

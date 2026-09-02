@@ -81,17 +81,12 @@ without ever exposing a value) as the generic post-rotation check where applicab
 
 ## Two standing risks (flagged for the owner, not something this loop can close itself)
 
-1. **Render API-key blast radius.** The Render account-level API key used for
-   deploy-status polling and scripted operations is scoped to the whole Render account,
-   which per [[render-blueprint-governance]] in memory is shared across axis-iliad,
-   Foundry, and PAI'D. A leak or an over-broad rotation script touches all three, not
-   just this repo. Render does not currently offer a narrower, single-service-scoped
-   API key — the mitigation is operational (limit who/what holds this key, rotate it on
-   its own schedule independent of any single product's release cycle) rather than a
-   code change this repo can make.
-2. **Org 2FA.** Whether two-factor auth is enforced org-wide (GitHub org, Render account,
-   Cloudflare account) is an account-settings question outside this repo's control —
-   flagging so it's a deliberate decision, not an oversight.
+Two account-level operational risks were identified during this runbook's authoring —
+one around the scope of a shared infrastructure API key, one around account-wide
+two-factor auth enforcement. Neither is a code change this repo can make, and neither
+detail belongs in a public document (redacted 2026-09-02; full detail is in the owner's
+private ops notes). Flagging their existence here so closing them stays a deliberate
+decision, not an oversight buried in a private channel only.
 
 ---
 
