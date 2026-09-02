@@ -196,33 +196,12 @@ jobs:
           echo "Render deploy hook → HTTP $code"
           test "$code" = "200"
 
-  # ── Deploy API to Fly.io ──────────────────────────────────────────
-  # The REAL live API deploy path since the 2026-08-31/09-01 Render → Fly.io
-  # migration (see [[axis-iliad-render-subdomain-suspended]] in the owner's
-  # memory for the full story of how this gap was found: a push to main
-  # silently stopped reaching production for several days because nothing
-  # here replaced Render's old docker-from-Git auto-deploy). Runs on every
-  # push to main once tests pass — same shape as deploy-web below. No
-  # fly.toml is committed (the `axis-api-iliad` app already exists on Fly's
-  # side with its own machine config; flyctl reuses it via --app), so this
-  # step is deliberately minimal rather than assuming a toml that isn't there.
-  deploy-api-fly:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    concurrency:
-      group: deploy-api-fly
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: superfly/flyctl-actions/setup-flyctl@v1
-
-      - name: Deploy to Fly.io
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --app axis-api-iliad --dockerfile Dockerfile --remote-only --yes
+  # (The Fly.io API deploy that replaces this lives in its own workflow file,
+  # deploy-api-fly.yml, deliberately NOT a job in this file — this whole
+  # workflow (`CI`) is currently `disabled_manually` on GitHub, has been
+  # since 2026-08-15, for a reason not recorded here; putting the one thing
+  # that actually needs to keep running on every push inside a disabled
+  # workflow would have reproduced the exact silent-drift bug this fixes.)
 
   # ── Deploy Web to Cloudflare Pages ──────────────────────────────────
   deploy-web:

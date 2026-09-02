@@ -1,0 +1,48 @@
+name: Deploy API to Fly.io
+
+# The real live API deploy path since the 2026-08-31/09-01 Render -> Fly.io
+# migration. Deliberately its own workflow file, NOT a job inside ci.yml:
+# ci.yml itself is `disabled_manually` on GitHub (since 2026-08-15, reason
+# not recorded) -- a job that needs to run on every push to stay caught up
+# can't live inside a workflow that's switched off. See
+# [[axis-iliad-render-subdomain-suspended]] in the owner's memory for how
+# this gap was found: a push to main silently stopped reaching production
+# for several days because nothing replaced Render's old docker-from-Git
+# auto-deploy, and the fix that surfaced it (a security redaction) sat
+# un-deployed until shipped by hand.
+#
+# Deliberately minimal -- deploy only, no test/build gate of its own. This is
+# not a replacement for ci.yml's build-and-test; it exists so *a* deploy path
+# keeps working regardless of that workflow's on/off state. If ci.yml is ever
+# re-enabled, its build-and-test job (or a dependency on this workflow
+# succeeding) can be added as a real gate then.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api-fly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: superfly/flyctl-actions/setup-flyctl@v1
+
+      # No fly.toml is committed: the `axis-api-iliad` app already exists on
+      # Fly's side with its own machine config, and flyctl reuses it via
+      # --app -- a committed toml here would be guessing at that config
+      # rather than reflecting it.
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --app axis-api-iliad --dockerfile Dockerfile --remote-only --yes
