@@ -391,6 +391,11 @@ describe("PageFooter", () => {
     const support = screen.getByRole("link", { name: "Support" });
     expect(support.getAttribute("href")).toBe("mailto:support@jonathanarvay.com");
 
+    const credit = screen.getByRole("link", { name: "Site by Jonathan Arvay" });
+    expect(credit.getAttribute("href")).toBe("https://jonathanarvay.com/?utm_source=iliad&utm_medium=site_credit");
+    expect(credit.getAttribute("rel")).toBeNull();
+    expect(credit.getAttribute("target")).toBeNull();
+
     expect(container.textContent).toMatch(/v\d+\.\d+\.\d+/); // version badge
     expect(container.textContent).toContain("Last Man Up Inc.");
   });

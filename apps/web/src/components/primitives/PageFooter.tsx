@@ -34,6 +34,8 @@ export function PageFooter({ onNavigate }: PageFooterProps) {
         <button type="button" className="footer-link" onClick={() => onNavigate("help")}>Help</button>
         <Sep />
         <button type="button" className="footer-link" onClick={() => onNavigate("docs")}>Docs</button>
+        <Sep />
+        <a className="footer-link" href="https://jonathanarvay.com/?utm_source=iliad&utm_medium=site_credit">Site by Jonathan Arvay</a>
       </p>
     </footer>
   );

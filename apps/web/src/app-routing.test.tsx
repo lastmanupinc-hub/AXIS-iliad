@@ -199,6 +199,7 @@ describe("PageFooter in the shell (WO-F4)", () => {
       expect(footer, `footer missing at "${hash || "(home)"}"`).toBeTruthy();
       expect(within(footer as HTMLElement).getByRole("button", { name: "Terms" })).toBeTruthy();
       expect(within(footer as HTMLElement).getByRole("button", { name: "Status" })).toBeTruthy();
+      expect(within(footer as HTMLElement).getByRole("link", { name: "Site by Jonathan Arvay" }).getAttribute("href")).toBe("https://jonathanarvay.com/?utm_source=iliad&utm_medium=site_credit");
       unmount();
     }
   }, 20_000);
