@@ -12,6 +12,14 @@ export interface McpUsageInput {
   /** coarse probe classification (quality-agent, registry-crawler, …) */
   probe_class?: string;
   user_agent?: string;
+  /**
+   * The X-Agent-Mode the call was made in (standard | lite | engineer). Coarse,
+   * non-identifying; feeds the agentic-commerce index's mode facts (v48).
+   * Omitted → stored NULL, which the index treats as "not recorded".
+   */
+  agent_mode?: string;
+  /** Whether the call carried a parseable X-Agent-Budget header (v48). Omitted → NULL. */
+  budget_header?: boolean;
 }
 
 export interface McpUsageRow {
@@ -22,6 +30,10 @@ export interface McpUsageRow {
   probe_class: string;
   user_agent: string;
   created_at: string;
+  /** NULL on rows written before v48. */
+  agent_mode: string | null;
+  /** NULL on rows written before v48. */
+  budget_header: boolean | null;
 }
 
 export interface McpUsageWindows {
@@ -66,8 +78,8 @@ function sinceIso(days: number): string {
 export async function recordMcpUsage(input: McpUsageInput): Promise<void> {
   if (!peekPool()) return;
   await sql.run(
-    `INSERT INTO mcp_usage (usage_id, account_id, tool, source, probe_class, user_agent, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO mcp_usage (usage_id, account_id, tool, source, probe_class, user_agent, created_at, agent_mode, budget_header)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       randomUUID(),
       input.account_id,
@@ -76,6 +88,8 @@ export async function recordMcpUsage(input: McpUsageInput): Promise<void> {
       input.probe_class ?? "unknown",
       input.user_agent ?? "",
       new Date().toISOString(),
+      input.agent_mode ?? null,
+      input.budget_header ?? null,
     ],
   );
 }
