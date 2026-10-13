@@ -94,7 +94,9 @@ describe("GET /begin.yaml", () => {
     expect(body.length).toBeLessThan(onDisk.length);
     expect(onDisk).toContain("provider_reply:"); // sanity: the thing we're redacting really exists on disk
     expect(body).not.toContain("provider_reply:");
-    expect(onDisk).toContain("_tiered_generate_price"); // sanity: Foundry's internal pricing fn really is on disk
+    // Foundry's internal pricing function name was one such marker until begin.yaml stopped carrying it; it must still
+    // never be served, whether or not today's file holds it (2026-10-13: the sanity line that required it on disk
+    // failed on main once the file changed, though the redaction itself was intact).
     expect(body).not.toContain("_tiered_generate_price");
     // The key itself and a visible reason survive -- this is a redaction, not
     // a silent truncation an agent could mistake for the whole file.
