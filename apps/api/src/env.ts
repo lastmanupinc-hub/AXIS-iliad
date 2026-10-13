@@ -117,6 +117,9 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "ALERT_ERROR_RATE_PCT", required: false, type: "number", default: "5", description: "Error-rate percentage threshold that triggers an alert." },
   { key: "ALERT_MIN_SAMPLE", required: false, type: "number", default: "20", description: "Minimum request sample size before the error-rate threshold is evaluated, so a handful of early failures can't page on statistically meaningless data." },
 
+  // The agentic-commerce index (agentic-commerce-index.ts). Set by Fly itself, never by hand.
+  { key: "FLY_MACHINE_ID", required: false, type: "string", description: "Fly.io's own per-machine id, used only as this instance's name on the weekly agentic-commerce-index claim row (never published). Unset ⇒ a random per-process id, which claims just as safely." },
+
   // Self-serve entitlements + anonymous provisioning (billing.ts, anon-frontdoor.ts)
   { key: "AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS", required: false, type: "boolean", default: "false", description: "Deny-by-default gate on self-serve tier/credit changes (POST /v1/account/tier and similar). Production leaves this false — upgrades must go through PAI'D checkout; flipping it true re-enables the self-serve path, mainly for local/staging testing." },
   { key: "AXIS_ANON_PROVISION_FRONTDOOR", required: false, type: "boolean", default: "false", description: "Feature flag: turns an anonymous caller's auth error into a provisioning-challenge response instead of a plain 401. Default off." },

@@ -96,6 +96,13 @@ const WAIVED_ROUTER_ONLY = new Set<string>([
   key("GET", "/.well-known/mcp"),
   key("GET", "/.well-known/mcp/server-card.json"),
   key("GET", "/agents.txt"),
+  // The agentic-commerce index is DARK until its first published edition: the
+  // route is registered but answers the router's own 404, and documenting it
+  // would announce an index that, by the owner's usage-numbers rule, must not
+  // be announced before a week clears the privacy floor. When the first
+  // edition publishes, delete this waiver and restore the openapi.ts entry —
+  // docs/OPEN_WORK_STRATEGY.md §H has the exact block.
+  key("GET", "/v1/agentic-commerce-index"),
 ]);
 
 describe("OpenAPI ↔ router bijection (H8.5)", () => {

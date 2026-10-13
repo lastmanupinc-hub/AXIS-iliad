@@ -392,6 +392,23 @@ export {
   getRecentMcpUsage,
 } from "./mcp-usage-store.js";
 
+// The agentic-commerce index (pg-schema.ts v48): aggregate-only reads of
+// mcp_usage plus the weekly single-instance claim / publish / latest read.
+export type {
+  McpUsageAggregate,
+  AgenticCommerceIndexStatus,
+  AgenticCommerceIndexClaim,
+  StoredAgenticCommerceIndex,
+} from "./agentic-commerce-index-store.js";
+export {
+  aggregateMcpUsageForIndex,
+  getAgenticCommerceIndexStatus,
+  claimAgenticCommerceIndexPeriod,
+  publishAgenticCommerceIndex,
+  getLatestAgenticCommerceIndex,
+  getLatestPublishedAgenticCommerceEdition,
+} from "./agentic-commerce-index-store.js";
+
 // Closer — revenue pipeline persistence (pg-schema.ts v47). Facts only: no
 // stage/next_action is stored, both are derived by @axis/revops on read.
 export type {

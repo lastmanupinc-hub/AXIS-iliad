@@ -328,6 +328,11 @@ describe("buildOpenApiSpec", () => {
       "get /.well-known/agents.json", "get /.well-known/agent-directory.json", "get /agent-directory.json",
       "get /mcp.json", "get /.well-known/mcp", "get /.well-known/mcp/server-card.json",
       "get /agents.txt",
+      // The agentic-commerce index — dark (the router's own 404) until its first
+      // published edition, so deliberately undocumented until then. Remove this
+      // exclusion with the openapi-router-bijection waiver when the openapi.ts
+      // entry is restored (docs/OPEN_WORK_STRATEGY.md §H).
+      "get /v1/agentic-commerce-index",
     ]);
 
     const serverRoutes: string[] = [];

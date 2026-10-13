@@ -13,6 +13,7 @@ import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx
 
 const UsagePage = lazy(() => import("./pages/UsagePage.tsx").then((m) => ({ default: m.UsagePage })));
 const CommercePage = lazy(() => import("./pages/CommercePage.tsx").then((m) => ({ default: m.CommercePage })));
+const AgenticCommerceIndexPage = lazy(() => import("./pages/AgenticCommerceIndexPage.tsx").then((m) => ({ default: m.AgenticCommerceIndexPage })));
 const PlaygroundPage = lazy(() => import("./pages/PlaygroundPage.tsx").then((m) => ({ default: m.PlaygroundPage })));
 const ChangelogPage = lazy(() => import("./pages/ChangelogPage.tsx").then((m) => ({ default: m.ChangelogPage })));
 const StatusPage = lazy(() => import("./pages/StatusPage.tsx").then((m) => ({ default: m.StatusPage })));
@@ -127,6 +128,10 @@ export type PageId =
   | "mcp"
   // Agentic Purchasing / Commerce Hub (WO-P9) — "#commerce".
   | "commerce"
+  // The agentic-commerce index (AXIS Launch taskgate T16) — "#agentic-commerce-index".
+  // Weekly shares of MCP tool usage. Dark (noindex, unlinked) until its first
+  // published edition — docs/OPEN_WORK_STRATEGY.md §H.
+  | "commerce-index"
   // Live Demo / Playground (WO-P15) — "#playground", public. A fuller
   // standalone version of HomePage's LiveDemoTeaser.
   | "playground"
@@ -289,6 +294,14 @@ export interface RouteDef {
    * count-honesty guard scans every .tsx for stale count claims.
    */
   seo?: { title: string; description: string };
+  /**
+   * Reachable but not to be indexed: useDocumentHead writes
+   * `<meta name="robots" content="noindex">` while this route is active, and
+   * routes.test.tsx keeps every noindex route out of seo.routes.ts (no
+   * prerendered page, no sitemap entry). For a page that exists in code ahead
+   * of its public launch.
+   */
+  noindex?: boolean;
   /** Nav item that stays highlighted while this page is active (sub-pages). */
   parent?: PageId;
   render: (ctx: RouteContext) => ReactNode;
@@ -487,6 +500,20 @@ export const ROUTES: RouteDef[] = [
         onRequireLogin={() => ctx.requireLogin("paid-program")}
       />
     ),
+  },
+  {
+    // AXIS Launch taskgate T16: the agentic-commerce index. DARK until its first
+    // published edition (owner's usage-numbers rule): registered and reachable,
+    // but noindex, absent from the footer, seo.routes.ts and both sitemaps.
+    // docs/OPEN_WORK_STRATEGY.md §H lists the exact lines that make it public.
+    page: "commerce-index",
+    seo: { title: "Agentic Commerce Index — Axis' Iliad", description: "Weekly shares of how agents use Iliad's MCP tools: each tool's share of calls, its rank and its week-over-week change. No counts, no caller data." },
+    pattern: "agentic-commerce-index",
+    label: "Commerce index",
+    section: "AGENTS",
+    aliases: ["/agentic-commerce-index"],
+    noindex: true,
+    render: () => <AgenticCommerceIndexPage />,
   },
   {
     // WO-P15: Live Demo / Playground — a fuller standalone version of

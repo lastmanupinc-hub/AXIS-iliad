@@ -36,6 +36,24 @@ function setMeta(selector: string, attr: "content" | "href", value: string) {
 }
 
 /**
+ * A route marked `noindex` gets `<meta name="robots" content="noindex">`
+ * while it is active; leaving it removes the tag, so every other page keeps
+ * index.html's default (no robots meta = indexable).
+ */
+function setNoindex(noindex: boolean) {
+  const existing = document.querySelector('meta[name="robots"][data-route-noindex]');
+  if (noindex && !existing) {
+    const el = document.createElement("meta");
+    el.setAttribute("name", "robots");
+    el.setAttribute("content", "noindex");
+    el.setAttribute("data-route-noindex", "");
+    document.head.appendChild(el);
+  } else if (!noindex && existing) {
+    existing.remove();
+  }
+}
+
+/**
  * Apply a route's SEO metadata to the document head, falling back to
  * index.html's defaults. Also updates the og:/twitter: twins so a shared link
  * previews as the page you were actually on rather than the site root.
@@ -59,5 +77,6 @@ export function useDocumentHead(def: RouteDef, hash: string): void {
     setMeta('meta[property="og:url"]', "content", canonical);
     setMeta('meta[name="twitter:title"]', "content", title);
     setMeta('meta[name="twitter:description"]', "content", description);
+    setNoindex(def.noindex === true);
   }, [def, hash]);
 }

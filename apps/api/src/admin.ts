@@ -16,6 +16,8 @@ import {
   grantEntitlement,
   listEntitlements,
   enableProgram,
+  getLatestAgenticCommerceIndex,
+  getLatestPublishedAgenticCommerceEdition,
 } from "@axis/snapshots";
 import { PRODUCT_IDS, getProduct } from "@axis/generator-core";
 
@@ -115,7 +117,48 @@ export async function handleAdminMcpUsage(
     windows: await getMcpUsageWindows(),
     summary: await getMcpUsageSummary({ windowDays }),
     new_vs_returning: await getMcpUsageNewVsReturning({ windowDays }),
+    agentic_commerce_index: await getAgenticCommerceIndexAdminView(),
   });
+}
+
+/**
+ * The agentic-commerce index's stored state, for the owner's checks
+ * (AXIS Launch taskgate T16). The public GET /v1/agentic-commerce-index is
+ * dark — the router's own 404 — until a week clears the privacy floor, so
+ * this admin-only view is the one place to see what the schedule computed:
+ *   public_edition — what the public route serves now (null ⇒ it answers 404)
+ *   latest_week    — the most recent week the schedule stored, with its
+ *                    document's status ("published" or "insufficient_data")
+ *   latest_week_document — that week's stored JSON (shares only, no counts)
+ * Exported for tests. Reads the store directly rather than importing
+ * agentic-commerce-index.ts, which would close an import cycle through
+ * mcp-tool-impls.ts → handlers.ts → this file.
+ */
+export async function getAgenticCommerceIndexAdminView(): Promise<{
+  public_edition: { period_start: string; period_end: string; published_at: string } | null;
+  latest_week: { period_start: string; period_end: string; published_at: string; edition_status: string | null } | null;
+  latest_week_document: unknown;
+}> {
+  const [edition, latest] = await Promise.all([
+    getLatestPublishedAgenticCommerceEdition(),
+    getLatestAgenticCommerceIndex(),
+  ]);
+  let document: unknown = null;
+  let editionStatus: string | null = null;
+  if (latest) {
+    document = JSON.parse(latest.payload) as unknown;
+    const status = (document as { status?: unknown }).status;
+    editionStatus = typeof status === "string" ? status : null;
+  }
+  return {
+    public_edition: edition
+      ? { period_start: edition.period_start, period_end: edition.period_end, published_at: edition.published_at }
+      : null,
+    latest_week: latest
+      ? { period_start: latest.period_start, period_end: latest.period_end, published_at: latest.published_at, edition_status: editionStatus }
+      : null,
+    latest_week_document: document,
+  };
 }
 
 /**

@@ -91,7 +91,7 @@ import {
   runPingPayment,
 } from "./mcp-tool-impls.js";
 import { runAssembleRepresentment } from "./disputes.js";
-import { resolveAgentMode, getPricingTier } from "./mpp.js";
+import { resolveAgentMode, parseAgentBudget, getPricingTier, type AgentMode } from "./mpp.js";
 import { applyLiteCaps } from "./lite-caps.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
@@ -146,7 +146,19 @@ const _counters: McpCallCounters = {
 };
 
 
-export async function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string[] | undefined>): Promise<void> {
+/**
+ * Per-call attributes the agentic-commerce index reports on as aggregate
+ * shares (agentic-commerce-index.ts). Optional so a caller that cannot know
+ * them records NULL rather than a guess.
+ */
+export interface McpCallAttributes {
+  /** The X-Agent-Mode the call was made in (resolveAgentMode). */
+  agentMode?: AgentMode;
+  /** Whether the call carried a parseable X-Agent-Budget header (parseAgentBudget). */
+  budgetHeader?: boolean;
+}
+
+export async function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string[] | undefined>, attrs: McpCallAttributes = {}): Promise<void> {
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   if (today !== _counters.todayDate) {
@@ -170,6 +182,8 @@ export async function logMcpCall(toolName: string, userId: string | null, ip: st
       source: detectMcpSource(uaForDetect),
       probe_class: probeClass,
       user_agent: ua,
+      agent_mode: attrs.agentMode,
+      budget_header: attrs.budgetHeader,
     });
   } catch {
     /* telemetry is best-effort */
@@ -292,7 +306,10 @@ export async function dispatch(
       const canonicalToolName = normalizeToolName(toolName);
       const auth = await resolveAuth(req);
       const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
-      await logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>);
+      await logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>, {
+        agentMode: resolveAgentMode(req),
+        budgetHeader: parseAgentBudget(req) !== undefined,
+      });
 
       // Anonymous front door (flag-gated, default OFF; docs/x402/STRATEGY.md's
       // PAI'D-routing design). An anonymous caller hitting a metered tool gets a

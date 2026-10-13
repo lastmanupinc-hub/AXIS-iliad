@@ -1018,6 +1018,57 @@ export async function getChangelog(): Promise<string> {
   return fetchText("/v1/changelog");
 }
 
+// ─── Agentic-commerce index (GET /v1/agentic-commerce-index) ────
+// Mirrors apps/api/src/agentic-commerce-index.ts's AgenticCommerceIndexDocument
+// (schema_version 1). Shares, ranks and week-over-week changes only — the API
+// never sends counts, so there is nothing here that could render one. The
+// route serves published editions only and answers 404 until the first one.
+
+export interface CommerceIndexRow {
+  key: string;
+  label: string;
+  rank: number;
+  share_pct: number;
+  change_pp: number | null;
+}
+
+export interface CommerceIndexToolRow extends CommerceIndexRow {
+  category: string;
+  pricing: "metered" | "not_metered";
+}
+
+export interface CommerceIndexBreakdown<R extends CommerceIndexRow = CommerceIndexRow> {
+  rows: R[];
+  other_share_pct: number;
+}
+
+export interface AgenticCommerceIndex {
+  index: "iliad-agentic-commerce-index";
+  schema_version: number;
+  publisher: { name: string; url: string };
+  page_url: string;
+  /** Always "published" — the route serves nothing else. */
+  status: "published";
+  message: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  comparison_period_start: string | null;
+  comparison_period_end: string | null;
+  generated_at: string | null;
+  method: string;
+  tools: CommerceIndexBreakdown<CommerceIndexToolRow> | null;
+  categories: CommerceIndexBreakdown | null;
+  pricing: CommerceIndexBreakdown | null;
+  agent_modes: CommerceIndexBreakdown | null;
+  budget_headers: CommerceIndexBreakdown | null;
+}
+
+export const AGENTIC_COMMERCE_INDEX_PATH = "/v1/agentic-commerce-index";
+
+export async function getAgenticCommerceIndex(): Promise<AgenticCommerceIndex> {
+  return fetchJSON(AGENTIC_COMMERCE_INDEX_PATH);
+}
+
 // ─── Account mutation (WO-A5 mini-spec) ─────────────────────────
 
 export interface AccountUpdate {

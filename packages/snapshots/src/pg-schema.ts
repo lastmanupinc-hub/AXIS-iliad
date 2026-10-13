@@ -966,6 +966,40 @@ CREATE INDEX IF NOT EXISTS idx_revops_events_prospect ON revops_events(prospect_
 CREATE INDEX IF NOT EXISTS idx_revops_events_type ON revops_events(type);
 CREATE INDEX IF NOT EXISTS idx_revops_events_at ON revops_events(at);`,
   },
+  {
+    // The agentic-commerce index (AXIS Launch taskgate T16): a weekly, public,
+    // shares-only index of tool usage built from mcp_usage.
+    //
+    // mcp_usage gains the two call attributes the index's derived facts need
+    // and the table never recorded: the X-Agent-Mode the call was made in
+    // (standard | lite | engineer) and whether an X-Agent-Budget header was
+    // sent. Both are coarse per-call labels, not identifiers, and both stay
+    // NULL on rows written before this migration — the index counts only rows
+    // that carry them when it reports those two facts.
+    //
+    // agentic_commerce_index holds one row per published week. The PRIMARY
+    // KEY on period_end is the single-instance claim: an instance inserts a
+    // 'claimed' row before computing, so two machines (or two ticks) racing
+    // for the same week cannot both compute it; a claim left behind by a
+    // crashed instance is taken over once it is stale (see
+    // claimAgenticCommerceIndexPeriod). payload is the published JSON, served
+    // as stored — the public route never recomputes.
+    version: 48,
+    name: "agentic_commerce_index",
+    sql: `ALTER TABLE mcp_usage ADD COLUMN IF NOT EXISTS agent_mode TEXT;
+ALTER TABLE mcp_usage ADD COLUMN IF NOT EXISTS budget_header BOOLEAN;
+
+CREATE TABLE IF NOT EXISTS agentic_commerce_index (
+  period_end TEXT PRIMARY KEY,
+  period_start TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('claimed', 'published')),
+  claimed_by TEXT NOT NULL,
+  claimed_at TEXT NOT NULL,
+  published_at TEXT,
+  payload TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_agentic_commerce_index_status ON agentic_commerce_index(status, period_end);`,
+  },
 ];
 
 /**

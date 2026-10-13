@@ -18,6 +18,7 @@ import {
   visibleNavRoutes,
   type NavContext,
 } from "./routes.tsx";
+import { seoRoutes } from "../seo.routes.ts";
 
 describe("matchPattern — the params parser", () => {
   it("parses :id segments (#projects/abc123 → { id: 'abc123' })", () => {
@@ -356,5 +357,28 @@ describe("route SEO metadata", () => {
     for (const r of withSeo) {
       expect(r.seo!.title, `"${r.page}" title is unbranded`).toContain("Iliad");
     }
+  });
+});
+
+// A noindex route is reachable but must not be announced: no prerendered
+// page, no sitemap entry (both come from seo.routes.ts), no sidebar or
+// palette entry. The agentic-commerce index is the case in point — dark until
+// its first published edition (docs/OPEN_WORK_STRATEGY.md §H).
+describe("noindex routes", () => {
+  const noindex = ROUTES.filter((r) => r.noindex);
+
+  it("are never prerendered or sitemapped, and never in the nav", () => {
+    const seoPaths = new Set(seoRoutes.map((r) => r.path));
+    for (const r of noindex) {
+      for (const alias of r.aliases ?? []) expect(seoPaths.has(alias), `${r.page} alias ${alias} is in seo.routes.ts`).toBe(false);
+      expect(r.nav, `${r.page} has a nav entry`).toBeUndefined();
+    }
+  });
+
+  it("the agentic-commerce index route is registered, reachable by hash and alias, and noindex", () => {
+    const def = routeForPage("commerce-index");
+    expect(def.noindex).toBe(true);
+    expect(matchHash("agentic-commerce-index")?.route.page).toBe("commerce-index");
+    expect(routeFromPathname("/agentic-commerce-index")?.page).toBe("commerce-index");
   });
 });
