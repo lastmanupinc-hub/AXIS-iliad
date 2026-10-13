@@ -84,7 +84,7 @@ case "${1:-}" in
   web)
     cd "$ROOT/apps/web"
     npx tsc -b && npx vite build && npm run seo:prerender && npm run seo:audit
-    export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_ADMIN_API_KEY)"
+    export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
     export CLOUDFLARE_ACCOUNT_ID="8f68bfe59d4bb0884986f7abe9832738"
     cd "$ROOT"
     npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
@@ -116,7 +116,7 @@ case "${1:-}" in
       }
       console.log(`[storefront verify] OK — robots.txt, llms.txt, and all ${ids.length} product pages+favicons present`);
     '
-    export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_ADMIN_API_KEY)"
+    export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
     export CLOUDFLARE_ACCOUNT_ID="8f68bfe59d4bb0884986f7abe9832738"
     npx wrangler@3 pages deploy .storefront-dist --project-name=axis-storefront --commit-dirty=true
     echo "[storefront] deployed — verify: curl -sS https://axis-storefront.pages.dev/robots.txt"
