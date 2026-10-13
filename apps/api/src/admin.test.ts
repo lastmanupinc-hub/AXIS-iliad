@@ -106,6 +106,18 @@ describe("GET /v1/admin/stats", () => {
     expect(typeof r.data.total_api_keys).toBe("number");
     expect(typeof r.data.active_api_keys).toBe("number");
   });
+
+  // The counters the public GET /v1/stats carried until 2026-10-13 (AXIS
+  // Launch taskgate T24) are the operator's, here.
+  it("carries the live usage counters the public /v1/stats no longer does", async () => {
+    const r = await req("GET", "/v1/admin/stats", undefined, apiKey);
+    expect(r.status).toBe(200);
+    const c = r.data.live_counters as Record<string, unknown>;
+    for (const k of ["mcp_calls_today", "mcp_calls_total", "protocol_calls", "x402_challenges_issued", "paid_settlements", "paid_settlements_cents"]) {
+      expect(typeof c[k]).toBe("number");
+    }
+    expect(Array.isArray(c.top_tools)).toBe(true);
+  });
 });
 
 describe("GET /v1/admin/accounts", () => {

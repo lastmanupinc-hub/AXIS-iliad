@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { requireAuth } from "./billing.js";
+import { requireAdmin } from "./admin.js";
 import { ErrorCode, log } from "./logger.js";
 import { buildTrialNotice } from "./trial-notice.js";
 import {
@@ -326,12 +327,20 @@ export async function handleGetFunnelStatus(
   });
 }
 
-/** GET /v1/funnel/metrics — aggregate funnel analytics (requires auth) */
+/**
+ * GET /v1/funnel/metrics — aggregate funnel analytics across ALL accounts
+ * (admin only). It counts every account, every tier and every seat, so it is
+ * the operator's view, not a customer's: until 2026-10-13 any key passed, and a
+ * free account (self-serve, no payment) could read Iliad's account totals.
+ * The owner's rule (AXIS Launch taskgate T24) keeps usage numbers off every
+ * surface a stranger can reach; the one reader, the owner's Admin page, holds
+ * the admin key. A caller's own funnel state is GET /v1/account/funnel.
+ */
 export async function handleGetFunnelMetrics(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = await requireAuth(req, res);
+  const ctx = await requireAdmin(req, res);
   if (!ctx) return;
 
   const metrics = await getFunnelMetrics();

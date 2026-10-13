@@ -18,6 +18,8 @@ import {
   enableProgram,
   getLatestAgenticCommerceIndex,
   getLatestPublishedAgenticCommerceEdition,
+  getPaymentFunnelStats,
+  getSettledRevenue,
 } from "@axis/snapshots";
 import { PRODUCT_IDS, getProduct } from "@axis/generator-core";
 
@@ -48,7 +50,66 @@ export async function requireAdmin(req: IncomingMessage, res: ServerResponse): P
   return ctx;
 }
 
-/** GET /v1/admin/stats — system-wide statistics (requires auth) */
+/**
+ * The live usage counters the public GET /v1/stats used to carry, before the
+ * owner's no-public-usage-numbers rule reached Iliad (2026-10-13, AXIS Launch
+ * taskgate T24). They are the operator's alone now; GET /v1/admin/stats serves
+ * them as `live_counters`. Same fields and the same arithmetic as the old
+ * public body, so nothing the operator read was lost, only made private:
+ *   mcp_calls_today / mcp_calls_total / top_tools — this process's in-memory
+ *     MCP call counters (reset on restart; the restart-durable ledger is
+ *     GET /v1/admin/mcp-usage)
+ *   x402_challenges_issued — the payment funnel's challenge count
+ *   paid_settlements — real settled payments plus the $0.01 ping_payment
+ *     probe's settlements; paid_settlements_cents — real settled cash only
+ * The DB reads are best-effort, as they were on the public route: a DB hiccup
+ * leaves those four at 0 rather than failing the operator's read.
+ * mcp-server.js is imported dynamically (as handlers.ts's /performance does)
+ * because a static import would close a cycle back through handlers.ts.
+ */
+export async function getLiveUsageCounters(): Promise<{
+  mcp_calls_today: number;
+  mcp_calls_total: number;
+  protocol_calls: number;
+  x402_challenges_issued: number;
+  paid_settlements: number;
+  paid_settlements_cents: number;
+  top_tools: Array<{ tool: string; count: number }>;
+  process_started_at: string;
+  date: string;
+}> {
+  const { getMcpCallCounters } = await import("./mcp-server.js");
+  const c = getMcpCallCounters();
+  let x402ChallengesIssued = 0;
+  let probeSettlements = 0;
+  let paidSettlementsCount = 0;
+  let paidSettlementsCents = 0;
+  try {
+    const [funnel, revenue] = await Promise.all([getPaymentFunnelStats(), getSettledRevenue()]);
+    x402ChallengesIssued = funnel.x402_challenges_issued;
+    probeSettlements = funnel.probe_settlements;
+    paidSettlementsCount = revenue.all_time_count;
+    paidSettlementsCents = revenue.all_time_cents;
+  } catch {
+    /* best-effort — the four DB-backed counters stay at 0 */
+  }
+  return {
+    mcp_calls_today: c.today,
+    mcp_calls_total: c.total,
+    protocol_calls: c.today,
+    x402_challenges_issued: x402ChallengesIssued,
+    paid_settlements: paidSettlementsCount + probeSettlements,
+    paid_settlements_cents: paidSettlementsCents,
+    top_tools: Object.entries(c.byTool)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([tool, count]) => ({ tool, count })),
+    process_started_at: c.startedAt,
+    date: c.todayDate,
+  };
+}
+
+/** GET /v1/admin/stats — system-wide statistics plus the live usage counters (admin only) */
 export async function handleAdminStats(
   req: IncomingMessage,
   res: ServerResponse,
@@ -57,7 +118,7 @@ export async function handleAdminStats(
   if (!ctx) return;
 
   const stats = await getSystemStats();
-  sendJSON(res, 200, stats);
+  sendJSON(res, 200, { ...stats, live_counters: await getLiveUsageCounters() });
 }
 
 /** GET /v1/admin/accounts — paginated account list (requires auth) */

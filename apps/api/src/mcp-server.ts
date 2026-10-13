@@ -197,6 +197,27 @@ export function getMcpCallCounters(): McpCallCounters {
   return { ..._counters, byTool: { ..._counters.byTool } };
 }
 
+/**
+ * GET /v1/stats — public, no auth, and deliberately free of usage numbers.
+ * Owner rule (2026-10-13, AXIS Launch taskgate T24): an estate product's
+ * public surfaces state what it does and whether it is up, never how often it
+ * is used. This route used to return the counters above, the x402 challenge
+ * count, the paid-settlement count and its cents, and the top tools with their
+ * counts; the operator reads all of those at GET /v1/admin/stats
+ * (live_counters, admin.ts's getLiveUsageCounters), behind the admin key. It
+ * keeps answering 200 with the two non-usage fields so older clients do not
+ * break. `date` is today's UTC date at request time, NOT _counters.todayDate:
+ * that one only advances when a call is logged, so a stale value would say
+ * "no calls since then".
+ */
+export async function handlePublicStats(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 200, {
+    process_started_at: _counters.startedAt,
+    date: new Date().toISOString().slice(0, 10),
+  });
+}
+
 interface JsonRpcRequest {
   jsonrpc: string;
   id?: string | number | null;

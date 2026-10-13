@@ -296,9 +296,33 @@ describe("GET /v1/funnel/metrics", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns aggregate metrics", async () => {
+  // Estate-wide account totals are the operator's, not a customer's (owner's
+  // rule, 2026-10-13, AXIS Launch taskgate T24): a free key is self-serve, so
+  // "any key" meant anyone. Only the admin key reads them now.
+  it("refuses a non-admin key (403), even a paying one", async () => {
+    const saved = process.env.ADMIN_API_KEY;
+    process.env.ADMIN_API_KEY = "a-different-admin-key";
+    try {
+      const free = await createAuthenticatedAccount("MetricsFree", "metrics-free@example.com");
+      expect((await req("GET", "/v1/funnel/metrics", undefined, free.rawKey)).status).toBe(403);
+      const suite = await createAuthenticatedAccount("MetricsSuite", "metrics-suite@example.com", "suite");
+      const res = await req("GET", "/v1/funnel/metrics", undefined, suite.rawKey);
+      expect(res.status).toBe(403);
+      expect(JSON.stringify(res.data)).not.toContain("total_accounts");
+    } finally {
+      if (saved === undefined) delete process.env.ADMIN_API_KEY;
+      else process.env.ADMIN_API_KEY = saved;
+    }
+  });
+
+  it("returns aggregate metrics to the admin key", async () => {
     const { rawKey } = await createAuthenticatedAccount("MetricsUser", "metrics@example.com");
-    const res = await req("GET", "/v1/funnel/metrics", undefined, rawKey);
+    const saved = process.env.ADMIN_API_KEY;
+    process.env.ADMIN_API_KEY = rawKey;
+    const res = await req("GET", "/v1/funnel/metrics", undefined, rawKey).finally(() => {
+      if (saved === undefined) delete process.env.ADMIN_API_KEY;
+      else process.env.ADMIN_API_KEY = saved;
+    });
     expect(res.status).toBe(200);
 
     const metrics = (res.data as Record<string, unknown>).metrics as Record<string, unknown>;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { resetRateLimits } from "./rate-limiter.js";
 
 const TEST_PORT = 44490;
@@ -15,10 +15,12 @@ interface Res {
   data: unknown;
 }
 
-function req(method: string, path: string): Promise<Res> {
+function req(method: string, path: string, authKey?: string): Promise<Res> {
   return new Promise((resolve, reject) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers: { "Content-Type": "application/json" } },
+      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -138,9 +140,30 @@ describe("Server route wiring", () => {
     expect(res.status).toBe(200);
   });
 
-  it("metrics endpoint wired", async () => {
-    const res = await req("GET", "/v1/metrics");
+  // Admin-only since 2026-10-13 (AXIS Launch taskgate T24): the Prometheus
+  // text carries request totals and every table's row count, which is usage.
+  it("metrics endpoint wired, behind the admin key", async () => {
+    expect((await req("GET", "/v1/metrics")).status).toBe(401);
+    const admin = await createApiKey((await createAccount("Metrics Admin", "metrics-admin@test.com", "suite")).account_id, "admin");
+    const other = await createApiKey((await createAccount("Metrics Other", "metrics-other@test.com", "suite")).account_id, "other");
+    const saved = process.env.ADMIN_API_KEY;
+    process.env.ADMIN_API_KEY = admin.rawKey;
+    try {
+      expect((await req("GET", "/v1/metrics", other.rawKey)).status).toBe(403);
+      const res = await req("GET", "/v1/metrics", admin.rawKey);
+      expect(res.status).toBe(200);
+      expect(res.body).toContain("axis_requests_total");
+    } finally {
+      if (saved === undefined) delete process.env.ADMIN_API_KEY;
+      else process.env.ADMIN_API_KEY = saved;
+    }
+  });
+
+  // The real server.ts wiring of the public stats route: no usage numbers.
+  it("public stats endpoint wired, carrying only non-usage fields", async () => {
+    const res = await req("GET", "/v1/stats");
     expect(res.status).toBe(200);
+    expect(Object.keys(res.data as Record<string, unknown>).sort()).toEqual(["date", "process_started_at"]);
   });
 
   it("plans endpoint wired", async () => {

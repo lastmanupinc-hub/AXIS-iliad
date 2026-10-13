@@ -4595,22 +4595,15 @@ export async function handlePerformance(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const mcpMod = await import("./mcp-server.js").catch(() => null);
   const metricsMod = await import("./metrics.js").catch(() => null);
-  if (!mcpMod || !metricsMod) {
+  if (!metricsMod) {
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to load performance modules");
     return;
   }
-  const { getMcpCallCounters } = mcpMod;
   const { getLatencyStats, getMetricsSnapshot } = metricsMod;
 
   // Get uptime from process start
   const uptimeSeconds = Math.floor(process.uptime());
-
-  // Get MCP call stats
-  const mcpCounters = getMcpCallCounters();
-  const mcpCallsTotal = mcpCounters.total;
-  const mcpCallsToday = mcpCounters.today;
 
   // Get latency stats for average response time
   const latencyStats = getLatencyStats();
@@ -4633,16 +4626,20 @@ export async function handlePerformance(
   const { requestCount, errorCount } = getMetricsSnapshot();
   const errorRate = requestCount > 0 ? Math.round((errorCount / requestCount) * 10000) / 100 : 0;
 
+  // No usage numbers on this public route (owner rule, 2026-10-13, AXIS
+  // Launch taskgate T24: public surfaces say what the service does and
+  // whether it is up, never how often it is used). total_requests,
+  // mcp_calls_total and mcp_calls_today were removed for that reason; the
+  // operator reads them behind the admin key (GET /v1/admin/stats's
+  // live_counters, GET /v1/metrics). Rates and latency stay: they say how
+  // well it answers, not how much.
   sendJSON(res, 200, {
     status: "ok",
     version: API_VERSION,
     timestamp: new Date().toISOString(),
     metrics: {
       uptime_seconds: uptimeSeconds,
-      total_requests: requestCount,
       average_response_time_ms: averageResponseTimeMs,
-      mcp_calls_total: mcpCallsTotal,
-      mcp_calls_today: mcpCallsToday,
       // No per-category MCP failure tracking exists anywhere in this codebase
       // (McpCallCounters only counts volume, not outcomes) — null rather than
       // a fabricated precise-looking percentage. Same for active_probes:
@@ -4654,7 +4651,6 @@ export async function handlePerformance(
     },
     endpoints: {
       reputation: "/performance/reputation",
-      usage: "/performance/usage",
       health: "/health",
     },
   });
@@ -4662,18 +4658,18 @@ export async function handlePerformance(
 
 // ─── GET /performance/reputation  -  AgentSEO trust signals ──────
 
-export async function handlePerformanceReputation(
+export function handlePerformanceReputation(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const mcpRepMod = await import("./mcp-server.js").catch(() => null);
-  if (!mcpRepMod) {
-    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to load performance modules");
-    return;
-  }
-  const { getMcpCallCounters } = mcpRepMod;
-  const mcpCounters = getMcpCallCounters();
-  const mcpActivity = Math.min(mcpCounters.total / 100, 1) * 20; // 0-20 points based on MCP usage
+  // The score used to carry a sixth, usage-driven term ("0-20 points based on
+  // MCP usage", from this process's call total), and last_probe was a random
+  // timestamp inside the last hour ("simulate recent activity"). Both said
+  // something about how often the service is used, one of them invented; the
+  // owner's rule (2026-10-13, AXIS Launch taskgate T24) keeps usage off public
+  // surfaces and never invents it. The score is now the plain mean of the five
+  // trust signals it publishes, so a reader can check it, and last_probe is
+  // null because nothing records probes.
 
   // Discovery completeness (we have comprehensive well-known endpoints)
   const discoveryCompleteness = 95;
@@ -4690,16 +4686,16 @@ export async function handlePerformanceReputation(
   // Error handling quality
   const errorHandling = 97;
 
-  // Overall reputation score
+  // Overall reputation score: the mean of the five published trust signals
   const reputationScore = Math.round(
-    (discoveryCompleteness + mcpConformance + responseReliability + monetizationTransparency + errorHandling + mcpActivity) / 6
+    (discoveryCompleteness + mcpConformance + responseReliability + monetizationTransparency + errorHandling) / 5
   );
 
   // Chiark compatibility (our system is highly compatible)
   const chiarkCompatibility = "high";
 
-  // Last probe timestamp (simulate recent activity)
-  const lastProbe = new Date(Date.now() - Math.random() * 3600000).toISOString(); // Within last hour
+  // Nothing records probes, so there is no honest last-probe time to state.
+  const lastProbe = null;
 
   sendJSON(res, 200, {
     status: "ok",
@@ -4715,6 +4711,7 @@ export async function handlePerformanceReputation(
     last_probe: lastProbe,
     notes: "Professional MCP server with deterministic artifact generation and clean OAuth discovery support.",
   });
+  return Promise.resolve();
 }
 
 // ─── Firecrawl Proxy: Web Research Tools ──────────────────────────────

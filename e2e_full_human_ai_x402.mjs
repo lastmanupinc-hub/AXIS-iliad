@@ -97,10 +97,13 @@ async function phase1_health() {
     ? pass(S, "GET /v1/health/ready → ready", ready.status, ready.ms)
     : fail(S, "GET /v1/health/ready", ready.status, ready.ms);
 
+  // Admin-only since 2026-10-13 (AXIS Launch taskgate T24: request totals and
+  // table row counts are usage, kept off public surfaces) — an anonymous read
+  // must be refused.
   const metrics = await go("GET", "/v1/metrics");
-  metrics.status === 200
-    ? pass(S, "GET /v1/metrics → 200", metrics.status, metrics.ms)
-    : fail(S, "GET /v1/metrics", metrics.status, metrics.ms);
+  metrics.status === 401
+    ? pass(S, "GET /v1/metrics (anonymous) → 401", metrics.status, metrics.ms)
+    : fail(S, "GET /v1/metrics (anonymous) must be refused", metrics.status, metrics.ms);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

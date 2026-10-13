@@ -778,19 +778,27 @@ describe("GET /performance", () => {
     expect(metrics.active_probes).toBeNull();
   });
 
-  it("total_requests and error_rate are real counters, not the old hardcoded guesses", async () => {
+  it("error_rate is a real measured rate, not the old hardcoded guess", async () => {
     const metrics = json.metrics as Record<string, unknown>;
-    expect(typeof metrics.total_requests).toBe("number");
-    expect(metrics.total_requests as number).toBeGreaterThanOrEqual(0);
-    // The old estimate floored at 1000 regardless of real traffic — a fresh
-    // test server has made far fewer requests than that by this point.
-    expect(metrics.total_requests as number).toBeLessThan(1000);
+    expect(typeof metrics.error_rate).toBe("number");
     expect(metrics.error_rate).not.toBe(0.13);
   });
 
-  it("reports the real mcp_calls_today counter (previously computed but silently dropped)", async () => {
+  // Owner's rule (2026-10-13, AXIS Launch taskgate T24): public surfaces say
+  // whether the service is up and how well it answers, never how often it is
+  // used. The counters are the operator's, behind the admin key.
+  it("carries no usage numbers: no request or MCP call totals", async () => {
     const metrics = json.metrics as Record<string, unknown>;
-    expect(typeof metrics.mcp_calls_today).toBe("number");
+    expect(metrics).not.toHaveProperty("total_requests");
+    expect(metrics).not.toHaveProperty("mcp_calls_total");
+    expect(metrics).not.toHaveProperty("mcp_calls_today");
+    expect(body).not.toMatch(/total_requests|mcp_calls_total|mcp_calls_today/);
+    expect(typeof metrics.uptime_seconds).toBe("number");
+    expect(typeof metrics.average_response_time_ms).toBe("number");
+  });
+
+  it("links only to endpoints that exist (the /performance/usage link was dead)", async () => {
+    expect(json.endpoints).toEqual({ reputation: "/performance/reputation", health: "/health" });
   });
 });
 
@@ -838,9 +846,21 @@ describe("GET /performance/reputation", () => {
     expect(json.chiark_compatibility).toBeDefined();
   });
 
-  it("contains last_probe timestamp", async () => {
-    expect(json.last_probe).toBeDefined();
-    expect(typeof json.last_probe).toBe("string");
+  // last_probe used to be a random timestamp inside the last hour ("simulate
+  // recent activity"): invented activity. Nothing records probes, so null.
+  it("last_probe is null, never a simulated recent timestamp", async () => {
+    expect(json).toHaveProperty("last_probe");
+    expect(json.last_probe).toBeNull();
+  });
+
+  // The score used to add a usage-driven term (the process's MCP call total),
+  // so it moved with how often Iliad was called. It is now the mean of the
+  // five trust signals it publishes, and the same on every read.
+  it("reputation_score is the mean of the published trust signals, with no usage term", async () => {
+    const signals = Object.values(json.trust_signals as Record<string, number>);
+    expect(signals).toHaveLength(5);
+    expect(json.reputation_score).toBe(Math.round(signals.reduce((a, b) => a + b, 0) / signals.length));
+    expect(body).not.toMatch(/mcp_activity|calls/i);
   });
 
   it("contains notes", async () => {

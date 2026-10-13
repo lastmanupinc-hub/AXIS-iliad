@@ -80,17 +80,19 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/metrics": {
         get: {
-          summary: "Prometheus-format metrics",
+          summary: "Prometheus-format metrics (admin only)",
           operationId: "getMetrics",
           tags: ["Health"],
           responses: {
             200: { description: "Metrics in Prometheus text format", content: { "text/plain": { schema: { type: "string" } } } },
+            401: { description: "Unauthorized" },
+            403: { description: "Admin access required" },
           },
         },
       },
       "/performance": {
         get: {
-          summary: "Performance overview (uptime, MCP call volume, average latency)",
+          summary: "Performance overview (uptime, average latency, error rate)",
           operationId: "getPerformance",
           tags: ["Health"],
           responses: {
@@ -1155,7 +1157,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         get: { summary: "Get funnel status for current account", operationId: "getFunnelStatus", tags: ["Funnel"], responses: { 200: { description: "Funnel status" } } },
       },
       "/v1/funnel/metrics": {
-        get: { summary: "Get aggregate funnel metrics", operationId: "getFunnelMetrics", tags: ["Funnel"], responses: { 200: { description: "Funnel metrics" } } },
+        get: { summary: "Get aggregate funnel metrics across all accounts (admin only)", operationId: "getFunnelMetrics", tags: ["Funnel"], responses: { 200: { description: "Funnel metrics" }, 401: { description: "Unauthorized" }, 403: { description: "Admin access required" } } },
       },
 
       // ── Admin ──
@@ -2052,11 +2054,21 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // ── Stats ──
       "/v1/stats": {
         get: {
-          summary: "Anonymous MCP call counters — today/total calls, top tools, process uptime",
+          summary: "Public stats — process start time and today's UTC date (no usage numbers; the counters are admin-only at GET /v1/admin/stats)",
           operationId: "getStats",
           tags: ["Health"],
           responses: {
-            200: { description: "Aggregated call statistics and top-tools ranking" },
+            200: {
+              description: "Non-usage process facts",
+              content: jsonContent({
+                type: "object",
+                properties: {
+                  process_started_at: { type: "string", format: "date-time" },
+                  date: { type: "string", format: "date" },
+                },
+                required: ["process_started_at", "date"],
+              }),
+            },
           },
         },
       },
@@ -2463,6 +2475,21 @@ export function buildOpenApiSpec(): OpenApiSpec {
             total_usage_records: { type: "integer" },
             total_api_keys: { type: "integer" },
             active_api_keys: { type: "integer" },
+            live_counters: {
+              type: "object",
+              description: "The live usage counters (admin only; the public GET /v1/stats carries none since 2026-10-13). MCP counts are this process's, reset on restart; the restart-durable ledger is GET /v1/admin/mcp-usage.",
+              properties: {
+                mcp_calls_today: { type: "integer" },
+                mcp_calls_total: { type: "integer" },
+                protocol_calls: { type: "integer" },
+                x402_challenges_issued: { type: "integer" },
+                paid_settlements: { type: "integer", description: "Real settled payments plus the $0.01 ping_payment probe's settlements" },
+                paid_settlements_cents: { type: "integer", description: "Real settled cash only" },
+                top_tools: { type: "array", items: { type: "object", properties: { tool: { type: "string" }, count: { type: "integer" } } } },
+                process_started_at: { type: "string", format: "date-time" },
+                date: { type: "string", format: "date" },
+              },
+            },
           },
         },
         AdminAccountsResponse: {

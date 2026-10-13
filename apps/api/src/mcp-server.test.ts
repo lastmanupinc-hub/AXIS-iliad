@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary, getPaymentFunnelStats, getSettledRevenue, recordPaymentFunnelEvent, ALL_PROGRAMS } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary, getSettledRevenue, recordPaymentFunnelEvent, ALL_PROGRAMS } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
-import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
+import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall, handlePublicStats } from "./mcp-server.js";
+import { handleAdminStats } from "./admin.js";
 import {
   handleCreateAccount,
   handleCreateApiKey,
@@ -101,10 +102,12 @@ async function postWithHeaders(
   });
 }
 
-async function get(path: string): Promise<Res> {
+async function get(path: string, authKey?: string): Promise<Res> {
   return new Promise((resolve, reject) => {
+    const headers: Record<string, string> = {};
+    if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "GET" },
+      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "GET", headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -138,21 +141,11 @@ beforeAll(async () => {
   router.get("/v1/mcp/server.json", handleMcpServerJson);
   router.post("/v1/accounts", handleCreateAccount);
   router.post("/v1/account/keys", handleCreateApiKey);
-  router.get("/v1/stats", async (_req, res) => {
-    const c = getMcpCallCounters();
-    const [funnel, revenue] = await Promise.all([getPaymentFunnelStats(), getSettledRevenue()]);
-    sendJSON(res, 200, {
-      mcp_calls_today: c.today,
-      mcp_calls_total: c.total,
-      protocol_calls: c.today,
-      x402_challenges_issued: funnel.x402_challenges_issued,
-      paid_settlements: revenue.all_time_count + funnel.probe_settlements,
-      paid_settlements_cents: revenue.all_time_cents,
-      top_tools: Object.entries(c.byTool).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([tool, count]) => ({ tool, count })),
-      process_started_at: c.startedAt,
-      date: c.todayDate,
-    });
-  });
+  // The real handlers (server.ts registers these same two), not a copy: the
+  // public route must carry no usage numbers and the admin route must carry
+  // every counter the public one used to (AXIS Launch taskgate T24).
+  router.get("/v1/stats", handlePublicStats);
+  router.get("/v1/admin/stats", handleAdminStats);
 
   // Inline echo for status checks
   router.get("/ping", async (_req, res) => sendJSON(res, 200, { ok: true }));
@@ -273,49 +266,131 @@ describe("POST /mcp — ping", () => {
   });
 });
 
-describe("GET /v1/stats — anonymous call counters", () => {
-  it("returns call stats shape", async () => {
+// The owner's rule (2026-10-13, AXIS Launch taskgate T24): public surfaces
+// never state how often Iliad is used. Same key test the taskgate's
+// production check (ops/taskgate/checks/iliad_public_counts.py) applies: any
+// key, at any depth, whose name says usage and whose value is a number or a
+// list is a leak.
+const USAGE_KEY = /call|count|total|settle|cent|challenge|request|agent|user|top_tool|invocation|usage/i;
+function usageKeys(node: unknown, path = ""): string[] {
+  if (Array.isArray(node)) return node.flatMap((v) => usageKeys(v, `${path}[]`));
+  if (!node || typeof node !== "object") return [];
+  return Object.entries(node as Record<string, unknown>).flatMap(([k, v]) => {
+    const p = path ? `${path}.${k}` : k;
+    const hit = USAGE_KEY.test(k) && (typeof v === "number" || Array.isArray(v)) ? [p] : [];
+    return [...hit, ...usageKeys(v, p)];
+  });
+}
+
+describe("GET /v1/stats — public, no usage numbers", () => {
+  it("answers 200 with only the non-usage fields", async () => {
+    await logMcpCall("list_programs", null, "127.0.0.1");
     const r = await get("/v1/stats");
     expect(r.status).toBe(200);
     const d = r.data as Record<string, unknown>;
-    expect(typeof d.mcp_calls_today).toBe("number");
-    expect(typeof d.mcp_calls_total).toBe("number");
-    expect(Array.isArray(d.top_tools)).toBe(true);
-    expect(typeof d.date).toBe("string");
+    expect(Object.keys(d).sort()).toEqual(["date", "process_started_at"]);
+    expect(usageKeys(d)).toEqual([]);
+    expect(d.process_started_at).toBe(getMcpCallCounters().startedAt);
   });
 
-  it("logMcpCall increments counters", async () => {
+  it("names none of the counters it used to carry, even after calls, challenges and settlements", async () => {
+    await logMcpCall("analyze_repo", null, "127.0.0.1");
+    await recordPaymentFunnelEvent({ account_id: null, tool: "analyze_repo", kind: "challenge" });
+    await recordPaymentFunnelEvent({ account_id: null, tool: "ping_payment", kind: "settlement", amount_cents: 0 });
+    const body = JSON.stringify((await get("/v1/stats")).data);
+    for (const gone of ["mcp_calls_today", "mcp_calls_total", "protocol_calls", "x402_challenges_issued", "paid_settlements", "paid_settlements_cents", "top_tools", "list_programs", "analyze_repo"]) {
+      expect(body).not.toContain(gone);
+    }
+  });
+
+  // _counters.todayDate only advances when a call is logged, so serving it
+  // would tell a stranger "no calls since <date>". The public date is today's.
+  it("date is today's UTC date at request time, not the counters' rollover date", async () => {
+    const d = (await get("/v1/stats")).data as Record<string, unknown>;
+    expect(d.date).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+  it("an admin key on the public route changes nothing: the counters live only on the admin route", async () => {
+    const saved = process.env.ADMIN_API_KEY;
+    process.env.ADMIN_API_KEY = apiKey;
+    try {
+      const d = (await get("/v1/stats", apiKey)).data as Record<string, unknown>;
+      expect(Object.keys(d).sort()).toEqual(["date", "process_started_at"]);
+    } finally {
+      if (saved === undefined) delete process.env.ADMIN_API_KEY;
+      else process.env.ADMIN_API_KEY = saved;
+    }
+  });
+});
+
+describe("GET /v1/admin/stats — the operator's live counters (admin key)", () => {
+  let savedAdminKey: string | undefined;
+  beforeAll(() => {
+    savedAdminKey = process.env.ADMIN_API_KEY;
+    process.env.ADMIN_API_KEY = apiKey;
+  });
+  afterAll(() => {
+    if (savedAdminKey === undefined) delete process.env.ADMIN_API_KEY;
+    else process.env.ADMIN_API_KEY = savedAdminKey;
+  });
+
+  const counters = async (): Promise<Record<string, unknown>> => {
+    const r = await get("/v1/admin/stats", apiKey);
+    expect(r.status).toBe(200);
+    return (r.data as Record<string, unknown>).live_counters as Record<string, unknown>;
+  };
+
+  it("refuses an anonymous caller (401) and a non-admin key (403)", async () => {
+    expect((await get("/v1/admin/stats")).status).toBe(401);
+    expect((await get("/v1/admin/stats", freeApiKey)).status).toBe(403);
+  });
+
+  it("carries every counter the public route used to, beside the system stats", async () => {
+    const r = await get("/v1/admin/stats", apiKey);
+    expect(r.status).toBe(200);
+    const d = r.data as Record<string, unknown>;
+    expect(typeof d.total_accounts).toBe("number");
+    const c = d.live_counters as Record<string, unknown>;
+    expect(typeof c.mcp_calls_today).toBe("number");
+    expect(typeof c.mcp_calls_total).toBe("number");
+    expect(typeof c.protocol_calls).toBe("number");
+    expect(typeof c.x402_challenges_issued).toBe("number");
+    expect(typeof c.paid_settlements).toBe("number");
+    expect(typeof c.paid_settlements_cents).toBe("number");
+    expect(Array.isArray(c.top_tools)).toBe(true);
+    expect(typeof c.process_started_at).toBe("string");
+    expect(typeof c.date).toBe("string");
+  });
+
+  it("logMcpCall increments counters, and the admin read reflects it", async () => {
     const before = getMcpCallCounters().total;
     await logMcpCall("list_programs", null, "127.0.0.1");
     expect(getMcpCallCounters().total).toBe(before + 1);
     expect(getMcpCallCounters().byTool["list_programs"]).toBeGreaterThan(0);
+    const c = await counters();
+    expect(c.mcp_calls_total).toBe(before + 1);
+    const top = c.top_tools as Array<{ tool: string; count: number }>;
+    expect(top.some((t) => t.tool === "list_programs" && t.count > 0)).toBe(true);
   });
 
-  // x402 onboarding program, Phase 0 (visibility): the payment funnel must be
-  // visible on this public, no-auth endpoint and must be restart-durable
-  // (backed by real DB rows, not just the in-memory _counters).
-  it("exposes protocol_calls, x402_challenges_issued, paid_settlements, paid_settlements_cents", async () => {
-    const r = await get("/v1/stats");
-    expect(r.status).toBe(200);
-    const d = r.data as Record<string, unknown>;
-    expect(typeof d.protocol_calls).toBe("number");
-    expect(typeof d.x402_challenges_issued).toBe("number");
-    expect(typeof d.paid_settlements).toBe("number");
-    expect(typeof d.paid_settlements_cents).toBe("number");
-  });
-
+  // x402 onboarding program, Phase 0 (visibility): the payment funnel stays
+  // restart-durable (real DB rows, not just the in-memory _counters); since
+  // T24 it is the operator's view, not a public one.
   it("x402_challenges_issued rises after a forced challenge is recorded", async () => {
-    const before = ((await get("/v1/stats")).data as Record<string, number>).x402_challenges_issued;
+    const before = (await counters()).x402_challenges_issued as number;
     await recordPaymentFunnelEvent({ account_id: null, tool: "analyze_repo", kind: "challenge" });
-    const after = ((await get("/v1/stats")).data as Record<string, number>).x402_challenges_issued;
-    expect(after).toBe(before + 1);
+    expect((await counters()).x402_challenges_issued).toBe(before + 1);
   });
 
   it("paid_settlements rises after a $0 probe settlement is recorded (including $0)", async () => {
-    const before = ((await get("/v1/stats")).data as Record<string, number>).paid_settlements;
+    const before = (await counters()).paid_settlements as number;
     await recordPaymentFunnelEvent({ account_id: null, tool: "ping_payment", kind: "settlement", amount_cents: 0 });
-    const after = ((await get("/v1/stats")).data as Record<string, number>).paid_settlements;
-    expect(after).toBe(before + 1);
+    expect((await counters()).paid_settlements).toBe(before + 1);
+  });
+
+  it("paid_settlements_cents is real settled cash only", async () => {
+    const revenue = await getSettledRevenue();
+    expect((await counters()).paid_settlements_cents).toBe(revenue.all_time_cents);
   });
 });
 

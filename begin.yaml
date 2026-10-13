@@ -2998,20 +2998,22 @@ project_begin:
         severity: MEDIUM
         source_file: "apps/api/src/mcp-tools.ts"
         completion_status: complete  # SHIPPED 2026-08-23.
-        # HARDEN (1st, research): pulled REAL production apps/api mcp_usage data via
-        # GET /v1/admin/mcp-usage?window_days=365 (live admin key resolved from Render's
-        # OWN env-vars API, key.txt's local copy was stale — not guessed, not skipped).
-        # 493 total calls/47 accounts/365d, but only 18 of 43 registered tools have EVER
-        # been called — the rest of the "493" is a security scanner probing ~60 nonexistent
-        # `__verifymcp_auth_probe_*__` tool names, not real traffic. Read all 43 tool
-        # definitions in full (superset of the requested 20-high/10-low split, since only
-        # 18 real tools exist above zero) and cross-checked EVERY stated price against
+        # HARDEN (1st, research): read the production MCP usage ledger through the
+        # admin-only GET /v1/admin/mcp-usage (live admin key resolved from Render's
+        # OWN env-vars API, key.txt's local copy was stale — not guessed, not skipped)
+        # to see which registered tools agents actually reach, setting aside a security
+        # scanner probing nonexistent `__verifymcp_auth_probe_*__` tool names as not real
+        # traffic. (The counts this note quoted were removed 2026-10-13: this file is
+        # served publicly at /begin.yaml, and public surfaces state no usage numbers —
+        # AXIS Launch taskgate T24. The operator reads them behind the admin key.) Read
+        # all 43 tool definitions in full (superset of the requested 20-high/10-low split)
+        # and cross-checked EVERY stated price against
         # packages/mpp/src/index.ts's PRICING_TIERS (ground truth) rather than trusting the
         # prose — 21/21 metered tools matched except one.
         #
         # 4 real defects found + fixed, each verified against the actual dispatcher code
         # and existing tests, not assumed:
-        #  - ping_payment (16 calls, a top performer): description + its own 2nd example +
+        #  - ping_payment: description + its own 2nd example +
         #    outputSchema all claimed "$0 — zero risk". PRICING_TIERS.ping_payment has been
         #    standard_cents:1/lite_cents:1 since 2026-07-28 (real handler confirmed at
         #    mcp-tool-impls.ts:4171; mcp-server.test.ts's OWN settlement test already
@@ -3019,7 +3021,7 @@ project_begin:
         #    independent CTA copy already said "$0.01" too) — only the raw MCP_TOOLS
         #    description was the stale outlier. Fixed description, fixed the 2nd example's
         #    output, added the missing price_usd field to outputSchema.
-        #  - closer / deploy (0 calls each): said "Requires a paid plan or entitlement.
+        #  - closer / deploy: said "Requires a paid plan or entitlement.
         #    Pricing: $0.50 standard, $0.25 lite" — read identically to every real
         #    pay-per-call tool. Verified in mcp-tool-impls.ts (runCloser/runDeploy): these
         #    are the ONLY 2 of 21 metered tools with NO buildMcpPaymentRequiredError/MPP
@@ -3028,16 +3030,16 @@ project_begin:
         #    let a free account pay $0.50 via MPP credential; confirmed by reading their
         #    tier==="free" branches too, so this isn't assumed to generalize). Rewrote both
         #    to state the real access model plainly instead of implying a price unlocks it.
-        #  - improve_my_agent_with_axis (0 calls): stated no price at all — ambiguous
+        #  - improve_my_agent_with_axis: stated no price at all — ambiguous
         #    (free, or a documentation gap?). Confirmed via mcp-tool-impls.ts's own comment
         #    (H-Phase-A cycle 10: a dead PRICING_TIERS row for this tool was deleted outright
         #    because no handler ever reads it) that it's genuinely free/unmetered by design.
         #    Description now says so explicitly, matching deriveMcpToolCatalog's existing
         #    "included in plan" honesty instead of reading like an oversight.
         #
-        # POLISH: 7 discoverability additions to the zero-call iliad_* owned-infra cluster,
-        # applying the "Use X instead/together" cross-reference pattern already proven
-        # common to the top-18 (list_programs/search_and_discover_tools/get_snapshot/
+        # POLISH: 7 discoverability additions to the iliad_* owned-infra cluster,
+        # applying the "Use X instead/together" cross-reference pattern already
+        # common to the core discovery tools (list_programs/search_and_discover_tools/get_snapshot/
         # get_artifact/analyze_repo/iliad_web_research all have it; most iliad_* owned-infra
         # tools didn't). Added real, code-verified pairings only, declined to force one where
         # none is natural (e.g. iliad_code_sandbox is network-isolated — NetworkMode=none —
@@ -3050,12 +3052,12 @@ project_begin:
         # URL fetch, not assumed); iliad_document_parsing -> iliad_object_storage +
         # iliad_embeddings/iliad_vector_database (RAG chain); iliad_text_to_speech <->
         # iliad_speech_to_text (mutual). Declined to touch assemble_representment or
-        # iliad_network_tokenization despite 0 calls each — both already honestly documented,
-        # zero calls fully explained by narrow real preconditions (a live webhook-ingested
+        # iliad_network_tokenization — both already honestly documented, their narrow
+        # reach fully explained by real preconditions (a live webhook-ingested
         # Stripe dispute; 2 of 4 operations deliberately disabled for a real unfixed ownership
         # gap) rather than a description defect. Declined to touch the 5 Foundry stubs or
-        # discover_estate_tools — shipped this same week (est_02/est_03), zero calls is
-        # expected from age alone, not a signal.
+        # discover_estate_tools — shipped this same week (est_02/est_03), too new for
+        # their usage to signal anything.
         #
         # HARDEN (2nd, re-verify): tsc --noEmit clean. Grepped the FULL repo (not just
         # apps/api) for every string I changed before AND after editing, to find every test

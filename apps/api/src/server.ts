@@ -112,13 +112,12 @@ import {
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { handleFeedback } from "./feedback.js";
-import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
+import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, handlePublicStats } from "./mcp-server.js";
 import { handleMcpHostedPost } from "./mcp-hosted.js";
 import { handleGetAgenticCommerceIndex, startAgenticCommerceIndexScheduler } from "./agentic-commerce-index.js";
-import { getPaymentFunnelStats, getSettledRevenue } from "@axis/snapshots";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRestUsage, handleAdminRevenue, handleListEntitlements, handleAdminGrantEntitlement } from "./admin.js";
+import { requireAdmin, handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRestUsage, handleAdminRevenue, handleListEntitlements, handleAdminGrantEntitlement } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
@@ -181,7 +180,15 @@ router.get("/", async (_req, res) => {
 router.get("/v1/health", handleHealthCheck);
 router.get("/v1/health/live", handleLiveness);
 router.get("/v1/health/ready", handleReadiness);
-router.get("/v1/metrics", handleMetrics);
+// Admin-only since 2026-10-13 (AXIS Launch taskgate T24): the Prometheus text
+// carries request totals, per-route request counts and every table's row
+// count (accounts, payment receipts, MCP calls), which is usage, and the owner's
+// rule keeps usage off public surfaces. Same gate as /v1/admin/* and
+// /v1/db/stats; the handler itself stays unchanged so its tests read it directly.
+router.get("/v1/metrics", async (req, res) => {
+  if (!(await requireAdmin(req, res))) return;
+  await handleMetrics(req, res);
+});
 
 // Performance monitoring (AgentSEO/trust signals)
 router.get("/performance", handlePerformance);
@@ -496,45 +503,10 @@ router.delete("/mcp/mcp/*", async (_req, res) => {
   sendJSON(res, 404, { error: "Invalid MCP sub-path. Use /mcp for MCP protocol." });
 });
 
-// Anonymous call stats (no auth required)
-router.get("/v1/stats", async (_req, res) => {
-  const { sendJSON } = await import("./router.js");
-  const c = getMcpCallCounters();
-  // x402 onboarding program, Phase 0: the payment funnel, restart-durable.
-  // Real settled cash lives in payment_receipts (getSettledRevenue); the
-  // challenge count and the $0 ping_payment probe's settlements live in the
-  // dedicated payment_funnel_events table (neither was persisted before).
-  // Best-effort: a DB hiccup must never take down this public, no-auth endpoint.
-  let x402ChallengesIssued = 0;
-  let probeSettlements = 0;
-  let paidSettlementsCount = 0;
-  let paidSettlementsCents = 0;
-  try {
-    const [funnel, revenue] = await Promise.all([getPaymentFunnelStats(), getSettledRevenue()]);
-    x402ChallengesIssued = funnel.x402_challenges_issued;
-    probeSettlements = funnel.probe_settlements;
-    paidSettlementsCount = revenue.all_time_count;
-    paidSettlementsCents = revenue.all_time_cents;
-  } catch {
-    /* best-effort — stats stay at 0 rather than failing the endpoint */
-  }
-  sendJSON(res, 200, {
-    mcp_calls_today: c.today,
-    mcp_calls_total: c.total,
-    protocol_calls: c.today,
-    x402_challenges_issued: x402ChallengesIssued,
-    // "including $0": the ping_payment probe's forced settlements count
-    // alongside real cash settlements, same as real money always has.
-    paid_settlements: paidSettlementsCount + probeSettlements,
-    paid_settlements_cents: paidSettlementsCents,
-    top_tools: Object.entries(c.byTool)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([tool, count]) => ({ tool, count })),
-    process_started_at: c.startedAt,
-    date: c.todayDate,
-  });
-});
+// Public stats (no auth) — no usage numbers since 2026-10-13 (AXIS Launch
+// taskgate T24); the counters are the operator's, at GET /v1/admin/stats.
+// See handlePublicStats (mcp-server.ts).
+router.get("/v1/stats", handlePublicStats);
 
 // MCP registry metadata — for mcp-publisher CLI and registry crawlers
 router.get("/v1/mcp/server.json", handleMcpServerJson);
