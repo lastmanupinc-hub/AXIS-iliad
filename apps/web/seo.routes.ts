@@ -85,6 +85,18 @@ export const seoRoutes: RouteSeo[] = [
     ],
   },
   {
+    path: "/agentic-commerce-index",
+    kind: "article",
+    product: "iliad",
+    title: "Agentic Commerce Index — Iliad",
+    description:
+      "Weekly shares of how agents use Iliad's MCP tools: each tool's share of calls, its rank, and its week-over-week change. Built from Iliad's own call records; no counts, no caller data.",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Agentic commerce index", url: "/agentic-commerce-index" },
+    ],
+  },
+  {
     path: "/pricing",
     kind: "website",
     product: "iliad",

@@ -65,6 +65,7 @@ import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./co
 import { MCP_TOOLS, getMcpToolBazaarInfo } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
+import { INDEX_JSON_PATH, INDEX_PAGE_URL } from "./agentic-commerce-index.js";
 import { buildTrialNotice } from "./trial-notice.js";
 
 // ─── Referral discount wrapper ──────────────────────────────────
@@ -2838,6 +2839,7 @@ export function handleWellKnown(
     skills: "GET /.well-known/skills/index.json  -  agent skills index following the agentskills.io standard",
     capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce/CE3.0/SCA-exemption keywords indexed).",
     openapi_json: "GET /openapi.json  -  OpenAPI 3.1 spec alias",
+    agentic_commerce_index: `GET ${INDEX_JSON_PATH}  -  weekly agentic-commerce index: each MCP tool's share of calls, rank and week-over-week change, from Iliad's own call ledger. Shares only, never counts. Human page: ${INDEX_PAGE_URL}`,
     // est_01 (2026-08-22): sibling AXIS properties (PAI'D, AXIS Foundry, AXIS
     // Launch, TrustFabric), agent-discoverable but excluded from Iliad's own
     // human-facing webapp pages — docs/ESTATE_FEDERATION_STRATEGY.md.
@@ -3206,6 +3208,13 @@ For autonomous purchasing agents:
 - POST /v1/prepare-for-agentic-purchasing  -  one-call hardener. Chains ${PURCHASING_PROGRAMS.length} programs, computes Purchasing Readiness Score (0-100), returns AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow, dispute handling, and self-onboarding kit.
 - The Purchasing Readiness Score measures: commerce_artifacts (20pts), mcp_configs (20pts), compliance_checklist (15pts), negotiation_playbook (15pts), debug_playbook (10pts), optimization_rules (10pts), onboarding_docs (10pts).
 
+## Agentic Commerce Index
+
+A weekly index of how agents use Iliad's MCP tools, built from Iliad's own call ledger: each tool's, category's and pricing class's share of the week's calls, its rank, and its week-over-week change, plus the share of calls made in lite/engineer mode or with an X-Agent-Budget header. Shares only: no counts, callers, revenue or identifiers.
+
+- GET ${INDEX_JSON_PATH}  -  the latest closed week as JSON (no auth). status is published, insufficient_data, or pending.
+- ${INDEX_PAGE_URL}  -  the same index as a page, with its method.
+
 ## Authentication
 
 - Bearer token: Authorization: Bearer <api_key>
@@ -3343,6 +3352,7 @@ export function handleSitemapXml(
   const urls: Array<{ loc: string; changefreq: string; priority: string }> = [
     { loc: "/",                               changefreq: "weekly",  priority: "1.0" },
     { loc: "/for-agents",                     changefreq: "weekly",  priority: "0.9" },
+    { loc: "/agentic-commerce-index",         changefreq: "weekly",  priority: "0.8" },
     { loc: "/mcp",                            changefreq: "weekly",  priority: "0.9" },
     { loc: "/pricing",                        changefreq: "weekly",  priority: "0.8" },
     { loc: "/feedback",                       changefreq: "monthly", priority: "0.7" },

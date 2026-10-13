@@ -13,6 +13,7 @@ import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx
 
 const UsagePage = lazy(() => import("./pages/UsagePage.tsx").then((m) => ({ default: m.UsagePage })));
 const CommercePage = lazy(() => import("./pages/CommercePage.tsx").then((m) => ({ default: m.CommercePage })));
+const AgenticCommerceIndexPage = lazy(() => import("./pages/AgenticCommerceIndexPage.tsx").then((m) => ({ default: m.AgenticCommerceIndexPage })));
 const PlaygroundPage = lazy(() => import("./pages/PlaygroundPage.tsx").then((m) => ({ default: m.PlaygroundPage })));
 const ChangelogPage = lazy(() => import("./pages/ChangelogPage.tsx").then((m) => ({ default: m.ChangelogPage })));
 const StatusPage = lazy(() => import("./pages/StatusPage.tsx").then((m) => ({ default: m.StatusPage })));
@@ -127,6 +128,9 @@ export type PageId =
   | "mcp"
   // Agentic Purchasing / Commerce Hub (WO-P9) — "#commerce".
   | "commerce"
+  // The agentic-commerce index (AXIS Launch taskgate T16) — "#agentic-commerce-index",
+  // public. Weekly shares of MCP tool usage; footer-linked, no sidebar entry.
+  | "commerce-index"
   // Live Demo / Playground (WO-P15) — "#playground", public. A fuller
   // standalone version of HomePage's LiveDemoTeaser.
   | "playground"
@@ -487,6 +491,18 @@ export const ROUTES: RouteDef[] = [
         onRequireLogin={() => ctx.requireLogin("paid-program")}
       />
     ),
+  },
+  {
+    // AXIS Launch taskgate T16: the agentic-commerce index — public, footer-only
+    // (same pattern as "changelog"/"status"). Its /agentic-commerce-index alias is
+    // prerendered with its own head via seo.routes.ts and listed in the sitemap.
+    page: "commerce-index",
+    seo: { title: "Agentic Commerce Index — Axis' Iliad", description: "Weekly shares of how agents use Iliad's MCP tools: each tool's share of calls, its rank and its week-over-week change. No counts, no caller data." },
+    pattern: "agentic-commerce-index",
+    label: "Commerce index",
+    section: "AGENTS",
+    aliases: ["/agentic-commerce-index"],
+    render: () => <AgenticCommerceIndexPage />,
   },
   {
     // WO-P15: Live Demo / Playground — a fuller standalone version of
