@@ -138,7 +138,7 @@ export async function createProspect(input: CreateProspectInput): Promise<Stored
        VALUES ($1, 'identified', $2, $3, $4)`,
       [prospect_id, now, JSON.stringify({ source_id: input.source_id }), input.source_id],
     );
-    return hydrateProspect(res.rows[0]!);
+    return hydrateProspect(res.rows[0]);
   });
 }
 
@@ -178,7 +178,7 @@ export async function enrichProspect(
        VALUES ($1, 'enriched', $2, $3, $4)`,
       [prospect_id, now, JSON.stringify({ keys: Object.keys(facts) }), actor ?? null],
     );
-    return hydrateProspect(res.rows[0]!);
+    return hydrateProspect(res.rows[0]);
   });
 }
 

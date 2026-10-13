@@ -79,7 +79,7 @@ export type IngestResult = IngestSuccess | IngestRefusal;
  */
 function isPrivateAddress(ip: string): boolean {
   if (isIP(ip) === 4) {
-    const p = ip.split(".").map(Number) as number[];
+    const p = ip.split(".").map(Number);
     const [a, b] = [p[0] ?? 0, p[1] ?? 0];
     if (a === 10 || a === 127 || a === 0) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;

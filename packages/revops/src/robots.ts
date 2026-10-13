@@ -42,7 +42,7 @@ export function parseRobots(text: string): RobotsRules {
   let lastWasAgent = false;
 
   for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.split("#")[0]!.trim();
+    const line = rawLine.split("#")[0].trim();
     if (!line) continue;
 
     const idx = line.indexOf(":");

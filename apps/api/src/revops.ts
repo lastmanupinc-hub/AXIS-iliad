@@ -81,7 +81,7 @@ function toRecord(r: ProspectWithEvents): ProspectRecord {
     legal_name: r.prospect.legal_name,
     website: r.prospect.website,
     source_id: r.prospect.source_id,
-    facts: r.prospect.facts as ProspectFacts,
+    facts: r.prospect.facts,
     created_at: r.prospect.created_at,
   };
   const events: RevOpsEvent[] = r.events.map((e) => ({
@@ -258,7 +258,7 @@ export async function handleGetProspect(
     next_action: evaluated.next,
     // Qualification is recomputed on read too — a rules change reclassifies
     // every prospect immediately, with no backfill job.
-    qualification: qualify(stored.facts as ProspectFacts),
+    qualification: qualify(stored.facts),
   });
 }
 
@@ -387,6 +387,6 @@ export async function handleScanProspect(
     stage: evaluated.state.stage,
     score: evaluated.score.score,
     next_action: evaluated.next,
-    qualification: qualify(refreshed!.facts as ProspectFacts),
+    qualification: qualify(refreshed!.facts),
   });
 }

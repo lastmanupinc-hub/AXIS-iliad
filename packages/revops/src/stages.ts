@@ -131,7 +131,7 @@ export function deriveState(events: readonly RevOpsEvent[]): DerivedState {
     }
   }
 
-  const last_event_at = evs.length > 0 ? evs[evs.length - 1]!.at : undefined;
+  const last_event_at = evs.length > 0 ? evs[evs.length - 1].at : undefined;
 
   let state: PipelineState = stage;
   if (disqualified || opt_out) state = "DISQUALIFIED";
