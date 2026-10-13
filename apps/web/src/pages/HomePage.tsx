@@ -1,7 +1,4 @@
-import { useEffect, useState } from "react";
-import { getStats, type ApiStats } from "../api.ts";
 import { LiveDemoTeaser } from "../components/LiveDemoTeaser.tsx";
-import { StatTile, formatCompact } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, FREE_FILE_COUNT, PROGRAM_COUNT } from "../config.ts";
 import type { PageId } from "../routes.tsx";
@@ -29,35 +26,9 @@ const PROGRAM_BADGES = [
   { name: "Agentic Purchasing", free: false }, { name: "Closer", free: false }, { name: "Deploy", free: false },
 ];
 
-/** GET /v1/stats social proof — live, not hardcoded. Fails silently (no
- *  scary error banner on a marketing page) if the probe doesn't answer;
- *  the rest of the page works regardless. */
-function LiveStatsStrip() {
-  const [stats, setStats] = useState<ApiStats | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    getStats()
-      .then((s) => { if (!cancelled) setStats(s); })
-      .catch(() => { /* social proof only — non-critical, page works without it */ });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Defensive: render nothing unless the response actually looks like
-  // ApiStats — an empty/malformed body (a lenient test double, a proxy
-  // returning `{}`, a future contract change) must never crash the landing
-  // page, just silently omit this non-critical section.
-  if (!stats || typeof stats.mcp_calls_today !== "number" || typeof stats.mcp_calls_total !== "number") return null;
-
-  const topTool = Array.isArray(stats.top_tools) ? stats.top_tools[0] : undefined;
-  return (
-    <div className="grid grid-3" style={{ marginBottom: 24 }} aria-label="Live platform activity">
-      <StatTile label="MCP calls today" value={formatCompact(stats.mcp_calls_today)} />
-      <StatTile label="MCP calls all-time" value={formatCompact(stats.mcp_calls_total)} />
-      <StatTile label="Most-used tool" value={topTool ? topTool.tool : "—"} hint={topTool ? `${formatCompact(topTool.count)} calls` : undefined} />
-    </div>
-  );
-}
+// No usage numbers on this page (owner's rule, 2026-10-13, AXIS Launch
+// taskgate T24): it says what Iliad does, never how often it is used. The
+// live call-count strip that read GET /v1/stats was removed with it.
 
 export function HomePage({ onAnalyze, onRequireLogin, onNavigate }: Props) {
   return (
@@ -84,9 +55,6 @@ export function HomePage({ onAnalyze, onRequireLogin, onNavigate }: Props) {
 
       {/* ── Live demo teaser ──────────────────────────────────── */}
       <LiveDemoTeaser onRequireLogin={onRequireLogin} onOpenPlayground={() => onNavigate("playground")} />
-
-      {/* ── Live social proof (GET /v1/stats) ─────────────────── */}
-      <LiveStatsStrip />
 
       {/* ── Programs listing ──────────────────────────────────── */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>

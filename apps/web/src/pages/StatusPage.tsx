@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { healthCheck, healthLive, healthReady, getStats, apiErrorDetails, type ReadinessResponse, type ApiStats } from "../api.ts";
-import { SectionHeader, StatTile, Callout, Skeleton, Pill } from "../components/primitives/index.ts";
+import { healthCheck, healthLive, healthReady, type ReadinessResponse } from "../api.ts";
+import { SectionHeader, Pill } from "../components/primitives/index.ts";
 
 // ─── StatusPage (WO-P17) ──────────────────────────────────────────────────
 // Public, no login ("#status"). The footer's "Status" link and the
@@ -9,11 +9,12 @@ import { SectionHeader, StatTile, Callout, Skeleton, Pill } from "../components/
 // Honesty H4: no incident history, no uptime percentage — this app has no
 // backend storage for either, so the page never claims either exists.
 // Every number here is either a live, timed probe result or a plainly
-// labeled client-side ticker — nothing is estimated or invented. (This is
-// also why the page does NOT surface GET /performance's mcp_calls fields:
-// that endpoint used to report a hardcoded 99.87% success rate and other
-// fabricated numbers — fixed alongside this page, see the ledger — but a
-// per-subsystem status page has no need for MCP call volume anyway.)
+// labeled client-side ticker — nothing is estimated or invented.
+//
+// No usage numbers (owner's rule, 2026-10-13, AXIS Launch taskgate T24): the
+// page says whether Iliad is up, never how often it is used. The "Activity"
+// card that read call counts from GET /v1/stats was removed with it; the API
+// no longer serves those counts publicly.
 
 type ProbeState = "checking" | "up" | "down";
 
@@ -44,19 +45,12 @@ function useSessionTicker(): string {
   return `${m}m ${s}s`;
 }
 
-interface AsyncError {
-  message: string;
-  details: string | null;
-}
-
 export function StatusPage() {
   const [health, setHealth] = useState<Probe>({ label: "API", state: "checking", latencyMs: null });
   const [live, setLive] = useState<Probe>({ label: "Liveness", state: "checking", latencyMs: null });
   const [ready, setReady] = useState<Probe>({ label: "Readiness", state: "checking", latencyMs: null });
   const [version, setVersion] = useState<string | null>(null);
   const [checks, setChecks] = useState<ReadinessResponse["checks"] | null>(null);
-  const [stats, setStats] = useState<ApiStats | null>(null);
-  const [statsError, setStatsError] = useState<AsyncError | null>(null);
   const sessionElapsed = useSessionTicker();
   // H-Phase-A cycle 11: runProbes fires on mount AND every 30s tick with no
   // per-tick ordering guard — a slow tick N response could land after a
@@ -87,10 +81,6 @@ export function StatusPage() {
       setReady({ label: "Readiness", state: result?.status === "ready" ? "up" : "down", latencyMs });
       setChecks(result?.checks ?? null);
     });
-
-    getStats()
-      .then((s) => { if (!current()) return; setStats(s); setStatsError(null); })
-      .catch((err) => { if (!current()) return; setStatsError({ message: err instanceof Error ? err.message : "Failed to load call stats", details: apiErrorDetails(err) }); });
   }, []);
 
   useEffect(() => {
@@ -150,22 +140,6 @@ export function StatusPage() {
           </div>
         </div>
       )}
-
-      <div className="card mb-4">
-        <h2 className="mb-3" style={{ fontSize: "1rem", fontWeight: 600 }}>Activity</h2>
-        {statsError ? (
-          <Callout tone="warning" title="Couldn't load call stats" details={statsError.details}>{statsError.message}</Callout>
-        ) : stats ? (
-          <div className="grid grid-2">
-            <StatTile label="MCP calls today" value={stats.mcp_calls_today} />
-            <StatTile label="MCP calls (all time)" value={stats.mcp_calls_total} />
-          </div>
-        ) : (
-          <div role="status" aria-live="polite">
-            <Skeleton lines={2} />
-          </div>
-        )}
-      </div>
 
       <div className="card">
         <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>This session</h2>

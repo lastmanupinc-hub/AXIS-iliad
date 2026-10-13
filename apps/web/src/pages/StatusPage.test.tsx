@@ -3,12 +3,14 @@
  */
 
 // WO-P17 — Status: live health/liveness/readiness probes (timed client-side,
-// not canned numbers), subsystem checks, real call-volume stats, and a
-// session-local ticker. Honesty H4: no incident history, no uptime
-// percentage — nothing here claims data this app doesn't actually store.
+// not canned numbers), subsystem checks, and a session-local ticker. Honesty
+// H4: no incident history, no uptime percentage — nothing here claims data
+// this app doesn't actually store. T24 (AXIS Launch taskgate, 2026-10-13): no
+// usage numbers either — the page says whether Iliad is up, never how often
+// it is used, so the call-volume card is gone.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { StatusPage } from "./StatusPage.tsx";
 
 function stubFetch(handlers: Array<[match: string, body: unknown, status?: number]>) {
@@ -33,7 +35,8 @@ const HEALTHY: Array<[string, unknown, number?]> = [
   ["/v1/health/ready", { status: "ready", checks: { shutting_down: false, database: "ok", payment_rail: "test" } }],
   ["/v1/health/live", { status: "alive" }],
   ["/v1/health", { status: "ok", version: "0.5.3" }],
-  ["/v1/stats", { mcp_calls_today: 42, mcp_calls_total: 1234, top_tools: [], process_started_at: "2026-01-01T00:00:00Z", date: "2026-07-12" }],
+  // Served with counts on purpose: the page must neither ask for nor show them.
+  ["/v1/stats", { mcp_calls_today: 42, mcp_calls_total: 1234, top_tools: [{ tool: "analyze_repo", count: 7 }], process_started_at: "2026-01-01T00:00:00Z", date: "2026-07-12" }],
 ];
 
 beforeEach(() => {
@@ -76,12 +79,17 @@ describe("StatusPage — healthy state", () => {
     expect(screen.getByText("Payment rail")).toBeTruthy();
   });
 
-  it("shows real activity stats from GET /v1/stats", async () => {
-    stubFetch(HEALTHY);
-    render(<StatusPage />);
+  it("shows no usage numbers and never requests GET /v1/stats", async () => {
+    const fetchFn = stubFetch(HEALTHY);
+    const { container } = render(<StatusPage />);
 
-    await waitFor(() => expect(screen.getByText("42")).toBeTruthy());
-    expect(screen.getByText("1,234")).toBeTruthy();
+    await screen.findByText("All systems operational");
+    expect(fetchFn.mock.calls.some(([u]) => String(u).includes("/v1/stats"))).toBe(false);
+    const text = container.textContent ?? "";
+    for (const gone of ["MCP calls", "Activity", "call stats", "1,234", "analyze_repo"]) {
+      expect(text).not.toContain(gone);
+    }
+    expect(screen.queryByText("42")).toBeNull();
   });
 
   it("never claims incident history or an uptime percentage", async () => {
@@ -101,22 +109,11 @@ describe("StatusPage — degraded state", () => {
       ["/v1/health/ready", { status: "not_ready", checks: { shutting_down: false, database: "error", payment_rail: "absent" } }, 503],
       ["/v1/health/live", { status: "alive" }],
       ["/v1/health", { status: "ok", version: "0.5.3" }],
-      ["/v1/stats", { mcp_calls_today: 0, mcp_calls_total: 0, top_tools: [], process_started_at: "2026-01-01T00:00:00Z", date: "2026-07-12" }],
     ]);
     render(<StatusPage />);
 
     await screen.findByText("Degraded");
     expect(screen.getByText("error")).toBeTruthy();
-  });
-
-  it("shows a retry-free warning when the stats call fails, rather than crashing", async () => {
-    stubFetch([
-      ...HEALTHY.filter(([m]) => m !== "/v1/stats"),
-      ["/v1/stats", { error: "down" }, 500],
-    ]);
-    render(<StatusPage />);
-
-    await screen.findByText("Couldn't load call stats");
   });
 });
 

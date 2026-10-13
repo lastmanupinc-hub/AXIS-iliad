@@ -69,7 +69,6 @@ import {
   getInstallConfig,
   probeIntent,
   getOpenApiSpec,
-  getStats,
   healthLive,
   healthReady,
   ApiError,
@@ -1739,19 +1738,14 @@ describe("getOpenApiSpec", () => {
   });
 });
 
-// ─── Stats + health probes ───────────────────────────────────────
+// ─── Health probes ───────────────────────────────────────────────
 
-describe("getStats", () => {
-  it("GETs /v1/stats and returns the counters", async () => {
-    const response = { mcp_calls_today: 7, mcp_calls_total: 1234, top_tools: [{ tool: "analyze_repo", count: 5 }], process_started_at: "", date: "2026-07-07" };
-    const fetchFn = mockFetch(response);
-    vi.stubGlobal("fetch", fetchFn);
-
-    const result = await getStats();
-
-    expect(result.mcp_calls_today).toBe(7);
-    expect(result.top_tools[0].tool).toBe("analyze_repo");
-    expect(fetchFn.mock.calls[0][0]).toBe("/v1/stats");
+// Owner's rule (2026-10-13, AXIS Launch taskgate T24): no public page shows
+// how often Iliad is used, so the web client has no call-count reader at all.
+describe("no public usage-stats client", () => {
+  it("api.ts exports no getStats (GET /v1/stats carries no counts any more)", async () => {
+    const mod = await import("./api.ts");
+    expect("getStats" in mod).toBe(false);
   });
 });
 

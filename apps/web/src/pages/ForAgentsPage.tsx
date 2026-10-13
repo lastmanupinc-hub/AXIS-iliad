@@ -165,7 +165,7 @@ export function ForAgentsPage() {
               <td>Pro</td>
               <td>$99</td>
               <td>300,000</td>
-              <td>Serious agent builders (most popular)</td>
+              <td>Serious agent builders (recommended)</td>
             </tr>
             <tr>
               <td>Growth</td>

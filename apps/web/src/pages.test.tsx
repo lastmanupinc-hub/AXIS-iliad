@@ -225,8 +225,7 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
     // <pre><code> share textContent — disambiguate with a selector.
     expect(screen.getByText(/# AGENTS.md/, { selector: "code" })).toBeTruthy();
 
-    // HomePage also fires GET /v1/stats on mount — find the analyze call
-    // specifically rather than assuming call order.
+    // Find the analyze call specifically rather than assuming call order.
     const analyzeCall = fetchFn.mock.calls.find(([u]) => String(u).includes("/v1/analyze"));
     expect(analyzeCall).toBeTruthy();
     const [url, init] = analyzeCall!;
@@ -252,8 +251,11 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
-  it("fetches and renders live GET /v1/stats numbers (not hardcoded)", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+  // Owner's rule (2026-10-13, AXIS Launch taskgate T24): the landing page says
+  // what Iliad does, never how often it is used. Even if an API answered with
+  // counts, the page must neither ask for them nor render them.
+  it("shows no usage numbers and never requests GET /v1/stats", async () => {
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/stats")) {
         return {
@@ -264,25 +266,18 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
         };
       }
       return { ok: true, status: 200, json: async () => ({}), text: async () => "{}", headers: { get: () => null } };
-    }) as unknown as typeof fetch);
-
-    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
-
-    await screen.findByText("42");
-    expect(screen.getByText("9K")).toBeTruthy(); // formatCompact(9001) → "9K"
-    expect(screen.getByText("analyze_repo")).toBeTruthy();
-  });
-
-  it("stays silent (no error UI) when GET /v1/stats is unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      ok: true, status: 200, json: async () => ({}), text: async () => "{}", headers: { get: () => null },
-    })) as unknown as typeof fetch);
+    });
+    vi.stubGlobal("fetch", fetchFn as unknown as typeof fetch);
 
     const { container } = render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
+    await new Promise((r) => setTimeout(r, 0));
 
-    // Give the effect a tick to resolve; the stats grid must never mount.
-    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(fetchFn.mock.calls.some(([u]) => String(u).includes("/v1/stats"))).toBe(false);
     expect(container.querySelector('[aria-label="Live platform activity"]')).toBeNull();
+    const text = container.textContent ?? "";
+    for (const gone of ["MCP calls today", "MCP calls all-time", "Most-used tool", "9K"]) {
+      expect(text).not.toContain(gone);
+    }
   });
 });
 

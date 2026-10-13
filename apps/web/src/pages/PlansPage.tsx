@@ -206,7 +206,10 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
                   fontWeight: 600,
                 }}
               >
-                Popular
+                {/* "Recommended", not "Popular": a popularity badge is a claim
+                    about how many people pick this plan, and public pages state
+                    no usage (owner's rule, AXIS Launch taskgate T24). */}
+                Recommended
               </div>
             )}
             <div style={{ textAlign: "center", marginBottom: 16 }}>

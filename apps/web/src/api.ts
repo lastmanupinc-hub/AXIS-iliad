@@ -768,19 +768,9 @@ export async function healthReady(): Promise<ReadinessResponse> {
   return fetchJSON("/v1/health/ready", { allowStatuses: [503] });
 }
 
-// ─── Public stats (social proof) ────────────────────────────────
-
-export interface ApiStats {
-  mcp_calls_today: number;
-  mcp_calls_total: number;
-  top_tools: Array<{ tool: string; count: number }>;
-  process_started_at: string;
-  date: string;
-}
-
-export async function getStats(): Promise<ApiStats> {
-  return fetchJSON("/v1/stats");
-}
+// No client for GET /v1/stats: since 2026-10-13 (AXIS Launch taskgate T24)
+// it carries no usage numbers, and no public page shows how often Iliad is
+// used. The counters are the operator's, at GET /v1/admin/stats.
 
 // ─── Projects API (multi-project state, WO-F3) ──────────────────
 // listProjects/listProjectSnapshots are typed against the WO-A1/WO-A2
