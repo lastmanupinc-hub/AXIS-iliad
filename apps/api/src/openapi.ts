@@ -640,51 +640,6 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
-      "/v1/agentic-commerce-index": {
-        get: {
-          summary: "The Iliad agentic-commerce index — weekly shares of MCP tool usage (shares, ranks and week-over-week changes only, never counts)",
-          description:
-            "Built from Iliad's own MCP call ledger and published once per closed Monday-to-Monday UTC week. " +
-            "Every breakdown (tools, categories, pricing, agent_modes, budget_headers) is rows plus other_share_pct summing to 100. " +
-            "Rows below the privacy floor fold into other. status is 'published', 'insufficient_data' (too few calls this period " +
-            "to publish; every breakdown is null) or 'pending' (nothing published yet; period fields are null). No auth.",
-          operationId: "getAgenticCommerceIndex",
-          tags: ["Discovery"],
-          responses: {
-            200: {
-              description: "The latest published week, served from the stored snapshot",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    required: ["index", "schema_version", "status", "period_start", "period_end", "generated_at", "method"],
-                    properties: {
-                      index: { type: "string", enum: ["iliad-agentic-commerce-index"] },
-                      schema_version: { type: "integer", enum: [1] },
-                      publisher: { type: "object", properties: { name: { type: "string" }, url: { type: "string" } } },
-                      page_url: { type: "string" },
-                      status: { type: "string", enum: ["published", "insufficient_data", "pending"] },
-                      message: { type: ["string", "null"] },
-                      period_start: { type: ["string", "null"], format: "date-time" },
-                      period_end: { type: ["string", "null"], format: "date-time" },
-                      comparison_period_start: { type: ["string", "null"], format: "date-time" },
-                      comparison_period_end: { type: ["string", "null"], format: "date-time" },
-                      generated_at: { type: ["string", "null"], format: "date-time" },
-                      method: { type: "string" },
-                      tools: { type: ["object", "null"] },
-                      categories: { type: ["object", "null"] },
-                      pricing: { type: ["object", "null"] },
-                      agent_modes: { type: ["object", "null"] },
-                      budget_headers: { type: ["object", "null"] },
-                    },
-                  },
-                },
-              },
-            },
-            500: { description: "The stored index could not be read" },
-          },
-        },
-      },
       "/begin.yaml": {
         get: {
           summary: "AXIS's own begin-loop head, verbatim (H4.4 — AXIS dogfoods the loop it generates)",

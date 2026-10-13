@@ -13,7 +13,6 @@ Primary discovery and integration endpoints:
 - /.well-known/skills/index.json
 - /v1/docs
 - /v1/docs.md
-- /agentic-commerce-index (weekly index of agent tool usage; JSON at /v1/agentic-commerce-index — shares only, no counts)
 
 Core outcomes:
 

@@ -14,15 +14,26 @@
 // at one caller. Every share shown by name rests on at least
 // INDEX_MIN_CALLS_PER_ROW calls; smaller rows fold into "other", and "other"
 // itself is held to the same floor (see disclose()). A week with fewer than
-// INDEX_MIN_CALLS_PER_PERIOD qualifying calls publishes "not enough calls
-// this period to publish" instead of numbers.
+// INDEX_MIN_CALLS_PER_PERIOD qualifying calls is stored as "insufficient_data"
+// and never served.
 //
 // How it runs: every instance checks hourly (startAgenticCommerceIndexScheduler)
 // whether the most recently CLOSED week (Monday 00:00 UTC to Monday 00:00 UTC)
 // is published. If not, it claims the week in the database — one INSERT on a
 // PRIMARY KEY, so exactly one instance wins — computes, and stores the JSON.
-// GET /v1/agentic-commerce-index serves the stored document; it never
-// recomputes per request.
+//
+// DARK UNTIL THE FIRST EDITION (owner's rule: "when a sentence can only be
+// true by admitting low usage, cut the sentence instead of stating the
+// number"). GET /v1/agentic-commerce-index serves only the latest stored week
+// whose document is "published"; before one exists it answers exactly the
+// router's own unknown-path 404, so the route cannot be told apart from a
+// path that does not exist. A week below the floor is never served, not even
+// as a message. The owner reads the stored state through the admin-only
+// GET /v1/admin/mcp-usage (its agentic_commerce_index field). The public
+// discovery surfaces (footer, sitemaps, llms.txt, axis.json, OpenAPI) are held
+// back until the first edition — docs/OPEN_WORK_STRATEGY.md §H lists the exact
+// lines to add back, and agentic-commerce-index.test.ts guards that they stay
+// out until then. The route never recomputes per request.
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
@@ -31,7 +42,7 @@ import {
   getAgenticCommerceIndexStatus,
   claimAgenticCommerceIndexPeriod,
   publishAgenticCommerceIndex,
-  getLatestAgenticCommerceIndex,
+  getLatestPublishedAgenticCommerceEdition,
   type McpUsageAggregate,
 } from "@axis/snapshots";
 import { MCP_TOOLS } from "./mcp-tools.js";
@@ -206,7 +217,8 @@ export interface IndexBreakdown<R extends IndexRow = IndexRow> {
   other_share_pct: number;
 }
 
-export type IndexStatus = "published" | "insufficient_data" | "pending";
+/** What the stored weekly document says. Only "published" is ever served publicly. */
+export type IndexStatus = "published" | "insufficient_data";
 
 export interface AgenticCommerceIndexDocument {
   index: "iliad-agentic-commerce-index";
@@ -235,7 +247,6 @@ export interface AgenticCommerceIndexDocument {
 }
 
 export const INDEX_NOT_ENOUGH_CALLS_MESSAGE = "Not enough calls this period to publish.";
-export const INDEX_PENDING_MESSAGE = "The first index has not been published yet. It is computed after each week closes.";
 
 export const INDEX_METHOD =
   "Built from Axis' Iliad's own record of MCP tools/call requests. Each week runs from Monday 00:00 UTC to the next " +
@@ -250,7 +261,7 @@ export const INDEX_METHOD =
   "user agents are published. A row appears by name only when enough calls stand behind it that no single caller can " +
   "be singled out. Smaller rows are folded into other, and any remainder a reader could work out by subtraction (other " +
   "itself, or a category minus its named tools) is held to the same floor, so a named row may also be folded in to " +
-  "protect a smaller one. A week with too few calls says so instead of publishing numbers. Percentages are rounded " +
+  "protect a smaller one. Percentages are rounded " +
   "with the largest-remainder method, so each breakdown sums to exactly 100.";
 
 const PUBLISHER = { name: "Axis' Iliad", url: "https://iliad.trustfabric.ai/" } as const;
@@ -262,25 +273,6 @@ function baseDocument(): Pick<AgenticCommerceIndexDocument, "index" | "schema_ve
     publisher: { ...PUBLISHER },
     page_url: INDEX_PAGE_URL,
     method: INDEX_METHOD,
-  };
-}
-
-/** What the route serves before the first week has ever been published. */
-export function pendingAgenticCommerceIndex(): AgenticCommerceIndexDocument {
-  return {
-    ...baseDocument(),
-    status: "pending",
-    message: INDEX_PENDING_MESSAGE,
-    period_start: null,
-    period_end: null,
-    comparison_period_start: null,
-    comparison_period_end: null,
-    generated_at: null,
-    tools: null,
-    categories: null,
-    pricing: null,
-    agent_modes: null,
-    budget_headers: null,
   };
 }
 
@@ -621,7 +613,7 @@ const INSTANCE_ID = process.env.FLY_MACHINE_ID || `iliad-${randomUUID()}`;
 
 export type PublishOutcome =
   /** This call claimed the week, computed it and stored it. */
-  | { outcome: "published"; period_end: string; status: Exclude<IndexStatus, "pending"> }
+  | { outcome: "published"; period_end: string; status: IndexStatus }
   /** The week was already published — nothing to do. */
   | { outcome: "already_published"; period_end: string }
   /** Another instance holds a live claim on the week. */
@@ -677,7 +669,7 @@ export async function publishDueAgenticCommerceIndex(
     published_at: new Date().toISOString(),
   });
   if (!stored) return { outcome: "lost_claim", period_end: period.period_end };
-  return { outcome: "published", period_end: period.period_end, status: document.status as Exclude<IndexStatus, "pending"> };
+  return { outcome: "published", period_end: period.period_end, status: document.status };
 }
 
 let schedulerTimers: { first: ReturnType<typeof setTimeout>; every: ReturnType<typeof setInterval> } | null = null;
@@ -724,16 +716,26 @@ export function stopAgenticCommerceIndexScheduler(): void {
 
 // ─── GET /v1/agentic-commerce-index ─────────────────────────────
 
-/** Serves the latest stored week as published. Never recomputes. */
+/**
+ * Serves the latest stored week whose document is "published", as stored —
+ * never recomputed, and never a week below the floor. Until the first such
+ * edition exists it answers the router's own unknown-path 404 (same status,
+ * same body shape), so the route is indistinguishable from one that does not
+ * exist and says nothing about how many calls any week had.
+ */
 export async function handleGetAgenticCommerceIndex(_req: IncomingMessage, res: ServerResponse): Promise<void> {
-  let stored: Awaited<ReturnType<typeof getLatestAgenticCommerceIndex>>;
+  let edition: Awaited<ReturnType<typeof getLatestPublishedAgenticCommerceEdition>>;
   try {
-    stored = await getLatestAgenticCommerceIndex();
+    edition = await getLatestPublishedAgenticCommerceEdition();
   } catch (err) {
     log("error", "agentic_commerce_index.read_failed", { error: err instanceof Error ? err.message : String(err) });
-    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "The agentic-commerce index could not be read right now.");
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Internal server error");
+    return;
+  }
+  if (!edition) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Not found");
     return;
   }
   res.setHeader("Cache-Control", "public, max-age=900");
-  sendJSON(res, 200, stored ? (JSON.parse(stored.payload) as AgenticCommerceIndexDocument) : pendingAgenticCommerceIndex());
+  sendJSON(res, 200, JSON.parse(edition.payload) as AgenticCommerceIndexDocument);
 }

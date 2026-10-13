@@ -1,17 +1,23 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import type { Server } from "node:http";
+import { readFileSync } from "node:fs";
 import { resetTestDb, sql, type McpUsageAggregate } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 import { handleMcpPost, MCP_TOOLS } from "./mcp-server.js";
 import { deriveMcpToolCatalog } from "./mcp-tool-impls.js";
+import { handleCreateAccount } from "./billing.js";
+import { handleAdminMcpUsage } from "./admin.js";
+import { handleLlmsTxt, handleWellKnown, handleSitemapXml } from "./handlers.js";
+import { buildOpenApiSpec } from "./openapi.js";
 import {
   INDEX_MIN_CALLS_PER_ROW,
   INDEX_MIN_CALLS_PER_PERIOD,
   INDEX_TOOL_CATEGORIES,
   INDEX_NOT_ENOUGH_CALLS_MESSAGE,
   INDEX_CLAIM_STALE_MS,
+  INDEX_METHOD,
   buildIndexCatalog,
   closedWeekAt,
   computeAgenticCommerceIndex,
@@ -399,6 +405,42 @@ async function getIndex(): Promise<{ status: number; cache: string | null; doc: 
   return { status: res.status, cache: res.headers.get("cache-control"), doc: (await res.json()) as AgenticCommerceIndexDocument };
 }
 
+/** Status + body (minus the per-request id) of a GET — to compare the dark route with a path that does not exist. */
+async function bareGet(path: string): Promise<{ status: number; cache: string | null; body: Record<string, unknown> }> {
+  const res = await fetch(`${baseUrl}${path}`);
+  const body = (await res.json()) as Record<string, unknown>;
+  delete body.request_id;
+  return { status: res.status, cache: res.headers.get("cache-control"), body };
+}
+
+/** The dark route must be indistinguishable from an unregistered path. */
+async function expectDark(): Promise<void> {
+  const dark = await bareGet("/v1/agentic-commerce-index");
+  const missing = await bareGet("/v1/agentic-commerce-index-no-such-route");
+  expect(dark.status).toBe(404);
+  expect(dark).toEqual(missing);
+  expect(JSON.stringify(dark.body).toLowerCase()).not.toMatch(/call|enough|publish|index|week|pending/);
+}
+
+async function adminView(key: string): Promise<{ status: number; view: Record<string, unknown> }> {
+  const res = await fetch(`${baseUrl}/v1/admin/mcp-usage`, { headers: { Authorization: `Bearer ${key}` } });
+  const data = (await res.json()) as Record<string, unknown>;
+  return { status: res.status, view: data.agentic_commerce_index as Record<string, unknown> };
+}
+
+/** A fresh account whose key is also ADMIN_API_KEY (the real requireAdmin gate), after a DB reset. */
+async function makeAdmin(): Promise<string> {
+  resetRateLimits();
+  const res = await fetch(`${baseUrl}/v1/accounts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Index Owner", email: `owner-${Date.now()}@test.example` }),
+  });
+  const key = ((await res.json()) as { api_key: { raw_key: string } }).api_key.raw_key;
+  process.env.ADMIN_API_KEY = key;
+  return key;
+}
+
 describe("agentic-commerce index — end to end on the real database", () => {
   beforeAll(async () => {
     await resetTestDb();
@@ -406,27 +448,25 @@ describe("agentic-commerce index — end to end on the real database", () => {
     const router = new Router();
     router.get("/v1/agentic-commerce-index", handleGetAgenticCommerceIndex);
     router.post("/mcp", handleMcpPost);
+    router.post("/v1/accounts", handleCreateAccount);
+    router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
     const t = await startTestServer(router);
     server = t.server;
     baseUrl = t.baseUrl;
   });
 
   afterAll(async () => {
+    delete process.env.ADMIN_API_KEY;
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
   beforeEach(async () => {
     await resetTestDb();
+    resetRateLimits();
   });
 
-  it("before anything is published the route answers 'pending' in the same schema", async () => {
-    const { status, doc } = await getIndex();
-    expect(status).toBe(200);
-    expect(doc.status).toBe("pending");
-    expect(doc.period_start).toBeNull();
-    expect(doc.generated_at).toBeNull();
-    expect(doc.method.length).toBeGreaterThan(100);
-    expectNoIdentifyingOrVolumeData(doc);
+  it("dark before anything is stored: the route answers exactly the router's unknown-path 404", async () => {
+    await expectDark();
   });
 
   it("publishes the worked example: shares, ranks, changes, suppression — and serves it", async () => {
@@ -483,23 +523,74 @@ describe("agentic-commerce index — end to end on the real database", () => {
     }
   });
 
-  it("a week with too few calls says so instead of publishing numbers; exactly the floor publishes", async () => {
+  it("a week below the floor is stored but never served: the route stays dark; exactly the floor publishes", async () => {
     await seed("analyze_repo", INDEX_MIN_CALLS_PER_PERIOD - 1, IN_WEEK);
     await seed("analyze_repo", 1000, IN_WEEK, { probe: "registry-crawler" }); // crawlers do not count toward the floor
     expect(await publishDueAgenticCommerceIndex({ now: NOW, instanceId: "test-a" })).toMatchObject({ status: "insufficient_data" });
-    const { doc } = await getIndex();
+    await expectDark();
+    // The stored week itself carries no numbers either.
+    const stored = await sql.one<{ payload: string }>("SELECT payload FROM agentic_commerce_index");
+    const doc = JSON.parse(stored!.payload) as AgenticCommerceIndexDocument;
     expect(doc.status).toBe("insufficient_data");
-    expect(doc.message).toBe(INDEX_NOT_ENOUGH_CALLS_MESSAGE);
     expect([doc.tools, doc.categories, doc.pricing, doc.agent_modes, doc.budget_headers]).toEqual([null, null, null, null, null]);
-    expect(doc.period_end).toBe("2026-10-12T00:00:00.000Z");
     expectNoIdentifyingOrVolumeData(doc);
 
     await resetTestDb();
     await seed("analyze_repo", INDEX_MIN_CALLS_PER_PERIOD, IN_WEEK);
     expect(await publishDueAgenticCommerceIndex({ now: NOW, instanceId: "test-a" })).toMatchObject({ status: "published" });
-    expect((await getIndex()).doc.tools?.rows).toEqual([
-      expect.objectContaining({ key: "analyze_repo", rank: 1, share_pct: 100 }),
-    ]);
+    const served = await getIndex();
+    expect(served.status).toBe(200);
+    expect(served.doc.tools?.rows).toEqual([expect.objectContaining({ key: "analyze_repo", rank: 1, share_pct: 100 })]);
+  });
+
+  it("after the first edition, a later week below the floor never replaces it", async () => {
+    await seedWorkedExample();
+    await publishDueAgenticCommerceIndex({ now: NOW, instanceId: "test-a" }); // week ending 2026-10-12: an edition
+    await seed("analyze_repo", INDEX_MIN_CALLS_PER_PERIOD - 1, "2026-10-15T10:00:00.000Z");
+    const nextWeek = new Date(NOW.getTime() + 7 * 86_400_000);
+    expect(await publishDueAgenticCommerceIndex({ now: nextWeek, instanceId: "test-a" })).toMatchObject({
+      period_end: "2026-10-19T00:00:00.000Z",
+      status: "insufficient_data",
+    });
+    const { status, doc } = await getIndex();
+    expect(status).toBe(200);
+    expect(doc.status).toBe("published");
+    expect(doc.period_end).toBe("2026-10-12T00:00:00.000Z");
+  });
+
+  it("the owner reads the stored state through the existing admin gate, and only there", async () => {
+    const adminKey = await makeAdmin();
+    const other = await fetch(`${baseUrl}/v1/accounts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Someone Else", email: `else-${Date.now()}@test.example` }),
+    });
+    const otherKey = ((await other.json()) as { api_key: { raw_key: string } }).api_key.raw_key;
+
+    expect((await fetch(`${baseUrl}/v1/admin/mcp-usage`)).status).toBe(401);
+    expect((await adminView(otherKey)).status).toBe(403);
+
+    // Nothing stored yet.
+    expect((await adminView(adminKey)).view).toEqual({ public_edition: null, latest_week: null, latest_week_document: null });
+
+    // A week below the floor: visible to the owner, dark to everyone else.
+    await seed("analyze_repo", INDEX_MIN_CALLS_PER_PERIOD - 1, IN_WEEK);
+    await publishDueAgenticCommerceIndex({ now: NOW, instanceId: "test-a" });
+    let { view } = await adminView(adminKey);
+    expect(view.public_edition).toBeNull();
+    expect(view.latest_week).toMatchObject({ period_end: "2026-10-12T00:00:00.000Z", edition_status: "insufficient_data" });
+    expect((view.latest_week_document as AgenticCommerceIndexDocument).status).toBe("insufficient_data");
+    await expectDark();
+
+    // The first edition: the admin view and the public route agree.
+    await resetTestDb();
+    const adminKey2 = await makeAdmin();
+    await seedWorkedExample();
+    await publishDueAgenticCommerceIndex({ now: NOW, instanceId: "test-a" });
+    ({ view } = await adminView(adminKey2));
+    expect(view.public_edition).toMatchObject({ period_end: "2026-10-12T00:00:00.000Z" });
+    expect(view.latest_week).toMatchObject({ edition_status: "published" });
+    expect((await getIndex()).doc).toEqual(view.latest_week_document);
   });
 
   it("single-instance claim: six instances racing on the same tick compute the week exactly once", async () => {
@@ -528,7 +619,7 @@ describe("agentic-commerce index — end to end on the real database", () => {
 
     await claimRow(new Date(NOW.getTime() - 60_000)); // claimed a minute ago — still working
     expect((await publishDueAgenticCommerceIndex({ now: NOW, instanceId: "machine-b" })).outcome).toBe("claimed_elsewhere");
-    expect((await getIndex()).doc.status).toBe("pending");
+    await expectDark(); // a claimed-but-unfinished week is never served
 
     await sql.run("DELETE FROM agentic_commerce_index");
     await claimRow(new Date(NOW.getTime() - INDEX_CLAIM_STALE_MS - 60_000)); // its machine died
@@ -562,5 +653,61 @@ describe("agentic-commerce index — end to end on the real database", () => {
       { agent_mode: "lite", budget_header: true },
       { agent_mode: "standard", budget_header: false },
     ]);
+  });
+});
+
+// ─── Dark until the first published edition ─────────────────────
+//
+// Owner's rule: "when a sentence can only be true by admitting low usage, cut
+// the sentence instead of stating the number." Until a week clears the floor,
+// no public surface may announce the index. docs/OPEN_WORK_STRATEGY.md §H
+// lists the exact lines that make it public; when they are added back (in one
+// commit, once the admin view shows a public_edition), flip this test to
+// assert each one is present.
+
+const REPO = new URL("../../../", import.meta.url);
+const NAMES_THE_INDEX = /agentic[-_ ]commerce[-_ ]index|commerce index/i;
+
+describe("agentic-commerce index — dark until the first published edition", () => {
+  let darkServer: Server;
+  let darkBase = "";
+
+  beforeAll(async () => {
+    const router = new Router();
+    router.get("/llms.txt", handleLlmsTxt);
+    router.get("/.well-known/axis.json", handleWellKnown);
+    router.get("/sitemap.xml", handleSitemapXml);
+    const t = await startTestServer(router);
+    darkServer = t.server;
+    darkBase = t.baseUrl;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => darkServer.close(() => resolve()));
+  });
+
+  it("no public discovery surface names the index", async () => {
+    for (const path of ["/llms.txt", "/.well-known/axis.json", "/sitemap.xml"]) {
+      const text = await (await fetch(`${darkBase}${path}`)).text();
+      expect(text, `${path} names the index`).not.toMatch(NAMES_THE_INDEX);
+    }
+    const spec = buildOpenApiSpec() as { paths: Record<string, unknown> };
+    expect(Object.keys(spec.paths)).not.toContain("/v1/agentic-commerce-index");
+    for (const rel of ["llms.txt", "apps/web/seo.routes.ts", "apps/web/src/components/primitives/PageFooter.tsx", "apps/web/public/robots.txt"]) {
+      expect(readFileSync(new URL(rel, REPO), "utf8"), `${rel} names the index`).not.toMatch(NAMES_THE_INDEX);
+    }
+  });
+
+  it("the page's route is registered but noindex", () => {
+    const routes = readFileSync(new URL("apps/web/src/routes.tsx", REPO), "utf8");
+    const def = routes.slice(routes.indexOf('page: "commerce-index"'), routes.indexOf("render: () => <AgenticCommerceIndexPage />"));
+    expect(def).toContain('pattern: "agentic-commerce-index"');
+    expect(def).toContain("noindex: true");
+  });
+
+  it("published copy never explains a missing week or states a threshold", () => {
+    // "sums to exactly 100" is percent arithmetic; a threshold would be a call count.
+    expect(INDEX_METHOD).not.toMatch(/too few|not enough|fewer than|at least \d|\b\d+ (qualifying )?calls\b/i);
+    expect(INDEX_METHOD).toContain("sums to exactly 100");
   });
 });

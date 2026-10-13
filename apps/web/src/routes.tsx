@@ -128,8 +128,9 @@ export type PageId =
   | "mcp"
   // Agentic Purchasing / Commerce Hub (WO-P9) — "#commerce".
   | "commerce"
-  // The agentic-commerce index (AXIS Launch taskgate T16) — "#agentic-commerce-index",
-  // public. Weekly shares of MCP tool usage; footer-linked, no sidebar entry.
+  // The agentic-commerce index (AXIS Launch taskgate T16) — "#agentic-commerce-index".
+  // Weekly shares of MCP tool usage. Dark (noindex, unlinked) until its first
+  // published edition — docs/OPEN_WORK_STRATEGY.md §H.
   | "commerce-index"
   // Live Demo / Playground (WO-P15) — "#playground", public. A fuller
   // standalone version of HomePage's LiveDemoTeaser.
@@ -293,6 +294,14 @@ export interface RouteDef {
    * count-honesty guard scans every .tsx for stale count claims.
    */
   seo?: { title: string; description: string };
+  /**
+   * Reachable but not to be indexed: useDocumentHead writes
+   * `<meta name="robots" content="noindex">` while this route is active, and
+   * routes.test.tsx keeps every noindex route out of seo.routes.ts (no
+   * prerendered page, no sitemap entry). For a page that exists in code ahead
+   * of its public launch.
+   */
+  noindex?: boolean;
   /** Nav item that stays highlighted while this page is active (sub-pages). */
   parent?: PageId;
   render: (ctx: RouteContext) => ReactNode;
@@ -493,15 +502,17 @@ export const ROUTES: RouteDef[] = [
     ),
   },
   {
-    // AXIS Launch taskgate T16: the agentic-commerce index — public, footer-only
-    // (same pattern as "changelog"/"status"). Its /agentic-commerce-index alias is
-    // prerendered with its own head via seo.routes.ts and listed in the sitemap.
+    // AXIS Launch taskgate T16: the agentic-commerce index. DARK until its first
+    // published edition (owner's usage-numbers rule): registered and reachable,
+    // but noindex, absent from the footer, seo.routes.ts and both sitemaps.
+    // docs/OPEN_WORK_STRATEGY.md §H lists the exact lines that make it public.
     page: "commerce-index",
     seo: { title: "Agentic Commerce Index — Axis' Iliad", description: "Weekly shares of how agents use Iliad's MCP tools: each tool's share of calls, its rank and its week-over-week change. No counts, no caller data." },
     pattern: "agentic-commerce-index",
     label: "Commerce index",
     section: "AGENTS",
     aliases: ["/agentic-commerce-index"],
+    noindex: true,
     render: () => <AgenticCommerceIndexPage />,
   },
   {

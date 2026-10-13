@@ -1021,7 +1021,8 @@ export async function getChangelog(): Promise<string> {
 // ─── Agentic-commerce index (GET /v1/agentic-commerce-index) ────
 // Mirrors apps/api/src/agentic-commerce-index.ts's AgenticCommerceIndexDocument
 // (schema_version 1). Shares, ranks and week-over-week changes only — the API
-// never sends counts, so there is nothing here that could render one.
+// never sends counts, so there is nothing here that could render one. The
+// route serves published editions only and answers 404 until the first one.
 
 export interface CommerceIndexRow {
   key: string;
@@ -1046,7 +1047,8 @@ export interface AgenticCommerceIndex {
   schema_version: number;
   publisher: { name: string; url: string };
   page_url: string;
-  status: "published" | "insufficient_data" | "pending";
+  /** Always "published" — the route serves nothing else. */
+  status: "published";
   message: string | null;
   period_start: string | null;
   period_end: string | null;

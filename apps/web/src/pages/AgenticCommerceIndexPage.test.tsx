@@ -2,15 +2,17 @@
  * @vitest-environment happy-dom
  */
 
-// AXIS Launch taskgate T16 — the agentic-commerce index page renders the
-// stored weekly document from GET /v1/agentic-commerce-index: published
-// shares/ranks/changes, the "not enough calls" state, the "pending" state,
-// and a load failure. The API never sends counts; the page only formats what
-// it is given (percent, percentage points, rank).
+// AXIS Launch taskgate T16 — the agentic-commerce index page. The index is
+// dark until its first published edition (owner's usage-numbers rule), so:
+//   - with an edition, the page renders shares/ranks/changes and the method;
+//   - without one (the API's 404), it says ONLY that the index publishes
+//     weekly from Iliad's own call records — no "not enough calls", no
+//     thresholds, no "yet", nothing that implies when;
+//   - a breakdown an edition leaves null is not rendered, and not explained.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { AgenticCommerceIndexPage } from "./AgenticCommerceIndexPage.tsx";
+import { AgenticCommerceIndexPage, INDEX_NO_EDITION_TEXT } from "./AgenticCommerceIndexPage.tsx";
 import type { AgenticCommerceIndex } from "../api.ts";
 
 function stubFetch(body: unknown, status = 200) {
@@ -28,7 +30,7 @@ function stubFetch(body: unknown, status = 200) {
 
 const METHOD = "Built from Axis' Iliad's own record of MCP tools/call requests. (test method text)";
 
-function doc(overrides: Partial<AgenticCommerceIndex>): AgenticCommerceIndex {
+function edition(overrides: Partial<AgenticCommerceIndex> = {}): AgenticCommerceIndex {
   return {
     index: "iliad-agentic-commerce-index",
     schema_version: 1,
@@ -66,15 +68,18 @@ function doc(overrides: Partial<AgenticCommerceIndex>): AgenticCommerceIndex {
   };
 }
 
+/** Words that, on this page, could only be true by admitting low usage — or that promise a date. */
+const FORBIDDEN_COPY = /not enough|too few|fewer than|threshold|floor of|\b(20|100) calls\b|\byet\b|\bsoon\b|coming|first edition/i;
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-describe("AgenticCommerceIndexPage", () => {
-  it("renders a published week: ranks, shares, signed changes, other, and the published method", async () => {
-    const fetchFn = stubFetch(doc({}));
+describe("AgenticCommerceIndexPage — with a published edition", () => {
+  it("renders ranks, shares, signed changes, other, the week and the published method", async () => {
+    const fetchFn = stubFetch(edition());
     render(<AgenticCommerceIndexPage />);
     expect(await screen.findByText("Analyze Repo")).toBeTruthy();
     expect(String(fetchFn.mock.calls[0][0])).toContain("/v1/agentic-commerce-index");
@@ -85,52 +90,45 @@ describe("AgenticCommerceIndexPage", () => {
     expect(screen.getAllByText("Other (below the privacy floor)").length).toBeGreaterThan(0);
     expect(screen.getByText("Oct 5, 2026 – Oct 11, 2026 (UTC)")).toBeTruthy();
     expect(screen.getByText(METHOD)).toBeTruthy();
-    // Null mode/budget breakdowns explain themselves rather than vanishing.
-    expect(screen.getByText(/carried mode information/)).toBeTruthy();
-    expect(screen.getByText(/carried budget information/)).toBeTruthy();
   });
 
-  it("shows the not-enough-calls message instead of numbers", async () => {
-    stubFetch(
-      doc({
-        status: "insufficient_data",
-        message: "Not enough calls this period to publish.",
-        tools: null,
-        categories: null,
-        pricing: null,
-      }),
-    );
+  it("does not render, or explain, a breakdown the edition leaves null", async () => {
+    stubFetch(edition());
     render(<AgenticCommerceIndexPage />);
-    expect(await screen.findByText("Not enough calls this period to publish.")).toBeTruthy();
-    expect(screen.queryByText(/%$/)).toBeNull();
+    await screen.findByText("Analyze Repo");
+    expect(screen.queryByText("Agent modes")).toBeNull();
+    expect(screen.queryByText("Budget headers")).toBeNull();
+    expect(document.body.textContent ?? "").not.toMatch(FORBIDDEN_COPY);
+  });
+});
+
+describe("AgenticCommerceIndexPage — no edition (the API's 404)", () => {
+  it("says only that the index publishes weekly from Iliad's own call records", async () => {
+    stubFetch({ error: "Not found", error_code: "NOT_FOUND", request_id: "r1" }, 404);
+    const { container } = render(<AgenticCommerceIndexPage />);
+    expect(await screen.findByText(INDEX_NO_EDITION_TEXT)).toBeTruthy();
+    expect(INDEX_NO_EDITION_TEXT).toBe("The agentic commerce index publishes weekly from Iliad's own call records.");
+    // Exactly the heading and that one sentence — no table, link, button or method.
+    expect(container.textContent?.replace("Agentic commerce index", "").trim()).toBe(INDEX_NO_EDITION_TEXT);
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(container.textContent ?? "").not.toMatch(FORBIDDEN_COPY);
+  });
+
+  it("treats any non-published document exactly like no edition", async () => {
+    stubFetch({ ...edition(), status: "insufficient_data", message: "Not enough calls this period to publish.", tools: null, categories: null, pricing: null });
+    const { container } = render(<AgenticCommerceIndexPage />);
+    expect(await screen.findByText(INDEX_NO_EDITION_TEXT)).toBeTruthy();
+    expect(container.textContent ?? "").not.toMatch(FORBIDDEN_COPY);
     expect(screen.queryByRole("table")).toBeNull();
   });
 
-  it("explains the pending state before the first publication", async () => {
-    stubFetch(
-      doc({
-        status: "pending",
-        message: "The first index has not been published yet. It is computed after each week closes.",
-        period_start: null,
-        period_end: null,
-        comparison_period_start: null,
-        comparison_period_end: null,
-        generated_at: null,
-        tools: null,
-        categories: null,
-        pricing: null,
-      }),
-    );
-    render(<AgenticCommerceIndexPage />);
-    expect(await screen.findByText("Not published yet")).toBeTruthy();
-    expect(screen.queryByRole("table")).toBeNull();
-  });
-
-  it("keeps the static explanation and offers a retry when the API cannot be reached", async () => {
+  it("when the API cannot be reached, says the same sentence and offers a retry — nothing more", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
-    render(<AgenticCommerceIndexPage />);
-    await waitFor(() => expect(screen.getByText("This week's figures are not shown here right now")).toBeTruthy());
+    const { container } = render(<AgenticCommerceIndexPage />);
+    await waitFor(() => expect(screen.getByText(INDEX_NO_EDITION_TEXT)).toBeTruthy());
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
-    expect(screen.getByText(/publishes no counts/)).toBeTruthy();
+    expect(container.textContent ?? "").not.toMatch(FORBIDDEN_COPY);
   });
 });

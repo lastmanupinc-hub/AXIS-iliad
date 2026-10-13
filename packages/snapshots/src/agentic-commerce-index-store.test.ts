@@ -9,6 +9,7 @@ import {
   claimAgenticCommerceIndexPeriod,
   publishAgenticCommerceIndex,
   getLatestAgenticCommerceIndex,
+  getLatestPublishedAgenticCommerceEdition,
 } from "./agentic-commerce-index-store.js";
 
 // Real Postgres throughout (the owner's standing rule: no mocked database
@@ -165,5 +166,32 @@ describe("agentic-commerce index store — the single-instance claim", () => {
     const latest = await getLatestAgenticCommerceIndex();
     expect(latest?.period_end).toBe(WEEK_END);
     expect(latest?.payload).toBe('{"week":41}');
+  });
+
+  it("the public read returns only weeks whose DOCUMENT is published — never one stored below the floor", async () => {
+    const store = async (periodStart: string, periodEnd: string, payload: string) => {
+      await claimAgenticCommerceIndexPeriod({
+        period_start: periodStart,
+        period_end: periodEnd,
+        claimed_by: "a",
+        now: "2026-10-30T00:00:00.000Z",
+        stale_before: "1970-01-01T00:00:00.000Z",
+      });
+      await publishAgenticCommerceIndex({ period_end: periodEnd, claimed_by: "a", payload, published_at: periodEnd });
+    };
+    // Only weeks below the floor so far → nothing public.
+    await store("2026-09-28T00:00:00.000Z", WEEK_START, JSON.stringify({ status: "insufficient_data", n: 1 }));
+    expect(await getLatestPublishedAgenticCommerceEdition()).toBeUndefined();
+    expect((await getLatestAgenticCommerceIndex())?.period_end).toBe(WEEK_START);
+
+    // The first edition becomes the public one…
+    await store(WEEK_START, WEEK_END, JSON.stringify({ status: "published", n: 2 }));
+    // …and a later week below the floor does not displace it.
+    await store(WEEK_END, "2026-10-19T00:00:00.000Z", JSON.stringify({ status: "insufficient_data", n: 3 }));
+    const edition = await getLatestPublishedAgenticCommerceEdition();
+    expect(edition?.period_end).toBe(WEEK_END);
+    expect(JSON.parse(edition!.payload)).toEqual({ status: "published", n: 2 });
+    // The operator read still sees the newest stored week.
+    expect((await getLatestAgenticCommerceIndex())?.period_end).toBe("2026-10-19T00:00:00.000Z");
   });
 });

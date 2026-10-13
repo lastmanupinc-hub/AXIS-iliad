@@ -377,7 +377,10 @@ router.get("/v1/changelog", handleChangelog);
 // The agentic-commerce index (AXIS Launch taskgate T16): weekly shares of MCP
 // tool usage from Iliad's own call ledger — shares, ranks and week-over-week
 // changes only, never counts. Served from the stored weekly snapshot; the
-// scheduler started at the bottom of this file computes it.
+// scheduler started at the bottom of this file computes it. DARK until the
+// first published edition: until then it answers the router's own 404 and is
+// deliberately absent from OpenAPI and every discovery file
+// (docs/OPEN_WORK_STRATEGY.md §H lists what to add back).
 router.get("/v1/agentic-commerce-index", handleGetAgenticCommerceIndex);
 
 // AXIS's own begin-loop files, verbatim (H4.4) — root-level, alongside llms.txt/robots.txt

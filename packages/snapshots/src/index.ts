@@ -406,6 +406,7 @@ export {
   claimAgenticCommerceIndexPeriod,
   publishAgenticCommerceIndex,
   getLatestAgenticCommerceIndex,
+  getLatestPublishedAgenticCommerceEdition,
 } from "./agentic-commerce-index-store.js";
 
 // Closer — revenue pipeline persistence (pg-schema.ts v47). Facts only: no

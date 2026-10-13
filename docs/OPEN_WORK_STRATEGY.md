@@ -347,6 +347,149 @@ Recorded so the gates are visible, not because engineering is blocked:
 
 ---
 
+## H · Deferred until the first published edition — the agentic-commerce index
+
+**State (2026-10-13, branch `feat/agentic-commerce-index`, AXIS Launch taskgate T16).** The
+weekly index is built, scheduled and stored (migration 48, `agentic-commerce-index.ts`), but it
+is **dark**. Owner's rule: *"when a sentence can only be true by admitting low usage, cut the
+sentence instead of stating the number."* A public "not enough calls this period" (or a public
+threshold next to it) can only be true by admitting low usage, so until a week clears the
+privacy floor nothing public announces the index:
+
+- `GET /v1/agentic-commerce-index` answers the router's own unknown-path 404 until a stored
+  week's document is `"published"`; after that it serves the latest **published** edition only,
+  never an `insufficient_data` week.
+- The page `#agentic-commerce-index` (`/agentic-commerce-index`) stays registered but `noindex`,
+  unlinked, not prerendered and in no sitemap. With no edition it says only *"The agentic
+  commerce index publishes weekly from Iliad's own call records."*
+- The owner's checks read the stored state from the admin-only `GET /v1/admin/mcp-usage`, field
+  `agentic_commerce_index`: `public_edition` (null ⇒ the public route is 404),
+  `latest_week.edition_status` (`published` | `insufficient_data`), and
+  `latest_week_document`.
+
+**Trigger.** The admin view shows `public_edition` non-null — the public route is already serving
+it. Then make the surfaces public in **one commit**, adding back exactly the lines below.
+`agentic-commerce-index.test.ts` › "dark until the first published edition" fails while any of
+them is present, and must flip to asserting each is present in that same commit.
+
+1. **Footer** — `apps/web/src/components/primitives/PageFooter.tsx`, after the Status button and
+   its `<Sep />`:
+
+   ```tsx
+           <button type="button" className="footer-link" onClick={() => onNavigate("commerce-index")}>Commerce index</button>
+           <Sep />
+   ```
+
+   and in the header comment: `// StatusBar: legal/Terms · Status · Commerce index · v<version> · Support · Help · Docs.`
+
+2. **Route indexable again** — `apps/web/src/routes.tsx`, in the `"commerce-index"` route, delete
+   the line `    noindex: true,` (and drop "Dark" from its two comments).
+
+3. **Prerender + web sitemap** — `apps/web/seo.routes.ts`, immediately before the `/pricing` entry:
+
+   ```ts
+     {
+       path: "/agentic-commerce-index",
+       kind: "article",
+       product: "iliad",
+       title: "Agentic Commerce Index — Iliad",
+       description:
+         "Weekly shares of how agents use Iliad's MCP tools: each tool's share of calls, its rank, and its week-over-week change. Built from Iliad's own call records; no counts, no caller data.",
+       breadcrumbs: [
+         { name: "Home", url: "/" },
+         { name: "Agentic commerce index", url: "/agentic-commerce-index" },
+       ],
+     },
+   ```
+
+4. **API discovery files** — `apps/api/src/handlers.ts`:
+   - import, after the `./mcp-tool-impls.js` import:
+     `import { INDEX_JSON_PATH, INDEX_PAGE_URL } from "./agentic-commerce-index.js";`
+   - `handleWellKnown` (axis.json), after the `openapi_json` line:
+
+     ```ts
+         agentic_commerce_index: `GET ${INDEX_JSON_PATH}  -  weekly agentic-commerce index: each MCP tool's share of calls, rank and week-over-week change, from Iliad's own call ledger. Shares only, never counts. Human page: ${INDEX_PAGE_URL}`,
+     ```
+
+   - `handleLlmsTxt`, a new section between "## Agentic Commerce" and "## Authentication":
+
+     ```
+     ## Agentic Commerce Index
+
+     A weekly index of how agents use Iliad's MCP tools, built from Iliad's own call ledger: each tool's, category's and pricing class's share of the week's calls, its rank, and its week-over-week change, plus the share of calls made in lite/engineer mode or with an X-Agent-Budget header. Shares only: no counts, callers, revenue or identifiers.
+
+     - GET ${INDEX_JSON_PATH}  -  the latest published week as JSON (no auth).
+     - ${INDEX_PAGE_URL}  -  the same index as a page, with its method.
+     ```
+
+   - `handleSitemapXml`, after the `/for-agents` entry:
+     `    { loc: "/agentic-commerce-index",         changefreq: "weekly",  priority: "0.8" },`
+
+5. **Root `llms.txt`** — after `- /v1/docs.md`:
+   `- /agentic-commerce-index (weekly index of agent tool usage; JSON at /v1/agentic-commerce-index — shares only, no counts)`
+
+6. **OpenAPI** — delete the `key("GET", "/v1/agentic-commerce-index")` waiver (and its comment) in
+   `apps/api/src/openapi-router-bijection.test.ts`, delete the `"get /v1/agentic-commerce-index"`
+   exclusion (and its comment) in `apps/api/src/openapi.test.ts`, and add to
+   `apps/api/src/openapi.ts`, after the `/v1/changelog` path:
+
+   ```ts
+         "/v1/agentic-commerce-index": {
+           get: {
+             summary: "The Iliad agentic-commerce index — weekly shares of MCP tool usage (shares, ranks and week-over-week changes only, never counts)",
+             description:
+               "Built from Iliad's own MCP call ledger, one edition per closed Monday-to-Monday UTC week; serves the latest published edition. " +
+               "Every breakdown (tools, categories, pricing, agent_modes, budget_headers) is rows plus other_share_pct summing to 100. " +
+               "Rows below the privacy floor fold into other. No auth.",
+             operationId: "getAgenticCommerceIndex",
+             tags: ["Discovery"],
+             responses: {
+               200: {
+                 description: "The latest published edition, served from the stored snapshot",
+                 content: {
+                   "application/json": {
+                     schema: {
+                       type: "object",
+                       required: ["index", "schema_version", "status", "period_start", "period_end", "generated_at", "method"],
+                       properties: {
+                         index: { type: "string", enum: ["iliad-agentic-commerce-index"] },
+                         schema_version: { type: "integer", enum: [1] },
+                         publisher: { type: "object", properties: { name: { type: "string" }, url: { type: "string" } } },
+                         page_url: { type: "string" },
+                         status: { type: "string", enum: ["published"] },
+                         message: { type: ["string", "null"] },
+                         period_start: { type: "string", format: "date-time" },
+                         period_end: { type: "string", format: "date-time" },
+                         comparison_period_start: { type: "string", format: "date-time" },
+                         comparison_period_end: { type: "string", format: "date-time" },
+                         generated_at: { type: "string", format: "date-time" },
+                         method: { type: "string" },
+                         tools: { type: ["object", "null"] },
+                         categories: { type: ["object", "null"] },
+                         pricing: { type: ["object", "null"] },
+                         agent_modes: { type: ["object", "null"] },
+                         budget_headers: { type: ["object", "null"] },
+                       },
+                     },
+                   },
+                 },
+               },
+               500: { description: "The stored index could not be read" },
+             },
+           },
+         },
+   ```
+
+7. **Then** deploy both halves (API on push to main; web with `scripts/ship.sh web`, which now
+   prerenders and audits the page), and point the T16 taskgate check at the public route.
+
+**Not covered by this list (owner decision).** Once public, the route keeps serving the latest
+published edition even if later weeks fall below the floor, so an edition whose `period_end` is
+weeks old would itself hint at volume. Whether to hide a stale edition (and how, without a
+sentence that admits why) is open.
+
+---
+
 ## Recommended sequence
 
 Assuming the owner unblocks the gated decisions, the order that clears the most risk per unit

@@ -135,7 +135,27 @@ export interface StoredAgenticCommerceIndex {
   payload: string;
 }
 
-/** The most recent published week, or undefined before the first publication. */
+/**
+ * The most recent edition whose document cleared the privacy floor
+ * (document status "published") — the only kind the public route may serve.
+ * Weeks stored as "insufficient_data" are skipped, so the public index stays
+ * dark until the first real edition and then keeps serving the latest one.
+ */
+export async function getLatestPublishedAgenticCommerceEdition(): Promise<StoredAgenticCommerceIndex | undefined> {
+  return await sql.one<StoredAgenticCommerceIndex>(
+    `SELECT period_start, period_end, published_at, payload
+       FROM agentic_commerce_index
+      WHERE status = 'published'
+        AND (payload::jsonb ->> 'status') = 'published'
+      ORDER BY period_end DESC
+      LIMIT 1`,
+  );
+}
+
+/**
+ * The most recent week the schedule finished storing, whatever its document
+ * says (an edition, or a week below the floor). Admin/operator use only.
+ */
 export async function getLatestAgenticCommerceIndex(): Promise<StoredAgenticCommerceIndex | undefined> {
   return await sql.one<StoredAgenticCommerceIndex>(
     `SELECT period_start, period_end, published_at, payload

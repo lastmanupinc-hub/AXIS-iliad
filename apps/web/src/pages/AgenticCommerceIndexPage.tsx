@@ -1,27 +1,30 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getAgenticCommerceIndex,
-  apiErrorDetails,
+  ApiError,
   AGENTIC_COMMERCE_INDEX_PATH,
   type AgenticCommerceIndex,
   type CommerceIndexBreakdown,
   type CommerceIndexRow,
 } from "../api.ts";
 import { DOCS_API_BASE } from "../config.ts";
-import { SectionHeader, Callout, Skeleton, TableWrap, Pill } from "../components/primitives/index.ts";
+import { SectionHeader, Skeleton, TableWrap, Pill } from "../components/primitives/index.ts";
 
 // ─── AgenticCommerceIndexPage (AXIS Launch taskgate T16) ──────────────────
-// Public, no login ("#agentic-commerce-index", alias /agentic-commerce-index).
-// Renders the weekly index the API stores (GET /v1/agentic-commerce-index):
-// shares, ranks and week-over-week changes of MCP tool usage. The API sends no
-// counts at all, so this page cannot display one — by construction, not by
-// discipline. The intro and "how to read it" copy are static so a crawler
-// that does not run JavaScript still gets a real page.
+// No login ("#agentic-commerce-index", alias /agentic-commerce-index), but
+// DARK until the first published edition: the route is noindex, linked from
+// nowhere, prerendered nowhere, and the API answers 404 until a week clears
+// the privacy floor (docs/OPEN_WORK_STRATEGY.md §H). Someone who reaches it
+// before then sees one sentence — that the index publishes weekly from
+// Iliad's own call records — and nothing that implies when, or why not yet.
+// Once an edition exists it renders that edition: shares, ranks and
+// week-over-week changes only. The API sends no counts at all, so this page
+// cannot display one — by construction, not by discipline.
 
-interface AsyncError {
-  /** Raw/technical detail, behind the Callout's collapsed disclosure. */
-  details: string | null;
-}
+/** The only thing the page says when there is no edition to show. */
+export const INDEX_NO_EDITION_TEXT = "The agentic commerce index publishes weekly from Iliad's own call records.";
+
+type LoadState = "loading" | "edition" | "none" | "unreachable";
 
 const JSON_URL = `${DOCS_API_BASE}${AGENTIC_COMMERCE_INDEX_PATH}`;
 
@@ -147,23 +150,21 @@ function PublishedIndex({ doc }: { doc: AgenticCommerceIndex }) {
           breakdown={doc.pricing}
         />
       )}
-      {doc.agent_modes ? (
+      {/* A breakdown the edition leaves null is simply not rendered — no
+          sentence explaining why, since any reason would hint at volume. */}
+      {doc.agent_modes && (
         <BreakdownTable
           title="Agent modes"
           caption="Share of calls made in each X-Agent-Mode, among calls recorded with a mode."
           breakdown={doc.agent_modes}
         />
-      ) : (
-        <Callout tone="info" title="Agent modes">Not enough calls carried mode information this week to publish this breakdown.</Callout>
       )}
-      {doc.budget_headers ? (
+      {doc.budget_headers && (
         <BreakdownTable
           title="Budget headers"
           caption="Share of calls that sent an X-Agent-Budget header, among calls recorded with that information."
           breakdown={doc.budget_headers}
         />
-      ) : (
-        <Callout tone="info" title="Budget headers">Not enough calls carried budget information this week to publish this breakdown.</Callout>
       )}
     </>
   );
@@ -171,85 +172,72 @@ function PublishedIndex({ doc }: { doc: AgenticCommerceIndex }) {
 
 export function AgenticCommerceIndexPage() {
   const [doc, setDoc] = useState<AgenticCommerceIndex | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<AsyncError | null>(null);
+  const [state, setState] = useState<LoadState>("loading");
 
   const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
+    setState("loading");
     getAgenticCommerceIndex()
-      .then(setDoc)
-      .catch((err) => setError({ details: apiErrorDetails(err) ?? (err instanceof Error ? err.message : null) }))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        // The API only ever serves published editions; anything else is
+        // treated exactly like "no edition" rather than rendered.
+        if (d.status === "published") {
+          setDoc(d);
+          setState("edition");
+        } else {
+          setState("none");
+        }
+      })
+      .catch((err) => setState(err instanceof ApiError && err.status === 404 ? "none" : "unreachable"))
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   return (
     <div>
-      <SectionHeader
-        title="Agentic commerce index"
-        sub="How agents use Iliad's MCP tools, week by week: shares of calls, never counts."
-        level="h1"
-      />
+      <SectionHeader title="Agentic commerce index" level="h1" />
 
-      <div className="card mb-4">
-        <p style={{ margin: 0 }}>
-          Iliad is an MCP server that agents call to analyze code, prepare for agentic purchasing and run agent
-          infrastructure. Every week this index reports which of its tools agents called, as each tool's share of
-          the week's calls, its rank, and how that share moved from the week before. It is built from Iliad's own
-          call records and publishes no counts, no caller information and nothing that identifies anyone.
-        </p>
-        <p className="text-sm mt-3" style={{ marginBottom: 0 }}>
-          Machine-readable: <a href={JSON_URL}><span className="mono">GET {AGENTIC_COMMERCE_INDEX_PATH}</span></a>
-          {" "}(JSON, no auth). Weeks run Monday to Monday, UTC.
-        </p>
-      </div>
-
-      {loading && (
+      {state === "loading" && (
         <div className="card mb-4" role="status" aria-live="polite">
           <Skeleton lines={8} />
         </div>
       )}
 
-      {/* Also what the build-time prerender captures (no API is reachable
-          there), so it is worded as a pointer to the JSON, not as a fault. */}
-      {!loading && (error || doc === null) && (
+      {(state === "none" || state === "unreachable") && (
         <div className="card mb-4">
-          <Callout tone="info" title="This week's figures are not shown here right now" details={error?.details ?? null}>
-            The same index is always published as JSON at <a href={JSON_URL}><span className="mono">{AGENTIC_COMMERCE_INDEX_PATH}</span></a>.{" "}
-            <button type="button" className="btn" onClick={load}>Retry</button>
-          </Callout>
+          <p style={{ margin: 0 }}>{INDEX_NO_EDITION_TEXT}</p>
+          {state === "unreachable" && (
+            <p className="text-sm mt-3" style={{ marginBottom: 0 }}>
+              <button type="button" className="btn" onClick={load}>Retry</button>
+            </p>
+          )}
         </div>
       )}
 
-      {!loading && doc && (
+      {state === "edition" && doc && (
         <>
-          {doc.status !== "pending" && (
-            <div className="flex gap-2 mb-3" style={{ alignItems: "center", flexWrap: "wrap" }}>
-              <Pill tone="outline">{formatWeek(doc.period_start, doc.period_end)}</Pill>
-              {doc.generated_at && <span className="text-muted text-xs">Published {formatDay(doc.generated_at)}</span>}
-            </div>
-          )}
-          {doc.status === "published" ? (
-            <PublishedIndex doc={doc} />
-          ) : (
-            <div className="card mb-4">
-              <Callout tone="info" title={doc.status === "pending" ? "Not published yet" : "Not enough calls this period"}>
-                {doc.message}
-              </Callout>
-            </div>
-          )}
+          <div className="card mb-4">
+            <p style={{ margin: 0 }}>
+              Iliad is an MCP server that agents call to analyze code, prepare for agentic purchasing and run agent
+              infrastructure. This index reports which of its tools agents called each week, as each tool's share of
+              the week's calls, its rank, and how that share moved from the week before. It is built from Iliad's own
+              call records and publishes no counts, no caller information and nothing that identifies anyone.
+            </p>
+            <p className="text-sm mt-3" style={{ marginBottom: 0 }}>
+              Machine-readable: <a href={JSON_URL}><span className="mono">GET {AGENTIC_COMMERCE_INDEX_PATH}</span></a>
+              {" "}(JSON, no auth). Weeks run Monday to Monday, UTC.
+            </p>
+          </div>
+          <div className="flex gap-2 mb-3" style={{ alignItems: "center", flexWrap: "wrap" }}>
+            <Pill tone="outline">{formatWeek(doc.period_start, doc.period_end)}</Pill>
+            {doc.generated_at && <span className="text-muted text-xs">Published {formatDay(doc.generated_at)}</span>}
+          </div>
+          <PublishedIndex doc={doc} />
+          <div className="card">
+            <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Method</h2>
+            <p className="text-sm" style={{ margin: 0 }}>{doc.method}</p>
+          </div>
         </>
       )}
-
-      <div className="card">
-        <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Method</h2>
-        <p className="text-sm" style={{ margin: 0 }}>
-          {doc?.method ??
-            "Shares are computed from Iliad's own record of MCP tool calls for each closed week. Rows backed by too few calls are folded into other, and a week with too few calls says so instead of publishing numbers. The full method is published with the JSON."}
-        </p>
-      </div>
     </div>
   );
 }
