@@ -3,7 +3,7 @@
   "name": "io.github.lastmanupinc-hub/axis-toolbox",
   "title": "Axis Iliad - Codebase Intelligence For Agentic Commerce",
   "description": "Codebase intelligence for agents: 152 structured artifacts across 21 programs, one call.",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "websiteUrl": "https://api.iliad.trustfabric.ai/for-agents",
   "repository": {
     "url": "https://github.com/lastmanupinc-hub/AXIS-iliad",

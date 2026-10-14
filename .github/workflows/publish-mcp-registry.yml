@@ -1,0 +1,33 @@
+# Publishes server.json to the official MCP registry (registry.modelcontextprotocol.io) as
+# io.github.lastmanupinc-hub/axis-toolbox. GitHub OIDC proves this repository's owner owns the io.github.lastmanupinc-hub
+# namespace, so no personal login or stored secret is needed. Runs when server.json changes on main, or by hand.
+# 2026-10-14 (AXIS Launch taskgate T35): versions 0.4.0 and 0.5.3 in the registry still named the Render host suspended
+# since 2026-08-31; every agent that found Iliad there got "Service Suspended". Bump server.json's version to publish.
+name: Publish to the MCP registry
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [server.json]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help >/dev/null
+      - name: Refuse a manifest that names a dead backend
+        run: |
+          if grep -q "onrender.com" server.json; then echo "server.json names a Render host"; exit 1; fi
+      - name: Log in with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+      - name: Publish server.json
+        run: ./mcp-publisher publish
