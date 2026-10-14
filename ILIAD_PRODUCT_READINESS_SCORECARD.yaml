@@ -53,7 +53,7 @@ categories:
           - "apps/api/src/mcp-server.ts"
           - "packages/snapshots/src/mcp-usage-store.ts (persistent per-call telemetry)"
           - "packages/snapshots/src/idempotency-store.ts (retry-safe paid path)"
-          - "https://axis-api-6c7z.onrender.com/mcp (live)"
+          - "https://api.iliad.trustfabric.ai/mcp (live)"
         current_status: 7.5
         evidence: "Live, registry-listed; full tool dispatch; idempotency on the paid path; per-call telemetry now persisted."
         gaps: "The <1% error-rate-over-7-days bar is unproven — the telemetry to PROVE it only just landed."

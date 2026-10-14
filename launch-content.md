@@ -18,7 +18,7 @@ It analyzes any codebase and generates everything from:
 **Paid tiers:** All 21 programs — Starter $29/mo, Pro $99/mo, Growth $299/mo
 
 **Try it:**
-- Web UI: https://axis-api-6c7z.onrender.com
+- Web UI: https://iliad.trustfabric.ai
 - GitHub: https://github.com/lastmanupinc-hub/axis-iliad
 - MCP Server: Already published to Smithery.ai, Glama.ai
 
@@ -141,7 +141,7 @@ Takes any repository (GitHub URL or uploaded) and generates 143 different output
 - MCP server integration
 - 188 API endpoints
 
-**Try it:** https://axis-api-6c7z.onrender.com
+**Try it:** https://iliad.trustfabric.ai
 **Source:** https://github.com/lastmanupinc-hub/axis-iliad
 
 Built for the AI-native development era where AI assistants need comprehensive context to be effective.
@@ -169,7 +169,7 @@ Axis' Iliad analyzes any codebase and generates 143 comprehensive artifacts auto
 • DevOps engineers creating incident response playbooks
 
 **Links:**
-• Website: https://axis-api-6c7z.onrender.com
+• Website: https://iliad.trustfabric.ai
 • GitHub: https://github.com/lastmanupinc-hub/axis-iliad
 • MCP Registry: https://smithery.ai/server/@lastmanupinc/axis-iliad
 

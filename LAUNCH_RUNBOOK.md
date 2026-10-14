@@ -8,7 +8,10 @@ free-tier acquisition path that feeds revenue.
 Sources of truth referenced below (read them before executing the step):
 
 - `STRIPE_CHANGES_REQUIRED.md` — exact Stripe products/prices/webhooks
-- `render.yaml` — current production env-var surface
+- `render.yaml` — the env-var surface as it was on Render. **Since 2026-08-31 the API
+  runs on Fly** (app `axis-api-iliad`, `https://api.iliad.trustfabric.ai`; the Render
+  services are suspended): where a step below says Render dashboard or Render env, set
+  the value with `flyctl secrets set NAME=<value> --app axis-api-iliad` instead
 - `server.json` (repo root) — MCP registry manifest for `mcp-publisher`
 - `.github/app-manifest.json` — GitHub App settings
 - `seo-distribution-playbook.md` lines 15–34 — ready-to-paste directory copy
@@ -47,7 +50,7 @@ Then:
 
 1. Keep all products/prices **active** (inactive prices fail checkout creation).
 2. Verify the webhook endpoint exists:
-   `https://axis-api-6c7z.onrender.com/v1/webhooks/stripe`, subscribed to exactly:
+   `https://api.iliad.trustfabric.ai/v1/webhooks/stripe`, subscribed to exactly:
    `checkout.session.completed`, `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted`,
    `invoice.payment_failed`. Copy the `whsec_...` into `STRIPE_WEBHOOK_SECRET`
@@ -114,8 +117,8 @@ In the Render dashboard for the `axis-api` service → Environment:
    image to `ghcr.io/lastmanupinc-hub/axis-api:latest` and trigger). After deploy:
 
    ```sh
-   curl https://axis-api-6c7z.onrender.com/v1/health
-   curl https://axis-api-6c7z.onrender.com/portal/api/paid/config   # expect {"configured":true}
+   curl https://api.iliad.trustfabric.ai/v1/health
+   curl https://api.iliad.trustfabric.ai/portal/api/paid/config   # expect {"configured":true}
    ```
 
    > `POST /v1/checkout` used to be the smoke test here. **That endpoint no
@@ -130,9 +133,9 @@ In the Render dashboard for the `axis-api` service → Environment:
    this is the definitive test, and it does NOT depend on reading logs:
 
    ```sh
-   curl https://axis-api-6c7z.onrender.com/oauth/jwks > /tmp/jwks-before.json
+   curl https://api.iliad.trustfabric.ai/oauth/jwks > /tmp/jwks-before.json
    # ... restart the service in the Render dashboard, wait for it to report healthy ...
-   curl https://axis-api-6c7z.onrender.com/oauth/jwks > /tmp/jwks-after.json
+   curl https://api.iliad.trustfabric.ai/oauth/jwks > /tmp/jwks-after.json
    diff /tmp/jwks-before.json /tmp/jwks-after.json   # expect no diff
    ```
 
@@ -148,7 +151,7 @@ In the Render dashboard for the `axis-api` service → Environment:
      Treat unchanged as "not applied" and check the var names.
 
    ```sh
-   curl -s https://axis-api-6c7z.onrender.com/oauth/jwks \
+   curl -s https://api.iliad.trustfabric.ai/oauth/jwks \
      | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const n=JSON.parse(s).keys[0].n;console.log(require('crypto').createHash('sha256').update(n).digest('hex').slice(0,32))})"
    ```
 
@@ -181,7 +184,7 @@ secrets below must be set by hand.
    mode enabled). See the PAI'D-side go-live runbook
    (`payment processing/docs/AXIS_MERCHANT_GO_LIVE.md`).
 3. **Register the webhook on the PAI'D side** pointing at
-   `https://axis-api-6c7z.onrender.com/portal/api/paid/webhook`, using the same
+   `https://api.iliad.trustfabric.ai/portal/api/paid/webhook`, using the same
    signing key as `PAID_WEBHOOK_SIGNING_KEY`. PAI'D signs the
    `Webhook-Signature: t=<unix>,v1=<hex>` header over `"{t}.{body}"`; the
    receiver rejects timestamps older than 300 seconds, so the PAI'D box clock
@@ -190,7 +193,7 @@ secrets below must be set by hand.
    commit"). Then verify config without leaking anything:
 
    ```sh
-   curl https://axis-api-6c7z.onrender.com/portal/api/paid/config
+   curl https://api.iliad.trustfabric.ai/portal/api/paid/config
    # expect: {"configured":true}
    ```
 
@@ -219,7 +222,7 @@ Uses `.github/app-manifest.json` as the source of values. Without this,
    manifest's values:
    - Name: `Axis Iliad Compliance`
    - Homepage: `https://iliad.trustfabric.ai`
-   - Webhook URL: `https://axis-api-6c7z.onrender.com/v1/github/webhook`, active
+   - Webhook URL: `https://api.iliad.trustfabric.ai/v1/github/webhook`, active
    - Callback/redirect: `https://iliad.trustfabric.ai/install/github/callback`
    - Events: `push`, `pull_request`
    - Permissions: checks **write**, contents **read**, metadata **read**,
@@ -232,7 +235,8 @@ Uses `.github/app-manifest.json` as the source of values. Without this,
    ```
 
    - GitHub App settings → Webhook secret
-   - Render env → `GITHUB_WEBHOOK_SECRET` (the endpoint returns 503 until set;
+   - Fly secret → `flyctl secrets set GITHUB_WEBHOOK_SECRET=<value> --app axis-api-iliad`
+     (the endpoint returns 503 until set;
      GitHub auto-retries, so no events are lost, but nothing works either)
 3. Install the app on a throwaway test repo, push a commit, and confirm:
    - GitHub App → Advanced → Recent Deliveries shows a 2xx,
@@ -273,7 +277,7 @@ calling this done.
 
 ### Uptime monitor
 
-Create a monitor on `https://axis-api-6c7z.onrender.com/v1/health` (UptimeRobot
+Create a monitor on `https://api.iliad.trustfabric.ai/v1/health` (UptimeRobot
 free tier or Better Stack): interval 1–5 min, alert to email + phone push. Add a
 second monitor on the web frontend root. Done in 10 minutes; do not skip — Render
 starter-plan instances do restart.
@@ -323,7 +327,7 @@ mcp-publisher publish
 ```
 
 Verify the listing appears in the registry and that the `remotes` URL
-(`https://axis-api-6c7z.onrender.com/mcp`) answers an `initialize` request.
+(`https://api.iliad.trustfabric.ai/mcp`) answers an `initialize` request.
 
 ---
 

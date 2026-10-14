@@ -386,7 +386,7 @@ pricing_page:
 
 architecture:
   model: "MCP Hub / Aggregator"
-  single_endpoint: "https://axis-api-6c7z.onrender.com/mcp"
+  single_endpoint: "https://api.iliad.trustfabric.ai/mcp"
   auth: "Bearer <AXIS_API_KEY> — single credential unlocks all tools"
 
   additive_principle: >

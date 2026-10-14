@@ -7,7 +7,7 @@
 [![Tests](https://img.shields.io/badge/tests-4900%2B%20passing-brightgreen)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Coverage](https://img.shields.io/badge/coverage-91.5%25-green)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Website](https://img.shields.io/badge/website-iliad.trustfabric.ai-0ea5e9)](https://iliad.trustfabric.ai)
-[![API](https://img.shields.io/badge/API-live-blue)](https://axis-api-6c7z.onrender.com/v1/health)
+[![API](https://img.shields.io/badge/API-live-blue)](https://api.iliad.trustfabric.ai/v1/health)
 [![Version](https://img.shields.io/badge/version-0.5.3-blue)](https://github.com/lastmanupinc-hub/axis-iliad/releases)
 [![License](https://img.shields.io/badge/license-private-lightgrey)](#license)
 [![AXIS-iliad MCP server](https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad/badges/card.svg)](https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad)
@@ -35,18 +35,18 @@ Every program ships free artifacts with no API key — 47 of the 152 in total. T
 
 ```bash
 # 1. Get an API key (free tier, instant)
-curl -X POST https://axis-api-6c7z.onrender.com/v1/accounts \
+curl -X POST https://api.iliad.trustfabric.ai/v1/accounts \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'
 
 # 2. Analyze any public GitHub repo
-curl -X POST https://axis-api-6c7z.onrender.com/v1/github/analyze \
+curl -X POST https://api.iliad.trustfabric.ai/v1/github/analyze \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -d '{"url":"https://github.com/owner/repo","programs":["search","skills","debug"]}'
 
 # 3. Download the generated artifacts as a ZIP
-curl https://axis-api-6c7z.onrender.com/v1/projects/PROJECT_ID/export \
+curl https://api.iliad.trustfabric.ai/v1/projects/PROJECT_ID/export \
   -H 'Authorization: Bearer YOUR_API_KEY' -o artifacts.zip
 ```
 
@@ -95,7 +95,7 @@ AXIS dogfoods this on itself: this repo's own root [`begin.yaml`](begin.yaml) / 
 
 ## For AI agents — MCP integration
 
-AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender.com/mcp`. Add it to your agent and it can analyze any repo or prepare for agentic purchasing autonomously.
+AXIS exposes a **Streamable HTTP MCP server** at `https://api.iliad.trustfabric.ai/mcp`. Add it to your agent and it can analyze any repo or prepare for agentic purchasing autonomously.
 
 **VS Code** (`.vscode/mcp.json`):
 ```json
@@ -103,7 +103,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
   "servers": {
     "axis-iliad": {
       "type": "http",
-      "url": "https://axis-api-6c7z.onrender.com/mcp",
+      "url": "https://api.iliad.trustfabric.ai/mcp",
       "headers": { "Authorization": "Bearer YOUR_API_KEY" }
     }
   }
@@ -115,7 +115,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 {
   "mcpServers": {
     "axis-iliad": {
-      "url": "https://axis-api-6c7z.onrender.com/mcp",
+      "url": "https://api.iliad.trustfabric.ai/mcp",
       "headers": { "Authorization": "Bearer YOUR_API_KEY" }
     }
   }
@@ -355,7 +355,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to add a generator, endpoint, o
 
 ---
 
-**Website**: `https://iliad.trustfabric.ai` · **Live API**: `https://axis-api-6c7z.onrender.com` · **Docs**: `https://axis-api-6c7z.onrender.com/v1/docs` · **MCP**: `https://axis-api-6c7z.onrender.com/mcp`
+**Website**: `https://iliad.trustfabric.ai` · **Live API**: `https://api.iliad.trustfabric.ai` · **Docs**: `https://api.iliad.trustfabric.ai/v1/docs` · **MCP**: `https://api.iliad.trustfabric.ai/mcp`
 
 ## License
 

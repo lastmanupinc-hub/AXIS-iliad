@@ -10,7 +10,7 @@ this repo — Stripe, PAI'D, Render, npm, the MCP registry). The code is already
 missing is the external configuration that turns it on. Work top-to-bottom — each track
 depends on the ones above it.
 
-**Owner:** Jonathan Arvay · **API host:** `https://axis-api-6c7z.onrender.com` ·
+**Owner:** Jonathan Arvay · **API host:** `https://api.iliad.trustfabric.ai` ·
 **Web host:** `https://iliad.trustfabric.ai`
 
 ---
@@ -70,7 +70,7 @@ Stripe moves the actual money. PAI'D and the per-call x402 tools both settle thr
 
 ### A2. Create one webhook endpoint
 
-- [ ] URL: `https://axis-api-6c7z.onrender.com/v1/webhooks/stripe`
+- [ ] URL: `https://api.iliad.trustfabric.ai/v1/webhooks/stripe`
 - [ ] Subscribe to **exactly** these 5 events (the handler ignores the rest):
   `checkout.session.completed`, `customer.subscription.created`,
   `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
@@ -119,7 +119,7 @@ now uses the custom domain `https://api.trustfabric.ai/v1` (durable across a ser
 
 ### B4. Register the webhook **on the PAI'D side**
 
-- [ ] Point it at `https://axis-api-6c7z.onrender.com/portal/api/paid/webhook`
+- [ ] Point it at `https://api.iliad.trustfabric.ai/portal/api/paid/webhook`
 - [ ] Use the **same** signing key as `PAID_WEBHOOK_SIGNING_KEY`.
 - [ ] PAI'D signs `Webhook-Signature: t=<unix>,v1=<hex>` over `"{t}.{body}"`; the receiver rejects
       timestamps older than **300s**, so the PAI'D box clock must be sane.
@@ -161,11 +161,11 @@ In Render → `axis-api` → Environment, set/confirm:
 `ghcr.io/lastmanupinc-hub/axis-api:latest` and trigger). Then verify **without leaking secrets**:
 
 ```sh
-curl https://axis-api-6c7z.onrender.com/v1/health
-curl https://axis-api-6c7z.onrender.com/portal/api/paid/config     # expect {"configured":true}
+curl https://api.iliad.trustfabric.ai/v1/health
+curl https://api.iliad.trustfabric.ai/portal/api/paid/config     # expect {"configured":true}
 
 # create a free account, then start a checkout (expect 201 + checkout_url):
-curl -X POST https://axis-api-6c7z.onrender.com/v1/checkout \
+curl -X POST https://api.iliad.trustfabric.ai/v1/checkout \
   -H "Authorization: Bearer <key-from-POST-/v1/accounts>" \
   -H "Content-Type: application/json" -d '{"plan_id":"starter"}'
 ```
@@ -200,7 +200,7 @@ mcp-publisher publish               # manifest = server.json at repo root
 mcp-publisher login github && mcp-publisher publish
 ```
 
-- [ ] Listing appears; the `remotes` URL `https://axis-api-6c7z.onrender.com/mcp` answers an
+- [ ] Listing appears; the `remotes` URL `https://api.iliad.trustfabric.ai/mcp` answers an
       `initialize` request.
 
 ### D3. Glama + Smithery submissions (do **after** D2 — both crawl `server.json`)

@@ -100,7 +100,7 @@ July build program. They are not suggestions.
 4. **Push = deploy.** Pushing `main` auto-deploys the API (Render) and, via CI's deploy-web
    job, the web app (Cloudflare Pages) — **web only ships if CI is green** (a red CI once
    silently froze web deploys for 4 days). After every push: confirm both workflows green
-   and spot-probe live (`curl -s https://axis-api-6c7z.onrender.com/v1/health`).
+   and spot-probe live (`curl -s https://api.iliad.trustfabric.ai/v1/health`).
 5. **Run scoped suites locally, not the full monorepo run** (it stalls under load on this
    machine). CI is the authoritative full run. Known load-flaky suites are listed in H1 —
    a failure there is not automatically your regression; re-run isolated before diagnosing.

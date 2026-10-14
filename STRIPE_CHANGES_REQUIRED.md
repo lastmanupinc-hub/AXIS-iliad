@@ -193,7 +193,7 @@ Code references:
 ## 2) Stripe Dashboard: Webhook Endpoint
 
 Create one webhook endpoint for the API:
-- Endpoint URL: `https://axis-api-6c7z.onrender.com/v1/webhooks/stripe`
+- Endpoint URL: `https://api.iliad.trustfabric.ai/v1/webhooks/stripe`
 
 Subscribe to exactly these events (the handler only processes these):
 - `checkout.session.completed`

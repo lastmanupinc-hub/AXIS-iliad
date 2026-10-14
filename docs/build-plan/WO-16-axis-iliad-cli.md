@@ -92,7 +92,7 @@ export async function fetchAccountStatus(apiUrl: string, apiKey?: string): Promi
 
 ## External gates (code alone can't satisfy)
 - npm registry publish credential (owner) -- required for `npm install -g axis-iliad` / `npx axis-iliad` to resolve from the public registry; until then only local-tarball install is provable.
-- Reachable axis-api (https://axis-api-6c7z.onrender.com) + a valid AXIS_API_KEY -- required for `status` to display real plan/usage/health; offline it degrades to an honest not-configured/unreachable message.
+- Reachable axis-api (https://api.iliad.trustfabric.ai) + a valid AXIS_API_KEY -- required for `status` to display real plan/usage/health; offline it degrades to an honest not-configured/unreachable message.
 
 ## New runtime deps (project forbids w/o discussion)
 - esbuild (or tsup) as a NEW build-time devDependency to bundle the four @axis/* workspace packages into a self-contained dist -- flagged per CLAUDE.md 'no deps without discussion'. Runtime deps stay zero (published dist is self-contained). Cheaper alternative to evaluate first: reuse the repo's existing vite/rollup toolchain, or publish the four @axis/* packages instead of bundling (larger blast radius; they are currently private).

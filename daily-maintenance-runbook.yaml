@@ -18,8 +18,8 @@ cycles:
 
       - task: "Validate health endpoints"
         commands:
-          - "curl -I -s https://axis-api-6c7z.onrender.com/v1/health/ready"
-          - "curl -I -s https://axis-api-6c7z.onrender.com/health"
+          - "curl -I -s https://api.iliad.trustfabric.ai/v1/health/ready"
+          - "curl -I -s https://api.iliad.trustfabric.ai/health"
         success: "Both return HTTP 200"
         remediation_if_fail: "Implement or fix the handler immediately and re-test."
 
@@ -55,7 +55,7 @@ cycles:
         remediation_if_fail: "Add explicit router rule to return 405 or suppress logging"
 
       - task: "Validate /mcp quality"
-        action: "curl https://axis-api-6c7z.onrender.com/mcp | head -c 800"
+        action: "curl https://api.iliad.trustfabric.ai/mcp | head -c 800"
         success: "Response starts with clean structured data or clear core value statement"
         remediation_if_fail: "Improve the manifest"
 

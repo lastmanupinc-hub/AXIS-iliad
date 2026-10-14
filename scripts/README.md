@@ -96,5 +96,5 @@ The posts are designed to:
 - Highlight the free tier's comprehensive feature set
 - Show concrete time-saving benefits
 - Position AXIS as the "AI-native development OS"
-- Drive traffic to https://toolbox.jonathanarvay.com
+- Drive traffic to https://iliad.trustfabric.ai
 - Encourage signups with clear call-to-action

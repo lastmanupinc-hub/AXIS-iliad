@@ -168,7 +168,7 @@ These domain models represent structured content — mapping them to schema type
   "name": "Axis Iliad Compliance",
   "url": "https://iliad.trustfabric.ai",
   "hook_attributes": {
-    "url": "https://axis-api-6c7z.onrender.com/v1/github/webhook",
+    "url": "https://api.iliad.trustfabric.ai/v1/github/webhook",
     "active": true
   },
   "redirect_url": "https://iliad.trustfabric.ai/install/github/callback",

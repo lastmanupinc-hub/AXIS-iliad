@@ -24,7 +24,7 @@ build program has worked (Stripe, Resend, Cloudflare Pages).
 ## Ground truth (verified against the live repo)
 
 - `.github/app-manifest.json` — real, filled-out: name "Axis Iliad Compliance", webhook →
-  `axis-api-6c7z.onrender.com/v1/github/webhook`, redirect/callback →
+  `api.iliad.trustfabric.ai/v1/github/webhook`, redirect/callback →
   `iliad.trustfabric.ai/install/github/callback`, events `[push, pull_request]`, permissions
   `{checks:write, contents:read, metadata:read, pull_requests:read}`. **Nothing consumes it** —
   no manifest-flow exchange endpoint, no `GITHUB_APP_ID`/private key anywhere, no callback page.

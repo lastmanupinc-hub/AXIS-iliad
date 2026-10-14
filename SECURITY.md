@@ -52,4 +52,4 @@ We target a response within **72 hours** and a patch within **14 days** for conf
 
 We follow coordinated disclosure. After a patch is released, we will publish a CVE and credit the reporter (unless they prefer anonymity).
 
-See also: [/.well-known/security.txt](https://axis-api-6c7z.onrender.com/.well-known/security.txt)
+See also: [/.well-known/security.txt](https://api.iliad.trustfabric.ai/.well-known/security.txt)
