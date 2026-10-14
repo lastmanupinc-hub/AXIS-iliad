@@ -10,9 +10,12 @@ import { FREE_PROGRAM_NAMES, PRO_PROGRAM_COUNT } from "../config.ts";
 // public sample repo via POST /v1/analyze, and renders the actual response.
 // No canned data: every number and file below comes straight off the wire.
 
+// 2026-10-14 (AXIS Launch taskgate T35): octocat/Hello-World holds only a README, so every click answered "No source
+// files found in repository" and the landing page's first promise failed. The sample must be a repo with source code;
+// the taskgate runs this exact request against production every day.
 const SAMPLE_REPO = {
-  url: "https://github.com/octocat/Hello-World",
-  label: "octocat/Hello-World",
+  url: "https://github.com/railwayapp-templates/expressjs",
+  label: "railwayapp-templates/expressjs",
 };
 
 type DemoState = "idle" | "loading" | "done" | "error";

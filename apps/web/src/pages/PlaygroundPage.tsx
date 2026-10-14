@@ -27,7 +27,7 @@ import { PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 // separate key instead of overloading that slot with an incompatible shape.
 
 const SAMPLE_REPOS = [
-  { url: "https://github.com/octocat/Hello-World", label: "Hello World", hint: "The original GitHub demo repo" },
+  { url: "https://github.com/sindresorhus/slugify", label: "slugify", hint: "A small, popular npm package" },
   { url: "https://github.com/railwayapp-templates/expressjs", label: "Express + TypeScript", hint: "Minimal Node.js API template" },
   { url: "https://github.com/railwayapp-templates/django", label: "Django + Python", hint: "Minimal Python web app template" },
 ];

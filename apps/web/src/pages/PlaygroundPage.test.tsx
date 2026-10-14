@@ -82,7 +82,7 @@ describe("PlaygroundPage — idle state", () => {
     stubFetch(DEFAULT_HANDLERS);
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
 
-    expect(screen.getByText("Hello World")).toBeTruthy();
+    expect(screen.getByText("slugify")).toBeTruthy();
     expect(screen.getByText("Express + TypeScript")).toBeTruthy();
     expect(screen.getByText("Django + Python")).toBeTruthy();
     expect(screen.getByLabelText("Public GitHub repo URL")).toBeTruthy();
@@ -109,7 +109,7 @@ describe("PlaygroundPage — running a real analysis", () => {
     const fetchFn = stubFetch(DEFAULT_HANDLERS);
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
 
-    fireEvent.click(screen.getByText("Hello World"));
+    fireEvent.click(screen.getByText("slugify"));
 
     expect(await screen.findByText("Hello-World")).toBeTruthy();
     expect(screen.getByText("TypeScript")).toBeTruthy();
@@ -125,7 +125,7 @@ describe("PlaygroundPage — running a real analysis", () => {
     const analyzeCall = fetchFn.mock.calls.find((c) => String(c[0]).includes("/v1/analyze"));
     expect(analyzeCall).toBeTruthy();
     const body = JSON.parse(String((analyzeCall![1] as RequestInit).body));
-    expect(body.github_url).toBe("https://github.com/octocat/Hello-World");
+    expect(body.github_url).toBe("https://github.com/sindresorhus/slugify");
   });
 
   it("submitting a pasted URL runs the same flow", async () => {
@@ -142,7 +142,7 @@ describe("PlaygroundPage — running a real analysis", () => {
     stubFetch(DEFAULT_HANDLERS);
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
 
-    fireEvent.click(screen.getByText("Hello World"));
+    fireEvent.click(screen.getByText("slugify"));
     await screen.findByRole("button", { name: /AGENTS\.md/ });
 
     fireEvent.click(screen.getByRole("button", { name: /\.ai\/context-map\.json/ }));
@@ -153,7 +153,7 @@ describe("PlaygroundPage — running a real analysis", () => {
     stubFetch([["/v1/account/quota", QUOTA_ANON], ["/v1/analyze", { error: "quota exceeded" }, 429]]);
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
 
-    fireEvent.click(screen.getByText("Hello World"));
+    fireEvent.click(screen.getByText("slugify"));
 
     await screen.findByText("quota exceeded");
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
@@ -163,7 +163,7 @@ describe("PlaygroundPage — running a real analysis", () => {
     stubFetch(DEFAULT_HANDLERS);
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
 
-    fireEvent.click(screen.getByText("Hello World"));
+    fireEvent.click(screen.getByText("slugify"));
     await screen.findByText("Hello-World");
     expect(localStorage.getItem("axis_playground_result")).toBeTruthy();
 
@@ -191,7 +191,7 @@ describe("PlaygroundPage — result persistence across a refresh", () => {
 
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
 
-    expect(screen.getByText("Hello World")).toBeTruthy(); // idle state, not a crash
+    expect(screen.getByText("slugify")).toBeTruthy(); // idle state, not a crash
     expect(localStorage.getItem("axis_playground_result")).toBeNull();
   });
 });
@@ -224,7 +224,7 @@ describe("PlaygroundPage — quota meter race (H-Phase-A cycle 12)", () => {
     render(<PlaygroundPage loggedIn={false} onRequireLogin={noop} />);
     // Mount's quota call is now held open on mountQuotaGate (quotaCallCount === 1).
 
-    fireEvent.click(screen.getByText("Hello World")); // runs analyze, then fires loadQuota() again (call #2)
+    fireEvent.click(screen.getByText("slugify")); // runs analyze, then fires loadQuota() again (call #2)
     expect(await screen.findByText(/44 \/ 60 requests remaining/)).toBeTruthy(); // fresh post-run quota lands first
 
     resolveMountQuota({ rate_limit: { limit: 60, remaining: 45, count: 15, reset_in_seconds: 30, window_ms: 60000 }, authenticated: false }); // now let the stale mount response land
@@ -241,7 +241,7 @@ describe("PlaygroundPage — signup CTA", () => {
     const onRequireLogin = vi.fn();
     render(<PlaygroundPage loggedIn={false} onRequireLogin={onRequireLogin} />);
 
-    fireEvent.click(screen.getByText("Hello World"));
+    fireEvent.click(screen.getByText("slugify"));
     await screen.findByText("Hello-World");
 
     fireEvent.click(screen.getByRole("button", { name: "Sign up free" }));
@@ -252,7 +252,7 @@ describe("PlaygroundPage — signup CTA", () => {
     stubFetch(DEFAULT_HANDLERS);
     render(<PlaygroundPage loggedIn onRequireLogin={noop} />);
 
-    fireEvent.click(screen.getByText("Hello World"));
+    fireEvent.click(screen.getByText("slugify"));
     await screen.findByText("Hello-World");
 
     expect(screen.queryByRole("button", { name: "Sign up free" })).toBeNull();
