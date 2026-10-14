@@ -48,6 +48,8 @@
  * here. Re-probe from a clean network to promote a row to "live".
  */
 
+import { DEFAULT_PUBLIC_API_BASE } from "./public-api-base.js";
+
 /** Reachability confidence for a sibling property or its MCP endpoint — see the file header. */
 export type EstateStatus = "live" | "planned" | "unverified";
 
@@ -378,8 +380,11 @@ export interface EstateManifest {
  * (tool_01) exists to catch elsewhere; consolidated here once the third
  * shared field (field_docs) made the duplication concrete rather than
  * theoretical.
+ *
+ * `apiBase` is Iliad's public API origin; the API passes its PUBLIC_API_BASE
+ * (apps/api/src/public-base.ts) so both served surfaces name the same host.
  */
-export function buildEstateManifest(): EstateManifest {
+export function buildEstateManifest(apiBase: string = DEFAULT_PUBLIC_API_BASE): EstateManifest {
   return {
     schema_version: ESTATE_SCHEMA_VERSION,
     compatibility:
@@ -388,17 +393,15 @@ export function buildEstateManifest(): EstateManifest {
       webapp_surface:
         "Describes how ILIAD's OWN webapp (iliad.trustfabric.ai) treats this entry, NOT a claim about the property's own website — 'agent-only' means excluded from Iliad's human-facing pages, kept fully visible on every agent-facing Iliad surface (including this manifest). A property with webapp_surface:\"agent-only\" here may itself be a fully human-facing website (see its own capabilities_summary).",
     },
-    // Matches the raw Render host every other self-description in apps/api
-    // uses (handlers.ts's AXIS_API_BASE, mcp-tool-impls.ts's
-    // AXIS_MCP_ENDPOINT — both "https://axis-api-6c7z.onrender.com") rather
-    // than the custom domain this manifest happens to be reachable at —
-    // consistent with the pre-existing codebase convention, not a new one.
+    // The live public origin (public-api-base.ts), the same one every other
+    // self-description in apps/api builds on. Until AXIS Launch taskgate T34
+    // this named the Render host, suspended since the 2026-08-31 move to Fly.
     this_property: {
       id: "iliad",
       name: "Axis' Iliad",
       domains: ["iliad.trustfabric.ai", "iliad.jonathanarvay.com"],
-      api_base: "https://axis-api-6c7z.onrender.com",
-      mcp: { url: "https://axis-api-6c7z.onrender.com/mcp", transport: "streamable-http", auth: "bearer" },
+      api_base: apiBase,
+      mcp: { url: `${apiBase}/mcp`, transport: "streamable-http", auth: "bearer" },
     },
     properties: Object.values(ESTATE_REGISTRY),
   };

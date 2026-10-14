@@ -14,7 +14,7 @@
             },
             {
               "name": "⚡ How to Use",
-              "value": "1. Visit https://toolbox.jonathanarvay.com\n2. Upload your repo or GitHub URL\n3. Get instant insights!"
+              "value": "1. Visit https://iliad.trustfabric.ai\n2. Upload your repo or GitHub URL\n3. Get instant insights!"
             },
             {
               "name": "💎 Pro Features",
@@ -30,14 +30,14 @@
   },
   {
     "platform": "slack",
-    "content": "🚀 *Axis' Iliad Free Tier - Instant Codebase Analysis*\n\nUpload any codebase and get 86 AI-generated artifacts instantly. Free forever!\n\n*What You Get (Free):*\n• Context maps & architecture docs\n• Debug playbooks & incident templates\n• Skills docs & AI prompts\n• Dependency analysis\n• Framework detection (60+ languages)\n\n*How to Use:*\n1. Visit https://toolbox.jonathanarvay.com\n2. Upload your repo or GitHub URL\n3. Get instant insights!\n\n*Pro Features:*\nFrontend audits, SEO analysis, brand systems, marketing campaigns, and 11 more specialized programs\n\n#DevTools #AI #OpenSource"
+    "content": "🚀 *Axis' Iliad Free Tier - Instant Codebase Analysis*\n\nUpload any codebase and get 86 AI-generated artifacts instantly. Free forever!\n\n*What You Get (Free):*\n• Context maps & architecture docs\n• Debug playbooks & incident templates\n• Skills docs & AI prompts\n• Dependency analysis\n• Framework detection (60+ languages)\n\n*How to Use:*\n1. Visit https://iliad.trustfabric.ai\n2. Upload your repo or GitHub URL\n3. Get instant insights!\n\n*Pro Features:*\nFrontend audits, SEO analysis, brand systems, marketing campaigns, and 11 more specialized programs\n\n#DevTools #AI #OpenSource"
   },
   {
     "platform": "generic_webhook",
     "content": {
       "title": "Axis' Iliad Free Tier Launch",
       "message": "Check out the free tier of Axis' Iliad - AI-native development OS that generates 86 artifacts from any codebase!",
-      "url": "https://toolbox.jonathanarvay.com",
+      "url": "https://iliad.trustfabric.ai",
       "features": [
         "Context maps & architecture docs",
         "Debug playbooks & incident templates",

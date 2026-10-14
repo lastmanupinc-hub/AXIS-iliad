@@ -23,7 +23,7 @@ Free tier includes:
 
 Just upload your repo → get instant insights! #DevTools #AI #OpenSource
 
-https://toolbox.jonathanarvay.com`,
+https://iliad.trustfabric.ai`,
 
     thread2: `💡 Axis' Iliad free tier just saved me hours on a new codebase!
 
@@ -35,7 +35,7 @@ Got:
 
 All from one command. Mind = blown 🤯
 
-Try it: https://toolbox.jonathanarvay.com #DeveloperTools #Productivity`,
+Try it: https://iliad.trustfabric.ai #DeveloperTools #Productivity`,
 
     thread3: `🔍 Ever joined a project and thought "What the hell is this codebase?"
 
@@ -47,7 +47,7 @@ Axis' Iliad free tier gives you:
 
 Upload any repo → instant clarity! #CodeAnalysis #DevOps
 
-Free forever: https://toolbox.jonathanarvay.com`
+Free forever: https://iliad.trustfabric.ai`
   },
 
   linkedin: {
@@ -61,7 +61,7 @@ The free tier alone gives you:
 
 It's like having an expert team analyze your code instantly. The AI-native approach is revolutionary.
 
-Check it out: https://toolbox.jonathanarvay.com
+Check it out: https://iliad.trustfabric.ai
 
 #DeveloperTools #AI #OpenSource #Productivity`,
 
@@ -98,7 +98,7 @@ The AI-native approach means it understands context like a senior developer woul
 
 If you're building dev tools or working with complex codebases, this is worth exploring.
 
-https://axis-api-6c7z.onrender.com
+https://iliad.trustfabric.ai
 
 #DeveloperExperience #AI #OpenSource`
   },
@@ -110,7 +110,7 @@ https://axis-api-6c7z.onrender.com
 
 As a developer who's joined multiple teams and inherited various codebases, I know the pain of onboarding to a new project. Documentation is often outdated, architecture decisions are lost to time, and understanding the codebase feels like solving a puzzle with missing pieces.
 
-Enter [Axis' Iliad](https://toolbox.jonathanarvay.com) - an AI-native development operating system that generates 86 artifacts from any codebase instantly.
+Enter [Axis' Iliad](https://iliad.trustfabric.ai) - an AI-native development operating system that generates 86 artifacts from any codebase instantly.
 
 ## What I Got from the Free Tier
 
@@ -139,7 +139,7 @@ Unlike other tools that give you generic advice, AXIS understands your specific 
 
 The free tier is completely free with no limitations. Just:
 
-1. Go to [toolbox.jonathanarvay.com](https://toolbox.jonathanarvay.com)
+1. Go to [iliad.trustfabric.ai](https://iliad.trustfabric.ai)
 2. Upload your codebase or provide a GitHub URL
 3. Get instant analysis
 
@@ -161,7 +161,7 @@ If you're a developer working with complex codebases, this tool will change how 
         },
         {
           name: "⚡ How to Use",
-          value: "1. Visit https://toolbox.jonathanarvay.com\n2. Upload your repo or GitHub URL\n3. Get instant insights!"
+          value: "1. Visit https://iliad.trustfabric.ai\n2. Upload your repo or GitHub URL\n3. Get instant insights!"
         },
         {
           name: "💎 Pro Features",

@@ -114,7 +114,7 @@ describe("buildProvisioningChallenge", () => {
 
   it("points the retry credential at a real, working Iliad endpoint (not an unconfigured PAI'D promise)", () => {
     const parsed = JSON.parse(buildProvisioningChallenge("analyze_repo", req));
-    expect(parsed.provision.onboarding_url).toBe("https://axis-api-6c7z.onrender.com/v1/accounts");
+    expect(parsed.provision.onboarding_url).toBe("https://api.iliad.trustfabric.ai/v1/accounts");
     expect(parsed.provision.credential_source).toContain("/v1/accounts");
     expect(parsed.retry).toEqual({
       method: "tools/call",

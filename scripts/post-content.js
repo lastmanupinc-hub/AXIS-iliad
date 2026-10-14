@@ -59,7 +59,7 @@ const POSTS = [
           },
           {
             name: "⚡ How to Use",
-            value: "1. Visit https://toolbox.jonathanarvay.com\n2. Upload your repo or GitHub URL\n3. Get instant insights!"
+            value: "1. Visit https://iliad.trustfabric.ai\n2. Upload your repo or GitHub URL\n3. Get instant insights!"
           },
           {
             name: "💎 Pro Features",
@@ -86,7 +86,7 @@ Upload any codebase and get 86 AI-generated artifacts instantly. Free forever!
 • Framework detection (60+ languages)
 
 *How to Use:*
-1. Visit https://toolbox.jonathanarvay.com
+1. Visit https://iliad.trustfabric.ai
 2. Upload your repo or GitHub URL
 3. Get instant insights!
 
@@ -100,7 +100,7 @@ Frontend audits, SEO analysis, brand systems, marketing campaigns, and 11 more s
     content: {
       title: "Axis' Iliad Free Tier Launch",
       message: "Check out the free tier of Axis' Iliad - AI-native development OS that generates 86 artifacts from any codebase!",
-      url: "https://toolbox.jonathanarvay.com",
+      url: "https://iliad.trustfabric.ai",
       features: [
         "Context maps & architecture docs",
         "Debug playbooks & incident templates",

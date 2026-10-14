@@ -2,6 +2,7 @@
 import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 import { isFreeTrialActive, getTrialWindow } from "@axis/snapshots";
 import { FREE_GENERATOR_COUNT } from "@axis/generator-core";
+import { PUBLIC_API_BASE } from "./public-base.js";
 
 export interface OpenApiSpec {
   openapi: string;
@@ -41,7 +42,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
         url: "https://github.com/no-fate-platform/axis-iliad",
       },
     },
+    // The public origin first: a client generated from this spec, or an agent
+    // reading servers[0], reaches the live API rather than localhost.
     servers: [
+      { url: PUBLIC_API_BASE, description: "Production" },
       { url: "http://localhost:4000", description: "Local development" },
     ],
     paths: {

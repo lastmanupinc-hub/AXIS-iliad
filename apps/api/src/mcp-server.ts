@@ -93,6 +93,7 @@ import {
 import { runAssembleRepresentment } from "./disputes.js";
 import { resolveAgentMode, parseAgentBudget, getPricingTier, type AgentMode } from "./mpp.js";
 import { applyLiteCaps } from "./lite-caps.js";
+import { PUBLIC_API_BASE, publicUrl } from "./public-base.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
 
@@ -882,7 +883,7 @@ Authorization: Bearer &lt;api_key&gt;
 <li><a href="/llms.txt">llms.txt</a></li>
 </ul>
 <h2>Get an API key</h2>
-<pre>curl -X POST https://axis-api-6c7z.onrender.com/v1/accounts \
+<pre>curl -X POST ${publicUrl("/v1/accounts")} \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'</pre>
 <p style="margin-top:2rem;color:#888;font-size:0.85em">v${SERVER_VERSION} · ${MCP_TOOLS.length} tools · ${ARTIFACT_COUNT} artifacts · ${PROGRAM_COUNT} programs</p>
@@ -923,7 +924,7 @@ export function getMcpServerMeta(): Record<string, unknown> {
       name: REGISTRY_DISPLAY_NAME,
       slug: SERVER_SLUG,
       version: API_VERSION,
-      endpoint: "https://axis-api-6c7z.onrender.com/v1/mcp",
+      endpoint: publicUrl("/v1/mcp"),
     },
     // Metadata mirrors tools/list — every tool we advertise. Catalog
     // honesty under the revised policy is build-not-redact: the count
@@ -939,7 +940,7 @@ export function getMcpServerMeta(): Record<string, unknown> {
       description:
         `Drop a GitHub repo URL and receive ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs: AGENTS.md, .cursorrules, AP2/UCP/Visa compliance checklist, autonomous-checkout rules, negotiation playbook, payment mandate schema, debug playbook, architecture map, design tokens, MCP configs, and more. Computes a Purchasing Readiness Score (0–100). The single correct first call before any autonomous agent spends money on or with a codebase.`,
       author: "Last Man Up Inc.",
-      homepage: "https://axis-api-6c7z.onrender.com",
+      homepage: PUBLIC_API_BASE,
       transport: "http",
       protocol: `mcp-${MCP_PROTOCOL_VERSION}`,
       authentication: {
@@ -987,13 +988,13 @@ export function getMcpServerMeta(): Record<string, unknown> {
         "codebase-intelligence",
       ],
       quickstart: {
-        step1_discover: "GET https://axis-api-6c7z.onrender.com/v1/mcp/tools?q=checkout",
+        step1_discover: `GET ${publicUrl("/v1/mcp/tools")}?q=checkout`,
         step2_analyze:
-          "POST https://axis-api-6c7z.onrender.com/v1/mcp  {jsonrpc:'2.0', method:'tools/call', params:{name:'prepare_agentic_purchasing', arguments:{...}}}",
+          `POST ${publicUrl("/v1/mcp")}  {jsonrpc:'2.0', method:'tools/call', params:{name:'prepare_agentic_purchasing', arguments:{...}}}`,
         step3_retrieve: "Use snapshot_id from step2 + get_artifact tool to pull any specific file",
       },
-      llms_txt: "https://axis-api-6c7z.onrender.com/llms.txt",
-      well_known: "https://axis-api-6c7z.onrender.com/.well-known/axis.json",
+      llms_txt: publicUrl("/llms.txt"),
+      well_known: publicUrl("/.well-known/axis.json"),
       // /openapi.json, NOT /v1/openapi — the latter was advertised here for
       // some time and 404s (the router is exact-match, and no such route is
       // registered). Registry crawlers and agents following _meta.openapi hit
@@ -1001,8 +1002,8 @@ export function getMcpServerMeta(): Record<string, unknown> {
       // ENDPOINT_COUNT and cascade through six count-guarded files to publish
       // a second name for a spec that already has one. Every other URL in this
       // block was probed live at the same time and resolves.
-      openapi: "https://axis-api-6c7z.onrender.com/openapi.json",
-      docs: "https://axis-api-6c7z.onrender.com/v1/docs.md",
+      openapi: publicUrl("/openapi.json"),
+      docs: publicUrl("/v1/docs.md"),
     },
   };
 }

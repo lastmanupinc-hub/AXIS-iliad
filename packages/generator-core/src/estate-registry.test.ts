@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ESTATE_REGISTRY, ESTATE_IDS, ESTATE_SCHEMA_VERSION, getEstateEntry, buildEstateManifest, type EstateEntry } from "./estate-registry.js";
 import { RESELL_CAPABILITIES } from "./generators-artifacts.js";
+import { DEFAULT_PUBLIC_API_BASE } from "./public-api-base.js";
 
 const entries = (): EstateEntry[] => Object.values(ESTATE_REGISTRY);
 
@@ -167,5 +168,24 @@ describe("buildEstateManifest — the one shared source for both served surfaces
 
   it("is deterministic — two calls produce deep-equal output (no clocks, no randomness)", () => {
     expect(buildEstateManifest()).toEqual(buildEstateManifest());
+  });
+
+  // AXIS Launch taskgate T34: this_property named the Render host, suspended
+  // since the 2026-08-31 move to Fly, so every sibling reading the manifest
+  // was sent to "Service Suspended".
+  it("this_property names Iliad's live API origin by default, and the MCP endpoint on it", () => {
+    const manifest = buildEstateManifest();
+    expect(manifest.this_property.api_base).toBe(DEFAULT_PUBLIC_API_BASE);
+    expect(manifest.this_property.mcp.url).toBe(`${DEFAULT_PUBLIC_API_BASE}/mcp`);
+  });
+
+  it("this_property follows the origin the API passes in", () => {
+    const manifest = buildEstateManifest("https://staging.example.test");
+    expect(manifest.this_property.api_base).toBe("https://staging.example.test");
+    expect(manifest.this_property.mcp.url).toBe("https://staging.example.test/mcp");
+  });
+
+  it("no onrender.com address anywhere in the manifest (the Render backends are suspended)", () => {
+    expect(JSON.stringify(buildEstateManifest())).not.toContain("onrender.com");
   });
 });

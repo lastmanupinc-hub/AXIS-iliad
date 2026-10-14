@@ -15,6 +15,7 @@ import { lookup } from "node:dns/promises";
 import net from "node:net";
 import { setTimeout as sleep } from "node:timers/promises";
 import { Buffer } from "node:buffer";
+import { publicUrl } from "./public-base.js";
 
 export interface SovereignFetchResult {
   url: string; // final URL after redirects
@@ -42,7 +43,7 @@ export class SovereignFetchError extends Error {
 }
 
 const DEFAULT_USER_AGENT =
-  "AxisIliadBot/0.5 (+https://axis-api-6c7z.onrender.com/for-agents; static-html; no-js-rendering)";
+  `AxisIliadBot/0.5 (+${publicUrl("/for-agents")}; static-html; no-js-rendering)`;
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024; // 5 MiB
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_POLITENESS_MS = 1_000;

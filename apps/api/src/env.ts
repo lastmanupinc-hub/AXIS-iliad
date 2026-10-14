@@ -28,6 +28,7 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "REQUEST_TIMEOUT_MS", required: false, type: "number", default: "120000", description: "Per-request timeout in ms (0 = no limit)" },
   { key: "MAX_BODY_BYTES", required: false, type: "number", default: "52428800", description: "Maximum request body size in bytes (default 50MB)" },
   { key: "KEEP_ALIVE_TIMEOUT_MS", required: false, type: "number", default: "65000", description: "HTTP keep-alive timeout in ms (must exceed LB idle timeout)" },
+  { key: "PUBLIC_API_BASE", required: false, type: "string", default: "https://api.iliad.trustfabric.ai", description: "Public origin of this API (public-base.ts). Every absolute URL it hands out is built on it: discovery documents, MCP server info, the OpenAPI servers list, sign-up and snapshot links, the estate manifest. Set it only to point a staging or local deployment at itself; an invalid value falls back to the default." },
   // Admin access
   { key: "ADMIN_API_KEY", required: false, type: "string", description: "API key that grants access to /v1/admin/* endpoints. If unset, admin endpoints return 403." },
   // Stripe payment integration

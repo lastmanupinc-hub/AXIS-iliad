@@ -1,8 +1,10 @@
 // MCP tool catalog — the canonical tools/list definitions + their JSON schemas.
 // Extracted from mcp-server.ts (the 1,400-line literal dominated the god-file). Pure
-// data + the toolAnnotations helper; depends only on the artifact/program counts.
+// data + the toolAnnotations helper; depends only on the artifact/program counts and
+// the public API base (public-base.ts) its examples are written against.
 
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
+import { publicUrl } from "./public-base.js";
 
 // A planned-but-unshipped capability: advertised in tools/list with a structured
 // `_planned: true` envelope until its AXIS-owned implementation lands. The
@@ -728,7 +730,7 @@ export const MCP_TOOLS = [
       {
         name: "Get the install manifest",
         input: {},
-        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$3.00/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":44}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$3.00/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"' + publicUrl("/mcp") + '"},"shareable_manifest":{"name":"Axis\' Iliad","tools":44}}',
       },
     ],
   },

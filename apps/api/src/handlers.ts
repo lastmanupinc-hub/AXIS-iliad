@@ -66,6 +66,7 @@ import { MCP_TOOLS, getMcpToolBazaarInfo } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { FREE_MCP_TOOL_COUNT, deriveMcpToolCatalog } from "./mcp-tool-impls.js";
 import { buildTrialNotice } from "./trial-notice.js";
+import { PUBLIC_API_BASE, publicUrl } from "./public-base.js";
 
 // ─── Referral discount wrapper ──────────────────────────────────
 
@@ -807,7 +808,7 @@ export async function handleCreateSnapshot(
           upgrade_url: "https://iliad.trustfabric.ai/#plans",
           tier: "anonymous",
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-          create_account_url: "https://axis-api-6c7z.onrender.com/v1/accounts",
+          create_account_url: publicUrl("/v1/accounts"),
           ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget)),
         },
       );
@@ -2881,7 +2882,7 @@ export function handleEstateManifest(
   // per-request; a short max-age still bounds staleness for a crawler that
   // ignores it and hits this path directly.
   res.setHeader("Cache-Control", "public, max-age=3600");
-  sendJSON(res, 200, buildEstateManifest());
+  sendJSON(res, 200, buildEstateManifest(PUBLIC_API_BASE));
   return Promise.resolve();
 }
 
@@ -3150,12 +3151,12 @@ export function handleCapabilities(
       // drift from the real MCP tool registration again.
       tools: deriveMcpToolCatalog().map((t) => t.name),
     },
-    security_txt: "https://axis-api-6c7z.onrender.com/.well-known/security.txt",
+    security_txt: publicUrl("/.well-known/security.txt"),
     examples_repo: "https://github.com/lastmanupinc-hub/axis-iliad-examples",
-    for_agents: "https://axis-api-6c7z.onrender.com/for-agents",
-    openapi: "https://axis-api-6c7z.onrender.com/v1/docs",
+    for_agents: publicUrl("/for-agents"),
+    openapi: publicUrl("/v1/docs"),
     // est_01: sibling AXIS properties, agent-discoverable through this same connection.
-    estate: "https://axis-api-6c7z.onrender.com/.well-known/axis-estate.json",
+    estate: publicUrl("/.well-known/axis-estate.json"),
   });
   return Promise.resolve();
 }
@@ -3185,7 +3186,7 @@ Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
 - ${MCP_TOOL_COUNT} tools: ${MCP_TOOLS.map(t => t.name).join(", ")}
-- No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
+- No installation required  -  connect any MCP-compatible agent to ${publicUrl("/mcp")}
 
 ## Estate
 
@@ -3487,7 +3488,7 @@ export function handleDocsMd(
 ): Promise<void> {
   const body = `# Axis' Iliad API  -  Plain Text Reference
 
-Version: 0.5.3 | Base URL: https://axis-api-6c7z.onrender.com
+Version: 0.5.3 | Base URL: ${PUBLIC_API_BASE}
 
 ## Authentication
 
@@ -3672,7 +3673,7 @@ export function handleContinuationYaml(
 
 // --- GET /for-agents — agent-first onboarding manifest ----------
 
-const AXIS_API_BASE = "https://axis-api-6c7z.onrender.com";
+const AXIS_API_BASE = PUBLIC_API_BASE;
 
 export function handleForAgents(
   req: IncomingMessage,
@@ -4500,7 +4501,7 @@ export function handleAiPlugin(
     auth: { type: "none" },
     api: {
       type: "openapi",
-      url: "https://axis-api-6c7z.onrender.com/openapi.json",
+      url: publicUrl("/openapi.json"),
       is_user_authenticated: false,
     },
     logo_url: "https://iliad.trustfabric.ai/logo.png",
@@ -4518,7 +4519,7 @@ export function handleOAuthProtectedResource(
   res: ServerResponse,
 ): Promise<void> {
   sendJSON(res, 200, {
-    resource: "https://axis-api-6c7z.onrender.com/mcp",
+    resource: publicUrl("/mcp"),
     authorization_servers: ["https://iliad.trustfabric.ai"],
     scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
     bearer_methods_supported: ["header"],

@@ -152,6 +152,7 @@ import { MCP_TOOLS, getMcpToolBazaarInfo, PLANNED_CAPABILITY_NAMES, type Planned
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchBackend, webResearchNotConfigured, isWebResearchNotConfigured } from "./web-research.js";
 import { sovereignScrape, sovereignCrawl } from "./web-research-sovereign.js";
+import { PUBLIC_API_BASE, publicUrl } from "./public-base.js";
 import {
   REGISTRY_DISPLAY_NAME,
   SERVER_SLUG,
@@ -2389,8 +2390,8 @@ export function runSearchTools(args: Record<string, unknown>): string {
   );
 }
 
-const AXIS_MCP_ENDPOINT = "https://axis-api-6c7z.onrender.com/mcp";
-const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
+const AXIS_MCP_ENDPOINT = publicUrl("/mcp");
+const AXIS_API_BASE_MCP = PUBLIC_API_BASE;
 
 // H-Phase-A cycle 6: "free" (no charge) and "no auth needed" are NOT the
 // same thing — these 3 tools are free but their own handlers throw
@@ -2571,7 +2572,7 @@ export function runDiscoverAgenticCommerceTools(): string {
 // already drifted from handlers.ts's, omitting this_property.domains/
 // api_base) were about to grow a THIRD shared field (field_docs).
 export function runDiscoverEstateTools(): string {
-  return JSON.stringify(buildEstateManifest(), null, 2);
+  return JSON.stringify(buildEstateManifest(PUBLIC_API_BASE), null, 2);
 }
 
 // ─── Tool: improve_my_agent_with_axis ────────────────────────────
@@ -3658,7 +3659,7 @@ export async function runPreparePurchasing(
     mcpServers: {
       "axis-iliad": {
         type: "streamable-http",
-        url: "https://axis-api-6c7z.onrender.com/mcp",
+        url: AXIS_MCP_ENDPOINT,
         headers: { Authorization: "Bearer YOUR_AXIS_API_KEY" },
         description: "Axis' Iliad — Agentic Commerce Hardener. Call prepare_agentic_purchasing before any autonomous purchase.",
       },
@@ -3694,7 +3695,7 @@ export async function runPreparePurchasing(
     `- Compliance requirements are updated`,
     `- Your score drops below 70`,
     ``,
-    `MCP endpoint: https://axis-api-6c7z.onrender.com/mcp`,
+    `MCP endpoint: ${AXIS_MCP_ENDPOINT}`,
   ].join("\n");
   artifactsMap["agent_system_prompt.md"] = agentSystemPrompt;
 
@@ -3757,7 +3758,7 @@ export async function runPreparePurchasing(
       scope_note: "This hardening package covers standard purchasing workflows (research, negotiation, compliance, checkout, fulfillment). Artifacts are generated from a keyword-signal scan of your repository — a starting point for your own compliance review, not a certification or guarantee of completeness.",
       snapshot_reference: {
         note: "Cache this snapshot id so future sessions can retrieve artifacts without re-hardening:",
-        snapshot_url: `https://axis-api-6c7z.onrender.com/v1/snapshots/${snapshot.snapshot_id}`,
+        snapshot_url: publicUrl(`/v1/snapshots/${snapshot.snapshot_id}`),
       },
       // lite_description promise: "purchasing readiness score + top 3 gaps only
       // (no full artifact bundle)" — the score/gaps computation above still runs

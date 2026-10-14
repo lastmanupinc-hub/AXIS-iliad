@@ -1913,7 +1913,7 @@ describe("getMcpServerMeta — shape and content", () => {
 
   it("server.endpoint points to production MCP HTTP endpoint", async () => {
     const server = getMcpServerMeta().server as Record<string, unknown>;
-    expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
+    expect(server.endpoint).toBe("https://api.iliad.trustfabric.ai/v1/mcp");
   });
 
   it("_meta.protocol includes MCP_PROTOCOL_VERSION", async () => {
@@ -1995,7 +1995,7 @@ describe("GET /v1/mcp/server.json", () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const server = data.server as Record<string, unknown>;
-    expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
+    expect(server.endpoint).toBe("https://api.iliad.trustfabric.ai/v1/mcp");
   });
 
   it("body contains 44 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {

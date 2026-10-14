@@ -13,7 +13,7 @@ inputs:
   api-url:
     description: "Axis API base URL"
     required: false
-    default: "https://axis-api-6c7z.onrender.com"
+    default: "https://api.iliad.trustfabric.ai"
   minimum-grade:
     description: "Minimum passing grade. One of: A, B, C, D. Fails if actual grade is lower."
     required: false

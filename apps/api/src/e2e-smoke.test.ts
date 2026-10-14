@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
-const BASE = process.env.AXIS_E2E_BASE ?? "https://axis-api-6c7z.onrender.com";
+const BASE = process.env.AXIS_E2E_BASE ?? "https://api.iliad.trustfabric.ai";
 let reachable = false;
 
 // Live-network E2E tests are opt-in to keep default suites deterministic.

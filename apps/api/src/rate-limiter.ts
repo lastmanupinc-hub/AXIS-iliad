@@ -3,6 +3,7 @@ import { sql, MARKETED_TIERS, type BillingTier } from "@axis/snapshots";
 import { sendError } from "./router.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 import { aggregateIpPrefix } from "./ip-prefix.js";
+import { publicUrl } from "./public-base.js";
 
 // ─── Sliding window rate limiter (in-memory + Postgres persistence) ──
 
@@ -114,7 +115,7 @@ function buildUpgradeHint(tier: BillingTier | null, currentLimit: number): Recor
       recommended_limit_per_window: nextLimit,
       price_monthly_cents: 0,
       reason: `Anonymous callers share a ${currentLimit}-request window per network. A free account raises it to ${nextLimit}.`,
-      create_account_url: "https://axis-api-6c7z.onrender.com/v1/accounts",
+      create_account_url: publicUrl("/v1/accounts"),
       upgrade_url: "https://iliad.trustfabric.ai/#plans",
     };
   }

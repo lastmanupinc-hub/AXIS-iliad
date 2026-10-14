@@ -12,8 +12,10 @@
 
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
-const DEFAULT_BASE_URL = "https://axis-pai-paid-api-main.onrender.com/v1";
-// PAI'D runs on Render; a cold free-tier instance can take a few seconds to wake.
+// PAI'D's live API (Fly app paid-api-trustfabric). The Render service this
+// used to default to is suspended since the 2026-08-31 move to Fly.
+const DEFAULT_BASE_URL = "https://api.trustfabric.ai/v1";
+// A slow upstream (PSP round-trips) can take a few seconds to answer.
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 /** Billing cycle (apps that bill recurringly forward this in metadata). */

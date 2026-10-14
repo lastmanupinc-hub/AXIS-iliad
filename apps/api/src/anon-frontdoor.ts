@@ -27,6 +27,7 @@
 import type { IncomingMessage } from "node:http";
 import { getPricingTier } from "./mpp.js";
 import { aggregateIpPrefix } from "./ip-prefix.js";
+import { publicUrl } from "./public-base.js";
 
 /** Feature flag: turn the anonymous auth-error into a provisioning challenge. Default OFF. */
 export function anonProvisionEnabled(): boolean {
@@ -65,7 +66,7 @@ export function resetChallengeWindows(): void {
   challengeWindows.clear();
 }
 
-const ACCOUNT_SIGNUP_URL = "https://axis-api-6c7z.onrender.com/v1/accounts";
+const ACCOUNT_SIGNUP_URL = publicUrl("/v1/accounts");
 
 /**
  * The anonymous front door's challenge. Deliberately NOT an x402 negotiation

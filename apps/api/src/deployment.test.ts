@@ -200,14 +200,15 @@ describe("Cloudflare Pages static config", () => {
 
   // ─── H8.10 — CSP + HSTS ─────────────────────────────────────────
 
-  it("_headers includes a CSP scoped to self + the two API origins", () => {
+  it("_headers includes a CSP scoped to self + the live API origin", () => {
     const content = readRoot("apps/web/public/_headers");
     expect(content).toContain("Content-Security-Policy:");
     expect(content).toContain("default-src 'self'");
-    // The two API origins the web app actually talks to (config.ts's
-    // PROD_API_BASE, same underlying Render service under two hostnames).
+    // The API origin the web app talks to (config.ts's PROD_API_BASE).
     expect(content).toContain("https://api.iliad.trustfabric.ai");
-    expect(content).toContain("https://axis-api-6c7z.onrender.com");
+    // The Render host is suspended since the 2026-08-31 move to Fly; the CSP
+    // no longer allows it (AXIS Launch taskgate T34).
+    expect(content).not.toContain("onrender.com");
   });
 
   it("CSP allows Cloudflare's own auto-injected analytics beacon (would otherwise self-break)", () => {

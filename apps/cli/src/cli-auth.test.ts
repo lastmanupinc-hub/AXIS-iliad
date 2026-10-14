@@ -22,6 +22,7 @@ vi.mock("@axis/snapshots", () => ({
 }));
 vi.mock("@axis/generator-core", () => ({
   listAvailableGenerators: vi.fn().mockReturnValue([]),
+  DEFAULT_PUBLIC_API_BASE: "https://api.iliad.trustfabric.ai",
 }));
 vi.mock("./credential-store.js", () => ({
   loadConfig: vi.fn().mockReturnValue({}),

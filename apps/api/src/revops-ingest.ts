@@ -30,10 +30,11 @@ import {
   type PageSnapshot,
   type RobotsRules,
 } from "@axis/revops";
+import { publicUrl } from "./public-base.js";
 
 /** Identifies us honestly and gives site owners a way to reach a human. */
 export const REVOPS_USER_AGENT =
-  "AxisRevOpsBot/1.0 (+https://axis-api-6c7z.onrender.com/for-agents)";
+  `AxisRevOpsBot/1.0 (+${publicUrl("/for-agents")})`;
 
 const FETCH_TIMEOUT_MS = 10_000;
 /** 2 MB. Enough for any storefront's HTML; a cap stops a hostile/huge body. */

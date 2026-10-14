@@ -1,8 +1,10 @@
 // ─── Account status against the live AXIS API ───────────────────
 //
-// Uses global fetch (Node 20+, zero dependencies). Never throws: every
+// Uses global fetch (Node 20+, no HTTP library). Never throws: every
 // network / timeout / auth failure degrades to an honest AccountStatus so
 // `axis-iliad status` can print the truth and still exit 0.
+
+import { DEFAULT_PUBLIC_API_BASE } from "@axis/generator-core";
 
 export interface AccountStatus {
   reachable: boolean;
@@ -14,7 +16,7 @@ export interface AccountStatus {
 }
 
 /** Public production API — override with AXIS_API_URL or `auth` config. */
-export const DEFAULT_API_URL = "https://axis-api-6c7z.onrender.com";
+export const DEFAULT_API_URL: string = DEFAULT_PUBLIC_API_BASE;
 
 function asRecord(v: unknown): Record<string, unknown> | undefined {
   return v !== null && typeof v === "object" ? (v as Record<string, unknown>) : undefined;

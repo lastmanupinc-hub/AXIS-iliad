@@ -25,7 +25,7 @@
     "type": "git",
     "url": "https://github.com/lastmanupinc-hub/axis-iliad.git"
   },
-  "homepage": "https://axis-api-6c7z.onrender.com",
+  "homepage": "https://iliad.trustfabric.ai",
   "scripts": {
     "dev": "pnpm --filter @axis/api dev",
     "build": "pnpm -r build",

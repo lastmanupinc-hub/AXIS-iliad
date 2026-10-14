@@ -11,6 +11,7 @@ export type { ProgramVerifyResult, VerifyEvidence } from "./verify-harness.js";
 export { PRODUCT_REGISTRY, PRODUCT_IDS, productIdForProgram, getProduct } from "./product-registry.js";
 export type { Product } from "./product-registry.js";
 export { ESTATE_REGISTRY, ESTATE_IDS, ESTATE_SCHEMA_VERSION, getEstateEntry, buildEstateManifest } from "./estate-registry.js";
+export { DEFAULT_PUBLIC_API_BASE } from "./public-api-base.js";
 export type { EstateEntry, EstateMcp, EstatePayment, EstateTool, EstateStatus, EstateManifest, EstateManifestSelf } from "./estate-registry.js";
 // Package Quality Judge (deterministic floors). Lives here so BOTH the API and the
 // fully-offline CLI can grade + append the quality report from the shared core.

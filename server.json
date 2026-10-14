@@ -4,7 +4,7 @@
   "title": "Axis Iliad - Codebase Intelligence For Agentic Commerce",
   "description": "Codebase intelligence for agents: 152 structured artifacts across 21 programs, one call.",
   "version": "0.5.3",
-  "websiteUrl": "https://axis-api-6c7z.onrender.com/for-agents",
+  "websiteUrl": "https://api.iliad.trustfabric.ai/for-agents",
   "repository": {
     "url": "https://github.com/lastmanupinc-hub/AXIS-iliad",
     "source": "github"
@@ -12,7 +12,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://axis-api-6c7z.onrender.com/mcp",
+      "url": "https://api.iliad.trustfabric.ai/mcp",
       "headers": [
         {
           "name": "Authorization",
@@ -88,13 +88,13 @@
         "budget_header": "X-Agent-Budget"
       },
       "discovery": {
-        "for_agents": "https://axis-api-6c7z.onrender.com/for-agents",
-        "well_known": "https://axis-api-6c7z.onrender.com/.well-known/axis.json",
-        "capabilities": "https://axis-api-6c7z.onrender.com/.well-known/capabilities.json",
-        "openapi": "https://axis-api-6c7z.onrender.com/v1/docs",
-        "llms_txt": "https://axis-api-6c7z.onrender.com/llms.txt",
-        "skills_index": "https://axis-api-6c7z.onrender.com/.well-known/skills/index.json",
-        "intent_probe": "https://axis-api-6c7z.onrender.com/probe-intent"
+        "for_agents": "https://api.iliad.trustfabric.ai/for-agents",
+        "well_known": "https://api.iliad.trustfabric.ai/.well-known/axis.json",
+        "capabilities": "https://api.iliad.trustfabric.ai/.well-known/capabilities.json",
+        "openapi": "https://api.iliad.trustfabric.ai/v1/docs",
+        "llms_txt": "https://api.iliad.trustfabric.ai/llms.txt",
+        "skills_index": "https://api.iliad.trustfabric.ai/.well-known/skills/index.json",
+        "intent_probe": "https://api.iliad.trustfabric.ai/probe-intent"
       }
     }
   }

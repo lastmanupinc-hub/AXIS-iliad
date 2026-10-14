@@ -14,8 +14,10 @@
 /**
  * Canonical production API origin. Same-site with the web origin
  * (iliad.trustfabric.ai) so the HttpOnly axis_session cookie rides on API
- * calls (SameSite=Lax). A Render custom domain on the same service as the
- * legacy *.onrender.com host — always use this one.
+ * calls (SameSite=Lax). Served by the Fly app axis-api-iliad; the legacy
+ * Render host is suspended since the 2026-08-31 move — always use this one.
+ * Pinned equal to DEFAULT_PUBLIC_API_BASE (@axis/generator-core) by
+ * apps/api/src/public-base.test.ts.
  */
 export const PROD_API_BASE = "https://api.iliad.trustfabric.ai";
 
