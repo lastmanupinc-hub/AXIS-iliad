@@ -36,9 +36,11 @@ function findKey() {
   return null;
 }
 
+/* Follows a redirect that stays on the host (Pages sends /docs to /docs/), never one that leaves it. */
 async function text(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html,application/xml,*/*' }, redirect: 'manual' });
+  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html,application/xml,*/*' }, redirect: 'follow' });
   if (res.status !== 200) throw new Error(`${url} answered ${res.status}`);
+  if (new URL(res.url).host !== new URL(origin).host) throw new Error(`${url} left the host for ${new URL(res.url).host}`);
   return res.text();
 }
 
