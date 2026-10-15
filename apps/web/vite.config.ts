@@ -23,12 +23,24 @@ export default defineConfig({
       // The current plugin API takes the entity graph via `config`, not loose
       // fields — the old {siteUrl, siteName, defaultImage} shape was written
       // against the sibling repo's stale dist/ and never built against src/.
-      // No person/organization nodes: we do not fabricate entity data the
-      // owner has not provided; the graph carries only what is real.
+      // The graph carries only what is real: the Person is the estate's one
+      // node, and (Changed 2026-10-15, the owner's startup foundation checklist
+      // of 2026-10-14, "Organization schema sitewide", held by the estate's
+      // foundation check F10) the Organization is the product under the name
+      // the estate registry gives it, jonathanarvay.com/estate.json, with that
+      // registry's description. No legalName: which company runs which product
+      // is not public (digital-footprint.md, 2026-10-10). No sameAs: none exist.
       config: defineSeoConfig({
         siteUrl: SITE_URL,
         siteName: SITE_NAME,
         defaultImage: "/og-image.png",
+        organization: {
+          id: `${SITE_URL}#organization`,
+          name: "Axis' Iliad",
+          url: SITE_URL,
+          description: "Paste a code repository's address and get back the files AI coding tools read.",
+          logo: `${SITE_URL}apple-touch-icon.png`,
+        },
         // The canonical Person node. NOT invented here: the audit bin this build
         // runs (vendored verbatim from the owner's axis-seo package) hardcodes
         // "jonathanarvay.com/#person" as the attribution it requires on every

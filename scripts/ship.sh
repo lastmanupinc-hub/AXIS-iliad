@@ -83,11 +83,15 @@ case "${1:-}" in
     ;;
   web)
     cd "$ROOT/apps/web"
+    # What the engines already have, taken before the build (the startup foundation standard, F12, 2026-10-15):
+    # after the deploy the same pages are read again and only the changed ones go to IndexNow. Never fatal.
+    node scripts/indexnow-submit.mjs snapshot "$ROOT/.indexnow-before.json"
     npx tsc -b && npx vite build && npm run seo:prerender && npm run seo:audit
     export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
     export CLOUDFLARE_ACCOUNT_ID="8f68bfe59d4bb0884986f7abe9832738"
     cd "$ROOT"
     npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
+    node apps/web/scripts/indexnow-submit.mjs submit "$ROOT/.indexnow-before.json"
     ;;
   storefront)
     # ext_02: this deploy previously had NO build-verification step at all —

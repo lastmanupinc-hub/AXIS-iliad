@@ -68,3 +68,6 @@ apps/cli/.tsc-out/
 # fetched from https://github.com/errata-ai/vale/releases for local rule-synthesis
 # verification, same as this repo already treats hadolint/docker as external tools)
 .tools/
+
+# IndexNow: the live pages as they were before a web deploy (scripts/ship.sh web)
+.indexnow-before.json
