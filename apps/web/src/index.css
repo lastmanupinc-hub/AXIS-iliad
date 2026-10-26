@@ -66,6 +66,9 @@
     --accent-hover: var(--color-primary-600);
     --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
     --blue: #4d8dff;
+    /* Muted ink one step lighter at night (2026-10-26, AXIS Launch taskgate T151): neutral-500 measured 4.14:1 on the
+       cards and 3.92:1 on the teal trust strip, under AA; neutral-600 clears 4.5:1 on both. */
+    --text-muted: var(--color-neutral-600);
   }
 }
 [data-theme="dark"] {
@@ -76,6 +79,7 @@
   --accent-hover: var(--color-primary-600);
   --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
   --blue: #4d8dff;
+  --text-muted: var(--color-neutral-600);
 }
 
 /* Native form controls + scrollbars follow the explicit override (theme.css
