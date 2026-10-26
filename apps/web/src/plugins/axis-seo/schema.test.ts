@@ -16,7 +16,7 @@
 //
 import { describe, it, expect, beforeEach } from 'vitest';
 import { defineSeoConfig, resetSeoConfig, getSeoConfig, type SeoConfig } from './config.js';
-import { buildSchema, buildMeta } from './schema.js';
+import { buildSchema, buildMeta, pageUrl } from './schema.js';
 
 const config: SeoConfig = {
 	siteUrl: 'https://example.com/',
@@ -90,7 +90,7 @@ describe('buildSchema', () => {
 
 	it('resolves site-relative paths against siteUrl', () => {
 		const g = buildSchema({ title: 'T', description: 'D', path: '/docs' });
-		expect(node(g, 'WebPage')!.url).toBe('https://example.com/docs');
+		expect(node(g, 'WebPage')!.url).toBe('https://example.com/docs/'); // the address Pages serves (T151)
 	});
 
 	it('passes absolute URLs through unchanged', () => {
@@ -129,7 +129,7 @@ describe('buildSchema', () => {
 		});
 		const items = node(g, 'BreadcrumbList')!.itemListElement as Record<string, unknown>[];
 		expect(items.map((i) => i.position)).toEqual([1, 2]);
-		expect(items[1].item).toBe('https://example.com/docs');
+		expect(items[1].item).toBe('https://example.com/docs/');
 	});
 
 	it('associates a known product and rejects an unknown one', () => {
@@ -169,8 +169,17 @@ describe('buildSchema', () => {
 describe('buildMeta', () => {
 	it('returns the canonical as an absolute URL', () => {
 		expect(buildMeta({ title: 'T', description: 'D', path: '/docs' }).canonical).toBe(
-			'https://example.com/docs'
+			'https://example.com/docs/'
 		);
+	});
+
+	// Pages 308s /docs to /docs/: a canonical without the slash names a redirect (2026-10-26, AXIS Launch T151).
+	it('names a page with the trailing slash the host serves, and leaves the home, a file and a full URL alone', () => {
+		expect(pageUrl('https://example.com/', '/docs')).toBe('https://example.com/docs/');
+		expect(pageUrl('https://example.com/', '/programs/search/')).toBe('https://example.com/programs/search/');
+		expect(pageUrl('https://example.com/', '/')).toBe('https://example.com/');
+		expect(pageUrl('https://example.com/', '/llms.txt')).toBe('https://example.com/llms.txt');
+		expect(pageUrl('https://example.com/', 'https://other.example/a')).toBe('https://other.example/a');
 	});
 
 	it('uses summary_large_image when an image resolves', () => {

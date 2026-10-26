@@ -20,6 +20,7 @@ import { MCP_TOOLS } from "./mcp-tools.js";
 import { METERED_MCP_TOOLS } from "./mcp-runtime.js";
 import { getPricingTier, formatCents } from "./mpp.js";
 import { Router } from "./router.js";
+import { PUBLIC_API_BASE } from "./public-base.js";
 import {
   handleAgentJson,
   handleAgentCard,
@@ -593,8 +594,19 @@ describe("GET /sitemap.xml", () => {
     expect(body).toContain("<priority>");
   });
 
-  it("includes the base URL", async () => {
-    expect(body).toContain("https://iliad.trustfabric.ai");
+  // 2026-10-26 (AXIS Launch taskgate T151): every entry is this API's own file on this API's host. Until then the
+  // sitemap named the web host for all of them, where they answered the app shell with 200 (soft 404s).
+  it("lists only this API's files, on this API's host", async () => {
+    const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(locs.length).toBeGreaterThan(5);
+    const host = new URL(PUBLIC_API_BASE).host;
+    for (const loc of locs) expect(new URL(loc).host, loc).toBe(host);
+    const paths = locs.map((loc) => new URL(loc).pathname);
+    for (const webPage of ["/", "/for-agents", "/mcp", "/pricing", "/feedback", "/docs"]) {
+      expect(paths, `${webPage} is a web page; the web's sitemap lists it`).not.toContain(webPage);
+    }
+    expect(paths).toContain("/llms.txt");
+    expect(paths).toContain("/openapi.json");
   });
 });
 

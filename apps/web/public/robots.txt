@@ -22,6 +22,6 @@ Allow: /v1/
 # Pay-per-run: $0.50 via x402 -- PAI'D hosted checkout
 # Full documentation: https://iliad.trustfabric.ai/for-agents
 
-Sitemap: https://api.iliad.trustfabric.ai/sitemap.xml
+Sitemap: https://iliad.trustfabric.ai/sitemap.xml
 
 Content-Signal: search=yes, ai-train=yes, ai-input=yes

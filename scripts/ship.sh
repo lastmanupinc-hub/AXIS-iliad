@@ -88,7 +88,9 @@ case "${1:-}" in
     node scripts/indexnow-submit.mjs snapshot "$ROOT/.indexnow-before.json"
     npx tsc -b && npx vite build && npm run seo:prerender && npm run seo:audit
     export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
-    export CLOUDFLARE_ACCOUNT_ID="8f68bfe59d4bb0884986f7abe9832738"
+    # The account id from the API (2026-10-26): it was written here as a literal, a key.txt value in a public repo.
+    export CLOUDFLARE_ACCOUNT_ID; CLOUDFLARE_ACCOUNT_ID="$(printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" | curl -s -H @- https://api.cloudflare.com/client/v4/accounts | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).result[0].id)}catch(e){}})')"
+    [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "could not read the Cloudflare account id with CLOUDFLARE_DEPLOY_TOKEN"; exit 1; }
     cd "$ROOT"
     npx wrangler@3 pages deploy apps/web/dist --project-name=axis-web --commit-dirty=true
     node apps/web/scripts/indexnow-submit.mjs submit "$ROOT/.indexnow-before.json"
@@ -121,7 +123,9 @@ case "${1:-}" in
       console.log(`[storefront verify] OK — robots.txt, llms.txt, and all ${ids.length} product pages+favicons present`);
     '
     export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
-    export CLOUDFLARE_ACCOUNT_ID="8f68bfe59d4bb0884986f7abe9832738"
+    # The account id from the API (2026-10-26): it was written here as a literal, a key.txt value in a public repo.
+    export CLOUDFLARE_ACCOUNT_ID; CLOUDFLARE_ACCOUNT_ID="$(printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" | curl -s -H @- https://api.cloudflare.com/client/v4/accounts | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).result[0].id)}catch(e){}})')"
+    [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "could not read the Cloudflare account id with CLOUDFLARE_DEPLOY_TOKEN"; exit 1; }
     npx wrangler@3 pages deploy .storefront-dist --project-name=axis-storefront --commit-dirty=true
     echo "[storefront] deployed — verify: curl -sS https://axis-storefront.pages.dev/robots.txt"
     ;;

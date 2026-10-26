@@ -1,1 +1,24 @@
-/*    /index.html    200
+# The app's real paths (2026-10-26, AXIS Launch taskgate T151). Each route the router knows by a pathname alias
+# (src/routes.tsx) that is not prerendered, and each path the API sends people to, is served the app shell. There is
+# no catch-all: an unknown path answers 404 with 404.html, not the home page with 200 (crawlers had /llms.txt,
+# /openapi.json and the .well-known files queued as pages). Held equal to the router by src/redirects.test.ts.
+/account /index.html 200
+/account/ /index.html 200
+/plans /index.html 200
+/plans/ /index.html 200
+/install /index.html 200
+/install/ /index.html 200
+/tools /index.html 200
+/tools/ /index.html 200
+/tools/web-research /index.html 200
+/tools/web-research/ /index.html 200
+/agentic-commerce-index /index.html 200
+/agentic-commerce-index/ /index.html 200
+/feedback /index.html 200
+/feedback/ /index.html 200
+/paid-checkout /index.html 200
+/paid-checkout/ /index.html 200
+/billing /index.html 200
+/billing/ /index.html 200
+/dashboard /index.html 200
+/dashboard/ /index.html 200

@@ -3323,11 +3323,12 @@ export function handleRobotsTxt(
     "# Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)",
     `# Pay-per-run: $${formatCents(getPricingTier("analyze_repo").standard_cents)} for full-suite analyze via Stripe MPP`,
     "# Full documentation: https://iliad.trustfabric.ai/for-agents",
-    "# Security: https://iliad.trustfabric.ai/.well-known/security.txt",
+    `# Security: ${PUBLIC_API_BASE}/.well-known/security.txt`,
     "",
     "# Discovery endpoints: GET /.well-known/axis.json, GET /.well-known/agent.json, GET /openapi.json",
     "",
-    "Sitemap: https://iliad.trustfabric.ai/sitemap.xml",
+    // This host's own sitemap (2026-10-26, AXIS Launch taskgate T151): the web's is on the web host.
+    `Sitemap: ${PUBLIC_API_BASE}/sitemap.xml`,
   ];
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(lines.join("\n"));
@@ -3338,22 +3339,19 @@ export function handleSitemapXml(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const base = "https://iliad.trustfabric.ai";
+  // The API's own files, on the API's host (2026-10-26, AXIS Launch taskgate T151). Until then this named the web
+  // host for all of them, where /llms.txt, /openapi.json and the .well-known files answer the app shell with 200:
+  // soft 404s in every crawler's queue. The web's pages are in the web's own sitemap (apps/web, axis-seo plugin).
+  const base = PUBLIC_API_BASE;
   const now = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const urls: Array<{ loc: string; changefreq: string; priority: string }> = [
-    { loc: "/",                               changefreq: "weekly",  priority: "1.0" },
-    { loc: "/for-agents",                     changefreq: "weekly",  priority: "0.9" },
-    { loc: "/mcp",                            changefreq: "weekly",  priority: "0.9" },
-    { loc: "/pricing",                        changefreq: "weekly",  priority: "0.8" },
-    { loc: "/feedback",                       changefreq: "monthly", priority: "0.7" },
     { loc: "/llms.txt",                       changefreq: "monthly", priority: "0.8" },
     { loc: "/robots.txt",                     changefreq: "monthly", priority: "0.5" },
     { loc: "/v1/docs",                        changefreq: "weekly",  priority: "0.9" },
     { loc: "/v1/docs.md",                     changefreq: "weekly",  priority: "0.8" },
     { loc: "/openapi.json",                   changefreq: "weekly",  priority: "0.8" },
     { loc: "/health",                         changefreq: "daily",   priority: "0.3" },
-    { loc: "/docs",                           changefreq: "weekly",  priority: "0.7" },
     { loc: "/.well-known/axis.json",          changefreq: "monthly", priority: "0.7" },
     { loc: "/.well-known/capabilities.json",  changefreq: "monthly", priority: "0.7" },
     { loc: "/.well-known/mcp.json",           changefreq: "monthly", priority: "0.7" },

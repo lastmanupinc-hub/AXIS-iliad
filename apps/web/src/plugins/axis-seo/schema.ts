@@ -73,6 +73,19 @@ export interface SeoInput {
 const absolute = (base: string, path: string) =>
 	path.startsWith('http') ? path : new URL(path.replace(/^\//, ''), base).toString();
 
+/**
+ * A page's address as the host serves it (2026-10-26, AXIS Launch taskgate T151): Cloudflare Pages answers /docs
+ * with a 308 to /docs/ (each route is a folder holding index.html), so a canonical, og:url, breadcrumb item or
+ * sitemap entry without the slash names a redirect. A file (/llms.txt) and an absolute URL are left as given.
+ */
+export const pageUrl = (base: string, path: string): string => {
+	const url = absolute(base, path);
+	if (path.startsWith('http')) return url;
+	const u = new URL(url);
+	if (u.pathname !== '/' && !u.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(u.pathname)) u.pathname += '/';
+	return u.toString();
+};
+
 /** Strips undefined values so the emitted JSON has no empty keys. */
 function compact<T extends Record<string, unknown>>(obj: T): T {
 	for (const k of Object.keys(obj)) if (obj[k] === undefined) delete obj[k];
@@ -90,7 +103,7 @@ function compact<T extends Record<string, unknown>>(obj: T): T {
 export function buildSchema(input: SeoInput): Record<string, unknown> {
 	const cfg = input.config ?? getSeoConfig();
 	const { siteUrl, siteName, person, organization, products = [] } = cfg;
-	const url = absolute(siteUrl, input.path);
+	const url = pageUrl(siteUrl, input.path);
 	const kind = input.kind ?? 'website';
 	const image = input.image ?? cfg.defaultImage;
 
@@ -209,7 +222,7 @@ export function buildSchema(input: SeoInput): Record<string, unknown> {
 				'@type': 'ListItem',
 				position: i + 1,
 				name: b.name,
-				item: absolute(siteUrl, b.url)
+				item: pageUrl(siteUrl, b.url)
 			}))
 		});
 	}
@@ -244,7 +257,7 @@ export function buildMeta(input: SeoInput): {
 	meta: MetaTag[];
 } {
 	const cfg = input.config ?? getSeoConfig();
-	const url = absolute(cfg.siteUrl, input.path);
+	const url = pageUrl(cfg.siteUrl, input.path);
 	const image = input.image ?? cfg.defaultImage;
 	const img = image ? absolute(cfg.siteUrl, image) : undefined;
 	const kind = input.kind ?? 'website';

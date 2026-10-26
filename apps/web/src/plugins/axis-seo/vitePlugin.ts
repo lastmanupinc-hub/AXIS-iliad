@@ -38,7 +38,7 @@
  */
 
 import type { Plugin } from "vite";
-import { buildSchema, buildMeta, type PageKind, type Breadcrumb, type FaqItem } from './schema.js';
+import { buildSchema, buildMeta, pageUrl, type PageKind, type Breadcrumb, type FaqItem } from './schema.js';
 import type { SeoConfig } from './config.js';
 
 export interface RouteSeo {
@@ -154,7 +154,7 @@ export function axisSeo(opts: AxisSeoOptions): Plugin {
       if (emitSitemap) {
         const urls = opts.routes
           .map((r) => {
-            const loc = new URL(r.path, opts.config.siteUrl).toString();
+            const loc = pageUrl(opts.config.siteUrl, r.path);
             const mod = r.dateModified ? `<lastmod>${r.dateModified}</lastmod>` : "";
             return `  <url><loc>${loc}</loc>${mod}</url>`;
           })
