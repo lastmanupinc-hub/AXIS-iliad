@@ -11,6 +11,7 @@
  * page.
  */
 import type { RouteSeo } from "./src/plugins/axis-seo/vitePlugin";
+import { PROGRAMS, type ProgramDef } from "./src/programs.ts";
 
 export const SITE_URL = "https://iliad.trustfabric.ai/";
 export const SITE_NAME = "Iliad";
@@ -125,4 +126,31 @@ export const seoRoutes: RouteSeo[] = [
     description:
       "Report a bug, request a feature or ask a question. Submissions reach the team by email and are used to harden the platform during beta.",
   },
+  // One page per program (2026-10-26, AXIS Launch taskgate T151), from the list the programs page shows; src/programs.test.ts
+  // holds each title to 10-60 characters and each description to 50-160.
+  ...PROGRAMS.map((p) => ({
+    path: `/programs/${p.id}`,
+    kind: "software" as const,
+    product: "iliad",
+    title: `${p.name} program — Iliad`,
+    description: programDescription(p),
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Programs", url: "/programs" },
+      { name: p.name, url: `/programs/${p.id}` },
+    ],
+  })),
 ];
+
+/**
+ * A program's description from its own fields: the tagline, the tier, and as many of the first files one run writes
+ * as fit in the 160 characters a search result shows (two, else one, else none); never a cut sentence.
+ */
+export function programDescription(p: ProgramDef): string {
+  const lead = `${p.tagline}. ${p.tier === "free" ? "Free" : "A Pro program"}`;
+  for (const n of [2, 1]) {
+    const d = `${lead}: one run writes ${p.outputs.slice(0, n).join(" and ")}${p.outputs.length > n ? " and more" : ""}.`;
+    if (d.length <= 160) return d;
+  }
+  return `${lead}.`;
+}

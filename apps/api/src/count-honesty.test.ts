@@ -419,7 +419,7 @@ describe("ProgramsPage output lists match the generator manifest", () => {
 
   /** Parse `id: "x", … outputs: [...]` pairs straight out of the page source. */
   function pageOutputsByProgram(): Record<string, string[]> {
-    const src = readFileSync(join(ROOT, "apps", "web", "src", "pages", "ProgramsPage.tsx"), "utf8");
+    const src = readFileSync(join(ROOT, "apps", "web", "src", "programs.ts"), "utf8");
     const out: Record<string, string[]> = {};
     // Non-greedy across the block so each id binds to its OWN outputs array.
     for (const m of src.matchAll(/id:\s*"([a-z-]+)",[\s\S]*?outputs:\s*\[([^\]]*)\]/g)) {

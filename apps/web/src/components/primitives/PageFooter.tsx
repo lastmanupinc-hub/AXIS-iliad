@@ -18,7 +18,7 @@ function Sep() {
 
 export function PageFooter({ onNavigate }: PageFooterProps) {
   const link = (page: PageId, label: string, title?: string) => (
-    <a className="footer-link" href={hrefForPage(page)} title={title} onClick={followIn(() => onNavigate(page))}>{label}</a>
+    <a className="footer-link" href={hrefForPage(page)} data-route={page} title={title} onClick={followIn(() => onNavigate(page))}>{label}</a>
   );
   return (
     <footer className="ide-footer">

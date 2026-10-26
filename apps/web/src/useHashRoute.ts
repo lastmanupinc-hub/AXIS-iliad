@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { hashForPage, matchHash, routeFromPathname, type PageId, type RouteParams } from "./routes.tsx";
+import { hashForPage, matchHash, matchPathname, type PageId, type RouteParams } from "./routes.tsx";
 
 // ─── useHashRoute — hash ⇄ route state (WO-F2) ──────────────────────────────
 //
@@ -32,8 +32,9 @@ function resolve(rawHash: string, pathname: string): Omit<RouteState, "key"> {
   const hash = rawHash.replace(/^#/, "");
   if (!hash) {
     // No hash → marketing pathname aliases (/pricing, /mcp, …) may pick the page.
-    const aliased = routeFromPathname(pathname);
-    if (aliased) return { page: aliased.page, params: {}, hash };
+    // An alias, or a page per item (/programs/<id>/, T151) with its params.
+    const fromPath = matchPathname(pathname);
+    if (fromPath) return { page: fromPath.route.page, params: fromPath.params, hash };
   }
   const match = matchHash(hash);
   if (match) return { page: match.route.page, params: match.params, hash };

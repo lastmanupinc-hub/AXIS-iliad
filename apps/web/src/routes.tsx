@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 // other page is `lazy()`-loaded on its own chunk so a visit to e.g. Docs (by far the
 // single biggest page) doesn't cost every other visitor a byte. See PROGRESS (H5.3).
 import { HomePage } from "./pages/HomePage.tsx";
+import { ProgramPage } from "./pages/ProgramPage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { ProjectsPage } from "./pages/ProjectsPage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
@@ -120,6 +121,7 @@ export type PageId =
   // Public feedback / support-ticket intake (beta hardening channel)
   | "feedback"
   | "programs"
+  | "program"
   | "terms"
   | "privacy"
   | "fleet"
@@ -279,6 +281,8 @@ export interface RouteDef {
   shortcut?: number;
   /** Pathname aliases kept for marketing/SEO URLs (e.g. "/pricing"). */
   aliases?: string[];
+  /** A pathname with params ("/programs/:id"), for a page per item (T151); matchPathname reads it. */
+  pathPattern?: string;
   /**
    * Per-page `<title>` / `<meta description>` / canonical. Optional — a route
    * without it keeps index.html's site-wide defaults, which is the right answer
@@ -464,6 +468,18 @@ export const ROUTES: RouteDef[] = [
     aliases: ["/programs"],
     nav: { group: "LIBRARY", icon: "layers", rail: true },
     render: (ctx) => <ProgramsPage onAnalyze={() => ctx.navigate("analyze")} />,
+  },
+  {
+    // One page per program (2026-10-26, AXIS Launch taskgate T151): /programs/<id>/ is prerendered for every entry in
+    // programs.ts (seo.routes.ts); the hash route serves the same page inside the app.
+    page: "program",
+    pattern: "programs/:id",
+    pathPattern: "/programs/:id",
+    label: "Program",
+    section: "MISSION",
+    render: (ctx) => (
+      <ProgramPage id={ctx.params.id ?? ""} onAnalyze={() => ctx.navigate("analyze")} onBack={() => ctx.navigate("programs")} />
+    ),
   },
   {
     // WO-P8: MCP Configuration — merges the old "install" (per-platform
@@ -927,9 +943,26 @@ export function hashForPage(page: PageId, params: RouteParams = {}): string {
  * no link to follow.
  */
 export function hrefForPage(page: PageId, params: RouteParams = {}): string {
-  const alias = routeForPage(page).aliases?.[0];
+  const def = routeForPage(page);
+  const alias = def.aliases?.[0];
   if (alias && Object.keys(params).length === 0) return alias === "/" ? "/" : `${alias}/`;
+  if (def.pathPattern && Object.keys(params).length > 0) {
+    return `${def.pathPattern.replace(/:([A-Za-z]+)/g, (_, name: string) => encodeURIComponent(params[name] ?? ""))}/`;
+  }
   return `/#${hashForPage(page, params)}`;
+}
+
+/** A pathname's route and params: an alias exactly, else a route's pathPattern ("/programs/:id"). Trailing "/" tolerated. */
+export function matchPathname(pathname: string): { route: RouteDef; params: RouteParams } | null {
+  const exact = routeFromPathname(pathname);
+  if (exact) return { route: exact, params: {} };
+  const path = pathname.replace(/^\/+|\/+$/g, "");
+  for (const route of ROUTES) {
+    if (!route.pathPattern) continue;
+    const params = matchPattern(route.pathPattern.replace(/^\//, ""), path);
+    if (params) return { route, params };
+  }
+  return null;
 }
 
 /** Marketing/SEO pathname aliases ("/pricing" → plans). Trailing "/" tolerated. */

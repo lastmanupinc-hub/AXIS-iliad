@@ -623,6 +623,7 @@ export function App() {
             <a
               key={r.page}
               href={hrefForPage(r.page)}
+              data-route={r.page}
               className={`ide-rail-btn ${isActive(r) ? "active" : ""}`}
               aria-label={navLabelFor(r, navCtx)}
               aria-current={isActive(r) ? "page" : undefined}
@@ -650,7 +651,7 @@ export function App() {
               <Fragment key={group}>
                 <div className="ide-tree-group">{group}</div>
                 {visibleGroupRoutes(group, navCtx).map((r) => (
-                  <a key={r.page} href={hrefForPage(r.page)} className={`ide-tree-item ${isActive(r) ? "active" : ""}`} aria-current={isActive(r) ? "page" : undefined} onClick={followIn(() => nav(r.page))}>
+                  <a key={r.page} href={hrefForPage(r.page)} data-route={r.page} className={`ide-tree-item ${isActive(r) ? "active" : ""}`} aria-current={isActive(r) ? "page" : undefined} onClick={followIn(() => nav(r.page))}>
                     <span className="ide-tree-ico"><Icon name={r.nav.icon} /></span>{navLabelFor(r, navCtx)}
                   </a>
                 ))}
@@ -706,7 +707,7 @@ export function App() {
             {NAV_GROUPS.map((group) => (
               <Fragment key={group}>
                 {visibleGroupRoutes(group, navCtx).map((r) => (
-                  <a key={r.page} href={hrefForPage(r.page)} className={`nav-drawer-item ${isActive(r) ? "active" : ""}`} aria-current={isActive(r) ? "page" : undefined} onClick={followIn(() => nav(r.page))}>
+                  <a key={r.page} href={hrefForPage(r.page)} data-route={r.page} className={`nav-drawer-item ${isActive(r) ? "active" : ""}`} aria-current={isActive(r) ? "page" : undefined} onClick={followIn(() => nav(r.page))}>
                     {navLabelFor(r, navCtx)}
                   </a>
                 ))}
