@@ -133,7 +133,7 @@ export function PrivacyPage() {
               settles transactions via Stripe, Inc. Card details are entered directly into
               Stripe-hosted surfaces and never touch Axis servers. Each purchase is a
               single one-time charge, not a recurring subscription — see the{" "}
-              <a href="#terms" style={{ color: "var(--accent)" }}>Terms of Service</a> for
+              <a href="#terms" style={{ color: "var(--accent)", textDecoration: "underline" }}>Terms of Service</a> for
               the current billing model.
             </p>
 

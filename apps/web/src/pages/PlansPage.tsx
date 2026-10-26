@@ -199,7 +199,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
                   left: "50%",
                   transform: "translateX(-50%)",
                   background: "var(--accent)",
-                  color: "white",
+                  color: "var(--accent-ink)",
                   padding: "2px 12px",
                   borderRadius: 12,
                   fontSize: "0.75rem",
@@ -268,7 +268,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
             </button>            {plan.price_monthly_cents > 0 && (
               <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                 By subscribing you agree to our{" "}
-                <a href="#terms" style={{ color: "var(--accent)" }}>Terms of Service</a>.
+                <a href="#terms" style={{ color: "var(--accent)", textDecoration: "underline" }}>Terms of Service</a>.
                 Payments processed securely by PAI'D. To cancel or change your plan, email support@jonathanarvay.com.
               </p>
             )}          </div>
