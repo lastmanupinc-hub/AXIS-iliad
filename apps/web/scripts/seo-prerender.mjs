@@ -60,7 +60,12 @@ if (!browser) {
 
 let routes;
 const routesPath = resolve(routesArg);
-if (/\.tsx?$/.test(routesPath)) {
+// AXIS-CHANGE (2026-10-26, AXIS Launch taskgate T151): the axis-seo plugin writes the routes it evaluated into
+// dist/.axis-routes.json; read that first. The text read below could not see routes generated in code.
+const builtRoutes = join(distDir, ".axis-routes.json");
+if (existsSync(builtRoutes)) {
+  routes = JSON.parse(readFileSync(builtRoutes, "utf8")).map((path) => ({ path }));
+} else if (/\.tsx?$/.test(routesPath)) {
   const src = readFileSync(routesPath, "utf8");
   routes = [...src.matchAll(/path:\s*["'`]([^"'`]+)["'`]/g)].map((m) => ({ path: m[1] }));
 } else {
@@ -94,15 +99,22 @@ for (const route of routes) {
   if (!existsSync(file)) { console.log(`SKIP  ${route.path} (run the axisSeo vite plugin first)`); continue; }
 
   try {
-    const { stdout } = await run(browser, [
-      "--headless", "--disable-gpu", "--no-sandbox", "--disable-extensions", "--no-first-run",
-      `--user-data-dir=${profile}`, `--virtual-time-budget=${budget}`, "--dump-dom",
-      base + route.path,
-    ], { maxBuffer: 64 * 1024 * 1024, timeout: budget + 25000, windowsHide: true });
-
-    const rootMatch = stdout.match(/<div id="root"[^>]*>([\s\S]*?)<\/div>\s*(?:<script|<\/body)/i);
-    const rendered = rootMatch ? rootMatch[1] : "";
-    const text = rendered.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    // AXIS-CHANGE (2026-10-26, T151): one more try when Chrome fails or comes back empty. On a loaded machine a single
+    // run timed out on pages that render fine, and the whole deploy stopped on it.
+    let rendered = "", text = "", lastError = null;
+    for (let attempt = 0; attempt < 2 && text.length < minChars; attempt++) {
+      try {
+        const { stdout } = await run(browser, [
+          "--headless", "--disable-gpu", "--no-sandbox", "--disable-extensions", "--no-first-run",
+          `--user-data-dir=${profile}`, `--virtual-time-budget=${budget}`, "--dump-dom",
+          base + route.path,
+        ], { maxBuffer: 64 * 1024 * 1024, timeout: budget + 25000, windowsHide: true });
+        const rootMatch = stdout.match(/<div id="root"[^>]*>([\s\S]*?)<\/div>\s*(?:<script|<\/body)/i);
+        rendered = rootMatch ? rootMatch[1] : "";
+        text = rendered.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      } catch (e) { lastError = e; }
+    }
+    if (text.length < minChars && lastError) throw lastError;
 
     if (text.length < minChars) { console.log(`FAIL  ${route.path} — ${text.length} chars`); failed++; continue; }
 

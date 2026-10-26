@@ -155,6 +155,10 @@ export function axisSeo(opts: AxisSeoOptions): Plugin {
       // router alias without a page of its own here. A rewrite to /index.html is answered by Pages with a 308 to /
       // (the router reads the pathname, so /plans showed the home page); /spa-shell is served in place, as on
       // PAI'D's frontend. The raw shell, not a prerendered page, and never indexed.
+      // The route list as the build evaluated it (2026-10-26, AXIS Launch taskgate T151): the prerender reads this
+      // first. Reading seo.routes.ts as text could not see routes generated in code (a page per program).
+      this.emitFile({ type: "asset", fileName: ".axis-routes.json", source: JSON.stringify(opts.routes.map((r) => r.path)) });
+
       this.emitFile({
         type: "asset",
         fileName: "spa-shell.html",
