@@ -16,7 +16,8 @@ const rules = redirects
   .split("\n")
   .filter((l) => l.trim() && !l.trim().startsWith("#"))
   .map((l) => l.trim().split(/\s+/));
-const rewritten = new Set(rules.filter((r) => r[1] === "/index.html" && r[2] === "200").map((r) => r[0]));
+// /spa-shell, never /index.html: Pages answers a rewrite to /index.html with a 308 to "/".
+const rewritten = new Set(rules.filter((r) => r[1] === "/spa-shell" && r[2] === "200").map((r) => r[0]));
 
 const aliases = [...read("./routes.tsx").matchAll(/aliases:\s*\[([^\]]*)\]/g)].flatMap((m) =>
   [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]),
@@ -26,6 +27,10 @@ const prerendered = new Set([...read("../seo.routes.ts").matchAll(/path:\s*"([^"
 const FROM_THE_API = ["/billing", "/dashboard", "/account"];
 
 describe("public/_redirects", () => {
+  it("never rewrites to /index.html (a 308 to the home page on Pages)", () => {
+    expect(rules.filter((r) => r[1] === "/index.html")).toEqual([]);
+  });
+
   it("has no catch-all", () => {
     expect(rules.filter((r) => r[0].includes("*"))).toEqual([]);
   });

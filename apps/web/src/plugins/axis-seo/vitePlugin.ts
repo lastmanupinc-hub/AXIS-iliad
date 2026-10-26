@@ -151,6 +151,16 @@ export function axisSeo(opts: AxisSeoOptions): Plugin {
         }
       }
 
+      // The app shell for client-only routes (2026-10-26, AXIS Launch taskgate T151): public/_redirects sends each
+      // router alias without a page of its own here. A rewrite to /index.html is answered by Pages with a 308 to /
+      // (the router reads the pathname, so /plans showed the home page); /spa-shell is served in place, as on
+      // PAI'D's frontend. The raw shell, not a prerendered page, and never indexed.
+      this.emitFile({
+        type: "asset",
+        fileName: "spa-shell.html",
+        source: shellHtml.replace(/<head([^>]*)>/i, '<head$1>\n    <meta name="robots" content="noindex">'),
+      });
+
       if (emitSitemap) {
         const urls = opts.routes
           .map((r) => {
