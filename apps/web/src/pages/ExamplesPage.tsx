@@ -253,9 +253,11 @@ function ArtifactCount({ count }: { count: number }) {
   );
 }
 
-function CodePreview({ lines }: { lines: string[] }) {
+// A scrolling region a keyboard can reach and a screen reader can name (2026-10-26, AXIS Launch taskgate T151: axe's
+// scrollable-region-focusable on /examples/).
+function CodePreview({ lines, label }: { lines: string[]; label: string }) {
   return (
-    <div style={{
+    <div role="region" aria-label={label} tabIndex={0} style={{
       background: "var(--bg-code, rgba(0,0,0,0.05))",
       border: "1px solid var(--border)",
       borderRadius: "var(--radius)",
@@ -522,7 +524,7 @@ function ExampleCard({ ex, expanded, onToggle }: { ex: Example; expanded: boolea
           {/* AGENTS.md preview */}
           <div style={{ marginBottom: 14 }}>
             <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 8 }}>Preview — generated AGENTS.md</p>
-            <CodePreview lines={ex.previewLines} />
+            <CodePreview lines={ex.previewLines} label={`Generated AGENTS.md for ${ex.title}`} />
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>

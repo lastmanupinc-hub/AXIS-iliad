@@ -42,3 +42,12 @@ describe("ExamplesPage — artifact-count honesty", () => {
     expect(screen.queryByText("75")).toBeNull();
   });
 });
+
+describe("ExamplesPage — keyboard access", () => {
+  it("each AGENTS.md preview scrolls from the keyboard and is named (2026-10-26, AXIS Launch taskgate T151)", () => {
+    render(<ExamplesPage />);
+    const previews = screen.getAllByRole("region", { name: /^Generated AGENTS\.md for / });
+    expect(previews.length).toBeGreaterThanOrEqual(1);
+    for (const p of previews) expect(p.getAttribute("tabindex")).toBe("0");
+  });
+});
