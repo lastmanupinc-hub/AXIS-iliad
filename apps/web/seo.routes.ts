@@ -22,7 +22,7 @@ export const seoRoutes: RouteSeo[] = [
     product: "iliad",
     title: "Iliad — turn any codebase into agent-ready context",
     description:
-      "Point Iliad at a repository and get AGENTS.md, CLAUDE.md, .cursorrules, MCP configs, SEO rules, and 140+ deterministic artifacts. Same input, same output, every run.",
+      "Point Iliad at a repository and get AGENTS.md, CLAUDE.md, .cursorrules, MCP configs and 140+ deterministic artifacts. Same input, same output, every run.",
   },
   {
     path: "/docs",
@@ -66,7 +66,7 @@ export const seoRoutes: RouteSeo[] = [
     product: "iliad",
     title: "MCP server — connect Iliad to Claude, Cursor, or VS Code",
     description:
-      "Install the Iliad MCP server and give any agent full codebase intelligence over Model Context Protocol. Setup for Claude Desktop, Cursor, VS Code, and Claude Code.",
+      "Install the Iliad MCP server to give any agent full codebase intelligence over the Model Context Protocol, in Claude Desktop, Cursor, VS Code or Claude Code.",
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "MCP", url: "/mcp" },

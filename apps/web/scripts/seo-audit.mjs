@@ -43,6 +43,11 @@ function audit(html, url) {
   if (BODY_MODE && !headings) problems.push("no heading (h1-h3) in raw HTML");
   if (!title) problems.push("no <title>");
   if (!desc) problems.push("no meta description");
+  // The estate's site standard (2026-10-26, AXIS Launch taskgate T151): a title a search result shows whole and a
+  // description it does not cut, measured as a reader sees them. Write a shorter one; never cut.
+  const plain = (t) => t.replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
+  if (title && (plain(title).length < 10 || plain(title).length > 60)) problems.push(`title of ${plain(title).length} characters (10 to 60)`);
+  if (desc && (plain(desc).length < 50 || plain(desc).length > 160)) problems.push(`description of ${plain(desc).length} characters (50 to 160)`);
   if (!canon) problems.push("no canonical");
   if (!ld.length) problems.push("no JSON-LD");
   else if (!ldValid) problems.push("JSON-LD does not parse");
@@ -83,7 +88,16 @@ if (/^https?:\/\//.test(target)) {
 } else if (statSync(target).isFile()) {
   results.push(audit(readFileSync(target, "utf8"), target));
 } else {
-  for (const f of walk(target)) results.push(audit(readFileSync(f, "utf8"), relative(target, f)));
+  for (const f of walk(target)) {
+    const html = readFileSync(f, "utf8");
+    // A page that asks not to be indexed (404.html, 2026-10-26, AXIS Launch taskgate T151) is not a page a crawler
+    // should read, so it is not held to the crawlable-page checks. It is named, so it cannot pass silently.
+    if (/<meta\s+name=["']robots["']\s+content=["'][^"']*noindex/i.test(html)) {
+      console.log(`SKIP  ${relative(target, f)}  (noindex)`);
+      continue;
+    }
+    results.push(audit(html, relative(target, f)));
+  }
 }
 
 let failed = 0;
