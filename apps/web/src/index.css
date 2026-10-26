@@ -325,6 +325,7 @@ pre {
 
 .nav-drawer-item {
   display: flex;
+  text-decoration: none; /* a link since T151 */
   align-items: center;
   gap: 10px;
   padding: 16px 20px;
@@ -890,6 +891,7 @@ kbd {
 .ide-rail-spacer { flex: 1 1 auto; }
 .ide-rail-btn {
   display: flex; align-items: center; justify-content: center;
+  text-decoration: none; /* a link since T151 */
   width: 40px; height: 40px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -938,6 +940,7 @@ kbd {
 }
 .ide-tree-item {
   display: flex; align-items: center; gap: 8px;
+  text-decoration: none; /* a link since T151 */
   width: 100%;
   padding: 5px 8px;
   border: none; border-left: 2px solid transparent;

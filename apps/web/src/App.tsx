@@ -5,6 +5,7 @@ import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
 import { PageFooter } from "./components/primitives/PageFooter.tsx";
+import { followIn } from "./linkClick.ts";
 import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 import {
@@ -20,6 +21,7 @@ import {
   visibleRailRoutes,
   visibleGroupRoutes,
   hashForPage,
+  hrefForPage,
   matchHash,
   type NavContext,
   type PageId,
@@ -618,16 +620,17 @@ export function App() {
         <nav className="ide-rail" aria-label="Primary">
           <button className="ide-rail-btn" aria-label="Toggle Explorer sidebar" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}><Icon name="panel-left" /></button>
           {visibleRailRoutes(navCtx).map((r) => (
-            <button
+            <a
               key={r.page}
+              href={hrefForPage(r.page)}
               className={`ide-rail-btn ${isActive(r) ? "active" : ""}`}
               aria-label={navLabelFor(r, navCtx)}
               aria-current={isActive(r) ? "page" : undefined}
               title={navLabelFor(r, navCtx)}
-              onClick={() => nav(r.page)}
+              onClick={followIn(() => nav(r.page))}
             >
               <Icon name={r.nav.icon} />
-            </button>
+            </a>
           ))}
           <button className="ide-rail-btn" aria-label="Open command palette" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}><Icon name="command" /></button>
           <div className="ide-rail-spacer" />
@@ -647,9 +650,9 @@ export function App() {
               <Fragment key={group}>
                 <div className="ide-tree-group">{group}</div>
                 {visibleGroupRoutes(group, navCtx).map((r) => (
-                  <button key={r.page} className={`ide-tree-item ${isActive(r) ? "active" : ""}`} onClick={() => nav(r.page)}>
+                  <a key={r.page} href={hrefForPage(r.page)} className={`ide-tree-item ${isActive(r) ? "active" : ""}`} aria-current={isActive(r) ? "page" : undefined} onClick={followIn(() => nav(r.page))}>
                     <span className="ide-tree-ico"><Icon name={r.nav.icon} /></span>{navLabelFor(r, navCtx)}
-                  </button>
+                  </a>
                 ))}
                 {group === "ACCOUNT" && loggedIn && (
                   <button className="ide-tree-item" onClick={handleLogout}><span className="ide-tree-ico"><Icon name="log-out" /></span>Log Out</button>
@@ -703,9 +706,9 @@ export function App() {
             {NAV_GROUPS.map((group) => (
               <Fragment key={group}>
                 {visibleGroupRoutes(group, navCtx).map((r) => (
-                  <button key={r.page} className={`nav-drawer-item ${isActive(r) ? "active" : ""}`} onClick={() => nav(r.page)}>
+                  <a key={r.page} href={hrefForPage(r.page)} className={`nav-drawer-item ${isActive(r) ? "active" : ""}`} aria-current={isActive(r) ? "page" : undefined} onClick={followIn(() => nav(r.page))}>
                     {navLabelFor(r, navCtx)}
-                  </button>
+                  </a>
                 ))}
                 {group === "ACCOUNT" && loggedIn && (
                   <button className="nav-drawer-item" onClick={handleLogout}>Log Out</button>

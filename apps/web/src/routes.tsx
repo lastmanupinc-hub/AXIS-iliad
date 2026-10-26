@@ -921,6 +921,17 @@ export function hashForPage(page: PageId, params: RouteParams = {}): string {
     .join("/");
 }
 
+/**
+ * A page's real address, for a link (2026-10-26, AXIS Launch taskgate T151): its first pathname alias in the slash form
+ * Pages serves it at, else its hash route on the home path. The menus were buttons, so the home page offered a crawler
+ * no link to follow.
+ */
+export function hrefForPage(page: PageId, params: RouteParams = {}): string {
+  const alias = routeForPage(page).aliases?.[0];
+  if (alias && Object.keys(params).length === 0) return alias === "/" ? "/" : `${alias}/`;
+  return `/#${hashForPage(page, params)}`;
+}
+
 /** Marketing/SEO pathname aliases ("/pricing" → plans). Trailing "/" tolerated. */
 export function routeFromPathname(pathname: string): RouteDef | null {
   const normalized = pathname.replace(/\/+$/, "") || "/";

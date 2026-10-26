@@ -55,6 +55,7 @@ export function McpPage({ onNavigate }: Props) {
       <PlatformTabs />
       <SelfHostingCard />
       <ProgrammaticInstallCard />
+      <ListingsCard />
       <ProbeIntentDemo />
     </div>
   );
@@ -538,6 +539,25 @@ function SelfHostingCard() {
       <p className="text-muted text-sm" style={{ margin: 0 }}>
         Retrieval quality is bounded by the model you provision (bge-small is 384-dim). On the hosted instance these
         are provisioned by the AXIS operator.
+      </p>
+    </div>
+  );
+}
+
+// Where the server is listed by someone else (2026-10-26, AXIS Launch taskgate T151): the two marks that are true and
+// checkable. Glama's card is its own badge for this server; the registry entry is named as the registry lists it.
+function ListingsCard() {
+  return (
+    <div className="card mb-4">
+      <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>Where it is listed</h2>
+      <p className="mb-3">
+        <a className="trust-mark" href="https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad">
+          <img src="https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad/badges/card.svg" width={380} height={200} alt="Listed on Glama: the AXIS-iliad MCP server" loading="lazy" style={{ maxWidth: "100%", height: "auto" }} />
+        </a>
+      </p>
+      <p className="text-muted text-sm">
+        In the official MCP Registry as{" "}
+        <a className="trust-mark" href="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.lastmanupinc-hub/axis-toolbox">io.github.lastmanupinc-hub/axis-toolbox</a>.
       </p>
     </div>
   );

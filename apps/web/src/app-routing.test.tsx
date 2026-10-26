@@ -103,7 +103,7 @@ describe("App routing (WO-F2)", () => {
   it("sidebar items derive from the route table and set the hash", () => {
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Docs" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Docs" }));
     expect(shellPage(container)).toBe("docs");
     expect(window.location.hash).toBe("#docs");
   });
@@ -197,8 +197,8 @@ describe("PageFooter in the shell (WO-F4)", () => {
       const { container, unmount } = render(<App />);
       const footer = container.querySelector(".ide-footer");
       expect(footer, `footer missing at "${hash || "(home)"}"`).toBeTruthy();
-      expect(within(footer as HTMLElement).getByRole("button", { name: "Terms" })).toBeTruthy();
-      expect(within(footer as HTMLElement).getByRole("button", { name: "Status" })).toBeTruthy();
+      expect(within(footer as HTMLElement).getByRole("link", { name: "Terms" })).toBeTruthy();
+      expect(within(footer as HTMLElement).getByRole("link", { name: "Status" })).toBeTruthy();
       expect(within(footer as HTMLElement).getByRole("link", { name: "Site by Jonathan Arvay" }).getAttribute("href")).toBe("https://jonathanarvay.com/?utm_source=iliad&utm_medium=site_credit");
       unmount();
     }
@@ -207,7 +207,7 @@ describe("PageFooter in the shell (WO-F4)", () => {
   it("footer links navigate through the route table", () => {
     const { container } = render(<App />);
     const footer = container.querySelector(".ide-footer") as HTMLElement;
-    fireEvent.click(within(footer).getByRole("button", { name: "Docs" }));
+    fireEvent.click(within(footer).getByRole("link", { name: "Docs" }));
     expect(shellPage(container)).toBe("docs");
     expect(window.location.hash).toBe("#docs");
   });
@@ -647,7 +647,7 @@ describe("Projects/History (WO-P11)", () => {
 
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Projects" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Projects" }));
 
     expect(shellPage(container)).toBe("projects");
     expect(window.location.hash).toBe("#projects");
@@ -741,7 +741,7 @@ describe("Usage & Billing (WO-P10)", () => {
 
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Usage & Billing" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Usage & Billing" }));
 
     expect(shellPage(container)).toBe("usage");
     expect(window.location.hash).toBe("#usage");
@@ -782,7 +782,7 @@ describe("Settings (WO-P12)", () => {
 
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Settings" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Settings" }));
 
     expect(shellPage(container)).toBe("settings");
     expect(window.location.hash).toBe("#settings");
@@ -829,7 +829,7 @@ describe("Agentic Commerce (WO-P9)", () => {
   it("sidebar 'Commerce' item navigates to #commerce", () => {
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Commerce" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Commerce" }));
     expect(shellPage(container)).toBe("commerce");
     expect(window.location.hash).toBe("#commerce");
   });
@@ -853,7 +853,7 @@ describe("Program Runner (WO-P7)", () => {
   it("sidebar 'Program Runner' item navigates to #run", () => {
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Program Runner" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Program Runner" }));
     expect(shellPage(container)).toBe("runner");
     expect(window.location.hash).toBe("#run");
   });
@@ -1063,7 +1063,7 @@ describe("Sign-up return-to (WO-P2)", () => {
     // gate. "Projects" is still auth-only AND sits in the WORKSPACE group, so
     // it renders in the sidebar while signed out (ACCOUNT-group items do not).
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
-    fireEvent.click(sidebar.getByRole("button", { name: "Projects" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Projects" }));
     // nav()'s gate keeps the user put and opens the popup.
     expect(shellPage(container)).toBe("home");
 
@@ -1136,7 +1136,7 @@ describe("Skip-link + route-change focus management (H5.1)", () => {
     const { container } = render(<App />);
     const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
 
-    fireEvent.click(sidebar.getByRole("button", { name: "Docs" }));
+    fireEvent.click(sidebar.getByRole("link", { name: "Docs" }));
 
     await waitFor(() => expect(shellPage(container)).toBe("docs"));
     expect(document.activeElement).toBe(container.querySelector("#main-content"));

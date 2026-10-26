@@ -377,16 +377,25 @@ describe("PageFooter", () => {
     const onNavigate = vi.fn();
     const { container } = render(<PageFooter onNavigate={onNavigate} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Terms" }));
+    fireEvent.click(screen.getByRole("link", { name: "Terms" }));
     expect(onNavigate).toHaveBeenCalledWith("terms");
-    fireEvent.click(screen.getByRole("button", { name: "Status" }));
+    fireEvent.click(screen.getByRole("link", { name: "Status" }));
     expect(onNavigate).toHaveBeenCalledWith("status");
-    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    fireEvent.click(screen.getByRole("link", { name: "Help" }));
     expect(onNavigate).toHaveBeenCalledWith("help");
-    fireEvent.click(screen.getByRole("button", { name: "Docs" }));
+    fireEvent.click(screen.getByRole("link", { name: "Docs" }));
     expect(onNavigate).toHaveBeenCalledWith("docs");
-    fireEvent.click(screen.getByRole("button", { name: /^v\d+\.\d+\.\d+$/ }));
+    fireEvent.click(screen.getByRole("link", { name: /^v\d+\.\d+\.\d+$/ }));
     expect(onNavigate).toHaveBeenCalledWith("changelog");
+
+    // Real addresses a crawler can follow (AXIS Launch taskgate T151): a page's alias as served, else its hash route.
+    expect(screen.getByRole("link", { name: "Docs" }).getAttribute("href")).toBe("/docs/");
+    expect(screen.getByRole("link", { name: "Terms" }).getAttribute("href")).toBe("/terms/");
+    expect(screen.getByRole("link", { name: "Contact" }).getAttribute("href")).toBe("/feedback/");
+    // A modified click opens the address as a link does; only a plain click goes through the router.
+    onNavigate.mockClear();
+    fireEvent.click(screen.getByRole("link", { name: "Docs" }), { ctrlKey: true });
+    expect(onNavigate).not.toHaveBeenCalled();
 
     const support = screen.getByRole("link", { name: "Support" });
     expect(support.getAttribute("href")).toBe("mailto:support@jonathanarvay.com");

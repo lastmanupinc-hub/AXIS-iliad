@@ -117,4 +117,12 @@ export const seoRoutes: RouteSeo[] = [
     title: "Privacy Policy — Iliad",
     description: "What Iliad collects when you analyze a repository, and what it does not retain.",
   },
+  // The contact page, prerendered (2026-10-26, AXIS Launch taskgate T151): the page renders its own ContactPage
+  // JSON-LD and a form that reaches the team; a crawler found no contact page while it was app-shell only.
+  {
+    path: "/feedback",
+    title: "Feedback & Support — Iliad",
+    description:
+      "Report a bug, request a feature or ask a question. Submissions reach the team by email and are used to harden the platform during beta.",
+  },
 ];

@@ -1,9 +1,12 @@
 import { APP_VERSION } from "../../version.ts";
-import type { PageId } from "../../routes.tsx";
+import { hrefForPage, type PageId } from "../../routes.tsx";
+import { followIn } from "../../linkClick.ts";
 
 // ─── PageFooter (WO-F4) ─────────────────────────────────────────────────────
 // Rendered by the shell at the bottom of every page, above the fixed
-// StatusBar: legal/Terms · Status · v<version> · Support · Help · Docs.
+// StatusBar: legal/Terms · Status · v<version> · Contact · Support · Help · Docs.
+// Links with real addresses since 2026-10-26 (AXIS Launch taskgate T151): the footer was buttons, so a crawler found
+// no footer menu and no way to reach a person.
 
 export interface PageFooterProps {
   onNavigate: (page: PageId) => void;
@@ -14,26 +17,31 @@ function Sep() {
 }
 
 export function PageFooter({ onNavigate }: PageFooterProps) {
+  const link = (page: PageId, label: string, title?: string) => (
+    <a className="footer-link" href={hrefForPage(page)} title={title} onClick={followIn(() => onNavigate(page))}>{label}</a>
+  );
   return (
     <footer className="ide-footer">
       <p>
         <span>© {new Date().getFullYear()} Last Man Up Inc.</span>
         <Sep />
-        <button type="button" className="footer-link" onClick={() => onNavigate("terms")}>Terms</button>
+        {link("terms", "Terms")}
         <Sep />
-        <button type="button" className="footer-link" onClick={() => onNavigate("privacy")}>Privacy</button>
+        {link("privacy", "Privacy")}
         <Sep />
-        <button type="button" className="footer-link" onClick={() => onNavigate("status")}>Status</button>
+        {link("status", "Status")}
         <Sep />
-        <button type="button" className="footer-link" title="Web app version" onClick={() => onNavigate("changelog")}>
-          v{APP_VERSION}
-        </button>
+        {link("changelog", `v${APP_VERSION}`, "Web app version")}
+        <Sep />
+        {link("feedback", "Contact")}
         <Sep />
         <a className="footer-link" href="mailto:support@jonathanarvay.com">Support</a>
         <Sep />
-        <button type="button" className="footer-link" onClick={() => onNavigate("help")}>Help</button>
+        {link("help", "Help")}
         <Sep />
-        <button type="button" className="footer-link" onClick={() => onNavigate("docs")}>Docs</button>
+        {link("docs", "Docs")}
+        <Sep />
+        <a className="footer-link trust-mark" href="https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad">Listed on Glama</a>
         <Sep />
         <a className="footer-link" href="https://jonathanarvay.com/?utm_source=iliad&utm_medium=site_credit">Site by Jonathan Arvay</a>
       </p>
