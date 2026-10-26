@@ -853,7 +853,9 @@ kbd {
    flow regardless of DOM order; hidden off-screen until keyboard-focused. */
 .skip-link {
   position: absolute;
-  top: -40px;
+  /* Fully out of view until focused (2026-10-26, AXIS Launch taskgate T151): at -40px the link, about 44px tall with
+     its padding and border, showed its bottom edge at the top of every page. */
+  top: -100px;
   left: 8px;
   z-index: 1000;
   padding: 8px 16px;

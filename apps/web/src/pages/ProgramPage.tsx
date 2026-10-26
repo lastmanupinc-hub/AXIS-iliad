@@ -28,11 +28,11 @@ export function ProgramPage({ id, onAnalyze, onBack }: Props) {
       <p className="text-muted mb-3">{program.tagline}</p>
       <p className="mb-4"><span className={`badge ${free ? "badge-green" : "badge-accent"}`}>{free ? "FREE" : "PRO"}</span></p>
       <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>What one run writes</h2>
-      <ul className="mb-4">
+      <ul className="mb-4" style={{ paddingLeft: "1.25rem" }}>
         {program.outputs.map((o) => <li key={o}><code className="mono">{o}</code></li>)}
       </ul>
       <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>What it is for</h2>
-      <ul className="mb-4">
+      <ul className="mb-4" style={{ paddingLeft: "1.25rem" }}>
         {program.keywords.map((k) => <li key={k}>{k}</li>)}
       </ul>
       <button type="button" className="btn btn-primary" onClick={onAnalyze}>{program.cta}</button>
