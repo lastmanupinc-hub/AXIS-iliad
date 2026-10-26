@@ -26,7 +26,7 @@ export function ProgramPage({ id, onAnalyze, onBack }: Props) {
       <p className="text-sm mb-2"><a href="/programs/" data-route="programs" onClick={followIn(onBack)}>← All programs</a></p>
       <h1 style={{ fontSize: "1.6rem", fontWeight: 600, marginBottom: 8 }}>{program.name}</h1>
       <p className="text-muted mb-3">{program.tagline}</p>
-      <p className="mb-4"><span className={`badge ${free ? "badge-success" : "badge-accent"}`}>{free ? "FREE" : "PRO"}</span></p>
+      <p className="mb-4"><span className={`badge ${free ? "badge-green" : "badge-accent"}`}>{free ? "FREE" : "PRO"}</span></p>
       <h2 className="mb-2" style={{ fontSize: "1rem", fontWeight: 600 }}>What one run writes</h2>
       <ul className="mb-4">
         {program.outputs.map((o) => <li key={o}><code className="mono">{o}</code></li>)}

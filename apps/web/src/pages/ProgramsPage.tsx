@@ -109,7 +109,7 @@ function ProgramCard({ program, onAnalyze }: { program: ProgramDef; onAnalyze: (
         <div>
           {/* Each program has a page of its own (T151): the name links it, as a crawler can follow. */}
           <h3 className="program-card-name"><a href={`/programs/${program.id}/`}>{program.name}</a></h3>
-          <span className={`badge ${program.tier === "free" ? "badge-success" : "badge-accent"}`}>
+          <span className={`badge ${program.tier === "free" ? "badge-green" : "badge-accent"}`}>
             {program.tier === "free" ? "FREE" : "PRO"}
           </span>
         </div>

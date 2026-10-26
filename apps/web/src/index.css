@@ -1129,7 +1129,8 @@ kbd {
   border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   line-height: 1;
 }
-.loc-sys { letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.9; }
+/* No fade on the muted ink (2026-10-26, AXIS Launch taskgate T151): at 0.9 it measured 4.09:1 on the bar, under AA. */
+.loc-sys { letter-spacing: 0.1em; text-transform: uppercase; }
 .loc-sep { font-size: 0.6rem; opacity: 0.8; }
 .loc-page { letter-spacing: 0.05em; }
 
@@ -1176,7 +1177,8 @@ kbd {
 .ide-tree-group {
   font-size: 0.6rem;
   letter-spacing: 0.16em;
-  color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+  /* The muted ink at full strength (2026-10-26, T151): mixed to 82% it measured 3.69:1 on white, under AA. */
+  color: var(--text-muted);
   padding: 8px 8px 5px;
 }
 .ide-tree-group:first-child { padding-top: 6px; }
