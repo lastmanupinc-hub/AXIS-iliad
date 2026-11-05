@@ -1,5 +1,10 @@
+# script-src carries no 'unsafe-inline' (the site standard's sec.csp, 2026-11-04): every page is prerendered and runs
+# only same-origin bundles and Cloudflare's analytics beacon; the inline <script> blocks are JSON-LD, which a browser
+# never runs. scripts/csp-check.mjs refuses a build with an inline script whose hash is not listed here, an inline
+# event handler or a javascript: URL. Violations go to the estate's collector (plus.csp_reports), which logs one
+# sanitized line per report: AXIS Launch functions/api/csp-report.ts.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://glama.ai; font-src 'self'; connect-src 'self' https://api.iliad.trustfabric.ai https://static.cloudflareinsights.com https://cloudflareinsights.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://glama.ai; font-src 'self'; connect-src 'self' https://api.iliad.trustfabric.ai https://static.cloudflareinsights.com https://cloudflareinsights.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri https://launch.jonathanarvay.com/api/csp-report
   Strict-Transport-Security: max-age=31536000
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
