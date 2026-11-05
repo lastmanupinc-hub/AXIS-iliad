@@ -1,0 +1,62 @@
+# Axis' Iliad
+
+> Paste a code repository's address and get back the files AI coding tools read. Iliad turns a codebase into agent-ready context: AGENTS.md, CLAUDE.md, .cursorrules, MCP configs and the other artifacts its generator programs write. The output is deterministic: same input, same output, every run.
+
+## Pages
+
+- [Home](https://iliad.trustfabric.ai/): point Iliad at a repository and get the files AI coding tools read
+- [Documentation](https://iliad.trustfabric.ai/docs/): how to run Iliad against a codebase, what each generator produces, and how to wire the output into an agent workflow
+- [Programs](https://iliad.trustfabric.ai/programs/): every generator program, with the files each one writes
+- [Examples](https://iliad.trustfabric.ai/examples/): sample runs against real codebases and the artifacts they produced
+- [MCP server](https://iliad.trustfabric.ai/mcp/): connect Iliad to Claude Desktop, Cursor, VS Code or Claude Code over the Model Context Protocol
+- [For agents](https://iliad.trustfabric.ai/for-agents/): the machine-readable entry point: tools, free discovery endpoints, budget-aware pricing headers, and how an autonomous agent should call Iliad
+- [Pricing](https://iliad.trustfabric.ai/pricing/): a free tier for the Search, Skills and Debug programs; budget-aware pricing on paid runs, with a lite mode for agents on a spending limit
+- [Changelog](https://iliad.trustfabric.ai/changelog/): release history: new generators, API changes and fixes
+- [Feedback and support](https://iliad.trustfabric.ai/feedback/): report a bug, request a feature or ask a question
+- [Terms of Service](https://iliad.trustfabric.ai/terms/) and [Privacy Policy](https://iliad.trustfabric.ai/privacy/)
+
+## Programs
+
+- [Search](https://iliad.trustfabric.ai/programs/search/): codebase analysis and context graph (free)
+- [Skills](https://iliad.trustfabric.ai/programs/skills/): governance files for every coding assistant (free)
+- [Debug](https://iliad.trustfabric.ai/programs/debug/): debug playbooks from the dependency graph (free)
+- [Frontend](https://iliad.trustfabric.ai/programs/frontend/): frontend rules, component guidelines and CSS scaffolding
+- [SEO](https://iliad.trustfabric.ai/programs/seo/): technical SEO rules, schema.org markup and sitemap strategy
+- [Pitch](https://iliad.trustfabric.ai/programs/pitch/): a pitch deck from runtime evidence, with documentation claims audited
+- [Optimization](https://iliad.trustfabric.ai/programs/optimization/): token budget planning, prompt optimization and cost analysis
+- [Theme](https://iliad.trustfabric.ai/programs/theme/): a CSS design system, design tokens and a dark mode theme
+- [Brand](https://iliad.trustfabric.ai/programs/brand/): brand guidelines, messaging system and channel rulebook
+- [Superpowers](https://iliad.trustfabric.ai/programs/superpowers/): refactoring checklists, test generation rules and a workflow registry
+- [Marketing](https://iliad.trustfabric.ai/programs/marketing/): developer marketing campaigns, funnels and CRO playbooks
+- [Notebook](https://iliad.trustfabric.ai/programs/notebook/): a research notebook, study brief and citation index
+- [Obsidian](https://iliad.trustfabric.ai/programs/obsidian/): an Obsidian vault for a developer knowledge base
+- [MCP](https://iliad.trustfabric.ai/programs/mcp/): Model Context Protocol config, connector map and tool manifest
+- [Artifacts](https://iliad.trustfabric.ai/programs/artifacts/): component library, dashboard widgets and embeddable snippets
+- [Remotion](https://iliad.trustfabric.ai/programs/remotion/): code visualization video scripts and Remotion templates
+- [Canvas](https://iliad.trustfabric.ai/programs/canvas/): a visual architecture canvas, planning board and workflow maps
+- [Algorithmic](https://iliad.trustfabric.ai/programs/algorithmic/): generative art, parameter packs and variation matrices from code
+- [Agentic Purchasing](https://iliad.trustfabric.ai/programs/agentic-purchasing/): checkout hardening with AP2, dispute evidence and policy controls
+- [Closer](https://iliad.trustfabric.ai/programs/closer/): packaging artifacts for distribution, launch and marketplace readiness
+- [Deploy](https://iliad.trustfabric.ai/programs/deploy/): production deploy scaffolding for Docker, Render and Cloudflare
+
+## API
+
+The API is at https://api.iliad.trustfabric.ai and describes itself at [/llms.txt](https://api.iliad.trustfabric.ai/llms.txt), [/for-agents](https://api.iliad.trustfabric.ai/for-agents) and [/v1/docs](https://api.iliad.trustfabric.ai/v1/docs).
+
+- MCP endpoint: `POST https://api.iliad.trustfabric.ai/mcp`
+- Create an API key: `POST https://api.iliad.trustfabric.ai/v1/accounts`
+- Analyze a repository: `POST https://api.iliad.trustfabric.ai/v1/analyze`
+- Find a tool by keyword: `GET https://api.iliad.trustfabric.ai/v1/mcp/tools?q=`
+
+## Also by Jonathan Arvay
+
+- [Jonathan Arvay](https://jonathanarvay.com/about/): who builds and runs these sites
+- [Last Man Up](https://lastmanup.org/): A Northwest Indiana veterans organization building a 90-day program for veterans with PTSD.
+- [Print My Design](https://printmydesign.shop/): Customers design cards, flyers and posters in the browser, then order them.
+- [Sacred Liberation Retreats](https://slretreats.jonathanarvay.com/): Every session with its program, dates, schedule and places to stay, searchable by practice, length and budget.
+- [CampNearMe](https://campnearme.jonathanarvay.com/): Campgrounds with their sites, rates and availability loaded before they go live, searchable by dates.
+- [AXIS Launch](https://launch.jonathanarvay.com/): App listings, magazine features and a newsletter signup, all on one site.
+- [AXIS Foundry](https://avatar.jonathanarvay.com/): Describe a character or upload an image, and get a 3D model ready for Unity, Unreal, Godot and Roblox.
+- [PAID](https://paid.trustfabric.ai/): A payments platform's site, with documentation, pricing and self-serve signup.
+- [Beulah Inc](https://beulah.jonathanarvay.com/): Beulah Inc applicator types, felt and plastic restrictors, bottles, drip jars and adapters for adhesive dispensing, each part with its drawing, an illustration and a 3D model.
+- [Estate registry](https://jonathanarvay.com/estate.json): machine-readable index of every site, the person behind them and the crawler policy

@@ -1,11 +1,12 @@
 /**
- * The web host's security files (the site standard, 2026-11-04: sec.csp, plus.csp_reports). The live grader reads
- * the deployed site; these hold the source to the same rules.
+ * The web host's security and agent files (the site standard, 2026-11-04: sec.csp, plus.csp_reports,
+ * plus.security_txt, seo.llms). The live grader reads the deployed site; these hold the source to the same rules.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 // @ts-expect-error: a plain .mjs build script with no type declarations; its exports are exercised below.
 import { headersPolicy, directives, policyProblems, pageProblems } from "../scripts/csp-check.mjs";
+import { PROGRAMS } from "./programs.ts";
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
@@ -50,5 +51,40 @@ describe("csp-check", () => {
     expect(policyProblems(base + "'unsafe-inline'")).toHaveLength(1);
     expect(policyProblems(base + "'unsafe-eval'")).toHaveLength(1);
     expect(policyProblems(base + "https:")).toHaveLength(1);
+  });
+});
+
+describe("public/.well-known/security.txt", () => {
+  const txt = read("../public/.well-known/security.txt");
+
+  it("names the estate's security contact and its own canonical URL", () => {
+    expect(txt).toMatch(/^Contact: mailto:jonathan@jonathanarvay\.com$/m);
+    expect(txt).toMatch(/^Canonical: https:\/\/iliad\.trustfabric\.ai\/\.well-known\/security\.txt$/m);
+    expect(txt).toMatch(/^Preferred-Languages: en$/m);
+  });
+
+  it("expires in the future, and under a year from now (RFC 9116)", () => {
+    const m = /^Expires: (\S+)$/m.exec(txt);
+    expect(m).not.toBeNull();
+    const ms = new Date(m![1]).getTime() - Date.now();
+    expect(ms).toBeGreaterThan(30 * 86400_000); // renew it a month before it lapses
+    expect(ms).toBeLessThan(366 * 86400_000);
+  });
+});
+
+describe("public/llms.txt", () => {
+  const txt = read("../public/llms.txt");
+
+  it("opens with a markdown title", () => {
+    expect(txt.split("\n")[0]).toBe("# Axis' Iliad");
+  });
+
+  it("lists every program the site has, and no other", () => {
+    const listed = [...txt.matchAll(/\/programs\/([a-z-]+)\//g)].map((m) => m[1]);
+    expect(new Set(listed)).toEqual(new Set(PROGRAMS.map((p) => p.id)));
+  });
+
+  it("states no usage numbers", () => {
+    expect(txt).not.toMatch(/\b\d[\d,.]*\+?\s*(users|developers|teams|customers|repos analyzed|runs)\b/i);
   });
 });
