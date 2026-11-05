@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // csp-check — the built site runs under its enforced Content-Security-Policy with no unsafe script source (the site
 // standard's sec.csp and plus.csp_reports, 2026-11-04). Run after the build, on dist/:
 //
