@@ -10,3 +10,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# The build stamp (plus.build_stamp): scripts/ship.sh web writes it per deploy; never served stale.
+/version.json
+  Cache-Control: no-store

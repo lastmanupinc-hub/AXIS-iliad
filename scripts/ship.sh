@@ -16,6 +16,9 @@
 #   scripts/ship.sh web        build+prerender+audit -> wrangler pages deploy
 #   scripts/ship.sh storefront build+verify -> wrangler pages deploy (preview project)
 #   scripts/ship.sh probe      run the live-probe battery against production
+#   Every deploy first refuses uncommitted work and runs the key scan (scripts/check-no-keys.mjs) on the tracked
+#   tree and on what it uploads; web also refuses anything but main at origin/main and writes dist/version.json.
+#
 #   scripts/ship.sh gate       just the local gates (ci-local.sh if docker is up,
 #                              else the non-container set: frozen-lockfile,
 #                              build, tsc, lint)
@@ -31,8 +34,45 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ESTATE="$(cd "$ROOT/.." && pwd)"
 SERVICE_ID="srv-d7c2hi28qa3s738ouftg"
 
-# Secrets come from the estate key file at call time and are never echoed.
-key() { grep -m1 "^$1" "$ESTATE/key.txt" | sed -E "s/^$1[[:space:]]*[:=][[:space:]]*//" | tr -d '\r" '; }
+# Secrets come from the estate key file at call time and are never echoed. AXIS_KEY_FILE names it from a worktree.
+KEY_FILE="${AXIS_KEY_FILE:-$ESTATE/key.txt}"
+export AXIS_KEY_FILE="$KEY_FILE"
+key() { grep -m1 "^$1" "$KEY_FILE" | sed -E "s/^$1[[:space:]]*[:=][[:space:]]*//" | tr -d '\r" '; }
+
+# Only committed work is deployed (the site standard's plus.deploy_bound, 2026-11-04; AXIS Launch host_deploy.sh is
+# the model): a deploy refuses a dirty tree, tracked changes and untracked files alike, so what goes out is a commit
+# someone can name, and /version.json can say which one.
+committed() {
+  cd "$ROOT"
+  local dirty
+  dirty="$(git status --porcelain --untracked-files=normal)"
+  if [ -n "$dirty" ]; then
+    echo "[ship] REFUSED: uncommitted work in the tree; commit or stash it first (the deployed paths are committed):"
+    printf '%s\n' "$dirty" | head -20
+    exit 1
+  fi
+}
+
+# The key scan (eng.secrets, 2026-11-04): no key-file value of 12+ characters in the tracked tree or in what is about
+# to be uploaded. scripts/check-no-keys.mjs prints only `label -> file`; --require refuses when the key file is absent.
+secrets_gate() {
+  cd "$ROOT"
+  node scripts/check-no-keys.mjs --tree --require
+  local d
+  for d in "$@"; do node scripts/check-no-keys.mjs --dir "$d" --require; done
+}
+
+# The web build stamp (plus.build_stamp): Cloudflare Pages publishes production only from main, and the grader
+# compares /version.json with the default branch's head, so the web deploys from main at origin/main's commit.
+on_main_head() {
+  cd "$ROOT"
+  local branch head remote
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+  [ "$branch" = "main" ] || { echo "[ship] REFUSED: on branch $branch; the web deploys from main (any other branch publishes a preview)"; exit 1; }
+  git fetch --quiet origin main
+  head="$(git rev-parse HEAD)"; remote="$(git rev-parse origin/main)"
+  [ "$head" = "$remote" ] || { echo "[ship] REFUSED: HEAD is not origin/main; push (or pull) first so the live stamp names the default branch's head"; exit 1; }
+}
 
 gate() {
   cd "$ROOT"
@@ -72,6 +112,8 @@ watch_deploy() {
 
 case "${1:-}" in
   api)
+    committed
+    secrets_gate
     gate
     cd "$ROOT"
     sha="$(git rev-parse --short HEAD)"
@@ -82,11 +124,23 @@ case "${1:-}" in
     watch_deploy "$sha"
     ;;
   web)
+    committed
+    on_main_head
     cd "$ROOT/apps/web"
     # What the engines already have, taken before the build (the startup foundation standard, F12, 2026-10-15):
     # after the deploy the same pages are read again and only the changed ones go to IndexNow. Never fatal.
     node scripts/indexnow-submit.mjs snapshot "$ROOT/.indexnow-before.json"
-    npx tsc -b && npx vite build && npm run seo:prerender && npm run seo:audit
+    # One step per line: under set -e a failing step inside an && list does not stop the script, and the deploy
+    # would go on with whatever dist/ was left from the last build.
+    npx tsc -b
+    npx vite build
+    npm run seo:prerender
+    npm run seo:audit
+    # The stamp the live site answers with (plus.build_stamp): dist/ is gitignored, so it never makes the tree dirty.
+    printf '{"commit": "%s", "branch": "main"}\n' "$(git rev-parse HEAD)" > dist/version.json
+    # No inline script the CSP would refuse and no unsafe script source (sec.csp), checked on the built pages.
+    npm run csp:check
+    secrets_gate "$ROOT/apps/web/dist"
     export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
     # The account id from the API (2026-10-26): it was written here as a literal, a key.txt value in a public repo.
     export CLOUDFLARE_ACCOUNT_ID; CLOUDFLARE_ACCOUNT_ID="$(printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" | curl -s -H @- https://api.cloudflare.com/client/v4/accounts | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).result[0].id)}catch(e){}})')"
@@ -96,6 +150,7 @@ case "${1:-}" in
     node apps/web/scripts/indexnow-submit.mjs submit "$ROOT/.indexnow-before.json"
     ;;
   storefront)
+    committed
     # ext_02: this deploy previously had NO build-verification step at all —
     # `wrangler pages deploy .storefront-dist` was run by hand, and local HEAD
     # could sit ahead of what was actually live with nothing to catch it. This
@@ -122,6 +177,7 @@ case "${1:-}" in
       }
       console.log(`[storefront verify] OK — robots.txt, llms.txt, and all ${ids.length} product pages+favicons present`);
     '
+    secrets_gate "$ROOT/.storefront-dist"
     export CLOUDFLARE_API_TOKEN; CLOUDFLARE_API_TOKEN="$(key CLOUDFLARE_DEPLOY_TOKEN)"
     # The account id from the API (2026-10-26): it was written here as a literal, a key.txt value in a public repo.
     export CLOUDFLARE_ACCOUNT_ID; CLOUDFLARE_ACCOUNT_ID="$(printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" | curl -s -H @- https://api.cloudflare.com/client/v4/accounts | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).result[0].id)}catch(e){}})')"
