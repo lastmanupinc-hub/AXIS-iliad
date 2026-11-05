@@ -118,11 +118,11 @@ services:
       - key: PAID_API_BASE_URL
         value: https://api.trustfabric.ai/v1
       - key: PAID_MERCHANT_ID
-        value: acct_7ec95648-c529-4ee2-9ab4-3fd22953ac1c
+        sync: false
       - key: PAID_PLAN_PRO_MONTHLY
-        value: plan_299dde3d-4db4-4f56-b572-a60c7c1d5f50
+        sync: false
       - key: PAID_PLAN_PRO_ANNUAL
-        value: plan_4cbd5d23-bd77-4421-99b5-4e6ef43b530f
+        sync: false
       - key: PAID_API_KEY
         sync: false
       - key: PAID_WEBHOOK_SIGNING_KEY
@@ -130,7 +130,9 @@ services:
       # NOTE: PAI'D uses hosted checkout (it hosts the payment page and returns
       # a redirect URL), so NO Stripe publishable key is needed here, and
       # PAID_API_SECRET is unused under bearer auth — both intentionally dropped.
-      # PAID_PLAN_PRO_* above are legacy subscription plan IDs; the hosted-
+      # PAID_MERCHANT_ID and PAID_PLAN_PRO_* are dashboard-set (sync: false) since 2026-11-04,
+      # like every other PAI'D value: account and plan ids are not committed.
+      # PAID_PLAN_PRO_* are legacy subscription plan IDs; the hosted-
       # checkout path prices server-side from PLAN_CATALOG and does not use them.
       # Future Growth-tier plan IDs — map to the "suite" tier in the
       # PAI'D webhook. Uncomment and fill in once the Growth plans are

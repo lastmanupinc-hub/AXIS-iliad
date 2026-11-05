@@ -1,0 +1,7 @@
+#!/bin/sh
+# pre-commit: no value from the estate's key file reaches a commit (scripts/check-no-keys.mjs; the site standard's
+# eng.secrets, 2026-11-04). This repository is public, so a committed value is a published one.
+# Installed by scripts/install-hooks.sh, which puts a pre-commit into the hooks folder git runs here WITHOUT setting
+# core.hooksPath: that setting would also switch on .githooks/pre-push, which stays the owner's decision.
+node "$(git rev-parse --show-toplevel)/scripts/check-no-keys.mjs" || {
+  echo "commit refused: a key value is in a staged file (labels above). Take it out; never commit it."; exit 1; }
