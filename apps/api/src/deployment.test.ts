@@ -211,9 +211,14 @@ describe("Cloudflare Pages static config", () => {
     expect(content).not.toContain("onrender.com");
   });
 
-  it("CSP allows Cloudflare's own auto-injected analytics beacon (would otherwise self-break)", () => {
+  // Changed 2026-11-04: the site measures through Cloudflare Zaraz behind a consent box (apps/web/public/consent.js),
+  // and the estate turns the edge-injected Web Analytics beacon off on zones that measure through Zaraz (owner
+  // 2026-10-30; AXIS Launch scripts/edge_beacon_off.py): a second counter the privacy policy does not name, blind to
+  // Global Privacy Control. Under 'strict-dynamic' a host entry would not allow it anyway.
+  it("CSP does not allow Cloudflare's edge-injected analytics beacon (the site measures through Zaraz)", () => {
     const content = readRoot("apps/web/public/_headers");
-    expect(content).toContain("https://static.cloudflareinsights.com");
+    expect(content).toContain("'strict-dynamic'");
+    expect(content).not.toMatch(/Content-Security-Policy:.*cloudflareinsights/);
   });
 
   it("CSP sets frame-ancestors 'none' (anti-clickjacking, alongside the legacy X-Frame-Options)", () => {

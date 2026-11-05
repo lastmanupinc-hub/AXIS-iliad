@@ -1,7 +1,12 @@
 // The web's answer page "What does an Iliad analysis cost?" (apps/web/src/answers.ts, 2026-11-04, the estate's
 // foundation check F09) states prices, credits and limits as facts. Every one of them is held equal here to the code
-// that charges them, so a price change fails this test by name instead of leaving the page wrong.
+// that charges them, so a price change fails this test by name instead of leaving the page wrong. apps/api never
+// imports apps/web (monorepo-boundaries.test.ts), so PRICING is read from answers.ts as text, the way
+// count-honesty.test.ts reads the web copy; apps/web/src/answers.test.tsx holds the page's sentences to PRICING.
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PRICING_TIERS } from "@axis/mpp";
 import {
   MARKETED_TIERS,
@@ -11,7 +16,33 @@ import {
   TIER_LIMITS,
   creditsFromUsdCents,
 } from "@axis/snapshots";
-import { PRICING, answerFor } from "../../web/src/answers.ts";
+
+const ANSWERS_TS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "web", "src", "answers.ts");
+
+interface Pricing {
+  analyzeStandardCents: number;
+  analyzeEngineerCents: number;
+  usdPerCredit: number;
+  standardCredits: number;
+  engineerCredits: number;
+  plans: { id: string; name: string; monthlyCents: number; credits: number }[];
+  annualDiscountPercent: number;
+  freeSnapshotsPerMonth: number;
+  freeProjects: number;
+  paidSnapshotsPerMonth: number;
+  packs: { credits: number; priceCents: number }[];
+}
+
+/** The PRICING object literal in answers.ts: plain numbers and strings, evaluated on its own. */
+function readPricing(): Pricing {
+  const src = readFileSync(ANSWERS_TS, "utf8").replace(/\r\n/g, "\n");
+  const m = /export const PRICING = (\{[\s\S]*?\n\}) as const;/.exec(src);
+  if (!m) throw new Error("PRICING not found in apps/web/src/answers.ts");
+  if (/[`$()]|=>|\bfunction\b/.test(m[1])) throw new Error("PRICING must stay a literal of numbers and strings");
+  return new Function(`return (${m[1]});`)() as Pricing;
+}
+
+const PRICING = readPricing();
 
 describe("the cost answer page states the pricing code's numbers", () => {
   it("prices a standard and an engineer analyze_repo as PRICING_TIERS does", () => {
@@ -48,15 +79,5 @@ describe("the cost answer page states the pricing code's numbers", () => {
 
   it("lists the credit packs as sold", () => {
     expect(PRICING.packs.map((p) => [p.credits, p.priceCents])).toEqual(PERSISTENCE_CREDIT_PACKS.map((p) => [p.credits, p.price_cents]));
-  });
-
-  it("writes the numbers into the answer itself", () => {
-    const a = answerFor("what-does-iliad-cost").answer;
-    expect(a).toContain(`$${(PRICING_TIERS.analyze_repo.standard_cents / 100).toFixed(2)}`);
-    expect(a).toContain(creditsFromUsdCents(PRICING_TIERS.analyze_repo.standard_cents).toLocaleString("en-US"));
-    for (const t of MARKETED_TIERS.filter((x) => x.price_monthly_cents > 0)) {
-      expect(a).toContain(`$${t.price_monthly_cents / 100}`);
-      expect(a).toContain(t.monthly_credits.toLocaleString("en-US"));
-    }
   });
 });

@@ -10,7 +10,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { ANSWERS, answerWords } from "./answers.ts";
+import { ANSWERS, PRICING, answerWords } from "./answers.ts";
 import { PROD_API_BASE } from "./config.ts";
 import { AnswerPage } from "./pages/AnswerPage.tsx";
 import { hrefForPage, matchPathname, routeForPage } from "./routes.tsx";
@@ -108,6 +108,16 @@ describe("answer pages", () => {
     const code = a.sections.flatMap((s) => s.code ?? []).map((c) => c.text).join("\n");
     expect(code).toContain(`claude mcp add --transport http axis-iliad ${mcp} --header "Authorization: Bearer YOUR_API_KEY"`);
     expect(code).not.toContain("--url");
+  });
+
+  it("writes PRICING's numbers into the cost answer (PRICING itself is held to the code by apps/api)", () => {
+    const a = ANSWERS.find((x) => x.page === "what-does-iliad-cost")!.answer;
+    expect(a).toContain(`$${(PRICING.analyzeStandardCents / 100).toFixed(2)}`);
+    expect(a).toContain(PRICING.standardCredits.toLocaleString("en-US"));
+    for (const p of PRICING.plans.filter((x) => x.monthlyCents > 0)) {
+      expect(a).toContain(`$${p.monthlyCents / 100}`);
+      expect(a).toContain(p.credits.toLocaleString("en-US"));
+    }
   });
 
   it("states no usage numbers", () => {
