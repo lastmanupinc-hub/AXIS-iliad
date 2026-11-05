@@ -7,6 +7,8 @@ import { readFileSync } from "node:fs";
 // @ts-expect-error: a plain .mjs build script with no type declarations; its exports are exercised below.
 import { headersPolicy, directives, policyProblems, pageProblems } from "../scripts/csp-check.mjs";
 import { PROGRAMS } from "./programs.ts";
+import { runInNewContext } from "node:vm";
+import { BOOTSTRAP, BOOTSTRAP_HASH, withBootstrap } from "./plugins/csp-bootstrap.ts";
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
@@ -24,6 +26,81 @@ describe("public/_headers CSP", () => {
 
   it("reports violations to the estate's collector", () => {
     expect(directives(policy)["report-uri"]).toEqual(["https://launch.jonathanarvay.com/api/csp-report"]);
+  });
+});
+
+describe("the CSP's root of trust (Cloudflare Zaraz, 2026-11-04)", () => {
+  const policy: string = headersPolicy(read("../public/_headers"));
+  const script = directives(policy)["script-src"];
+
+  it("trusts the bootstrap by its hash and what it creates through 'strict-dynamic'", () => {
+    expect(script).toContain("'strict-dynamic'");
+    expect(script).toContain(BOOTSTRAP_HASH);
+    expect(pageProblems(`<script data-module="/assets/a.js">${BOOTSTRAP}</script>`, script)).toEqual([]);
+  });
+
+  it("allows no edge-injected beacon (the estate turns it off where Zaraz measures)", () => {
+    expect(policy).not.toContain("cloudflareinsights");
+  });
+
+  it("moves Vite's entry tag into the bootstrap at the end of the body, after #root", () => {
+    const built = '<html><head><script type="module" crossorigin src="/assets/index-x.js"></script></head><body><div id="root"></div></body></html>';
+    const out = withBootstrap(built, ["/consent.js"]);
+    expect(out).not.toContain('<script type="module"');
+    expect(out).toContain(`<script data-module="/assets/index-x.js" data-src="/consent.js">${BOOTSTRAP}</script>`);
+    expect(out.indexOf('<div id="root">')).toBeLessThan(out.indexOf("data-module"));
+    expect(() => withBootstrap(built.replace("</head>", '<link rel="modulepreload" href="/assets/v.js"></head>'), [])).toThrow(/modulepreload/);
+  });
+});
+
+describe("public/consent.js", () => {
+  const code = read("../public/consent.js");
+
+  /** Runs consent.js against a stub browser; returns the scripts it added and what it left in sessionStorage. */
+  function run(nav: { globalPrivacyControl?: boolean; doNotTrack?: string }) {
+    const added: { src: string }[] = [];
+    const store = new Map<string, string>();
+    const listeners: string[] = [];
+    const win: Record<string, unknown> = {
+      sessionStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) },
+    };
+    const document = {
+      createElement: () => ({ src: "", async: false, referrerPolicy: "", addEventListener: () => {} }),
+      head: { appendChild: (e: { src: string }) => added.push(e) },
+      addEventListener: (type: string) => listeners.push(type),
+    };
+    runInNewContext(code, { window: win, navigator: nav, document, Promise, JSON });
+    return { added, store, win, listeners };
+  }
+
+  it("adds the Zaraz loader when the browser sends no privacy signal", () => {
+    expect(run({}).added.map((e) => e.src)).toEqual(["/cdn-cgi/zaraz/i.js"]);
+  });
+
+  it("adds nothing under Global Privacy Control or Do Not Track, and keeps no key event", async () => {
+    for (const nav of [{ globalPrivacyControl: true }, { doNotTrack: "1" }]) {
+      const r = run(nav);
+      expect(r.added, JSON.stringify(nav)).toEqual([]);
+      await (r.win.axisKeyEvent as (n: string) => Promise<void>)("account_created");
+      expect(r.store.size, JSON.stringify(nav)).toBe(0);
+    }
+  });
+
+  it("holds a key event until the loader is there, then sends it once", async () => {
+    const r = run({});
+    await (r.win.axisKeyEvent as (n: string) => Promise<void>)("account_created");
+    expect(JSON.parse(r.store.get("axis_key_events")!)).toEqual(["account_created"]);
+    const sent: string[] = [];
+    r.win.zaraz = { track: (n: string) => { sent.push(n); return Promise.resolve(); } };
+    await (r.win.axisKeyEvent as (n: string) => Promise<void>)("account_created");
+    expect(sent).toEqual(["account_created"]);
+    expect(r.store.has("axis_key_events")).toBe(false);
+  });
+
+  it("listens for the Privacy choices link", () => {
+    expect(run({}).listeners).toContain("click");
+    expect(code).toContain("[data-privacy-choices]");
+    expect(code).toContain("zaraz.consent.modal = true");
   });
 });
 

@@ -4,7 +4,7 @@ import { followIn } from "../../linkClick.ts";
 
 // ─── PageFooter (WO-F4) ─────────────────────────────────────────────────────
 // Rendered by the shell at the bottom of every page, above the fixed
-// StatusBar: legal/Terms · Status · v<version> · Contact · Support · Help · Docs.
+// StatusBar: legal/Terms · Privacy · Privacy choices · Status · v<version> · Contact · Support · Help · Docs.
 // Links with real addresses since 2026-10-26 (AXIS Launch taskgate T151): the footer was buttons, so a crawler found
 // no footer menu and no way to reach a person.
 
@@ -28,6 +28,10 @@ export function PageFooter({ onNavigate }: PageFooterProps) {
         {link("terms", "Terms")}
         <Sep />
         {link("privacy", "Privacy")}
+        <Sep />
+        {/* Reopens Cloudflare Zaraz's consent box (public/consent.js, capture phase); with no Zaraz on the page (a Global
+            Privacy Control or Do Not Track browser) it is a plain link to the policy (a #fragment would be read as a route). */}
+        <a className="footer-link" href="/privacy/" data-privacy-choices="">Privacy choices</a>
         <Sep />
         {link("status", "Status")}
         <Sep />

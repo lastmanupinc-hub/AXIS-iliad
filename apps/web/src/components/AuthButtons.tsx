@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { API_BASE, createAccount, establishSession } from "../api.ts";
+import { sendKeyEvent } from "../keyEvents.ts";
 
 // Shared sign-in surface: GitHub + Google OAuth are the primary paths (plain
 // top-level navigations — no client-side secret handling). A subtle collapsible
@@ -43,6 +44,9 @@ export function AuthButtons({ onEmailSuccess }: { onEmailSuccess?: () => void })
       // the raw key is never shown or persisted in the web UI (create one in
       // Settings if you need a key for CLI/MCP).
       await establishSession(result.api_key.raw_key);
+      // A new account, confirmed: POST /v1/accounts answers 409 for an address that already has one. The GitHub and
+      // Google paths cannot tell a new account from a returning one in the browser, so they send nothing.
+      await sendKeyEvent("account_created");
       onEmailSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");

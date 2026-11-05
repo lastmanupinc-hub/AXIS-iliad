@@ -46,6 +46,10 @@ export function PrivacyPage() {
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
           Last Man Up Inc. · Draft — pending attorney review, not yet effective
         </p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+          Updated <time dateTime="2026-11-04">4 November 2026</time>: Google Analytics, through Cloudflare, only if you
+          allow it (sections 2.6, 3 and 4).
+        </p>
         <p style={{ color: "var(--text-muted)", maxWidth: 560, margin: "12px auto 0" }}>
           This describes what Axis' Iliad collects, why, and your rights over it. It is
           published as a working draft ahead of formal legal review — the described
@@ -140,10 +144,27 @@ export function PrivacyPage() {
             <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>2.5 Usage counters and logs</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               We record per-account usage (which program ran, when, credits consumed) for
-              billing, abuse prevention, and rate limiting, using first-party counters
-              only — no third-party analytics or advertising trackers. Standard service
-              logs (request method/path, status, latency) are written to our hosting
+              billing, abuse prevention, and rate limiting, in our own database; these
+              counters are never shared with an analytics or advertising company. Standard
+              service logs (request method/path, status, latency) are written to our hosting
               provider's log stream for debugging and security monitoring.
+            </p>
+
+            <h3 style={{ marginBottom: 8, marginTop: 16, fontSize: "1em", fontWeight: 700 }}>2.6 Google Analytics, only with your yes</h3>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
+              When a page of this website opens, and your browser sends neither Global Privacy
+              Control nor Do Not Track, the page loads Cloudflare Zaraz from this site's own
+              address. Zaraz asks you once, in a box, whether Google Analytics 4 may count your
+              visit. If you say yes, Zaraz runs the measurement on Cloudflare's servers and
+              passes it to Google: the page's address and title, the site that sent you, the
+              kind of device and browser, an identifier that tells your browser's visits apart
+              from others', your IP address (which Google uses to estimate your region), and one
+              moment we count as a result: an account created with an email address. No Google
+              script loads in your browser, and Google never receives your name, your email
+              address, your API keys or anything from your code. Say no and none of it is
+              measured. In a browser that sends Global Privacy Control or Do Not Track the loader
+              is never added: no box, no cookie, no measurement. The API and the MCP server send
+              nothing to Google.
             </p>
           </div>
 
@@ -158,6 +179,23 @@ export function PrivacyPage() {
               analysis result in your browser's <code>localStorage</code> — none of which
               is your actual credential. Logging out clears the session cookie and the
               stored marker, and also discards your uploaded source content (see 2.1).
+            </p>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginTop: 12 }}>
+              Measurement cookies, set only as section 2.6 describes (never in a browser that sends
+              Global Privacy Control or Do Not Track):
+            </p>
+            <ul style={{ color: "var(--text-muted)", lineHeight: 1.7, paddingLeft: 20, marginTop: 8 }}>
+              <li><code>cf_zaraz_client</code>: set by Cloudflare Zaraz when a page opens, so one browser's visits can be told from another's.</li>
+              <li><code>cf_consent</code>: keeps your answer in the consent box, so it asks only once.</li>
+              <li><code>cfz_google-analytics_v4</code>: only after a yes; Google Analytics' identifier for your browser.</li>
+              <li><code>cfzs_google-analytics_v4</code>: only after a yes; Google Analytics' session marker.</li>
+            </ul>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginTop: 12 }}>
+              To change your answer, use{" "}
+              <a href="/privacy/" data-privacy-choices="" style={{ color: "var(--accent)", textDecoration: "underline" }}>Privacy choices</a>{" "}
+              at the foot of every page: it opens the same box again. Clearing this site's cookies has
+              the same effect, and the box asks again on your next visit. Turning on Global Privacy
+              Control or Do Not Track in your browser stops the measurement entirely.
             </p>
           </div>
 
@@ -179,7 +217,8 @@ export function PrivacyPage() {
                 <tbody style={{ color: "var(--text-muted)" }}>
                   <tr><td style={{ padding: "6px 8px" }}>Render (US)</td><td style={{ padding: "6px 8px" }}>Application hosting</td></tr>
                   <tr><td style={{ padding: "6px 8px" }}>Neon (US)</td><td style={{ padding: "6px 8px" }}>Managed PostgreSQL database — all persisted service data</td></tr>
-                  <tr><td style={{ padding: "6px 8px" }}>Cloudflare</td><td style={{ padding: "6px 8px" }}>Web frontend hosting / CDN / object storage</td></tr>
+                  <tr><td style={{ padding: "6px 8px" }}>Cloudflare</td><td style={{ padding: "6px 8px" }}>Web frontend hosting / CDN / object storage; Zaraz, the consent box and the measurement it runs (2.6)</td></tr>
+                  <tr><td style={{ padding: "6px 8px" }}>Google</td><td style={{ padding: "6px 8px" }}>Google Analytics 4, through Cloudflare Zaraz, only with your yes (2.6)</td></tr>
                   <tr><td style={{ padding: "6px 8px" }}>GitHub</td><td style={{ padding: "6px 8px" }}>OAuth sign-in, repository fetching, webhooks</td></tr>
                   <tr><td style={{ padding: "6px 8px" }}>PAI'D Payments Intelligence</td><td style={{ padding: "6px 8px" }}>Payment orchestration</td></tr>
                   <tr><td style={{ padding: "6px 8px" }}>Stripe</td><td style={{ padding: "6px 8px" }}>Underlying payment processing (via PAI'D)</td></tr>

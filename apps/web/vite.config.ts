@@ -2,11 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { axisSeo } from "./src/plugins/axis-seo/vitePlugin";
 import { defineSeoConfig } from "./src/plugins/axis-seo/config";
+import { cspBootstrap } from "./src/plugins/csp-bootstrap";
 import { seoRoutes, SITE_URL, SITE_NAME } from "./seo.routes.ts";
 
 export default defineConfig({
   plugins: [
     react(),
+    // The CSP's root of trust (2026-11-04): one hashed inline bootstrap loads the app's entry module and
+    // /consent.js (Cloudflare Zaraz, only while counting is allowed). See src/plugins/csp-bootstrap.ts.
+    cspBootstrap(["/consent.js"]),
     // Emits one crawlable HTML file per public route with its own title,
     // description, canonical, OG tags, and JSON-LD entity graph — plus
     // sitemap.xml and robots.txt. See apps/web/seo.routes.ts.

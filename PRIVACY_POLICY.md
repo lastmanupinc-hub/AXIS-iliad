@@ -94,8 +94,23 @@ subscription — see the Terms of Service for the current billing model.
 We record per-account usage of the service (which program or tool was run, when, and
 billing-relevant counters such as credits consumed and MCP tool-call counts). These
 records exist for billing, abuse prevention, rate limiting, and service improvement. We
-use **first-party counters only** — we do not embed third-party analytics or advertising
-trackers in the API or dashboard.
+keep these counters in our own database and never share them with an analytics or
+advertising company. The API and the MCP server embed no third-party analytics.
+
+### 2.7a Google Analytics on the website, only with your yes (from 4 November 2026)
+
+When a page of the website (iliad.trustfabric.ai) opens, and the browser sends neither
+Global Privacy Control nor Do Not Track, the page loads Cloudflare Zaraz from the site's
+own address (`/consent.js` adds `/cdn-cgi/zaraz/i.js`). Zaraz asks once, in a box, whether
+Google Analytics 4 may count the visit. With a yes, Zaraz runs the measurement on
+Cloudflare's servers and passes to Google: the page's address and title, the referring
+site, the kind of device and browser, an identifier that tells one browser's visits from
+another's, the IP address (which Google uses to estimate a region), and one key event,
+`account_created`, when an account is created with an email address. No Google script
+loads in the browser; Google never receives a name, an email address, an API key or any
+source code. With a no, nothing is measured. With Global Privacy Control or Do Not Track,
+the loader is never added: no box, no cookie. "Privacy choices" at the foot of every page
+reopens the box.
 
 ### 2.8 Logs
 
@@ -118,6 +133,17 @@ browser's `localStorage`, none of which is your actual credential:
 This data stays in your browser. Clearing your browser storage removes it. Logging out
 clears the session cookie and the stored marker.
 
+Measurement cookies, only as section 2.7a describes (never under Global Privacy Control or
+Do Not Track):
+
+- `cf_zaraz_client` — set by Cloudflare Zaraz when a page opens, to tell one browser's visits from another's,
+- `cf_consent` — your answer in the consent box,
+- `cfz_google-analytics_v4` — after a yes only: Google Analytics' identifier for the browser,
+- `cfzs_google-analytics_v4` — after a yes only: Google Analytics' session marker.
+
+To change the answer, use "Privacy choices" at the foot of every page, or clear the site's
+cookies (the box asks again on the next visit).
+
 ## 4. Subprocessors
 
 We share data with the following service providers, strictly to operate the service:
@@ -126,7 +152,8 @@ We share data with the following service providers, strictly to operate the serv
 |---|---|---|
 | **Render** (US) | Application hosting | Request/log data; the application itself, not persistent snapshot data |
 | **Neon** (US) | Managed PostgreSQL database | All persisted service data (accounts, snapshots, usage records) |
-| **Cloudflare** | Web frontend hosting / CDN; object storage (R2) where used | Web traffic; objects you store via the storage tool |
+| **Cloudflare** | Web frontend hosting / CDN; object storage (R2) where used; Zaraz consent box and measurement (2.7a) | Web traffic; objects you store via the storage tool; with consent, the measurement in 2.7a |
+| **Google** | Google Analytics 4, through Cloudflare Zaraz, only with consent (2.7a) | The measurement listed in 2.7a |
 | **GitHub** | OAuth sign-in, repository fetching, webhooks (push / pull-request events for installed apps) | GitHub identity, repository contents you connect |
 | **PAI'D Payments Intelligence** | Payment orchestration | Payment and subscription identifiers, billing metadata |
 | **Stripe** | Underlying payment processing (via PAI'D) | Payment-instrument details (held by Stripe, never by us) |

@@ -1,10 +1,16 @@
-# script-src carries no 'unsafe-inline' (the site standard's sec.csp, 2026-11-04): every page is prerendered and runs
-# only same-origin bundles and Cloudflare's analytics beacon; the inline <script> blocks are JSON-LD, which a browser
-# never runs. scripts/csp-check.mjs refuses a build with an inline script whose hash is not listed here, an inline
-# event handler or a javascript: URL. Violations go to the estate's collector (plus.csp_reports), which logs one
+# script-src carries no 'unsafe-inline' (the site standard's sec.csp, 2026-11-04). Its root of trust is ONE hash: the
+# inline bootstrap every page carries (src/plugins/csp-bootstrap.ts), which creates the app's entry module and
+# /consent.js. 'strict-dynamic' trusts what a trusted script creates, which Cloudflare Zaraz needs: consent.js adds the
+# loader /cdn-cgi/zaraz/i.js (Google Analytics behind Zaraz's consent box, never under Global Privacy Control or Do Not
+# Track), and the loader runs its server's code as inline scripts it creates (as on AXIS Launch and lastmanup.org).
+# Browsers that support 'strict-dynamic' ignore 'self' here; older ones use it. Cloudflare's edge-injected Web Analytics
+# beacon is not allowed: the estate turns it off on zones that measure through Zaraz (AXIS Launch
+# scripts/edge_beacon_off.py, owner 2026-10-30). The inline <script> blocks other than the bootstrap are JSON-LD, which
+# a browser never runs. scripts/csp-check.mjs refuses a build with an inline script whose hash is not listed here, an
+# inline event handler or a javascript: URL. Violations go to the estate's collector (plus.csp_reports), which logs one
 # sanitized line per report: AXIS Launch functions/api/csp-report.ts.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://glama.ai; font-src 'self'; connect-src 'self' https://api.iliad.trustfabric.ai https://static.cloudflareinsights.com https://cloudflareinsights.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri https://launch.jonathanarvay.com/api/csp-report
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'strict-dynamic' 'sha256-iGzVV5qAmOjWkdFAVwtDv9JcS6Z8T+SMre1UcztURmM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://glama.ai; font-src 'self'; connect-src 'self' https://api.iliad.trustfabric.ai; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri https://launch.jonathanarvay.com/api/csp-report
   Strict-Transport-Security: max-age=31536000
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
