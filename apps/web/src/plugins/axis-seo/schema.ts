@@ -68,6 +68,8 @@ export interface SeoInput {
 	extra?: Record<string, unknown>[];
 	/** Overrides the module-level config (useful in tests and multi-site builds). */
 	config?: SeoConfig;
+	/** Served as `<path>.html`, so its address keeps no trailing slash (AXIS-CHANGE 2026-11-04, the F09 answer pages). */
+	flat?: boolean;
 }
 
 const absolute = (base: string, path: string) =>
@@ -78,9 +80,9 @@ const absolute = (base: string, path: string) =>
  * with a 308 to /docs/ (each route is a folder holding index.html), so a canonical, og:url, breadcrumb item or
  * sitemap entry without the slash names a redirect. A file (/llms.txt) and an absolute URL are left as given.
  */
-export const pageUrl = (base: string, path: string): string => {
+export const pageUrl = (base: string, path: string, flat = false): string => {
 	const url = absolute(base, path);
-	if (path.startsWith('http')) return url;
+	if (path.startsWith('http') || flat) return url;
 	const u = new URL(url);
 	if (u.pathname !== '/' && !u.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(u.pathname)) u.pathname += '/';
 	return u.toString();
@@ -103,7 +105,7 @@ function compact<T extends Record<string, unknown>>(obj: T): T {
 export function buildSchema(input: SeoInput): Record<string, unknown> {
 	const cfg = input.config ?? getSeoConfig();
 	const { siteUrl, siteName, person, organization, products = [] } = cfg;
-	const url = pageUrl(siteUrl, input.path);
+	const url = pageUrl(siteUrl, input.path, input.flat);
 	const kind = input.kind ?? 'website';
 	const image = input.image ?? cfg.defaultImage;
 
@@ -257,7 +259,7 @@ export function buildMeta(input: SeoInput): {
 	meta: MetaTag[];
 } {
 	const cfg = input.config ?? getSeoConfig();
-	const url = pageUrl(cfg.siteUrl, input.path);
+	const url = pageUrl(cfg.siteUrl, input.path, input.flat);
 	const image = input.image ?? cfg.defaultImage;
 	const img = image ? absolute(cfg.siteUrl, image) : undefined;
 	const kind = input.kind ?? 'website';

@@ -30,14 +30,18 @@ const isLocalHost =
  * Base for fetch() calls: explicit env override, else same-origin ("") in
  * local dev (Vite proxy), else the production origin.
  */
-export const API_BASE: string = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
+// import.meta.env is Vite's: present in the app and in tests, absent when vite.config.ts reads seo.routes.ts (and so
+// answers.ts and this file) in Node (2026-11-04).
+const ENV: { VITE_API_URL?: string } = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env ?? {};
+
+export const API_BASE: string = ENV.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
 
 /**
  * Absolute origin for user-facing copy — MCP config snippets, curl examples,
  * system prompts. Unlike API_BASE it is never "" (an empty base would render
  * broken snippets in local dev).
  */
-export const DOCS_API_BASE: string = import.meta.env.VITE_API_URL || PROD_API_BASE;
+export const DOCS_API_BASE: string = ENV.VITE_API_URL || PROD_API_BASE;
 
 // ─── Public-surface counts ──────────────────────────────────────
 // Mirrors of apps/api/src/counts.ts — guarded against it by count-honesty.

@@ -54,6 +54,11 @@ export interface RouteSeo {
   faq?: FaqItem[];
   datePublished?: string;
   dateModified?: string;
+  /**
+   * AXIS-CHANGE (2026-11-04, the F09 answer pages): emit `<path>.html` instead of `<path>/index.html`, so Pages
+   * serves the page at its exact address with a 200 (a folder answers the slash-less address with a 308).
+   */
+  flat?: boolean;
 }
 
 export interface AxisSeoOptions {
@@ -147,7 +152,7 @@ export function axisSeo(opts: AxisSeoOptions): Plugin {
           shellAsset.source = html;
         } else {
           const clean = route.path.replace(/^\/+|\/+$/g, "");
-          this.emitFile({ type: "asset", fileName: `${clean}/index.html`, source: html });
+          this.emitFile({ type: "asset", fileName: route.flat ? `${clean}.html` : `${clean}/index.html`, source: html });
         }
       }
 
@@ -168,7 +173,7 @@ export function axisSeo(opts: AxisSeoOptions): Plugin {
       if (emitSitemap) {
         const urls = opts.routes
           .map((r) => {
-            const loc = pageUrl(opts.config.siteUrl, r.path);
+            const loc = pageUrl(opts.config.siteUrl, r.path, r.flat);
             const mod = r.dateModified ? `<lastmod>${r.dateModified}</lastmod>` : "";
             return `  <url><loc>${loc}</loc>${mod}</url>`;
           })

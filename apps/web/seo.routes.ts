@@ -12,6 +12,7 @@
  */
 import type { RouteSeo } from "./src/plugins/axis-seo/vitePlugin";
 import { PROGRAMS, type ProgramDef } from "./src/programs.ts";
+import { answerFor, type Answer } from "./src/answers.ts";
 
 export const SITE_URL = "https://iliad.trustfabric.ai/";
 export const SITE_NAME = "Iliad";
@@ -126,6 +127,12 @@ export const seoRoutes: RouteSeo[] = [
     description:
       "Report a bug, request a feature or ask a question. Submissions reach the team by email and are used to harden the platform during beta.",
   },
+  // Answer pages (2026-11-04, the estate's foundation check F09): one question each, answered under the H1; the content
+  // is src/answers.ts. `flat`: each is what-is-iliad.html and so on, served at the exact path with a 200 (a folder
+  // would answer /what-is-iliad with a 308). Each path is written out and checked against answers.ts.
+  answerRoute("/what-is-iliad", "what-is-iliad"),
+  answerRoute("/what-does-iliad-cost", "what-does-iliad-cost"),
+  answerRoute("/how-to-connect-iliad-mcp", "how-to-connect-iliad-mcp"),
   // One page per program (2026-10-26, AXIS Launch taskgate T151), from the list the programs page shows; src/programs.test.ts
   // holds each title to 10-60 characters and each description to 50-160.
   ...PROGRAMS.map((p) => ({
@@ -141,6 +148,23 @@ export const seoRoutes: RouteSeo[] = [
     ],
   })),
 ];
+
+/** An answer page's head: its question, verbatim, as the FAQ in the JSON-LD, dated by when its facts were checked. */
+function answerRoute(path: string, page: Answer["page"]): RouteSeo {
+  const a = answerFor(page);
+  if (a.path !== path) throw new Error(`seo.routes.ts: ${path} is not the path answers.ts gives ${page} (${a.path})`);
+  return {
+    path,
+    flat: true,
+    kind: "article",
+    product: "iliad",
+    title: a.title,
+    description: a.description,
+    faq: [{ question: a.question, answer: a.answer }],
+    datePublished: a.updated,
+    dateModified: a.updated,
+  };
+}
 
 /**
  * A program's description from its own fields: the tagline, the tier, and as many of the first files one run writes

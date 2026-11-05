@@ -95,7 +95,9 @@ const profile = mkdtempSync(join(tmpdir(), "axis-seo-"));
 let ok = 0, failed = 0;
 for (const route of routes) {
   const clean = route.path.replace(/^\/+|\/+$/g, "");
-  const file = clean ? join(distDir, clean, "index.html") : join(distDir, "index.html");
+  // AXIS-CHANGE (2026-11-04, the F09 answer pages): a flat route is `<path>.html` (served at its exact address).
+  const flatFile = clean ? join(distDir, `${clean}.html`) : null;
+  const file = flatFile && existsSync(flatFile) ? flatFile : clean ? join(distDir, clean, "index.html") : join(distDir, "index.html");
   if (!existsSync(file)) { console.log(`SKIP  ${route.path} (run the axisSeo vite plugin first)`); continue; }
 
   try {

@@ -10,10 +10,16 @@
 - [Examples](https://iliad.trustfabric.ai/examples/): sample runs against real codebases and the artifacts they produced
 - [MCP server](https://iliad.trustfabric.ai/mcp/): connect Iliad to Claude Desktop, Cursor, VS Code or Claude Code over the Model Context Protocol
 - [For agents](https://iliad.trustfabric.ai/for-agents/): the machine-readable entry point: tools, free discovery endpoints, budget-aware pricing headers, and how an autonomous agent should call Iliad
-- [Pricing](https://iliad.trustfabric.ai/pricing/): a free tier for the Search, Skills and Debug programs; budget-aware pricing on paid runs, with a lite mode for agents on a spending limit
+- [Pricing](https://iliad.trustfabric.ai/pricing/): free files from every program (Search, Skills and Debug in full); plans for the rest, paid in monthly credits
 - [Changelog](https://iliad.trustfabric.ai/changelog/): release history: new generators, API changes and fixes
 - [Feedback and support](https://iliad.trustfabric.ai/feedback/): report a bug, request a feature or ask a question
 - [Terms of Service](https://iliad.trustfabric.ai/terms/) and [Privacy Policy](https://iliad.trustfabric.ai/privacy/)
+
+## Answers
+
+- [What is Axis' Iliad and what does it produce from a repository?](https://iliad.trustfabric.ai/what-is-iliad)
+- [What does an Iliad analysis cost?](https://iliad.trustfabric.ai/what-does-iliad-cost)
+- [How do I connect Iliad to Claude, Cursor or VS Code?](https://iliad.trustfabric.ai/how-to-connect-iliad-mcp)
 
 ## Programs
 

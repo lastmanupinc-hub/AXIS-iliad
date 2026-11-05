@@ -67,7 +67,10 @@ export function useDocumentHead(def: RouteDef, hash: string): void {
     // one, the bare origin for home. A route with no SEO block keeps the
     // site-root canonical, which is correct for app screens that should not
     // be indexed as separate destinations.
-    const canonical = seo ? `${WEB_ORIGIN}/${hash ? `#${hash}` : ""}` : DEFAULTS.canonical;
+    // A page reached by its own address (/docs/, /what-is-iliad, no hash) is canonical at that address, as its
+    // prerendered head says (2026-11-04): the bare origin here told a crawler that runs the script that every such
+    // page was a copy of the home page.
+    const canonical = seo ? (hash ? `${WEB_ORIGIN}/#${hash}` : `${WEB_ORIGIN}${location.pathname}`) : DEFAULTS.canonical;
 
     document.title = title;
     setMeta('meta[name="description"]', "content", description);

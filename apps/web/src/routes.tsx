@@ -40,6 +40,8 @@ const WebResearchPage = lazy(() => import("./pages/tools/WebResearchPage.tsx").t
 const KitchenSinkPage = lazy(() => import("./pages/KitchenSinkPage.tsx").then((m) => ({ default: m.KitchenSinkPage })));
 import { Callout, EmptyState } from "./components/primitives/index.ts";
 import { PRO_PROGRAM_COUNT } from "./config.ts";
+import { answerFor } from "./answers.ts";
+import { AnswerPage } from "./pages/AnswerPage.tsx";
 import type { SignUpTrigger } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
@@ -152,6 +154,11 @@ export type PageId =
   | "tool-web-research"
   // Hidden dev aid (WO-F4): primitives gallery at #__kitchen-sink.
   | "kitchen-sink"
+  // Answer pages (2026-11-04, the estate's foundation check F09): one question each, content in answers.ts, served
+  // without a trailing slash (`flat`).
+  | "what-is-iliad"
+  | "what-does-iliad-cost"
+  | "how-to-connect-iliad-mcp"
   | "not-found";
 
 export type RouteParams = Record<string, string>;
@@ -281,6 +288,11 @@ export interface RouteDef {
   shortcut?: number;
   /** Pathname aliases kept for marketing/SEO URLs (e.g. "/pricing"). */
   aliases?: string[];
+  /**
+   * Served as a file of its own (`<alias>.html`), so its address has no trailing slash: Pages answers /what-is-iliad
+   * with a 200 and /what-is-iliad/ with a 308 to it. Every other prerendered route is a folder (/docs/).
+   */
+  flat?: boolean;
   /** A pathname with params ("/programs/:id"), for a page per item (T151); matchPathname reads it. */
   pathPattern?: string;
   /**
@@ -773,6 +785,20 @@ export const ROUTES: RouteDef[] = [
     aliases: ["/privacy"],
     render: () => <PrivacyPage />,
   },
+  ...(["what-is-iliad", "what-does-iliad-cost", "how-to-connect-iliad-mcp"] as const).map((page): RouteDef => {
+    const a = answerFor(page);
+    return {
+      page,
+      seo: { title: a.title, description: a.description },
+      pattern: page,
+      label: a.question,
+      section: "REFERENCE",
+      // Reached from the footer, the docs and search; deliberately absent from the sidebar.
+      aliases: [a.path],
+      flat: true,
+      render: () => <AnswerPage answer={a} />,
+    };
+  }),
   {
     page: "paid-checkout",
     pattern: "paid-checkout",
@@ -945,7 +971,7 @@ export function hashForPage(page: PageId, params: RouteParams = {}): string {
 export function hrefForPage(page: PageId, params: RouteParams = {}): string {
   const def = routeForPage(page);
   const alias = def.aliases?.[0];
-  if (alias && Object.keys(params).length === 0) return alias === "/" ? "/" : `${alias}/`;
+  if (alias && Object.keys(params).length === 0) return alias === "/" || def.flat ? alias : `${alias}/`;
   if (def.pathPattern && Object.keys(params).length > 0) {
     return `${def.pathPattern.replace(/:([A-Za-z]+)/g, (_, name: string) => encodeURIComponent(params[name] ?? ""))}/`;
   }
