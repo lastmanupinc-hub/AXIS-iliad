@@ -306,6 +306,9 @@ const ARTIFACTS_PER_PKG = 138; // 140 deterministic + the engineer Living Archit
 const RATE = 90; // blended senior dev / tech-writer, $/hr (conservative)
 const BASE_HOURS = 50; // hand-produce the 138-artifact breadth (onboarding → deploy)
 const AXIS_PKG_COST = 25; // one engineer-tier package via the AXIS API
+// The standard tier's price, as packages/mpp PRICING_TIERS sets analyze_repo (300 cents). The page said $0.50
+// until 2026-11-06, a price retired on 2026-08-26 (AXIS Launch taskgate T200: the public words match the product).
+const AXIS_STANDARD_COST = 3;
 
 const estHours = (r: OssRepo) => BASE_HOURS + Math.min(25, Math.round(r.surface / 50));
 const num = (n: number) => Math.round(n).toLocaleString();
@@ -397,7 +400,7 @@ function RoiSection() {
           <strong>{BASE_HOURS} hours</strong> to hand-author that breadth, plus up to 25 hours of analysis to map each repo's
           detected models + routes into the docs, at a blended <strong>{usd(RATE)}/hr</strong> senior rate. AXIS produces it
           in one scan: <strong>{usd(AXIS_PKG_COST)}</strong> on the engineer tier (the full package incl. the verified Living
-          Architecture pass), or <strong>$0.50</strong> on the standard tier. These are conservative estimates of equivalent
+          Architecture pass), or <strong>{usd(AXIS_STANDARD_COST)}</strong> on the standard tier. These are conservative estimates of equivalent
           documentation/scaffolding effort — not a claim to replace product engineering.
         </div>
       </details>
