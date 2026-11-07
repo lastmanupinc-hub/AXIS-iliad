@@ -36,6 +36,7 @@ import {
   addPersistenceCredits,
   applySuiteMonthlyGrant,
   getUsageCreditSummary,
+  getLastSucceededPurchase,
   PERSISTENCE_CREDIT_COSTS,
   PERSISTENCE_CREDIT_PACKS,
   type Account,
@@ -337,11 +338,15 @@ export async function handleGetAccount(
   const quota = await checkQuota(ctx.account!.account_id);
   const entitlements = await getEntitlements(ctx.account!.account_id);
   const usageCredits = await getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
+  // The newest succeeded purchase (taskgate T201): the web counts purchase_completed from this, never from the
+  // checkout's return URL. Best effort: the account answer never fails on it.
+  const lastPurchase = await getLastSucceededPurchase(ctx.account!.account_id).catch(() => undefined);
 
   sendJSON(res, 200, {
     account: ctx.account,
     entitlements: entitlements.map((e) => e.program),
     usage_credits: usageCredits,
+    last_purchase: lastPurchase ?? null,
     quota: {
       tier: quota.tier,
       snapshots_this_month: quota.usage.snapshots_this_month,

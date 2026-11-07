@@ -82,7 +82,8 @@ describe("GitHub ID linking", () => {
 
 describe("upsertAccountByGitHub", () => {
   it("creates new account when no match exists", async () => {
-    const { account, rawKey } = await upsertAccountByGitHub(42, "Alice", "alice@gh.com");
+    const { account, rawKey, created } = await upsertAccountByGitHub(42, "Alice", "alice@gh.com");
+    expect(created).toBe(true);
     expect(account.name).toBe("Alice");
     expect(account.email).toBe("alice@gh.com");
     expect(rawKey).toMatch(/^axis_/);
@@ -101,7 +102,8 @@ describe("upsertAccountByGitHub", () => {
     const existing = await createAccount("Bob", "bob@example.com");
     await linkGitHubId(existing.account_id, "100");
 
-    const { account, rawKey } = await upsertAccountByGitHub(100, "Bob Updated", "bob-new@example.com");
+    const { account, rawKey, created } = await upsertAccountByGitHub(100, "Bob Updated", "bob-new@example.com");
+    expect(created).toBe(false);
     expect(account.account_id).toBe(existing.account_id);
     expect(rawKey).toMatch(/^axis_/);
   });
@@ -109,7 +111,8 @@ describe("upsertAccountByGitHub", () => {
   it("matches existing account by email and links github_id", async () => {
     const existing = await createAccount("Carol", "carol@example.com");
 
-    const { account, rawKey } = await upsertAccountByGitHub(200, "Carol GH", "carol@example.com");
+    const { account, rawKey, created } = await upsertAccountByGitHub(200, "Carol GH", "carol@example.com");
+    expect(created).toBe(false);
     expect(account.account_id).toBe(existing.account_id);
     expect(rawKey).toMatch(/^axis_/);
 

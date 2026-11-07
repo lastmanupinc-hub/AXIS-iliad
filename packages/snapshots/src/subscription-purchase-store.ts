@@ -131,6 +131,26 @@ export async function getSubscriptionPurchaseBySession(
   );
 }
 
+/**
+ * The account's newest succeeded purchase, a plan or a credit pack, or undefined (AXIS Launch taskgate T201,
+ * 2026-11-06): GET /v1/account reports it as last_purchase, and the web counts purchase_completed from it alone.
+ */
+export async function getLastSucceededPurchase(
+  account_id: string,
+): Promise<{ purchase_id: string; kind: "plan" | "credits"; succeeded_at: string } | undefined> {
+  const row = await sql.one<{ purchase_id: string; kind: "plan" | "credits"; succeeded_at: string }>(
+    `SELECT purchase_id, kind, succeeded_at FROM (
+       SELECT purchase_id, 'plan' AS kind, succeeded_at FROM subscription_purchases
+        WHERE account_id = ? AND status = 'succeeded' AND succeeded_at IS NOT NULL
+       UNION ALL
+       SELECT purchase_id, 'credits' AS kind, succeeded_at FROM credit_pack_purchases
+        WHERE account_id = ? AND status = 'succeeded' AND succeeded_at IS NOT NULL
+     ) p ORDER BY succeeded_at DESC LIMIT 1`,
+    [account_id, account_id],
+  );
+  return row ?? undefined;
+}
+
 export async function listSubscriptionPurchasesByAccount(
   account_id: string,
   limit = 50,

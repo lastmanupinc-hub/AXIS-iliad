@@ -1,3 +1,4 @@
+import { sendKeyEvent } from "../keyEvents.ts";
 import { useState, useEffect, useCallback } from "react";
 import { AuthButtons } from "../components/AuthButtons.tsx";
 import { Callout } from "../components/primitives/index.ts";
@@ -59,6 +60,9 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
     const oauthCode = params.get("code");
     const oauthLogin = params.get("login");
     const oauthError = params.get("error");
+    // The API puts new_account=1 on the redirect only when this sign-in created the account (taskgate T201), so
+    // the sign-up is counted here with the server's word for it, as the email form counts its own.
+    const oauthNewAccount = params.get("new_account") === "1";
     const provider = oauthLogin === "google" ? "Google" : "GitHub";
     if (oauthError) {
       setError(`${provider} login failed: ${oauthError}`);
@@ -67,8 +71,9 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
       setExchanging(true);
       window.history.replaceState({}, "", window.location.pathname);
       exchangeOAuthCode(oauthCode)
-        .then(() => {
+        .then(async () => {
           markAuthed(); // the exchange already set the HttpOnly cookie; just record the session
+          if (oauthNewAccount) await sendKeyEvent("account_created");
           onAuthChange?.();
           finishAuthAndReload(); // WO-P2: back to whatever page triggered sign-in, not always here
         })

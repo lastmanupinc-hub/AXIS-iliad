@@ -7,7 +7,9 @@ import {
   markSubscriptionSucceeded,
   getSubscriptionPurchaseBySession,
   listSubscriptionPurchasesByAccount,
+  getLastSucceededPurchase,
 } from "./subscription-purchase-store.js";
+import { recordPendingPurchase, markPurchaseSucceeded } from "./credit-pack-store.js";
 
 // Same technique credit-pack-store.test.ts's own concurrency suite uses: a
 // cold pool opens the 2nd connection slower than the 1st commits, which
@@ -97,5 +99,36 @@ describe("subscription purchases (money_01 — the settlement join)", () => {
     const history = await listSubscriptionPurchasesByAccount(acct.account_id);
     expect(history.length).toBe(2);
     expect(history.every((p) => p.account_id === acct.account_id)).toBe(true);
+  });
+});
+
+describe("the account's newest succeeded purchase (taskgate T201: the web counts from this, not the return URL)", () => {
+  beforeEach(async () => {
+    await resetTestDb();
+  });
+
+  it("is undefined while nothing has succeeded, then the newest of a plan and a credit pack", async () => {
+    const acct = await createAccount("Counter", "counted@example.com", "free");
+    expect(await getLastSucceededPurchase(acct.account_id)).toBeUndefined();
+    await recordPendingSubscription({ account_id: acct.account_id, target_tier: "pro", plan_id: "pro_monthly", amount_cents: 9900, paid_session_id: "sess_last_1" });
+    expect(await getLastSucceededPurchase(acct.account_id)).toBeUndefined(); // pending counts for nothing
+    await markSubscriptionSucceeded("sess_last_1", "pi_last_1");
+    const plan = await getLastSucceededPurchase(acct.account_id);
+    expect(plan?.kind).toBe("plan");
+    expect(plan?.succeeded_at).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 5));
+    await recordPendingPurchase({ account_id: acct.account_id, pack_id: "pack_1", credits: 100, price_cents: 500, paid_session_id: "sess_last_2" });
+    await markPurchaseSucceeded("sess_last_2", "pi_last_2");
+    const credits = await getLastSucceededPurchase(acct.account_id);
+    expect(credits?.kind).toBe("credits");
+    expect(credits?.purchase_id).not.toBe(plan?.purchase_id);
+  });
+
+  it("never reports another account's purchase", async () => {
+    const a = await createAccount("A", "a-last@example.com", "free");
+    const b = await createAccount("B", "b-last@example.com", "free");
+    await recordPendingPurchase({ account_id: a.account_id, pack_id: "pack_1", credits: 100, price_cents: 500, paid_session_id: "sess_last_3" });
+    await markPurchaseSucceeded("sess_last_3", "pi_last_3");
+    expect(await getLastSucceededPurchase(b.account_id)).toBeUndefined();
   });
 });

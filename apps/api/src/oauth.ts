@@ -126,7 +126,7 @@ export async function handleGitHubOAuthCallback(
     const ghUser = await getGitHubUser(tokenResponse.access_token);
 
     // Find or create account, get API key
-    const { account, rawKey } = await upsertAccountByGitHub(
+    const { account, rawKey, created } = await upsertAccountByGitHub(
       ghUser.id,
       ghUser.name,
       ghUser.email,
@@ -157,6 +157,8 @@ export async function handleGitHubOAuthCallback(
     const redirectUrl = new URL("/account", webAppUrl);
     redirectUrl.searchParams.set("code", handoffCode);
     redirectUrl.searchParams.set("login", "github");
+    // A sign-in that created the account says so, so the web app can count the sign-up (taskgate T201).
+    if (created) redirectUrl.searchParams.set("new_account", "1");
     res.writeHead(302, {
       Location: redirectUrl.toString(),
       "Referrer-Policy": "no-referrer",
@@ -230,7 +232,7 @@ export async function handleGoogleOAuthCallback(
     const gUser = await getGoogleUser(tokenResponse.access_token);
 
     // Find or create account, get API key (email-merge mirrors GitHub).
-    const { rawKey } = await upsertAccountByGoogle(gUser.sub, gUser.name, gUser.email);
+    const { rawKey, created } = await upsertAccountByGoogle(gUser.sub, gUser.name, gUser.email);
 
     // Hand the key to the web app via a one-time code, NOT the URL — so the raw
     // key never appears in the address bar, browser history, Referer, or logs.
@@ -238,6 +240,7 @@ export async function handleGoogleOAuthCallback(
     const redirectUrl = new URL("/account", webAppUrl);
     redirectUrl.searchParams.set("code", handoffCode);
     redirectUrl.searchParams.set("login", "google");
+    if (created) redirectUrl.searchParams.set("new_account", "1");
     res.writeHead(302, {
       Location: redirectUrl.toString(),
       "Referrer-Policy": "no-referrer",

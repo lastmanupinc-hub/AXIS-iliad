@@ -334,6 +334,7 @@ export {
   markSubscriptionSucceeded,
   getSubscriptionPurchaseBySession,
   listSubscriptionPurchasesByAccount,
+  getLastSucceededPurchase,
 } from "./subscription-purchase-store.js";
 
 // 24h shared scrape cache (Firecrawl dedup across the network)

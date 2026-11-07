@@ -7,6 +7,7 @@ import { Icon } from "./components/Icon.tsx";
 import { PageFooter } from "./components/primitives/PageFooter.tsx";
 import { followIn } from "./linkClick.ts";
 import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
+import { countPurchaseOnReturn } from "./purchaseReturn.ts";
 import { APP_VERSION } from "./version.ts";
 import {
   ROUTES,
@@ -186,6 +187,12 @@ export function App() {
       localStorage.removeItem("axis_theme");
     }
   }, [theme, themeOverride]);
+
+  // A checkout's success return: the purchase is counted once the account shows it (purchaseReturn.ts, taskgate
+  // T201), never from the URL; the marker is scrubbed either way.
+  useEffect(() => {
+    void countPurchaseOnReturn();
+  }, []);
 
   // While following the OS, track live preference changes.
   useEffect(() => {

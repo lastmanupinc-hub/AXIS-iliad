@@ -16,17 +16,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { AccountPage } from "./AccountPage.tsx";
 
+const exchangeOAuthCode = vi.fn<() => Promise<unknown>>(() => new Promise(() => {})); // never resolves by default — proves the redirect didn't fire pre-exchange
+const sendKeyEvent = vi.fn<(name: string) => Promise<void>>(() => Promise.resolve());
+
 vi.mock("../api.ts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api.ts")>();
   return {
     ...actual,
-    exchangeOAuthCode: vi.fn(() => new Promise(() => {})), // never resolves — proves the redirect didn't fire pre-exchange
+    exchangeOAuthCode: () => exchangeOAuthCode(),
   };
 });
+vi.mock("../keyEvents.ts", () => ({ sendKeyEvent: (name: string) => sendKeyEvent(name) }));
 
 beforeEach(() => {
   localStorage.clear();
   window.history.pushState({}, "", "/");
+  exchangeOAuthCode.mockImplementation(() => new Promise(() => {}));
+  sendKeyEvent.mockClear();
 });
 
 afterEach(() => {
@@ -75,5 +81,26 @@ describe("AccountPage — a failed re-auth for an already-signed-in visitor", ()
 
     await waitFor(() => expect(screen.getByText(/GitHub login failed/i)).toBeTruthy());
     expect(onNavigate).not.toHaveBeenCalledWith("settings");
+  });
+});
+
+describe("AccountPage — a social sign-up is counted only when the API says the account is new (taskgate T201)", () => {
+  // finishAuthAndReload() reloads the window after the exchange; happy-dom's reload is a no-op here.
+  it("sends account_created once the handoff code is exchanged when the redirect carries new_account=1", async () => {
+    window.history.pushState({}, "", "/?code=abc123&login=google&new_account=1");
+    exchangeOAuthCode.mockImplementation(() => Promise.resolve({ ok: true }));
+    render(<AccountPage onNavigate={vi.fn()} />);
+    await waitFor(() => expect(sendKeyEvent).toHaveBeenCalledWith("account_created"));
+    expect(sendKeyEvent).toHaveBeenCalledTimes(1);
+    expect(window.location.search).toBe(""); // the code and the flag never stay in the address bar
+  });
+
+  it("sends nothing for a returning account's sign-in (no new_account on the redirect)", async () => {
+    window.history.pushState({}, "", "/?code=abc123&login=github");
+    exchangeOAuthCode.mockImplementation(() => Promise.resolve({ ok: true }));
+    render(<AccountPage onNavigate={vi.fn()} />);
+    await waitFor(() => expect(exchangeOAuthCode).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(sendKeyEvent).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@
 // SAME payment vocabulary: an agent that only ever calls free tools should
 // still be able to discover ping_payment as the safe, zero-risk way to learn
 // how paying AXIS works before it ever pays real money.
+import { formatCents, getPricingTier } from "./mpp.js";
 import { describe, it, expect, beforeAll } from "vitest";
 import type { IncomingMessage } from "node:http";
 import { resetTestDb } from "@axis/snapshots";
@@ -21,7 +22,9 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<Re
 const EXPECTED_CTA = {
   tool: "ping_payment",
   why: "Exercises the real x402 payment loop for $0.01. Learn once, then call any metered tool.",
-  then: "prepare_agentic_purchasing ($0.50) or analyze_repo",
+  // The price is the pricing code's, read the way the CTA reads it (2026-11-06, AXIS Launch taskgate T200): the
+  // literal "$0.50" pinned here outlived the 2026-08-26 reprice by ten weeks.
+  then: `prepare_agentic_purchasing ($${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)}, or $${formatCents(getPricingTier("prepare_agentic_purchasing").lite_cents)} lite) or analyze_repo`,
 };
 
 beforeAll(async () => {

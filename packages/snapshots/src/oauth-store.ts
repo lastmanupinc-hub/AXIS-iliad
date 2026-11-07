@@ -149,20 +149,21 @@ export async function linkGitHubId(accountId: string, githubId: string): Promise
 /**
  * Find or create an account from GitHub OAuth data.
  * Priority: match by github_id → match by email → create new.
- * Returns the account and a fresh API key.
+ * Returns the account, a fresh API key, and whether the account was created by this call (AXIS Launch taskgate
+ * T201, 2026-11-06: the web counts a sign-up only when the server says one happened).
  */
 export async function upsertAccountByGitHub(
   githubId: number,
   name: string | null,
   email: string | null,
-): Promise<{ account: Account; rawKey: string }> {
+): Promise<{ account: Account; rawKey: string; created: boolean }> {
   const gid = String(githubId);
 
   // 1. Match by github_id
   const byGid = await getAccountByGitHubId(gid);
   if (byGid) {
     const { rawKey } = await createApiKey(byGid.account_id, "oauth-login");
-    return { account: byGid, rawKey };
+    return { account: byGid, rawKey, created: false };
   }
 
   // 2. Match by email — link github_id
@@ -171,7 +172,7 @@ export async function upsertAccountByGitHub(
     if (byEmail) {
       await linkGitHubId(byEmail.account_id, gid);
       const { rawKey } = await createApiKey(byEmail.account_id, "oauth-login");
-      return { account: byEmail, rawKey };
+      return { account: byEmail, rawKey, created: false };
     }
   }
 
@@ -181,7 +182,7 @@ export async function upsertAccountByGitHub(
   const account = await createAccount(displayName, acctEmail);
   await linkGitHubId(account.account_id, gid);
   const { rawKey } = await createApiKey(account.account_id, "oauth-login");
-  return { account, rawKey };
+  return { account, rawKey, created: true };
 }
 
 // ─── Google OAuth helpers ───────────────────────────────────────
@@ -305,12 +306,12 @@ export async function upsertAccountByGoogle(
   googleSub: string,
   name: string | null,
   email: string | null,
-): Promise<{ account: Account; rawKey: string }> {
+): Promise<{ account: Account; rawKey: string; created: boolean }> {
   // 1. Match by google_id
   const byGid = await getAccountByGoogleId(googleSub);
   if (byGid) {
     const { rawKey } = await createApiKey(byGid.account_id, "oauth-login");
-    return { account: byGid, rawKey };
+    return { account: byGid, rawKey, created: false };
   }
 
   // 2. Match by email — link google_id
@@ -319,7 +320,7 @@ export async function upsertAccountByGoogle(
     if (byEmail) {
       await linkGoogleId(byEmail.account_id, googleSub);
       const { rawKey } = await createApiKey(byEmail.account_id, "oauth-login");
-      return { account: byEmail, rawKey };
+      return { account: byEmail, rawKey, created: false };
     }
   }
 
@@ -329,5 +330,5 @@ export async function upsertAccountByGoogle(
   const account = await createAccount(displayName, acctEmail);
   await linkGoogleId(account.account_id, googleSub);
   const { rawKey } = await createApiKey(account.account_id, "oauth-login");
-  return { account, rawKey };
+  return { account, rawKey, created: true };
 }

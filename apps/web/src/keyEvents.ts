@@ -4,9 +4,14 @@
 // Not Track. Send one only from the code path that has the server's confirmation in hand.
 //
 //   account_created: POST /v1/accounts answered with a new account and its first key (the email sign-up; the API
-//                    answers 409 for an address that already has one), and the session was set.
+//                    answers 409 for an address that already has one), and the session was set; or the GitHub or
+//                    Google return carried new_account=1, which the API sets only when that sign-in created the
+//                    account (AccountPage, taskgate T201).
+//   purchase_completed: GET /v1/account reports a succeeded purchase this browser has not counted, within half an
+//                    hour of a checkout's success return (purchaseReturn.ts): the plan or credits are on the
+//                    account, so the purchase is real; the return URL alone counts nothing.
 
-export type KeyEvent = "account_created";
+export type KeyEvent = "account_created" | "purchase_completed";
 
 type Sender = (name: KeyEvent) => Promise<unknown> | undefined;
 

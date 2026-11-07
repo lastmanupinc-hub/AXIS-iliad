@@ -1418,6 +1418,19 @@ export async function getAccount(): Promise<Account> {
   return data.account ?? (data as unknown as Account);
 }
 
+/** The newest succeeded purchase (a plan or a credit pack) GET /v1/account reports, or null: what the web counts a
+ *  purchase from, never the checkout's return URL (AXIS Launch taskgate T201, 2026-11-06). */
+export interface LastPurchase {
+  purchase_id: string;
+  kind: "plan" | "credits";
+  succeeded_at: string;
+}
+
+export async function getLastPurchase(): Promise<LastPurchase | null> {
+  const data = await fetchJSON("/v1/account") as { last_purchase?: LastPurchase | null };
+  return data.last_purchase ?? null;
+}
+
 /** Currently-enabled program names for this account (Settings' program
  *  toggles, WO-P12) — GET /v1/account also returns this, but getAccount()
  *  only surfaces the Account shape; this reads the same endpoint for the
