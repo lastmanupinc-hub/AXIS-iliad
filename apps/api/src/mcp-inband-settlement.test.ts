@@ -78,6 +78,8 @@ vi.mock("./mcp-tool-impls.js", async (importOriginal) => {
 vi.mock("./mpp.js", () => ({
   chargeMpp: vi.fn(async () => null),
   getPricingTier: vi.fn(() => ({ standard_cents: 50, lite_cents: 15 })),
+  // mcp-tool-impls formats its CTA prices from the pricing code at import (2026-11-06, T200); the mock must carry it.
+  formatCents: vi.fn((cents: number) => (cents / 100).toFixed(2)),
   priceForMode: vi.fn(() => 50),
   resolveAgentMode: vi.fn(() => "standard"),
   build402NegotiationBody: vi.fn(() => ({ error: "payment_required" })),
