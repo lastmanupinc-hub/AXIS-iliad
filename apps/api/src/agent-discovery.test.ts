@@ -684,7 +684,22 @@ describe("GET /v1/install/:platform", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(data.platform).toBe("claude-desktop");
-    expect(data.config.mcpServers["axis-iliad"]).toBeDefined();
+    const entry = data.config.mcpServers["axis-iliad"];
+    expect(entry).toBeDefined();
+    // Claude Desktop's config file starts local commands only (AXIS Launch taskgate T200, 2026-11-06): a remote server
+    // with a bearer key runs through the mcp-remote bridge, never a bare url entry the app would ignore.
+    expect(entry.url).toBeUndefined();
+    expect(entry.command).toBe("npx");
+    expect(entry.args).toContain("mcp-remote");
+    expect(entry.args.some((a: string) => a.endsWith("/mcp"))).toBe(true);
+  });
+
+  it("gives Claude Code its real command: the address is positional, there is no --url flag", async () => {
+    const r = await req("/v1/install/claude-code");
+    expect(r.status).toBe(200);
+    const cmd = JSON.parse(r.body).config.command as string;
+    expect(cmd).toMatch(/^claude mcp add --transport http axis-iliad https?:\/\/\S+\/mcp --header /);
+    expect(cmd).not.toMatch(/\s--url/);
   });
 
   it("returns cursor config", async () => {

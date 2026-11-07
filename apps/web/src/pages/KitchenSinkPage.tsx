@@ -100,7 +100,7 @@ export function KitchenSinkPage({ onNavigate }: Props) {
 
       <Section title="CodeBlock" sub="mono, copy button, optional label / soft-wrap / max height">
         <CodeBlock label="claude_desktop_config.json (sample)" code={SAMPLE_CODE} />
-        <CodeBlock wrap code={`claude mcp add axis-iliad --transport http --url https://api.example.test/mcp --header "Authorization: Bearer $AXIS_API_KEY"`} label="One-liner (soft-wrapped)" />
+        <CodeBlock wrap code={`claude mcp add --transport http axis-iliad https://api.example.test/mcp --header "Authorization: Bearer $AXIS_API_KEY"`} label="One-liner (soft-wrapped)" />
       </Section>
 
       <Section title="Pill" sub="muted · accent · outline · mono">

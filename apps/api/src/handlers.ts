@@ -3821,17 +3821,20 @@ export function handleForAgents(
         "claude-desktop": {
           file: "claude_desktop_config.json",
           path: "%APPDATA%/Claude/claude_desktop_config.json (Windows) or ~/Library/Application Support/Claude/claude_desktop_config.json (macOS)",
+          // The config file starts local commands only; a remote server with a bearer key runs through the mcp-remote
+          // bridge (2026-11-06). Set AXIS_AUTH to "Bearer <your key>"; mcp-remote reads it from env.
           config: {
             mcpServers: {
               "axis-iliad": {
-                url: `${AXIS_API_BASE}/mcp`,
-                headers: { Authorization: "Bearer ${AXIS_API_KEY}" },
+                command: "npx",
+                args: ["-y", "mcp-remote", `${AXIS_API_BASE}/mcp`, "--header", "Authorization:${AXIS_AUTH}"],
+                env: { AXIS_AUTH: "Bearer ${AXIS_API_KEY}" },
               },
             },
           },
         },
         "claude-code": {
-          command: `claude mcp add axis-iliad --transport http --url ${AXIS_API_BASE}/mcp --header "Authorization: Bearer \${AXIS_API_KEY}"`,
+          command: `claude mcp add --transport http axis-iliad ${AXIS_API_BASE}/mcp --header "Authorization: Bearer \${AXIS_API_KEY}"`,
         },
         cursor: {
           file: ".cursor/mcp.json",
@@ -3894,8 +3897,8 @@ export function handleForAgents(
     },
     integration_examples: {
       claude_desktop: {
-        description: "Add to claude_desktop_config.json, then any Claude Desktop conversation can call AXIS tools.",
-        config: { mcpServers: { "axis-iliad": { url: `${AXIS_API_BASE}/mcp`, headers: { Authorization: "Bearer ${AXIS_API_KEY}" } } } },
+        description: "Add to claude_desktop_config.json (its entries start local commands, so the mcp-remote bridge carries the remote address and your key), then any Claude Desktop conversation can call AXIS tools.",
+        config: { mcpServers: { "axis-iliad": { command: "npx", args: ["-y", "mcp-remote", `${AXIS_API_BASE}/mcp`, "--header", "Authorization:${AXIS_AUTH}"], env: { AXIS_AUTH: "Bearer ${AXIS_API_KEY}" } } } },
       },
       cursor: {
         description: "Add to .cursor/mcp.json at project root. Cursor agent auto-discovers AXIS tools.",
@@ -4048,12 +4051,13 @@ export function handleForAgents(
 const INSTALL_CONFIGS: Record<string, { file: string; description: string; config: object }> = {
   "claude-desktop": {
     file: "claude_desktop_config.json",
-    description: "Add to Claude Desktop config. Path: %APPDATA%/Claude/claude_desktop_config.json (Windows) or ~/Library/Application Support/Claude/claude_desktop_config.json (macOS).",
+    description: "Add to Claude Desktop config. Path: %APPDATA%/Claude/claude_desktop_config.json (Windows) or ~/Library/Application Support/Claude/claude_desktop_config.json (macOS). Its entries start local commands, so the mcp-remote bridge (npx) carries the remote address; put \"Bearer <your key>\" in AXIS_AUTH.",
     config: {
       mcpServers: {
         "axis-iliad": {
-          url: `${AXIS_API_BASE}/mcp`,
-          headers: { Authorization: "Bearer ${AXIS_API_KEY}" },
+          command: "npx",
+          args: ["-y", "mcp-remote", `${AXIS_API_BASE}/mcp`, "--header", "Authorization:${AXIS_AUTH}"],
+          env: { AXIS_AUTH: "Bearer ${AXIS_API_KEY}" },
         },
       },
     },
@@ -4062,7 +4066,7 @@ const INSTALL_CONFIGS: Record<string, { file: string; description: string; confi
     file: "claude-code CLI",
     description: "Run this command to add AXIS as an MCP server in Claude Code.",
     config: {
-      command: `claude mcp add axis-iliad --transport http --url ${AXIS_API_BASE}/mcp --header "Authorization: Bearer \${AXIS_API_KEY}"`,
+      command: `claude mcp add --transport http axis-iliad ${AXIS_API_BASE}/mcp --header "Authorization: Bearer \${AXIS_API_KEY}"`,
     },
   },
   cursor: {

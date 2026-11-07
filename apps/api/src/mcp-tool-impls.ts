@@ -1962,7 +1962,7 @@ export async function runAnalyzeFiles(
     throw new Error(await buildMcpPaymentRequiredError(
       "analyze_files",
       account.account_id,
-      `analyze_files requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. Use list_programs, search_and_discover_tools, or free programs only to stay on the free path.`,
+      `analyze_files requires $${formatCents(getPricingTier("analyze_files").standard_cents)} MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. Use list_programs, search_and_discover_tools, or free programs only to stay on the free path.`,
       req,
       {},
     ));
@@ -2268,7 +2268,7 @@ export const FREE_MCP_TOOL_COUNT = MCP_TOOLS.filter(t => FREE_TOOL_NAMES.has(t.n
 const FIRST_PAID_ACTION_CTA = {
   tool: "ping_payment",
   why: "Exercises the real x402 payment loop for $0.01. Learn once, then call any metered tool.",
-  then: "prepare_agentic_purchasing ($0.50) or analyze_repo",
+  then: `prepare_agentic_purchasing ($${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)}, or $${formatCents(getPricingTier("prepare_agentic_purchasing").lite_cents)} lite) or analyze_repo`,
 };
 
 const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
@@ -2536,10 +2536,10 @@ export function runDiscoverAgenticCommerceTools(): string {
       mcp_endpoint: AXIS_MCP_ENDPOINT,
       transport: "Streamable HTTP (2025-03-26 spec)",
       platforms: {
-        "claude-desktop": { config: { mcpServers: { "axis-iliad": { url: AXIS_MCP_ENDPOINT, headers: { Authorization: "Bearer ${AXIS_API_KEY}" } } } } },
+        "claude-desktop": { config: { mcpServers: { "axis-iliad": { command: "npx", args: ["-y", "mcp-remote", AXIS_MCP_ENDPOINT, "--header", "Authorization:${AXIS_AUTH}"], env: { AXIS_AUTH: "Bearer ${AXIS_API_KEY}" } } } } },
         cursor: { config: { mcpServers: { "axis-iliad": { url: AXIS_MCP_ENDPOINT, headers: { Authorization: "Bearer ${AXIS_API_KEY}" } } } } },
         vscode: { config: { servers: { "axis-iliad": { type: "http", url: AXIS_MCP_ENDPOINT, headers: { Authorization: "Bearer ${AXIS_API_KEY}" } } } } },
-        "claude-code": { command: `claude mcp add axis-iliad --transport http --url ${AXIS_MCP_ENDPOINT} --header "Authorization: Bearer \${AXIS_API_KEY}"` },
+        "claude-code": { command: `claude mcp add --transport http axis-iliad ${AXIS_MCP_ENDPOINT} --header "Authorization: Bearer \${AXIS_API_KEY}"` },
       },
       get_api_key: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"}`,
     },
@@ -2920,7 +2920,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
     recommended_next_step: {
       tool: "prepare_agentic_purchasing",
       description: "Full agentic commerce hardening. Chains 10 programs, computes Score 0-100, returns complete artifact bundle.",
-      pricing: "$0.50 per call via MPP (HTTP 402 flow) or included in Pro plan",
+      pricing: `$${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)} per call via MPP (HTTP 402 flow), $${formatCents(getPricingTier("prepare_agentic_purchasing").lite_cents)} lite, or included in Pro plan`,
       mcp_call: {
         jsonrpc: "2.0",
         method: "tools/call",
@@ -3044,7 +3044,7 @@ export function runListPrograms(): string {
       discovery_to_paid_path: {
         step_1: "Use list_programs or search_and_discover_tools to find the right program for the task.",
         step_2: "Run analyze_repo or analyze_files to generate codebase context and identify gaps.",
-        step_3: `Call prepare_agentic_purchasing for the Purchasing Readiness Score and full ${ARTIFACT_COUNT}-artifact hardening bundle ($0.50/run or $99 once for Pro — a one-time charge, not a recurring subscription).`,
+        step_3: `Call prepare_agentic_purchasing for the Purchasing Readiness Score and full ${ARTIFACT_COUNT}-artifact hardening bundle ($${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)}/run or $99 once for Pro — a one-time charge, not a recurring subscription).`,
       },
       first_paid_action: FIRST_PAID_ACTION_CTA,
       programs,
@@ -3486,7 +3486,7 @@ export async function runPreparePurchasing(
     throw new Error(await buildMcpPaymentRequiredError(
       "prepare_agentic_purchasing",
       auth.account.account_id,
-      "prepare_agentic_purchasing requires $0.50 MPP credit (or Pro tier). This returns Purchasing Readiness Score + full hardening artifacts.",
+      `prepare_agentic_purchasing requires $${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)} MPP credit (or Pro tier). This returns Purchasing Readiness Score + full hardening artifacts.`,
       req,
       { blocked_programs: purchasingBlocked },
     ));
@@ -3732,8 +3732,8 @@ export async function runPreparePurchasing(
         // checkout is a single one-time charge (no recurring billing exists
         // yet), so Pro costs $99 once.
         plan: "$99 once (Pro, one-time — not a recurring subscription)",
-        standard_run: "$0.50/run",
-        lite_from: "$0.15/run",
+        standard_run: `$${formatCents(getPricingTier("prepare_agentic_purchasing").standard_cents)}/run`,
+        lite_from: `$${formatCents(getPricingTier("prepare_agentic_purchasing").lite_cents)}/run`,
       },
       summary: {
         purchasing_readiness_score: score,

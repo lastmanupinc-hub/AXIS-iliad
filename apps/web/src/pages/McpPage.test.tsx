@@ -102,7 +102,7 @@ const INSTALL_CLAUDE_CODE = {
   platform: "claude-code",
   file: "claude-code CLI",
   description: "Run this command to add AXIS as an MCP server in Claude Code.",
-  config: { command: 'claude mcp add axis-iliad --transport http --url https://x/mcp --header "Authorization: Bearer ${AXIS_API_KEY}"' },
+  config: { command: 'claude mcp add --transport http axis-iliad https://x/mcp --header "Authorization: Bearer ${AXIS_API_KEY}"' },
   get_api_key: "POST .../v1/accounts",
   mcp_endpoint: "https://x/mcp",
 };
@@ -403,7 +403,7 @@ describe("McpPage — platform install tabs (fed live by GET /v1/install/:platfo
     fireEvent.click(screen.getByRole("tab", { name: "Claude Code" }));
 
     await waitFor(() => expect(screen.getByText("claude-code CLI")).toBeTruthy());
-    expect(screen.getByText(/claude mcp add axis-iliad/)).toBeTruthy();
+    expect(screen.getByText(/claude mcp add --transport http axis-iliad/)).toBeTruthy();
   });
 
   it("shows a retry option when a platform's config fails to load", async () => {

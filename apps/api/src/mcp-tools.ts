@@ -469,7 +469,7 @@ export const MCP_TOOLS = [
       {
         name: "Triage purchasing readiness before paying",
         input: { project_name: "my-store", project_type: "api_service", files: [{ path: "package.json", content: "{\"dependencies\":{\"stripe\":\"^14\"}}" }] },
-        output: '{"score":35,"risk_level":"high","interpretation":"minimal-coverage","gaps":["commerce artifacts","mcp configs"],"what_axis_would_add":["agent-purchasing-playbook.md","mcp-config.json"],"conversion":{"tool":"prepare_agentic_purchasing","price_standard_usd":"0.50"},"cost":"free — no auth required, no snapshot persisted"}',
+        output: '{"score":35,"risk_level":"high","interpretation":"minimal-coverage","gaps":["commerce artifacts","mcp configs"],"what_axis_would_add":["agent-purchasing-playbook.md","mcp-config.json"],"conversion":{"tool":"prepare_agentic_purchasing","price_standard_usd":"3.00"},"cost":"free — no auth required, no snapshot persisted"}',
       },
     ],
   },
