@@ -482,7 +482,7 @@ function PlatformTabs() {
 
       <CodeBlock
         label="Get a free API key"
-        code={`curl -X POST ${DOCS_API_BASE}/v1/accounts \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'\n\n# Response: { "api_key": { "raw_key": "axis_..." } }`}
+        code={`curl -X POST ${DOCS_API_BASE}/v1/accounts \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'\n\n# Response: { "api_key": { "raw_key": "axis_..." }, "email_verification": { "required": true, ... } }\n# Open the link in the mail: metered tools run once the address is confirmed; free tools run at once.`}
       />
 
       <div className="tabs" aria-label="MCP client platform" {...tabListProps}>

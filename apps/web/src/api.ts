@@ -131,6 +131,15 @@ export interface Account {
   email: string;
   tier: BillingTier;
   created_at: string;
+  /** When the address was confirmed; null until then (AXIS Launch taskgate T106). */
+  email_verified_at?: string | null;
+}
+
+/** GET /v1/account's email_verification: whether the address is confirmed, and how to ask for the link again. */
+export interface EmailVerification {
+  verified: boolean;
+  email: string;
+  resend: string;
 }
 
 export interface ApiKeyInfo {
@@ -1414,8 +1423,19 @@ export async function createAccount(name: string, email: string): Promise<{ acco
 }
 
 export async function getAccount(): Promise<Account> {
-  const data = await fetchJSON("/v1/account") as { account?: Account };
+  const data = await fetchJSON<{ account?: Account }>("/v1/account");
   return data.account ?? (data as unknown as Account);
+}
+
+/** The address's verification state (T106/T236): null when the API answer carries none (an older server). */
+export async function getEmailVerification(): Promise<EmailVerification | null> {
+  const data = await fetchJSON<{ email_verification?: EmailVerification }>("/v1/account");
+  return data.email_verification ?? null;
+}
+
+/** POST /v1/account/verification: send the verification mail again (one every five minutes). */
+export async function resendVerification(): Promise<{ status: string; email?: string }> {
+  return fetchJSON("/v1/account/verification", { method: "POST" });
 }
 
 /** The newest succeeded purchase (a plan or a credit pack) GET /v1/account reports, or null: what the web counts a
@@ -1427,7 +1447,7 @@ export interface LastPurchase {
 }
 
 export async function getLastPurchase(): Promise<LastPurchase | null> {
-  const data = await fetchJSON("/v1/account") as { last_purchase?: LastPurchase | null };
+  const data = await fetchJSON<{ last_purchase?: LastPurchase | null }>("/v1/account");
   return data.last_purchase ?? null;
 }
 
@@ -1437,7 +1457,7 @@ export async function getLastPurchase(): Promise<LastPurchase | null> {
  *  entitlements list instead of widening Account with a field that isn't
  *  really part of the account row. */
 export async function getAccountEntitlements(): Promise<string[]> {
-  const data = await fetchJSON("/v1/account") as { entitlements?: string[] };
+  const data = await fetchJSON<{ entitlements?: string[] }>("/v1/account");
   return data.entitlements ?? [];
 }
 
@@ -1451,8 +1471,8 @@ export async function getAccountEntitlements(): Promise<string[]> {
  * pattern as getAccountEntitlements above.
  */
 export async function getAccountPlanId(): Promise<"free" | "starter" | "pro" | "growth" | "enterprise" | null> {
-  const data = await fetchJSON("/v1/account") as { usage_credits?: { plan_id?: string } };
-  return (data.usage_credits?.plan_id as "free" | "starter" | "pro" | "growth" | "enterprise" | undefined) ?? null;
+  const data = await fetchJSON<{ usage_credits?: { plan_id?: "free" | "starter" | "pro" | "growth" | "enterprise" } }>("/v1/account");
+  return data.usage_credits?.plan_id ?? null;
 }
 
 export async function createApiKey(label: string): Promise<{ key_id: string; raw_key: string; label: string }> {
@@ -1575,7 +1595,7 @@ export async function updateProgramEntitlements(opts: { enable?: string[]; disab
 }
 
 export async function getUsage(): Promise<{ tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] }> {
-  const data = await fetchJSON("/v1/account/usage") as { tier: BillingTier; totals?: { runs: number }; programs?: UsageSummary[] };
+  const data = await fetchJSON<{ tier: BillingTier; totals?: { runs: number }; programs?: UsageSummary[] }>("/v1/account/usage");
   return {
     tier: data.tier,
     monthly_snapshots: data.totals?.runs ?? 0,

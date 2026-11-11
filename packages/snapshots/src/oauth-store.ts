@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { sql } from "./pg.js";
-import { createAccount, getAccountByEmail, createApiKey } from "./billing-store.js";
+import { createAccount, getAccountByEmail, createApiKey, markAccountEmailVerified } from "./billing-store.js";
 import type { Account } from "./billing-types.js";
 
 // ─── OAuth state management (CSRF protection) ──────────────────
@@ -166,20 +166,23 @@ export async function upsertAccountByGitHub(
     return { account: byGid, rawKey, created: false };
   }
 
-  // 2. Match by email — link github_id
+  // 2. Match by email — link github_id. GitHub attested the address, which verifies an email sign-up that never
+  //    clicked its link (T106).
   if (email) {
     const byEmail = await getAccountByEmail(email);
     if (byEmail) {
       await linkGitHubId(byEmail.account_id, gid);
+      await markAccountEmailVerified(byEmail.account_id);
       const { rawKey } = await createApiKey(byEmail.account_id, "oauth-login");
-      return { account: byEmail, rawKey, created: false };
+      return { account: { ...byEmail, email_verified_at: byEmail.email_verified_at ?? new Date().toISOString() }, rawKey, created: false };
     }
   }
 
-  // 3. Create new account
+  // 3. Create new account. The GitHub identity is the verification: there is no link to click, and the placeholder
+  //    address an account gets when GitHub shares no email could never receive one.
   const displayName = name ?? `github-${githubId}`;
   const acctEmail = email ?? `${githubId}@github.oauth`;
-  const account = await createAccount(displayName, acctEmail);
+  const account = await createAccount(displayName, acctEmail, "free", { email_verified_at: new Date().toISOString() });
   await linkGitHubId(account.account_id, gid);
   const { rawKey } = await createApiKey(account.account_id, "oauth-login");
   return { account, rawKey, created: true };
@@ -314,20 +317,22 @@ export async function upsertAccountByGoogle(
     return { account: byGid, rawKey, created: false };
   }
 
-  // 2. Match by email — link google_id
+  // 2. Match by email — link google_id. Google attested the address (oauth.ts passes the email only when Google says
+  //    it is verified), which verifies an email sign-up that never clicked its link (T106).
   if (email) {
     const byEmail = await getAccountByEmail(email);
     if (byEmail) {
       await linkGoogleId(byEmail.account_id, googleSub);
+      await markAccountEmailVerified(byEmail.account_id);
       const { rawKey } = await createApiKey(byEmail.account_id, "oauth-login");
-      return { account: byEmail, rawKey, created: false };
+      return { account: { ...byEmail, email_verified_at: byEmail.email_verified_at ?? new Date().toISOString() }, rawKey, created: false };
     }
   }
 
-  // 3. Create new account
+  // 3. Create new account. The Google identity is the verification (see the GitHub branch).
   const displayName = name ?? `google-${googleSub}`;
   const acctEmail = email ?? `${googleSub}@google.oauth`;
-  const account = await createAccount(displayName, acctEmail);
+  const account = await createAccount(displayName, acctEmail, "free", { email_verified_at: new Date().toISOString() });
   await linkGoogleId(account.account_id, googleSub);
   const { rawKey } = await createApiKey(account.account_id, "oauth-login");
   return { account, rawKey, created: true };

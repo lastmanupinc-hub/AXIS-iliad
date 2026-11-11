@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   created_at TEXT NOT NULL,
   github_id TEXT,
   google_id TEXT,
-  paid_plan_id TEXT
+  paid_plan_id TEXT,
+  email_verified_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_github_id ON accounts(github_id) WHERE github_id IS NOT NULL;
 -- NOTE: idx_accounts_google_id is created in PG_MIGRATIONS v29, NOT here. On an
@@ -999,6 +1000,18 @@ CREATE TABLE IF NOT EXISTS agentic_commerce_index (
   payload TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_agentic_commerce_index_status ON agentic_commerce_index(status, period_end);`,
+  },
+  {
+    // Email verification (AXIS Launch taskgate T106, red-team finding I-02, 2026-11-10): POST /v1/accounts minted a
+    // key for any address and the key could spend at once. The column records when the address was confirmed; an
+    // account with NULL here keeps its key and its reads but every metered call is refused until it confirms.
+    // Every account that exists when this runs is marked verified as of its creation: those people were never asked,
+    // and the gate is for accounts created from now on. Fresh DBs have the column from the baseline (the UPDATE then
+    // touches nothing).
+    version: 49,
+    name: "accounts_email_verified_at",
+    sql: `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS email_verified_at TEXT;
+UPDATE accounts SET email_verified_at = created_at WHERE email_verified_at IS NULL;`,
   },
 ];
 

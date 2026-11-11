@@ -150,9 +150,8 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "TEMPO_RECIPIENT_ADDRESS", required: false, type: "string", description: "Hex 0x address that receives Tempo/USDC on-chain payments. Enables the crypto payment rail in MPP negotiation when set; the rail is omitted from accepted_payment_schemes otherwise." },
   { key: "TEMPO_TESTNET", required: false, type: "boolean", default: "false", description: "Set to \"true\" to point Tempo/USDC settlement at the testnet contract address instead of mainnet." },
 
-  // OAuth2 / MCP authorization server (oauth-server.ts, R0.2)
-  { key: "JWT_PRIVATE_KEY", required: false, type: "string", description: "RSA private key (PEM) for signing MCP OAuth2 access tokens. Takes precedence over private-key.pem on disk. Falls back to an ephemeral generated keypair if unset — every restart then invalidates previously issued tokens, so this should be set in production (see R0.2)." },
-  { key: "JWT_PUBLIC_KEY", required: false, type: "string", description: "RSA public key (PEM) matching JWT_PRIVATE_KEY, used to verify MCP OAuth2 tokens and serve the JWKS endpoint." },
+  // Email verification (email-verification.ts, AXIS Launch taskgate T106)
+  { key: "AXIS_EMAIL_VERIFY_SECRET", required: false, type: "string", description: "HMAC secret (32+ chars) that signs the links in verification mails. Unset ⇒ AXIS_TOKEN_KEY signs them; production refuses to sign without either, and signup then reports sent: false." },
 
   // Signed attestation (attestation.ts)
   { key: "AXIS_ATTESTATION_PRIVATE_KEY", required: false, type: "string", description: "Configured signing key for attestation responses. A present-but-malformed value is treated as an operator error (fails loudly) rather than silently falling back. Unset ⇒ a per-process ephemeral key is used, which does not survive a restart." },

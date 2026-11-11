@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
+import { isEmailVerified, mcpEmailUnverifiedResult } from "./email-verification.js";
 import { settleOverageCash } from "./cashier.js";
 import { getClientIp } from "./rate-limiter.js";
 import { anonProvisionEnabled, allowChallenge, buildProvisioningChallenge } from "./anon-frontdoor.js";
@@ -360,6 +361,12 @@ export async function dispatch(
         });
       }
 
+      // Email verification (T106): an account that has not confirmed its address runs the free tools only.
+      // Refused here, before the lite caps, the idempotency claim and any charge, so nothing is claimed or billed.
+      if (auth.account && !isEmailVerified(auth.account) && (METERED_MCP_TOOLS as readonly string[]).includes(canonicalToolName)) {
+        return rpcOk(id, mcpEmailUnverifiedResult(auth.account));
+      }
+
       // Lite-mode cap enforcement (revenue-leak fix): a caller paying the lite
       // price must GET lite behavior. Applied BEFORE the idempotency hash so a
       // stored/replayed result is keyed by — and reflects — the args that
@@ -692,6 +699,11 @@ async function settleMcpCallInband(
 
   const auth = await resolveAuth(req);
   if (!auth.account) return false;              // anonymous -> dispatch's normal free/limit path
+  if (!isEmailVerified(auth.account)) {         // unconfirmed address (T106): answered before any cash is collected
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(rpcOk(msg.id ?? null, mcpEmailUnverifiedResult(auth.account))));
+    return true;
+  }
 
   // A retry carrying an Idempotency-Key with a stored result must REPLAY, never
   // re-charge. Dispatch's replay lookup (tools/call case) returns the cached
@@ -886,6 +898,7 @@ Authorization: Bearer &lt;api_key&gt;
 <pre>curl -X POST ${publicUrl("/v1/accounts")} \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'</pre>
+<p>Then open the link in the mail: metered tools run once the address is confirmed; the free tools run at once.</p>
 <p style="margin-top:2rem;color:#888;font-size:0.85em">v${SERVER_VERSION} · ${MCP_TOOLS.length} tools · ${ARTIFACT_COUNT} artifacts · ${PROGRAM_COUNT} programs</p>
 </body></html>`;
   res.writeHead(200, {

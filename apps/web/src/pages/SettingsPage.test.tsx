@@ -54,6 +54,50 @@ afterEach(() => {
 let onAuthChange: ReturnType<typeof vi.fn>;
 beforeEach(() => { onAuthChange = vi.fn(); });
 
+describe("SettingsPage — email verification (T236)", () => {
+  it("shows an unconfirmed address its state and sends the link again on request", async () => {
+    let resent = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/account/verification") && init?.method === "POST") {
+        resent += 1;
+        return { ok: true, status: 202, json: async () => ({ status: "sent", email: "ada@example.com", expires_in_seconds: 604800 }), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      const handlers = baseHandlers(ACCOUNT_FREE, [
+        ["/v1/account/keys", { keys: [] }],
+      ]);
+      const hit = url.endsWith("/v1/account")
+        ? ["/v1/account", { account: { ...ACCOUNT_FREE, email_verified_at: null }, entitlements: [], email_verification: { verified: false, email: "ada@example.com", resend: "POST /v1/account/verification" } }]
+        : handlers.find(([m]) => url.includes(m));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+    render(<SettingsPage onAuthChange={onAuthChange} />);
+
+    const notice = await screen.findByTestId("verification-notice");
+    expect(notice.textContent).toContain("Confirm your email address");
+    expect(notice.textContent).toContain("ada@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Send the link again" }));
+    await waitFor(() => expect(resent).toBe(1));
+    await screen.findByText(/Sent to ada@example.com/);
+  });
+
+  it("shows nothing about verification when the address is confirmed or the server says nothing", async () => {
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const handlers = baseHandlers();
+      const hit = handlers.find(([m]) => url.includes(m));
+      const body = hit ? hit[1] : {};
+      return { ok: true, status: 200, json: async () => body, text: async () => "", headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+    render(<SettingsPage onAuthChange={onAuthChange} />);
+    await screen.findByLabelText("Email");
+    expect(screen.queryByTestId("verification-notice")).toBeNull();
+  });
+});
+
 describe("SettingsPage — profile", () => {
   it("loads and shows the account's name and email; saving calls PATCH and shows the disclosure note", async () => {
     // getAccount()/getAccountEntitlements() (GET) and patchAccount() (PATCH)

@@ -20,7 +20,7 @@ vi.mock("./billing.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./billing.js")>();
   return {
     ...actual,
-    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-lite", tier: "paid" as const } })),
+    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-lite", tier: "paid" as const, email: "t@x.com", email_verified_at: "2026-01-01T00:00:00.000Z" } })),
   };
 });
 

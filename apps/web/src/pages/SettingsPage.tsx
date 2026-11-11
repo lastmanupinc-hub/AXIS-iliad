@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import {
   getAccount,
   getAccountEntitlements,
+  getEmailVerification,
+  resendVerification,
   patchAccount,
   deleteAccount,
   createApiKey,
@@ -24,6 +26,7 @@ import {
   apiErrorDetails,
   VALID_WEBHOOK_EVENTS,
   type Account,
+  type EmailVerification,
   type ApiKeyInfo,
   type Seat,
   type GitHubTokenSummary,
@@ -51,6 +54,10 @@ interface Props {
 
 export function SettingsPage({ onAuthChange }: Props) {
   const [account, setAccount] = useState<Account | null>(null);
+  // Email verification (T236): what GET /v1/account says about the address, and the resend's outcome.
+  const [verification, setVerification] = useState<EmailVerification | null>(null);
+  const [resending, setResending] = useState(false);
+  const [verificationNote, setVerificationNote] = useState<string | null>(null);
   const [entitlements, setEntitlements] = useState<string[]>([]);
   const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
   const [seats, setSeats] = useState<{ seats: Seat[]; count: number; limit: number; remaining: number } | null>(null);
@@ -81,7 +88,7 @@ export function SettingsPage({ onAuthChange }: Props) {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [acct, ents, keysData, seatsData, tokensData, webhooksData, programsData] = await Promise.all([
+      const [acct, ents, keysData, seatsData, tokensData, webhooksData, programsData, verificationData] = await Promise.all([
         getAccount(),
         getAccountEntitlements(),
         listApiKeys(),
@@ -89,9 +96,11 @@ export function SettingsPage({ onAuthChange }: Props) {
         listGitHubTokens(),
         listWebhooks(),
         getPrograms(),
+        getEmailVerification().catch(() => null),
       ]);
       setAccount(acct);
       setEntitlements(ents);
+      setVerification(verificationData);
       // H-Phase-A cycle 13: defense-in-depth against a malformed API response
       // missing its expected array field (matches getAccountEntitlements's own
       // `?? []` above) — every list.length read below assumes an array.
@@ -108,6 +117,24 @@ export function SettingsPage({ onAuthChange }: Props) {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function handleResendVerification() {
+    setVerificationNote(null);
+    setResending(true);
+    try {
+      const result = await resendVerification();
+      if (result.status === "already_verified") {
+        setVerification((v) => (v ? { ...v, verified: true } : v));
+        setVerificationNote("Your address is already confirmed.");
+      } else {
+        setVerificationNote(`Sent to ${result.email ?? verification?.email ?? "your address"}. The link works for 7 days.`);
+      }
+    } catch (err) {
+      setVerificationNote(err instanceof Error ? err.message : "The mail could not be sent; try again in a few minutes.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   // ─── Profile ─────────────────────────────────────────────────
   const [profileName, setProfileName] = useState("");
@@ -421,6 +448,20 @@ export function SettingsPage({ onAuthChange }: Props) {
         </form>
         {profileNote && <p className="text-muted text-xs mt-2">{profileNote}</p>}
       </div>
+
+      {/* Email verification (T236): an address that is not confirmed yet keeps the metered tools waiting (T106). */}
+      {verification && !verification.verified && (
+        <div className="card" style={{ borderColor: "var(--yellow)" }} data-testid="verification-notice">
+          <h2 style={{ color: "var(--yellow)", fontSize: "1rem", fontWeight: 600, marginBottom: 4 }}>Confirm your email address</h2>
+          <p className="text-muted text-sm" style={{ marginBottom: 10 }}>
+            We sent a link to {verification.email}. Until you open it, the free tools run and the metered ones wait.
+          </p>
+          <button type="button" className="btn" disabled={resending} onClick={() => void handleResendVerification()}>
+            {resending ? "Sending..." : "Send the link again"}
+          </button>
+          {verificationNote && <p className="text-muted text-xs mt-2">{verificationNote}</p>}
+        </div>
+      )}
 
       {/* Revealed key banner */}
       {revealedKey && (

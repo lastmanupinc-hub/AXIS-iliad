@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { ErrorCode, log } from "./logger.js";
 import { getClientWindow, getClientIp } from "./rate-limiter.js";
+import { sendVerificationEmail, isEmailVerified, RESEND_PATH } from "./email-verification.js";
 import {
   resolveApiKey,
   createAccount,
@@ -298,7 +299,11 @@ export async function handleCreateAccount(
     return;
   }
 
-  const account = await createAccount(name, email, tier);
+  // Email verification (T106, red-team I-02): an account the owner creates with the admin key is verified at
+  // creation; everyone else confirms the address through the link in the mail sent below before a metered call runs.
+  const account = await createAccount(name, email, tier, {
+    email_verified_at: isAdminCaller(req) ? new Date().toISOString() : null,
+  });
 
   // Auto-generate an API key for the new account
   const { apiKey, rawKey } = await createApiKey(account.account_id, "default");
@@ -315,6 +320,11 @@ export async function handleCreateAccount(
     log("warn", "welcome-email-failed", { email, error: err instanceof Error ? err.message : String(err) });
   });
 
+  // The verification mail is awaited so the answer can say whether it went; a mailer that is down never fails the
+  // signup (sendVerificationEmail catches), and POST /v1/account/verification sends the link again.
+  const verified = isEmailVerified(account);
+  const verification = verified ? null : await sendVerificationEmail(account);
+
   sendJSON(res, 201, {
     account,
     api_key: {
@@ -323,7 +333,12 @@ export async function handleCreateAccount(
       label: apiKey.label,
       created_at: apiKey.created_at,
     },
-    message: "Save your API key — it will not be shown again.",
+    email_verification: verified
+      ? { required: false, verified: true }
+      : { required: true, verified: false, sent: verification?.sent ?? false, email: account.email, resend: RESEND_PATH },
+    message: verified
+      ? "Save your API key — it will not be shown again."
+      : `Save your API key — it will not be shown again. Confirm your email address through the link sent to ${account.email} before metered tools run; free tools work now.`,
   });
 }
 
@@ -344,6 +359,7 @@ export async function handleGetAccount(
 
   sendJSON(res, 200, {
     account: ctx.account,
+    email_verification: { verified: isEmailVerified(ctx.account), email: ctx.account!.email, resend: RESEND_PATH },
     entitlements: entitlements.map((e) => e.program),
     usage_credits: usageCredits,
     last_purchase: lastPurchase ?? null,

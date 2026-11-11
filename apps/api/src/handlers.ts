@@ -2811,7 +2811,7 @@ export function handleWellKnown(
       authentication: {
         type: "bearer",
         header: "Authorization: Bearer <api_key>",
-        obtain: "POST /v1/accounts  -  creates an account and returns raw_key",
+        obtain: "POST /v1/accounts  -  creates an account and returns raw_key; metered tools run once the address is confirmed through the mailed link",
         note: "Anonymous requests are accepted on the free tier",
       },
     },
@@ -2828,7 +2828,7 @@ export function handleWellKnown(
       { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens  -  import into Figma, CSS, or component library" },
     ],
     quick_start: {
-      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key",
+      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key, then open the link in the mail (metered tools wait for it; free tools run at once)",
       step_2: "POST /v1/analyze with {github_url: 'https://github.com/your/repo'} and Authorization: Bearer <raw_key>",
       step_3: "Read adoption_hint on each returned file to know exactly where to place it",
       step_4: "Place AGENTS.md in repo root  -  AI assistants auto-load it immediately",
@@ -3046,7 +3046,6 @@ export function handleAgentCard(
     ],
     well_known: {
       x402: "/.well-known/x402",
-      oauth_protected_resource: "/.well-known/oauth-protected-resource",
       capabilities: "/.well-known/capabilities.json",
       security_txt: "/.well-known/security.txt",
     },
@@ -3175,7 +3174,7 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 
 ## Quick Start
 
-- POST /v1/accounts  -  create account, get API key (free tier available, no auth required)
+- POST /v1/accounts  -  create account, get API key (free tier available, no auth required); confirm the address through the mailed link before metered calls
 - POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} → returns ${ARTIFACT_COUNT} artifacts
 - GET /.well-known/axis.json  -  machine-readable capability manifest
 - GET /v1/mcp/tools?q=  -  search programs by keyword (no auth required)
@@ -3210,7 +3209,7 @@ For autonomous purchasing agents:
 ## Authentication
 
 - Bearer token: Authorization: Bearer <api_key>
-- Obtain key: POST /v1/accounts with {email, name, tier: "free"}
+- Obtain key: POST /v1/accounts with {email, name, tier: "free"}, then confirm the address through the mailed link (metered tools wait for it)
 - Free tier: unlimited on ${TIER_LIMITS.free.programs.join("/")} programs, ${TIER_LIMITS.free.max_snapshots_per_month} snapshots/month total (pro programs need a paid tier)
 
 ## Instructions for LLM Agents
@@ -3356,7 +3355,6 @@ export function handleSitemapXml(
     { loc: "/.well-known/capabilities.json",  changefreq: "monthly", priority: "0.7" },
     { loc: "/.well-known/mcp.json",           changefreq: "monthly", priority: "0.7" },
     { loc: "/.well-known/agent.json",         changefreq: "monthly", priority: "0.7" },
-    { loc: "/.well-known/oauth-authorization-server", changefreq: "monthly", priority: "0.6" },
     { loc: "/.well-known/security.txt",       changefreq: "yearly",  priority: "0.5" },
     { loc: "/.well-known/skills/index.json",  changefreq: "monthly", priority: "0.6" },
   ];
@@ -3457,27 +3455,6 @@ export function handleSkillsIndex(
   return Promise.resolve();
 }
 
-// ─── GET /.well-known/oauth-authorization-server ──────────────────
-export function handleOAuthAuthorizationServer(
-  _req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
-  sendJSON(res, 200, {
-    issuer: "https://iliad.trustfabric.ai",
-    authorization_endpoint: "https://iliad.trustfabric.ai/oauth/authorize",
-    token_endpoint: "https://iliad.trustfabric.ai/oauth/token",
-    jwks_uri: "https://iliad.trustfabric.ai/oauth/jwks",
-    introspection_endpoint: "https://iliad.trustfabric.ai/oauth/introspect",
-    scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
-    response_types_supported: ["code"],
-    grant_types_supported: ["authorization_code", "refresh_token"],
-    token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post"],
-    service_documentation: "https://iliad.trustfabric.ai/for-agents",
-    ui_locales_supported: ["en"],
-  });
-  return Promise.resolve();
-}
-
 // ─── GET /v1/docs.md  -  plain-text OpenAPI summary ───────────────
 
 export function handleDocsMd(
@@ -3486,13 +3463,13 @@ export function handleDocsMd(
 ): Promise<void> {
   const body = `# Axis' Iliad API  -  Plain Text Reference
 
-Version: 0.5.3 | Base URL: ${PUBLIC_API_BASE}
+Version: 0.5.4 | Base URL: ${PUBLIC_API_BASE}
 
 ## Authentication
 
 All endpoints accept \`Authorization: Bearer <api_key>\` header.
 Free tier endpoints work without authentication.
-Obtain a key: \`POST /v1/accounts\` with \`{email, name, tier: "free"}\`.
+Obtain a key: \`POST /v1/accounts\` with \`{email, name, tier: "free"}\`, then confirm the address through the mailed link (metered tools wait for it; free tools run at once).
 
 ## Core Endpoints
 
@@ -3514,7 +3491,7 @@ List all programs with generator counts and output paths. No auth required.
 
 ## Account Management
 
-- \`POST /v1/accounts\`  -  create account (returns raw_key)
+- \`POST /v1/accounts\`  -  create account (returns raw_key; metered tools run once the address is confirmed)
 - \`GET /v1/account\`  -  get account info (auth required)
 - \`POST /v1/account/keys\`  -  create additional API keys
 - \`GET /v1/account/keys\`  -  list keys
@@ -4514,22 +4491,6 @@ export function handleAiPlugin(
   return Promise.resolve();
 }
 
-// --- GET /.well-known/oauth-protected-resource  -  RFC 9728 metadata --------
-
-export function handleOAuthProtectedResource(
-  _req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
-  sendJSON(res, 200, {
-    resource: publicUrl("/mcp"),
-    authorization_servers: ["https://iliad.trustfabric.ai"],
-    scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
-    bearer_methods_supported: ["header"],
-    resource_documentation: "https://iliad.trustfabric.ai/for-agents",
-  });
-  return Promise.resolve();
-}
-
 // ─── GET /health  -  scanner-friendly health probe ────────────────
 
 export function handleHealthRedirect(
@@ -4712,7 +4673,7 @@ export function handlePerformanceReputation(
     },
     chiark_compatibility: chiarkCompatibility,
     last_probe: lastProbe,
-    notes: "Professional MCP server with deterministic artifact generation and clean OAuth discovery support.",
+    notes: "MCP server with deterministic artifact generation; API-key authentication (no OAuth discovery documents).",
   });
   return Promise.resolve();
 }

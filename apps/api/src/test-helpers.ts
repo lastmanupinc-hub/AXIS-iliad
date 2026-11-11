@@ -79,3 +79,37 @@ export async function waitForSpyCall(
     await new Promise<void>((resolve) => setImmediate(resolve));
   }
 }
+
+// ─── Email verification (AXIS Launch taskgate T106) ──────────────
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { gunzipSync } from "node:zlib";
+import { markAccountEmailVerified } from "@axis/snapshots";
+import { handleCreateAccount } from "./billing.js";
+
+/**
+ * POST /v1/accounts for suites whose subject is not email verification: the account is created exactly as the
+ * public door creates it (the real handler, its validation, its answer), then marked verified as if the mailed link
+ * had been opened, before the answer leaves the server, so the metered calls the suite goes on to make are not
+ * refused. Suites that test the gate itself (email-verification.test.ts) register the real handler.
+ */
+export async function handleCreateAccountVerified(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const originalEnd = res.end.bind(res) as (chunk?: unknown, ...rest: unknown[]) => ServerResponse;
+  res.end = ((chunk?: unknown, ...rest: unknown[]) => {
+    const finish = () => originalEnd(chunk, ...rest);
+    if (res.statusCode === 201) {
+      try {
+        const raw = Buffer.isBuffer(chunk) ? chunk : Buffer.from(typeof chunk === "string" ? chunk : "", "utf-8");
+        const text = (res.getHeader("content-encoding") === "gzip" ? gunzipSync(raw) : raw).toString("utf-8");
+        const id = (JSON.parse(text) as { account?: { account_id?: string } }).account?.account_id;
+        if (id) {
+          void markAccountEmailVerified(id).then(finish, finish);
+          return res;
+        }
+      } catch {
+        /* not a JSON body: nothing to verify */
+      }
+    }
+    return finish();
+  }) as typeof res.end;
+  await handleCreateAccount(req, res);
+}

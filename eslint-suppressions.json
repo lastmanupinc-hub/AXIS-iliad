@@ -157,26 +157,6 @@
       "count": 1
     }
   },
-  "apps/api/src/oauth-server.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-argument": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 6
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-promise-reject-errors": {
-      "count": 2
-    },
-    "@typescript-eslint/require-await": {
-      "count": 2
-    }
-  },
   "apps/api/src/oauth.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 2
@@ -287,9 +267,6 @@
   "apps/web/src/api.ts": {
     "@typescript-eslint/no-redundant-type-constituents": {
       "count": 2
-    },
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 4
     },
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 5

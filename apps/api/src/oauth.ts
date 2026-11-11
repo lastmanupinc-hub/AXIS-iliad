@@ -232,7 +232,9 @@ export async function handleGoogleOAuthCallback(
     const gUser = await getGoogleUser(tokenResponse.access_token);
 
     // Find or create account, get API key (email-merge mirrors GitHub).
-    const { rawKey, created } = await upsertAccountByGoogle(gUser.sub, gUser.name, gUser.email);
+    // Only an address Google says it verified may merge into an existing account or stand as a verified one
+    // (T106): an unverified Google address gets the placeholder address, never another account's key.
+    const { rawKey, created } = await upsertAccountByGoogle(gUser.sub, gUser.name, gUser.email_verified ? gUser.email : null);
 
     // Hand the key to the web app via a one-time code, NOT the URL — so the raw
     // key never appears in the address bar, browser history, Referer, or logs.

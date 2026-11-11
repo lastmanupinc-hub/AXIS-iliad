@@ -48,4 +48,4 @@ export const MCP_TOOL_COUNT = 44; // +1: delete_snapshot (Glama coherence review
 export const ENDPOINT_COUNT = 188; // +1: GET /v1/agentic-commerce-index (AXIS Launch taskgate T16)
 
 /** API/server version. Single source — keep in lockstep with apps/api/package.json. */
-export const API_VERSION = "0.5.3";
+export const API_VERSION = "0.5.4";

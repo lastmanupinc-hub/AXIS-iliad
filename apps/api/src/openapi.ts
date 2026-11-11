@@ -766,26 +766,6 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
-      "/.well-known/oauth-authorization-server": {
-        get: {
-          summary: "OAuth 2.0 Authorization Server Metadata (RFC 8414)",
-          operationId: "getOAuthAuthorizationServerMetadata",
-          tags: ["Discovery", "OAuth"],
-          responses: {
-            200: { description: "Authorization server metadata document" },
-          },
-        },
-      },
-      "/.well-known/oauth-protected-resource": {
-        get: {
-          summary: "OAuth 2.0 Protected Resource Metadata (RFC 9728)",
-          operationId: "getOAuthProtectedResourceMetadata",
-          tags: ["Discovery", "OAuth"],
-          responses: {
-            200: { description: "Protected resource metadata document" },
-          },
-        },
-      },
       "/robots.txt": {
         get: {
           summary: "Robots exclusion protocol with AI/MCP crawler directives",
@@ -1032,13 +1012,40 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // ── Account & Billing ──
       "/v1/accounts": {
         post: {
-          summary: "Create a new account",
+          summary: "Create a new account (a verification mail follows; metered calls wait until the address is confirmed)",
           operationId: "createAccount",
           tags: ["Billing"],
           requestBody: jsonBody(ref("CreateAccountRequest")),
-          responses: { 201: { description: "Account created" }, 400: { description: "Validation error" } },
+          responses: { 201: { description: "Account created with its first API key; email_verification says whether the mail went. Free tools run at once; metered REST routes answer 403 EMAIL_UNVERIFIED and metered MCP tools an isError result until the link is opened." }, 400: { description: "Validation error" } },
         },
         get: { summary: "Method-not-allowed guidance (account creation is POST-only)", operationId: "getAccountsInfo", tags: ["Account"], responses: { 405: { description: "Method not allowed — use POST /v1/accounts" } } },
+      },
+      "/v1/account/verify": {
+        get: {
+          summary: "Confirm an email address (the link in the verification mail; the token is the proof, no key needed)",
+          operationId: "verifyEmail",
+          tags: ["Billing"],
+          parameters: [queryParam("token", "The token from the verification mail")],
+          responses: {
+            200: { description: "{ status: 'verified' | 'already_verified', email }; an HTML page for a browser" },
+            400: { description: "Malformed, expired or no longer valid link (reason: malformed | expired | invalid)" },
+          },
+        },
+      },
+      "/v1/account/verification": {
+        post: {
+          summary: "Send the verification mail again (one every five minutes per account)",
+          operationId: "resendVerification",
+          tags: ["Billing"],
+          security: [{ apiKey: [] }],
+          responses: {
+            202: { description: "{ status: 'sent', email, expires_in_seconds }" },
+            200: { description: "{ status: 'already_verified', email }" },
+            401: { description: "Authentication required" },
+            429: { description: "A mail was sent recently (Retry-After)" },
+            503: { description: "The mailer is not configured or failed" },
+          },
+        },
       },
       "/accounts": {
         post: {
@@ -1462,77 +1469,6 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
-      // -- OAuth 2.0 authorization server (MCP client auth -- RFC 6749/8414) --
-      "/oauth/authorize": {
-        get: {
-          summary: "OAuth 2.0 authorization endpoint (issues an auth code, redirects to redirect_uri)",
-          operationId: "oauthAuthorize",
-          tags: ["OAuth"],
-          parameters: [
-            queryParam("client_id", "Registered OAuth client id"),
-            queryParam("redirect_uri", "Must exactly match a URI registered for this client"),
-            queryParam("response_type", "Must be 'code'"),
-            queryParam("scope", "Requested scope (default mcp:read)"),
-            queryParam("state", "Opaque value echoed back to redirect_uri for CSRF protection"),
-          ],
-          responses: {
-            302: { description: "Redirect to redirect_uri with a code (and state, if provided)" },
-            400: { description: "Invalid request, unknown client_id, or unregistered redirect_uri" },
-          },
-        },
-      },
-      "/oauth/token": {
-        post: {
-          summary: "OAuth 2.0 token endpoint (exchanges an authorization code for an access token)",
-          operationId: "oauthToken",
-          tags: ["OAuth"],
-          requestBody: {
-            required: true,
-            content: {
-              "application/x-www-form-urlencoded": {
-                schema: {
-                  type: "object",
-                  required: ["grant_type", "code", "client_id", "client_secret"],
-                  properties: {
-                    grant_type: { type: "string", enum: ["authorization_code"] },
-                    code: { type: "string" },
-                    client_id: { type: "string" },
-                    client_secret: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            200: { description: "RS256-signed JWT access token (Bearer, 1h expiry)" },
-            400: { description: "Invalid grant_type or missing fields" },
-            401: { description: "Invalid client_id/client_secret" },
-          },
-        },
-      },
-      "/oauth/jwks": {
-        get: {
-          summary: "JSON Web Key Set for verifying tokens issued by /oauth/token",
-          operationId: "oauthJwks",
-          tags: ["OAuth"],
-          responses: {
-            200: { description: "JWKS document (RFC 7517)" },
-          },
-        },
-      },
-      "/oauth/introspect": {
-        post: {
-          summary: "OAuth 2.0 token introspection (RFC 7662)",
-          operationId: "oauthIntrospect",
-          tags: ["OAuth"],
-          requestBody: jsonBody({ type: "object", required: ["token"], properties: { token: { type: "string" } } }),
-          responses: {
-            200: { description: "{ active: true, sub, client_id, scope, ... } or { active: false }" },
-            400: { description: "Missing token" },
-          },
-        },
-      },
-
       // ── Stripe Payments ──
       "/v1/webhooks/stripe": {
         post: {

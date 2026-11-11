@@ -98,7 +98,7 @@ vi.mock("./billing.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./billing.js")>();
   return {
     ...actual,
-    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-1", tier: "paid" as const } })),
+    resolveAuth: vi.fn(async () => ({ account: { account_id: "acc-1", tier: "paid" as const, email: "t@x.com", email_verified_at: "2026-01-01T00:00:00.000Z" } })),
   };
 });
 vi.mock("./web-search.js", async (importOriginal) => {
@@ -130,7 +130,7 @@ import { decideInbandGate, runWebSearch } from "./mcp-tool-impls.js";
 import * as snapshots from "@axis/snapshots";
 import * as mpp from "./mpp.js";
 
-const account = { account_id: "acc-1", tier: "paid" as const };
+const account = { account_id: "acc-1", tier: "paid" as const, email: "t@x.com", email_verified_at: "2026-01-01T00:00:00.000Z" };
 const fakeReq = () => ({ headers: {} }) as unknown as IncomingMessage;
 const res = {} as ServerResponse;
 

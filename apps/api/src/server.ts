@@ -64,9 +64,7 @@ import {
   handleGlamaJson,
   handleAgentJson,
   handleAgentCard,
-  handleOAuthAuthorizationServer,
   handleAiPlugin,
-  handleOAuthProtectedResource,
   handleHealthRedirect,
   handleDocsRedirect,
   handlePricingLanding,
@@ -124,7 +122,7 @@ import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
 import { handleGetFleet } from "./fleet-handlers.js";
 import { handleListProjects, handleListProjectSnapshots } from "./projects-handlers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession, handleAdminSessionLogin, handleAdminSessionLogout } from "./oauth.js";
-import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
+import { requireVerifiedEmail, handleVerifyEmail, handleResendVerification } from "./email-verification.js";
 import { handleStripeWebhook, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
 import { handleSentryWebhook } from "./sentry-webhook.js";
@@ -215,9 +213,12 @@ router.get("/v1/docs", async (_req, res) => {
   sendJSON(res, 200, buildOpenApiSpec());
 });
 
+// Every route below that spends (a snapshot, a generator, a search index, an upstream call) is wrapped in
+// requireVerifiedEmail (T106): an account whose address is unconfirmed gets 403 EMAIL_UNVERIFIED before the handler
+// runs; anonymous callers still get the handler's own 401. The metered MCP tools carry the same gate in mcp-server.ts.
 // Snapshot endpoints (originally per axis_all_tools.yaml's api_architecture,
 // since demoted to a historical spec -- see continuation.yaml's boundary_truth)
-router.post("/v1/snapshots", handleCreateSnapshot);
+router.post("/v1/snapshots", requireVerifiedEmail(handleCreateSnapshot));
 router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
 router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);
 
@@ -235,43 +236,43 @@ router.get("/v1/projects/:project_id/context", handleGetContext);
 router.get("/v1/projects/:project_id/generated-files", handleGetGeneratedFiles);
 router.get("/v1/projects/:project_id/generated-files/:file_path*", handleGetGeneratedFile);
 router.get("/v1/projects/:project_id/memory", handleListMemory);
-router.post("/v1/projects/:project_id/memory", handleAddMemory);
+router.post("/v1/projects/:project_id/memory", requireVerifiedEmail(handleAddMemory));
 router.delete("/v1/projects/:project_id", handleDeleteProject);
 
 // Program endpoints (per axis_master_blueprint.yaml api_architecture)
-router.post("/v1/search/export", handleSearchExport);
-router.post("/v1/skills/generate", handleSkillsGenerate);
-router.post("/v1/debug/analyze", handleDebugAnalyze);
-router.post("/v1/frontend/audit", handleFrontendAudit);
-router.post("/v1/seo/analyze", handleSeoAnalyze);
-router.post("/v1/pitch/generate", handlePitchGenerate);
-router.post("/v1/pitch/render", handlePitchRender);
+router.post("/v1/search/export", requireVerifiedEmail(handleSearchExport));
+router.post("/v1/skills/generate", requireVerifiedEmail(handleSkillsGenerate));
+router.post("/v1/debug/analyze", requireVerifiedEmail(handleDebugAnalyze));
+router.post("/v1/frontend/audit", requireVerifiedEmail(handleFrontendAudit));
+router.post("/v1/seo/analyze", requireVerifiedEmail(handleSeoAnalyze));
+router.post("/v1/pitch/generate", requireVerifiedEmail(handlePitchGenerate));
+router.post("/v1/pitch/render", requireVerifiedEmail(handlePitchRender));
 // Wrapped: the router passes route params as a third argument, which would
 // collide with the handler's optional test-injection completion override.
-router.post("/v1/pitch/compose", (req, res) => handlePitchCompose(req, res));
-router.post("/v1/optimization/analyze", handleOptimizationAnalyze);
-router.post("/v1/theme/generate", handleThemeGenerate);
-router.post("/v1/brand/generate", handleBrandGenerate);
-router.post("/v1/superpowers/generate", handleSuperpowersGenerate);
-router.post("/v1/marketing/generate", handleMarketingGenerate);
-router.post("/v1/notebook/generate", handleNotebookGenerate);
-router.post("/v1/notebook/ask", handleNotebookAsk);
-router.post("/v1/obsidian/analyze", handleObsidianAnalyze);
-router.post("/v1/mcp/provision", handleMcpProvision);
-router.post("/v1/artifacts/generate", handleArtifactsGenerate);
-router.post("/v1/remotion/generate", handleRemotionGenerate);
-router.post("/v1/canvas/generate", handleCanvasGenerate);
-router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
-router.post("/v1/agentic-purchasing/generate", handleAgenticPurchasingGenerate);
-router.post("/v1/closer/generate", handleCloserGenerate);
-router.post("/v1/deploy/generate", handleDeployGenerate);
-router.post("/v1/prepare-for-agentic-purchasing", handlePreparePurchasing);
+router.post("/v1/pitch/compose", requireVerifiedEmail((req, res) => handlePitchCompose(req, res)));
+router.post("/v1/optimization/analyze", requireVerifiedEmail(handleOptimizationAnalyze));
+router.post("/v1/theme/generate", requireVerifiedEmail(handleThemeGenerate));
+router.post("/v1/brand/generate", requireVerifiedEmail(handleBrandGenerate));
+router.post("/v1/superpowers/generate", requireVerifiedEmail(handleSuperpowersGenerate));
+router.post("/v1/marketing/generate", requireVerifiedEmail(handleMarketingGenerate));
+router.post("/v1/notebook/generate", requireVerifiedEmail(handleNotebookGenerate));
+router.post("/v1/notebook/ask", requireVerifiedEmail(handleNotebookAsk));
+router.post("/v1/obsidian/analyze", requireVerifiedEmail(handleObsidianAnalyze));
+router.post("/v1/mcp/provision", requireVerifiedEmail(handleMcpProvision));
+router.post("/v1/artifacts/generate", requireVerifiedEmail(handleArtifactsGenerate));
+router.post("/v1/remotion/generate", requireVerifiedEmail(handleRemotionGenerate));
+router.post("/v1/canvas/generate", requireVerifiedEmail(handleCanvasGenerate));
+router.post("/v1/algorithmic/generate", requireVerifiedEmail(handleAlgorithmicGenerate));
+router.post("/v1/agentic-purchasing/generate", requireVerifiedEmail(handleAgenticPurchasingGenerate));
+router.post("/v1/closer/generate", requireVerifiedEmail(handleCloserGenerate));
+router.post("/v1/deploy/generate", requireVerifiedEmail(handleDeployGenerate));
+router.post("/v1/prepare-for-agentic-purchasing", requireVerifiedEmail(handlePreparePurchasing));
 
 // Unified one-call analysis endpoint
-router.post("/v1/analyze", handleAnalyze);
+router.post("/v1/analyze", requireVerifiedEmail(handleAnalyze));
 
 // GitHub URL intake
-router.post("/v1/github/analyze", handleGitHubAnalyze);
+router.post("/v1/github/analyze", requireVerifiedEmail(handleGitHubAnalyze));
 
 // GitHub App webhook (push / pull_request / installation events)
 router.post("/v1/github/webhook", handleGitHubWebhook);
@@ -282,8 +283,8 @@ router.post("/v1/sentry/webhook", handleSentryWebhook);
 router.post("/v1/github/architecture-drift", handleArchitectureDriftWebhook);
 
 // Firecrawl proxy — web research (Phase 1)
-router.post("/v1/research/scrape", handleFirecrawlScrape);
-router.post("/v1/research/crawl", handleFirecrawlCrawl);
+router.post("/v1/research/scrape", requireVerifiedEmail(handleFirecrawlScrape));
+router.post("/v1/research/crawl", requireVerifiedEmail(handleFirecrawlCrawl));
 
 // Agent discovery manifest
 router.get("/.well-known/axis.json", handleWellKnown);
@@ -296,8 +297,6 @@ router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/glama.json", handleGlamaJson);
 router.get("/.well-known/agent.json", handleAgentJson);
 router.get("/.well-known/agent-card.json", handleAgentCard);
-router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
-router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
 router.get("/.well-known/ai-plugin.json", handleAiPlugin);
 // x402 discovery aid — real production traffic checks this path (verified via
 // Render log review); see handleX402WellKnown's own docblock for the honesty
@@ -339,18 +338,10 @@ router.get("/agents.txt", handleLlmsTxt);
 router.get("/mcp/.well-known/mcp.json", handleMcpServerJson);
 router.get("/mcp/.well-known/mcp", handleMcpServerJson);
 router.get("/mcp/.well-known/agent.json", handleAgentJson);
-router.get("/mcp/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
-router.get("/mcp/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
-// The ACTUAL RFC 8414 §3 / RFC 9728 §3.1 path-insertion form: the well-known
-// suffix goes immediately after the host, and the resource's own path is
-// APPENDED AFTER the suffix — i.e. /.well-known/{suffix}/mcp, not
-// /mcp/.well-known/{suffix} (the mistake the two lines above make, caught by
-// the cycle 28 audit agent, which fetched and read the RFC text directly
-// rather than trusting the original commit's own claim). A genuinely
-// spec-compliant client doing blind RFC 9728 discovery against the /mcp
-// resource needs this exact form; same handlers, still static/side-effect-free.
-router.get("/.well-known/oauth-authorization-server/mcp", handleOAuthAuthorizationServer);
-router.get("/.well-known/oauth-protected-resource/mcp", handleOAuthProtectedResource);
+// No OAuth discovery documents (RFC 8414 / 9728) are served since 2026-11-10 (AXIS Launch taskgate T106, red-team
+// I-01): the authorization server they advertised was demo code that issued codes to anyone and tokens nothing
+// consumed. Callers authenticate with an API key (Authorization: Bearer or X-Axis-Key); an MCP client that probes
+// these paths gets a 404 and uses the key it was configured with.
 
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);
@@ -405,8 +396,8 @@ router.get("/v1/install", handleInstall);
 router.get("/v1/install/:platform", handleInstall);
 
 // File Content Search
-router.post("/v1/search/index", handleSearchIndex);
-router.post("/v1/search/query", handleSearchQuery);
+router.post("/v1/search/index", requireVerifiedEmail(handleSearchIndex));
+router.post("/v1/search/query", requireVerifiedEmail(handleSearchQuery));
 router.get("/v1/search/:snapshot_id/stats", handleSearchStats);
 router.get("/v1/search/:snapshot_id/symbols", handleSearchSymbols);
 
@@ -525,6 +516,9 @@ router.get("/v1/mcp/tools", async (req, res) => {
 router.post("/v1/accounts", handleCreateAccount);
 // Backward-compatible alias for clients that call unversioned account creation.
 router.post("/accounts", handleCreateAccount);
+// Email verification (T106): the link in the mail, and a resend for the signed-in key.
+router.get("/v1/account/verify", handleVerifyEmail);
+router.post("/v1/account/verification", handleResendVerification);
 const handleAccountsMethodHint = async (_req: IncomingMessage, res: ServerResponse) => {
   const { sendJSON } = await import("./router.js");
   sendJSON(res, 405, {
@@ -612,12 +606,6 @@ router.get("/v1/auth/google/callback", handleGoogleOAuthCallback);
 router.post("/v1/auth/exchange", handleOAuthExchange);
 router.post("/v1/auth/session", handleCreateSession);
 router.post("/v1/auth/logout", handleOAuthLogout);
-
-// OAuth 2.0 Authorization Server
-router.get("/oauth/authorize", handleOAuthAuthorize);
-router.post("/oauth/token", handleOAuthToken);
-router.get("/oauth/jwks", handleOAuthJwks);
-router.post("/oauth/introspect", handleOAuthIntrospect);
 
 // Webhooks
 router.post("/v1/account/webhooks", handleCreateWebhook);

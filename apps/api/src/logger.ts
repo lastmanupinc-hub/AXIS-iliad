@@ -39,6 +39,7 @@ export const ErrorCode = {
   // 403
   TIER_REQUIRED: "TIER_REQUIRED",
   FORBIDDEN: "FORBIDDEN",
+  EMAIL_UNVERIFIED: "EMAIL_UNVERIFIED",
 
   // 404
   NOT_FOUND: "NOT_FOUND",
@@ -139,6 +140,9 @@ export const ERROR_CODE_CATALOG: readonly ErrorCodeCatalogEntry[] = [
   { code: ErrorCode.FORBIDDEN, statuses: [403], retryable: "no",
     retry_guidance: "This resource isn't available to the authenticated account — verify you're using the right account or key.",
     description: "Authenticated, but not entitled to this specific resource." },
+  { code: ErrorCode.EMAIL_UNVERIFIED, statuses: [403], retryable: "yes",
+    retry_guidance: "Open the link in the verification mail (POST /v1/account/verification with the same key sends a new one), then resend the call.",
+    description: "The account's email address is not confirmed yet, so metered calls wait. Free tools and the account's own reads keep working (AXIS Launch taskgate T106)." },
   { code: ErrorCode.NOT_FOUND, statuses: [404], retryable: "no",
     retry_guidance: "Check the ID or path — the resource doesn't exist, or isn't owned by this account.",
     description: "The requested resource doesn't exist, or belongs to a different account." },

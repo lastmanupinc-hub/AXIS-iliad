@@ -34,7 +34,8 @@ x402 contract: [`docs/x402/CONTRACT.md`](docs/x402/CONTRACT.md)
 Every program ships free artifacts with no API key — 47 of the 152 in total. Three programs are free in full:
 
 ```bash
-# 1. Get an API key (free tier, instant)
+# 1. Get an API key (free tier, instant), then open the link in the mail that follows:
+#    the free tools run at once; metered calls run once the address is confirmed
 curl -X POST https://api.iliad.trustfabric.ai/v1/accounts \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'
@@ -254,7 +255,9 @@ axis-iliad/
 ### Billing & Account
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/accounts` | Create account |
+| POST | `/v1/accounts` | Create account (a verification mail follows; metered calls wait until the address is confirmed) |
+| GET | `/v1/account/verify?token=` | Confirm the address (the link in the mail) |
+| POST | `/v1/account/verification` | Send the verification mail again |
 | GET | `/v1/account` | Get account info |
 | POST | `/v1/account/keys` | Create API key |
 | GET | `/v1/account/keys` | List API keys |

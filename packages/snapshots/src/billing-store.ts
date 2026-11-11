@@ -36,18 +36,28 @@ export function normalizeEmail(email: string): string {
 
 // ─── Accounts ───────────────────────────────────────────────────
 
-export async function createAccount(name: string, email: string, tier: BillingTier = "free"): Promise<Account> {
+export async function createAccount(
+  name: string,
+  email: string,
+  tier: BillingTier = "free",
+  opts: { email_verified_at?: string | null } = {},
+): Promise<Account> {
   const account: Account = {
     account_id: randomUUID(),
     name,
     email: normalizeEmail(email),
     tier,
     created_at: new Date().toISOString(),
+    // Verified at creation unless the caller says otherwise (T106). The store's callers are internal: a social
+    // sign-in (the provider attested the address), the owner's scripts, the test suites. The one public door,
+    // POST /v1/accounts (apps/api billing.ts handleCreateAccount), passes null explicitly and its test holds that;
+    // an account that is null here spends nothing until the mailed link is opened.
+    email_verified_at: opts.email_verified_at === undefined ? new Date().toISOString() : opts.email_verified_at,
   };
 
   await sql.run(
-    "INSERT INTO accounts (account_id, name, email, tier, created_at) VALUES (?, ?, ?, ?, ?)",
-    [account.account_id, account.name, account.email, account.tier, account.created_at],
+    "INSERT INTO accounts (account_id, name, email, tier, created_at, email_verified_at) VALUES (?, ?, ?, ?, ?, ?)",
+    [account.account_id, account.name, account.email, account.tier, account.created_at, account.email_verified_at],
   );
 
   // For suite tier, enable all programs
@@ -62,6 +72,23 @@ export async function createAccount(name: string, email: string, tier: BillingTi
 
 export async function getAccount(account_id: string): Promise<Account | undefined> {
   return await sql.one<Account>("SELECT * FROM accounts WHERE account_id = ?", [account_id]);
+}
+
+/**
+ * Mark an account's address verified (T106). Idempotent: "verified" the first time, "already" after, "missing" for an
+ * unknown account. The time is set once and never moved, so the first confirmation is the one on record.
+ */
+export async function markAccountEmailVerified(
+  account_id: string,
+  at: string = new Date().toISOString(),
+): Promise<"verified" | "already" | "missing"> {
+  const result = await sql.run(
+    "UPDATE accounts SET email_verified_at = ? WHERE account_id = ? AND email_verified_at IS NULL",
+    [at, account_id],
+  );
+  if (result.rowCount > 0) return "verified";
+  const row = await sql.one<{ account_id: string }>("SELECT account_id FROM accounts WHERE account_id = ?", [account_id]);
+  return row ? "already" : "missing";
 }
 
 export async function getAccountByEmail(email: string): Promise<Account | undefined> {
@@ -297,8 +324,8 @@ export async function createApiKey(account_id: string, label: string = ""): Prom
 /** Lookup an account by raw API key. Returns undefined if key is invalid or revoked. */
 export async function resolveApiKey(rawKey: string): Promise<{ apiKey: ApiKey; account: Account } | undefined> {
   const hash = hashKey(rawKey);
-  const row = await sql.one<ApiKey & { account_name: string; email: string; tier: BillingTier; account_created_at: string }>(
-    "SELECT k.*, a.name as account_name, a.email, a.tier, a.created_at as account_created_at FROM api_keys k JOIN accounts a ON k.account_id = a.account_id WHERE k.key_hash = ? AND k.revoked_at IS NULL",
+  const row = await sql.one<ApiKey & { account_name: string; email: string; tier: BillingTier; account_created_at: string; email_verified_at: string | null }>(
+    "SELECT k.*, a.name as account_name, a.email, a.tier, a.created_at as account_created_at, a.email_verified_at FROM api_keys k JOIN accounts a ON k.account_id = a.account_id WHERE k.key_hash = ? AND k.revoked_at IS NULL",
     [hash],
   );
 
@@ -316,6 +343,7 @@ export async function resolveApiKey(rawKey: string): Promise<{ apiKey: ApiKey; a
   const account: Account = {
     account_id: row.account_id,
     name: row.account_name,
+    email_verified_at: row.email_verified_at ?? null,
     email: row.email,
     tier: row.tier,
     created_at: row.account_created_at,

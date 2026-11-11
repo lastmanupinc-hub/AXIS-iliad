@@ -1,6 +1,6 @@
 {
   "name": "@axis/snapshots",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "type": "module",
   "description": "Versioned codebase snapshot store with Postgres (Neon) persistence, diff support, billing types, and funnel tracking — the storage layer for Axis' Iliad",
   "keywords": [

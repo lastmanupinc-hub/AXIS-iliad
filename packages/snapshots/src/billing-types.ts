@@ -16,6 +16,13 @@ export interface Account {
   email: string;
   tier: BillingTier;
   created_at: string;
+  /**
+   * When the address was confirmed (the link in the verification mail, a social sign-in that attested it, or an
+   * admin creating the account), ISO 8601; null until then. An unverified account holds its key and reads its own
+   * data but spends nothing: metered calls are refused (AXIS Launch taskgate T106, 2026-11-10). Accounts that existed
+   * before the column was added were marked verified by the migration that added it (pg-schema.ts v49).
+   */
+  email_verified_at: string | null;
 }
 
 export interface ProgramEntitlement {

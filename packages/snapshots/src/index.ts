@@ -39,6 +39,7 @@ export {
   createAccount,
   getAccount,
   getAccountByEmail,
+  markAccountEmailVerified,
   updateAccountProfile,
   deleteAccount,
   updateAccountTier,

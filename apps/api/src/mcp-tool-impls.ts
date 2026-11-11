@@ -2541,7 +2541,7 @@ export function runDiscoverAgenticCommerceTools(): string {
         vscode: { config: { servers: { "axis-iliad": { type: "http", url: AXIS_MCP_ENDPOINT, headers: { Authorization: "Bearer ${AXIS_API_KEY}" } } } } },
         "claude-code": { command: `claude mcp add --transport http axis-iliad ${AXIS_MCP_ENDPOINT} --header "Authorization: Bearer \${AXIS_API_KEY}"` },
       },
-      get_api_key: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"}`,
+      get_api_key: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"}, then confirm the address through the mailed link (metered tools wait for it)`,
     },
     shareable_manifest: {
       name: REGISTRY_DISPLAY_NAME,
@@ -2939,7 +2939,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
     },
     first_paid_action: FIRST_PAID_ACTION_CTA,
     self_onboarding: {
-      step_1: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"} → get API key`,
+      step_1: `POST ${AXIS_API_BASE_MCP}/v1/accounts with {"email":"<email>","name":"<name>","tier":"free"} → get API key, then confirm the address through the mailed link (metered tools wait for it)`,
       step_2: "Add AXIS as MCP server (see install section)",
       step_3: "Call prepare_agentic_purchasing with your source files",
       step_4: "Retrieve artifacts via get_artifact with snapshot_id",

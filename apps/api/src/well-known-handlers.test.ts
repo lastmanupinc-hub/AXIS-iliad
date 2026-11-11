@@ -35,7 +35,6 @@ import {
   handlePerformance,
   handlePerformanceReputation,
   handleAiPlugin,
-  handleOAuthProtectedResource,
   handlePricingLanding,
   handleX402WellKnown,
   handleEstateManifest,
@@ -94,7 +93,6 @@ beforeAll(async () => {
   router.get("/performance", handlePerformance);
   router.get("/performance/reputation", handlePerformanceReputation);
   router.get("/.well-known/ai-plugin.json", handleAiPlugin);
-  router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
   router.get("/agents.json", handleAgentJson);
   router.get("/pricing", handlePricingLanding);
   router.get("/.well-known/x402", handleX402WellKnown);
@@ -158,7 +156,7 @@ describe("GET /.well-known/agent.json", () => {
   });
 
   it("contains version field", async () => {
-    expect(json.version).toBe("0.5.3");
+    expect(json.version).toBe("0.5.4");
   });
 
   it("contains capabilities object", async () => {
@@ -510,7 +508,7 @@ describe("GET /.well-known/agent-card.json", () => {
   it("cross-references the other well-known discovery surfaces", () => {
     const wellKnown = json.well_known as Record<string, string>;
     expect(wellKnown.x402).toBe("/.well-known/x402");
-    expect(wellKnown.oauth_protected_resource).toBe("/.well-known/oauth-protected-resource");
+    expect(wellKnown.oauth_protected_resource).toBeUndefined(); // no OAuth discovery since T106 (2026-11-10)
   });
 });
 
@@ -639,7 +637,7 @@ describe("GET /health", () => {
   });
 
   it("contains version field", async () => {
-    expect(json.version).toBe("0.5.3");
+    expect(json.version).toBe("0.5.4");
   });
 
   it("contains timestamp", async () => {
@@ -759,7 +757,7 @@ describe("GET /performance", () => {
   });
 
   it("contains version field", async () => {
-    expect(json.version).toBe("0.5.3");
+    expect(json.version).toBe("0.5.4");
   });
 
   it("contains timestamp", async () => {
@@ -920,42 +918,6 @@ describe("GET /.well-known/ai-plugin.json", () => {
 
   it("declares no-auth access", async () => {
     expect((json.auth as Record<string, unknown>).type).toBe("none");
-  });
-});
-
-// ─── GET /.well-known/oauth-protected-resource ───────────────────
-
-describe("GET /.well-known/oauth-protected-resource", () => {
-  let status: number;
-  let headers: Record<string, string | string[] | undefined>;
-  let json: Record<string, unknown>;
-
-  beforeAll(async () => {
-    const r = await req("/.well-known/oauth-protected-resource");
-    status = r.status;
-    headers = r.headers;
-    json = JSON.parse(r.body);
-  });
-
-  it("returns 200", async () => {
-    expect(status).toBe(200);
-  });
-
-  it("returns application/json content-type", async () => {
-    expect(String(headers["content-type"])).toContain("application/json");
-  });
-
-  it("identifies the MCP resource", async () => {
-    expect(String(json.resource)).toContain("/mcp");
-  });
-
-  it("lists at least one authorization server", async () => {
-    expect(Array.isArray(json.authorization_servers)).toBe(true);
-    expect((json.authorization_servers as string[]).length).toBeGreaterThan(0);
-  });
-
-  it("advertises header bearer method", async () => {
-    expect(json.bearer_methods_supported).toContain("header");
   });
 });
 

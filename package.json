@@ -1,6 +1,6 @@
 {
   "name": "axis-iliad",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "type": "module",
   "description": "Axis' Iliad - one API call that turns any codebase into 147 deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, design tokens, Visa CE 3.0 compliance kit, MCP configs, and more)",
@@ -63,7 +63,14 @@
       "vite@^8": "^8.0.16",
       "ws": "^8.21.0",
       "postcss": "^8.5.10",
-      "tar": ">=7.5.21"
+      "tar": ">=7.5.21",
+      "@xmldom/xmldom": "^0.8.15",
+      "image-size": ">=2.0.3",
+      "@grpc/grpc-js": ">=1.14.5",
+      "@toon-format/toon": ">=2.3.1",
+      "simple-git": ">=4.0.2",
+      "zod@^4": ">=4.6.6",
+      "nanoid@^5": ">=5.1.16"
     }
   }
 }

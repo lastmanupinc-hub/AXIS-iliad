@@ -185,30 +185,17 @@ describe("Server route wiring", () => {
     expect(unversionedData.error).toBe("Method not allowed");
   });
 
-  // Bug report (2026-07): production logs showed real 404s on these two paths —
-  // kept for that real traffic even though this ISN'T the RFC 8414/9728 form
-  // (see the next test for the actually-correct one; cycle 28 audit finding).
-  it("OAuth discovery is also served mounted under /mcp (real-traffic compat form)", async () => {
-    const authServer = await req("GET", "/mcp/.well-known/oauth-authorization-server");
-    expect(authServer.status).toBe(200);
-    expect((authServer.data as Record<string, unknown>).issuer).toBeTruthy();
-
-    const protectedResource = await req("GET", "/mcp/.well-known/oauth-protected-resource");
-    expect(protectedResource.status).toBe(200);
-    expect((protectedResource.data as Record<string, unknown>).resource).toBeTruthy();
-  });
-
-  // The ACTUAL RFC 8414 §3 / RFC 9728 §3.1 path-insertion form: well-known
-  // suffix immediately after the host, the resource's own path (/mcp) appended
-  // AFTER the suffix — not the reversed form in the test above.
-  it("OAuth discovery is also served at the spec-correct RFC 8414/9728 path-insertion form", async () => {
-    const authServer = await req("GET", "/.well-known/oauth-authorization-server/mcp");
-    expect(authServer.status).toBe(200);
-    expect((authServer.data as Record<string, unknown>).issuer).toBeTruthy();
-
-    const protectedResource = await req("GET", "/.well-known/oauth-protected-resource/mcp");
-    expect(protectedResource.status).toBe(200);
-    expect((protectedResource.data as Record<string, unknown>).resource).toBeTruthy();
+  // No OAuth discovery documents since T106 (2026-11-10): the demo authorization server they advertised is gone,
+  // and every form a client probed (site root, /mcp-prefixed, RFC path-insertion) answers 404.
+  it("OAuth discovery documents are not served in any form", async () => {
+    for (const path of [
+      "/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource",
+      "/mcp/.well-known/oauth-authorization-server", "/mcp/.well-known/oauth-protected-resource",
+      "/.well-known/oauth-authorization-server/mcp", "/.well-known/oauth-protected-resource/mcp",
+      "/oauth/authorize", "/oauth/jwks",
+    ]) {
+      expect((await req("GET", path)).status).toBe(404);
+    }
   });
 
   it("unknown route returns 404", async () => {

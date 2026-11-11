@@ -78,6 +78,8 @@ HTTP routes detected in this codebase:
 - `GET /health` → docs/archive/e2e_ui_audit.yaml
 - `GET /v1/health` → docs/archive/e2e_ui_audit.yaml
 - `POST /v1/accounts` → apps/api/src/server.ts
+- `GET /v1/account/verify` → apps/api/src/server.ts (the link in the verification mail; email-verification.ts)
+- `POST /v1/account/verification` → apps/api/src/server.ts (send the verification mail again)
 - `GET /v1/account` → apps/api/src/server.ts
 - `PATCH /v1/account` → apps/api/src/server.ts
 - `DELETE /v1/account` → apps/api/src/server.ts

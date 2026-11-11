@@ -69,13 +69,6 @@ const WAIVED_ROUTER_ONLY = new Set<string>([
   key("GET", "/mcp/.well-known/mcp.json"),
   key("GET", "/mcp/.well-known/mcp"),
   key("GET", "/mcp/.well-known/agent.json"),
-  key("GET", "/mcp/.well-known/oauth-authorization-server"),
-  key("GET", "/mcp/.well-known/oauth-protected-resource"),
-  // The ACTUAL RFC 8414 §3 / RFC 9728 §3.1 path-insertion form (cycle 28 fix):
-  // well-known suffix immediately after the host, resource's own path appended
-  // after the suffix. Same handlers as the site-root registration above.
-  key("GET", "/.well-known/oauth-authorization-server/mcp"),
-  key("GET", "/.well-known/oauth-protected-resource/mcp"),
   // Static asset, not a JSON API resource.
   key("GET", "/favicon.ico"),
   // Trailing-slash aliases of the documented /v1/accounts and /accounts.
