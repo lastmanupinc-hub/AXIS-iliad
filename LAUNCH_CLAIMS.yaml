@@ -91,11 +91,11 @@ claims:
     verified_at: "2026-08-04"
 
   - id: api_version
-    text: "v0.5.3"
-    value: "0.5.3"
+    text: "v0.5.4"
+    value: "0.5.4"
     source: "apps/api/src/counts.ts API_VERSION (kept in lockstep with apps/api/package.json)"
     status: verified
-    verified_at: "2026-07-02"
+    verified_at: "2026-11-11"
 
   - id: test_count
     text: "4,900+ automated tests"
